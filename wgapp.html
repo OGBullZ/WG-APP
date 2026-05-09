@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="WG App für Haushalt, Grow, Finanzen und Abos mit Offline-First Datenhaltung und optionalem Firebase-Sync.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WG">
@@ -16,16 +17,20 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
 :root {
-  --bg:          #000;
-  --bg2:         #1c1c1e;
-  --bg3:         #2c2c2e;
-  --bg4:         #3a3a3c;
-  --label:       #fff;
-  --label2:      rgba(235,235,245,.6);
-  --label3:      rgba(235,235,245,.3);
-  --label4:      rgba(235,235,245,.15);
-  --sep:         rgba(84,84,88,.65);
-  --fill:        rgba(120,120,128,.2);
+  --bg:          #060608;
+  --bg2:         rgba(18,18,20,.95);
+  --bg3:         rgba(28,28,30,.96);
+  --bg4:         rgba(255,255,255,.05);
+  --surface:     rgba(255,255,255,.04);
+  --surface-2:   rgba(255,255,255,.06);
+  --border:      rgba(255,255,255,.09);
+  --shadow:      0 28px 60px rgba(0,0,0,.25);
+  --label:       #f5f5f7;
+  --label2:      rgba(245,245,247,.72);
+  --label3:      rgba(245,245,247,.46);
+  --label4:      rgba(245,245,247,.2);
+  --sep:         rgba(255,255,255,.08);
+  --fill:        rgba(120,120,128,.18);
   --blue:        #0a84ff;
   --green:       #30d158;
   --purple:      #bf5af2;
@@ -39,68 +44,100 @@
   --safe-bot:    env(safe-area-inset-bottom, 34px);
 }
 *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
-html,body,#root { height:100%; overflow:hidden; }
+html,body,#root { min-height:100%; height:100%; }
 body {
-  background:var(--bg); color:var(--label);
+  background: radial-gradient(circle at top left, rgba(10,132,255,.16), transparent 22%),
+              radial-gradient(circle at top right, rgba(191,90,242,.12), transparent 20%),
+              #060608;
+  color:var(--label);
   font-family:-apple-system,'SF Pro Display','SF Pro Text','Helvetica Neue',sans-serif;
-  -webkit-font-smoothing:antialiased; -webkit-text-size-adjust:none;
-  overscroll-behavior:none; user-select:none;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  -webkit-text-size-adjust:none;
+  overscroll-behavior:none;
+  user-select:none;
 }
 input { font-family:inherit; user-select:text; }
 button { font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; border:none; }
-input:focus { outline:none; }
-::-webkit-scrollbar { display:none; }
+input:focus, button:focus, textarea:focus { outline:none; }
+::-webkit-scrollbar { width:10px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(255,255,255,.12); border-radius:999px; }
 input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 
 /* ── Screen layout ── */
 .screen {
   position:fixed; inset:0; display:flex; flex-direction:column;
-  padding-top:calc(var(--nb-h) + var(--safe-top));
+  padding-top:calc(var(--nb-h) + var(--safe-top) + 8px);
   padding-bottom:var(--tb-h);
 }
 .scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; }
-.content { padding:16px 16px 32px; display:flex; flex-direction:column; gap:24px; }
+.content { padding:18px 18px 34px; display:flex; flex-direction:column; gap:22px; }
 
 /* ── Navbar ── */
 .navbar {
   position:fixed; top:0; left:0; right:0; z-index:90;
   height:calc(var(--nb-h) + var(--safe-top)); padding-top:var(--safe-top);
-  background:rgba(0,0,0,.8); backdrop-filter:saturate(180%) blur(20px);
-  -webkit-backdrop-filter:saturate(180%) blur(20px);
-  border-bottom:.5px solid var(--sep);
-  display:flex; align-items:flex-end; padding-bottom:11px;
-  padding-left:16px; padding-right:16px; gap:8px;
+  background:rgba(10,10,12,.92); backdrop-filter:saturate(180%) blur(26px);
+  -webkit-backdrop-filter:saturate(180%) blur(26px);
+  border-bottom:1px solid rgba(255,255,255,.06);
+  display:flex; align-items:flex-end; padding-bottom:12px;
+  padding-left:18px; padding-right:18px; gap:10px;
 }
-.navbar-title { font-size:17px; font-weight:600; letter-spacing:-.43px; flex:1; }
-.sync-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; margin-bottom:1px; transition:background .4s; }
+.navbar-title { font-size:17px; font-weight:700; letter-spacing:-.44px; flex:1; }
+.sync-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; margin-bottom:1px; transition:background .35s ease; }
 
 /* ── Tab bar ── */
 .tabbar {
   position:fixed; bottom:0; left:0; right:0; z-index:90;
   height:var(--tb-h); padding-bottom:var(--safe-bot);
-  background:rgba(0,0,0,.8); backdrop-filter:saturate(180%) blur(20px);
-  -webkit-backdrop-filter:saturate(180%) blur(20px);
-  border-top:.5px solid var(--sep);
-  display:flex; align-items:flex-start; padding-top:8px;
+  background:rgba(8,8,10,.92); backdrop-filter:saturate(180%) blur(26px);
+  -webkit-backdrop-filter:saturate(180%) blur(26px);
+  border-top:1px solid rgba(255,255,255,.06);
+  display:flex; align-items:flex-start; padding-top:10px;
+  gap:8px;
 }
-.tabitem { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; background:none; padding:0; transition:opacity .1s; }
-.tabitem:active { opacity:.7; }
-.tabitem svg { width:25px; height:25px; }
-.tabitem span { font-size:10px; letter-spacing:-.15px; font-weight:500; }
+.tabitem {
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  background:transparent;
+  padding:10px 0;
+  transition:all .22s ease;
+  border-radius:18px;
+}
+.tabitem:active { opacity:.8; }
+.tabitem svg { width:24px; height:24px; }
+.tabitem span { font-size:11px; letter-spacing:-.15px; font-weight:600; }
+.tabitem[style*="color:"] {
+  background:rgba(255,255,255,.04);
+}
 
 /* ── Groups / Cells ── */
-.group { background:var(--bg2); border-radius:12px; overflow:hidden; }
-.cell {
-  display:flex; align-items:center; padding:11px 16px; gap:12px; min-height:44px;
-  position:relative; background:var(--bg2);
+.group {
+  background:var(--bg2);
+  border-radius:18px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.06);
+  box-shadow:var(--shadow);
 }
-.cell+.cell::before { content:''; position:absolute; top:0; left:52px; right:0; height:.5px; background:var(--sep); }
-.cell-icon { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
-.cell-content { flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
-.cell-title { font-size:17px; letter-spacing:-.43px; color:var(--label); }
+.cell {
+  display:flex; align-items:center; padding:14px 18px; gap:14px; min-height:52px;
+  position:relative;
+  background:rgba(255,255,255,.03);
+  transition:transform .22s ease, background .22s ease, border-color .22s ease;
+}
+.cell:hover { background:rgba(255,255,255,.06); transform:translateY(-1px); }
+.cell+.cell::before { content:''; position:absolute; top:0; left:56px; right:0; height:1px; background:rgba(255,255,255,.08); }
+.cell-icon { width:34px; height:34px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+.cell-content { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.cell-title { font-size:17px; letter-spacing:-.44px; color:var(--label); }
 .cell-sub { font-size:12px; color:var(--label2); }
-.section-hdr { font-size:13px; color:var(--label2); text-transform:uppercase; letter-spacing:-.08px; padding:0 0 6px; }
-.section-ftr { font-size:13px; color:var(--label3); padding:8px 0 0; }
+.section-hdr { font-size:12px; color:var(--label3); text-transform:uppercase; letter-spacing:.12em; padding:0 0 8px; }
+.section-ftr { font-size:13px; color:var(--label3); padding:10px 0 0; }
 
 /* ── Summary ── */
 .summary { background:var(--bg2); border-radius:14px; overflow:hidden; }
@@ -117,40 +154,89 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 }
 
 /* ── Buttons ── */
-.btn { width:100%; height:50px; border:none; border-radius:14px; font-size:17px; font-weight:600; letter-spacing:-.43px; color:#fff; transition:filter .1s; }
-.btn:active { filter:brightness(.84); }
-.btn-sec { background:var(--bg3); color:var(--label); font-weight:500; }
+.btn {
+  width:100%; height:52px; border:none; border-radius:16px;
+  font-size:17px; font-weight:700; letter-spacing:-.45px;
+  color:#fff; transition:transform .18s ease, box-shadow .18s ease, background .18s ease;
+  box-shadow:0 18px 40px rgba(0,0,0,.18);
+}
+.btn:hover { transform:translateY(-1px); }
+.btn:active { transform:translateY(0); }
+.btn-sec {
+  background:rgba(255,255,255,.06);
+  color:var(--label);
+  font-weight:600;
+  box-shadow:none;
+}
 
 /* ── Segmented ── */
-.seg { background:var(--bg3); border-radius:9px; padding:2px; display:flex; }
-.seg-btn { flex:1; height:32px; border:none; border-radius:7px; font-size:13px; font-weight:500; letter-spacing:-.08px; transition:all .2s; }
-.seg-btn.on { background:var(--bg4); color:var(--label); }
-.seg-btn:not(.on) { background:none; color:var(--label2); }
+.seg {
+  background:rgba(255,255,255,.05);
+  border-radius:16px;
+  padding:4px;
+  display:flex;
+  gap:4px;
+}
+.seg-btn {
+  flex:1;
+  height:38px;
+  border:none;
+  border-radius:14px;
+  font-size:13px;
+  font-weight:600;
+  letter-spacing:-.05px;
+  transition:all .22s ease;
+  background:transparent;
+  color:var(--label2);
+}
+.seg-btn.on {
+  background:rgba(255,255,255,.14);
+  color:var(--label);
+}
+.seg-btn:not(.on):hover { background:rgba(255,255,255,.08); }
 
 /* ── Wizard ── */
-.overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:200; display:flex; align-items:flex-end; }
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:200; display:flex; align-items:flex-end; }
 .sheet {
-  width:100%; background:var(--bg2); border-radius:12px 12px 0 0;
-  padding:8px 0 0; padding-bottom:calc(16px + var(--safe-bot));
+  width:100%; background:rgba(14,14,16,.98); border-radius:20px 20px 0 0;
+  padding:10px 0 0; padding-bottom:calc(18px + var(--safe-bot));
   animation:sheetUp .26s cubic-bezier(.52,0,.36,1);
+  box-shadow:0 -20px 60px rgba(0,0,0,.28);
+  border:1px solid rgba(255,255,255,.05);
 }
 @keyframes sheetUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
-.sheet-handle { width:36px; height:5px; border-radius:3px; background:var(--bg4); margin:0 auto 16px; }
+.sheet-handle { width:38px; height:5px; border-radius:999px; background:rgba(255,255,255,.12); margin:0 auto 18px; }
 .sheet-hdr { padding:0 20px 16px; display:flex; justify-content:space-between; align-items:center; }
-.sheet-title { font-size:17px; font-weight:600; letter-spacing:-.43px; }
+.sheet-title { font-size:17px; font-weight:700; letter-spacing:-.44px; }
 .cancel-btn { font-size:17px; color:var(--blue); background:none; border:none; padding:0; }
 .step-bar { display:flex; gap:4px; padding:0 20px 20px; }
-.step-seg { flex:1; height:2px; border-radius:1px; transition:background .25s; }
+.step-seg { flex:1; height:2px; border-radius:1px; transition:background .25s; background:var(--bg4); }
+.step-seg[style*="background:var(--bg4)"] { background:var(--bg4); }
 .sheet-body { padding:0 20px; display:flex; flex-direction:column; gap:14px; }
 .sheet-lbl { font-size:13px; color:var(--label2); letter-spacing:-.08px; }
 .sheet-acts { padding:20px 20px 0; display:flex; gap:10px; }
 
 /* ── Inputs ── */
-.field { width:100%; background:var(--bg3); border:none; border-radius:10px; padding:13px 15px; font-size:17px; color:var(--label); letter-spacing:-.43px; }
+.field {
+  width:100%;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+  padding:14px 16px;
+  font-size:17px;
+  color:var(--label);
+  letter-spacing:-.43px;
+  transition:box-shadow .18s ease, border-color .18s ease, background .18s ease;
+}
+.field:focus {
+  background:rgba(255,255,255,.08);
+  border-color:rgba(10,132,255,.45);
+  box-shadow:0 0 0 3px rgba(10,132,255,.12);
+}
 .field::placeholder { color:var(--label3); }
 .f-euro { position:relative; }
-.f-euro::before { content:'€'; position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--label2); font-size:17px; pointer-events:none; }
-.f-euro .field { padding-left:30px; font-size:22px; font-weight:600; }
+.f-euro::before { content:'€'; position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--label3); font-size:17px; pointer-events:none; }
+.f-euro .field { padding-left:34px; font-size:22px; font-weight:600; }
 .pick { display:flex; gap:8px; }
 .pick-btn { flex:1; height:50px; border:none; border-radius:12px; font-size:15px; font-weight:600; letter-spacing:-.23px; transition:all .15s; }
 .pick-btn.on { opacity:1 !important; }
@@ -377,7 +463,7 @@ function Wiz({ open, onClose, title, color, steps, onFinish }) {
         </div>
         <div className="step-bar">
           {steps.map((_,i)=>(
-            <div key={i} className="step-seg" style={{background:i<=step?color:'var(--bg4)',opacity:i<step?.5:1}}/>
+            <div key={i} className="step-seg" style={{background:i<=step?color:'var(--bg4)',opacity:i<=step?1:0.3}}/>
           ))}
         </div>
         <div className="sheet-body">
@@ -497,7 +583,7 @@ function Haushalt() {
                           <div style={{fontSize:17,fontWeight:600,letterSpacing:'-.43px'}}>€{fmt(item.price)}</div>
                           <div style={{fontSize:11,color:'var(--label3)'}}>je €{fmt(item.price/2)}</div>
                         </div>
-                        <button className="del-btn" onClick={()=>del(item.id)}>×</button>
+                        <button className="del-btn" aria-label="Ausgabe löschen" title="Ausgabe löschen" onClick={()=>del(item.id)}>×</button>
                       </div>
                     );
                   })}
@@ -622,7 +708,7 @@ function Grow() {
                           {users.map(u=><span key={u.id} style={{color:u.color,marginLeft:4}}>{u.name} €{fmt(item.price*share(u.id))}</span>)}
                         </div>
                       </div>
-                      <button className="del-btn" onClick={()=>del(item.id)}>×</button>
+                      <button className="del-btn" aria-label="Eintrag löschen" title="Eintrag löschen" onClick={()=>del(item.id)}>×</button>
                     </div>
                   );
                 })}
@@ -738,7 +824,7 @@ function Finanzen() {
                         <span style={{fontWeight:600,fontSize:17,color:t.type==='inc'?'var(--green)':'var(--red)'}}>
                           {t.type==='inc'?'+':'-'}€{fmt(t.amount)}
                         </span>
-                        <button className="del-btn" onClick={()=>set('ft',txs.filter(x=>x.id!==t.id))}>×</button>
+                        <button className="del-btn" aria-label="Buchung löschen" title="Buchung löschen" onClick={()=>set('ft',txs.filter(x=>x.id!==t.id))}>×</button>
                       </div>
                     ))}
                   </div>
@@ -763,7 +849,7 @@ function Finanzen() {
                           <div style={{fontSize:15,fontWeight:600}}>€{fmt(f.amount)}</div>
                           {f.freq==='y'&&<div style={{fontSize:11,color:'var(--label3)'}}>€{fmt(f.amount/12)}/Mo.</div>}
                         </div>
-                        <button className="del-btn" onClick={()=>set('ff',fixed.filter(x=>x.id!==f.id))}>×</button>
+                        <button className="del-btn" aria-label="Fixkosten löschen" title="Fixkosten löschen" onClick={()=>set('ff',fixed.filter(x=>x.id!==f.id))}>×</button>
                       </div>
                     ))}
                   </div>
@@ -1046,8 +1132,7 @@ function Einstellungen() {
         </div>
 
         <button style={{width:'100%',height:50,border:'none',borderRadius:14,background:'var(--bg2)',color:'var(--red)',fontSize:17,fontWeight:500}}
-          onClick={()=>{if(confirm('Alle lokalen Daten löschen?')){localStorage.clear();window.location.reload();}}}>
-          Alle Daten löschen
+            onClick={()=>{if(confirm('Alle lokalen Daten löschen?')){['wg_data','fb_cfg','wg_code'].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>
         </button>
 
       </div></div>
