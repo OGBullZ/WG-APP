@@ -1,17 +1,25 @@
 # WG-APP
 
-Single-File-PWA zum Splitten von WG-Ausgaben. Offline-first, optionaler Firebase-Sync zwischen zwei Geräten. Nur eine HTML-Datei, kein Build.
+Single-File-PWA zum Splitten von WG-Ausgaben. Offline-first, Firebase-Live-Sync zwischen Geräten. Nur eine HTML-Datei, kein Build.
 
-## Quickstart (2 Personen, ~5 Min)
+**Live:** https://wgapp-65484.web.app (Firebase Hosting + Realtime Database, Projekt `wgapp-65484`)
 
-1. **`wgapp.html`** auf einen Webserver legen (Vercel, GitHub Pages, eigener nginx — egal, nur HTTPS).
-2. **Firebase-Projekt** anlegen (Person A macht das einmal):
-   - https://console.firebase.google.com → neues Projekt
-   - Build → **Realtime Database** → erstellen → Testmodus
-   - Projekteinstellungen → Web-App hinzufügen → Config-Objekt kopieren
-3. **App öffnen** → Tab **Mehr** → Firebase-Config einfügen → Verbinden.
-4. **WG-Code teilen** (in "Mehr" angezeigt) → Person B öffnet die App auf ihrem Gerät, fügt dieselbe Firebase-Config ein, gibt den Code im "Beitreten"-Feld ein.
-5. Beim Beitreten fragt die App, ob lokale Daten **gemergt** oder **überschrieben** werden sollen.
+## Quickstart (2 Personen, ~1 Min)
+
+Die Firebase-Config ist eingebaut — kein Setup nötig.
+
+1. Person A öffnet https://wgapp-65484.web.app → **Mehr → WG-Code teilen** → Code kopieren.
+2. Person B öffnet dieselbe URL auf ihrem Gerät → Code im **Beitreten**-Feld eingeben.
+3. Beim Beitreten fragt die App, ob lokale Daten **gemergt** oder **überschrieben** werden sollen. Fertig — ab jetzt synct alles live.
+
+Eigene Firebase-Instanz? Unter **Mehr → Firebase** kann weiterhin eine eigene Config eingetragen werden.
+
+## Deploy
+
+```
+firebase deploy --only database,hosting
+```
+(braucht `firebase-tools` + Login; Config in `firebase.json`, DB-Regeln in `database.rules.json`. Die alte Vercel-Instanz existiert noch, wird aber nicht mehr gebraucht.)
 
 ## Module
 
@@ -49,5 +57,4 @@ Safari → Teilen → "Zum Home-Bildschirm". Läuft dann wie native App (Standal
 ## Bekannte Grenzen
 
 - Genau zwei Personen vorgesehen. Mehr User möglich (Default-Liste in `U_DEF` erweitern), UI optimiert für 2.
-- Keine Auth — wer den WG-Code kennt, sieht alles. Code lang genug für unbeobachtetes Erraten, aber kein Geheimnis-Schutz.
-- Firebase-Testmodus ist nach 30 Tagen schreibgeschützt — Rules vorher anpassen (`auth != null` ist hier nicht möglich, also entweder offen lassen oder einfache Auth nachrüsten).
+- Keine Auth — die DB-Regeln sind offen (`database.rules.json`), wer den WG-Code kennt bzw. errät, kann mitlesen/schreiben. Für einen WG-Einkaufszettel okay, für Sensibles nicht.

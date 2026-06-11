@@ -360,6 +360,14 @@ const genCode = () => `${ADJS[Math.floor(Math.random()*8)]}-${NUNS[Math.floor(Ma
 
 const U_DEF = [{id:'u1',name:'Torben',color:'#38bdf8'},{id:'u2',name:'Tom',color:'#fbbf24'}];
 
+/* Eingebaute Firebase-Config (Client-Keys sind öffentlich) — Sync läuft out-of-the-box */
+const FB_DEFAULT = {
+  apiKey: "AIzaSyDUI_cByyzZGXvszsOhdvZw9tlOJ4A_k1Y",
+  authDomain: "wgapp-65484.firebaseapp.com",
+  databaseURL: "https://wgapp-65484-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "wgapp-65484",
+};
+
 const INIT = {
   users:  U_DEF,
   hs:     [],
@@ -381,7 +389,7 @@ const Ctx = createContext(null);
 const MOD_DEF = { haus:true, grow:true, putz:true, fin:false, abos:false };
 
 function DataProvider({ children }) {
-  const [fbCfg,  setFbCfg_]  = useState(() => ls('fb_cfg', null));
+  const [fbCfg,  setFbCfg_]  = useState(() => ls('fb_cfg', FB_DEFAULT));
   const [wgCode, setWgCode_] = useState(() => ls('wg_code', genCode()));
   const [status, setStatus]  = useState('local'); // local | connecting | synced | error
   const [online, setOnline]  = useState(() => navigator.onLine);
