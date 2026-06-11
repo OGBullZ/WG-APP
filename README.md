@@ -15,18 +15,21 @@ Single-File-PWA zum Splitten von WG-Ausgaben. Offline-first, optionaler Firebase
 
 ## Module
 
-Default sichtbar ist nur **Haushalt**. In **Mehr → Module anzeigen** lassen sich **Grow**, **Finanzen**, **Abos** einschalten.
+Default sichtbar: **Haushalt**, **Growbox**, **Putzplan**. In **Mehr → Module anzeigen** lassen sich **Finanzen** und **Abos** dazuschalten.
 
-| Modul     | Zweck                                                   |
-|-----------|---------------------------------------------------------|
-| Haushalt  | Ausgaben 50/50 splitten, abhaken wenn ausgeglichen      |
-| Grow      | Kosten anteilig nach Pflanzen-Anzahl pro Person         |
-| Finanzen  | Persönliches Budget je Person, Einnahmen/Ausgaben/Fix   |
-| Abos      | Abos mit Monats-/Jahres-Intervall, Restlaufzeit-Ringe   |
+| Modul     | Zweck                                                                      |
+|-----------|----------------------------------------------------------------------------|
+| Haushalt  | Ausgaben 50/50 splitten + gemeinsame Einkaufsliste (zeigt, wer was einträgt) |
+| Growbox   | Kosten anteilig nach Pflanzen-Anzahl pro Person (Donut-Split)              |
+| Putzplan  | Aufgaben mit Intervall, automatische Rotation, Fairness-Score (30 Tage)    |
+| Finanzen  | Persönliches Budget je Person, Einnahmen/Ausgaben/Fix                      |
+| Abos      | Abos mit Monats-/Jahres-Intervall, Restlaufzeit-Ringe                      |
+
+**„Das bin ich"** (Mehr → Personen): legt pro Gerät fest, wer es nutzt — Einkaufslisten-Einträge werden damit automatisch zugeordnet. Wird nicht gesynct (`wg_me` in localStorage).
 
 ## Daten
 
-- Lokal: `localStorage` (`wg_data`, `wg_code`, `fb_cfg`, `wg_modules`)
+- Lokal: `localStorage` (`wg_data`, `wg_code`, `fb_cfg`, `wg_modules`, `wg_me`)
 - Remote: Firebase Realtime Database unter `wg/<WG-CODE>`
 - Sync: Debounce 400 ms, Echo-Suppression via `_wid`
 - Konflikte: Last-write-wins auf Dataset-Ebene (kein Field-Merge)
@@ -40,7 +43,8 @@ Safari → Teilen → "Zum Home-Bildschirm". Läuft dann wie native App (Standal
 
 - React 18 (CDN, Babel-Standalone — kein Build-Step)
 - Firebase JS SDK 9 (compat-Build)
-- ~1300 Zeilen `wgapp.html`, alles inline
+- Google Fonts: Unbounded / Hanken Grotesk / Spline Sans Mono
+- ~1650 Zeilen `wgapp.html`, alles inline; responsive (Mobile + Desktop ab 700px zentrierte Spalte)
 
 ## Bekannte Grenzen
 

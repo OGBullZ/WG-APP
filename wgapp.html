@@ -3,13 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="description" content="WG App für Haushalt, Grow, Finanzen und Abos mit Offline-First Datenhaltung und optionalem Firebase-Sync.">
+<meta name="description" content="WG App für Haushalt, Grow, Finanzen und Abos mit Offline-First Datenhaltung und Firebase-Live-Sync.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WG">
-<meta name="theme-color" content="#060608">
+<meta name="theme-color" content="#060a08">
 <title>WG</title>
-<link rel="manifest" href='data:application/manifest+json;charset=utf-8,{"name":"WG","short_name":"WG","start_url":".","display":"standalone","background_color":"%23060608","theme_color":"%23060608","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 192 192%22><rect width=%22192%22 height=%22192%22 fill=%22%23060608%22/><text x=%2296%22 y=%22120%22 text-anchor=%22middle%22 font-size=%2280%22 fill=%22%230a84ff%22 font-family=%22Helvetica%22 font-weight=%22700%22>WG</text></svg>","sizes":"192x192","type":"image/svg+xml"}]}'>
+<link rel="manifest" href='data:application/manifest+json;charset=utf-8,{"name":"WG","short_name":"WG","start_url":".","display":"standalone","background_color":"%23060a08","theme_color":"%23060a08","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 192 192%22><rect width=%22192%22 height=%22192%22 rx=%2244%22 fill=%22%23060a08%22/><text x=%2296%22 y=%22122%22 text-anchor=%22middle%22 font-size=%2272%22 fill=%22%23a3e635%22 font-family=%22Helvetica%22 font-weight=%22800%22>WG</text></svg>","sizes":"192x192","type":"image/svg+xml"}]}'>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 <!-- Firebase compat SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -19,263 +22,323 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
 :root {
-  --bg:          #060608;
-  --bg2:         rgba(18,18,20,.95);
-  --bg3:         rgba(28,28,30,.96);
-  --bg4:         rgba(255,255,255,.05);
-  --surface:     rgba(255,255,255,.04);
-  --surface-2:   rgba(255,255,255,.06);
+  --bg:          #060a08;
+  --bg2:         rgba(16,22,19,.92);
+  --bg3:         rgba(28,36,32,.95);
+  --bg4:         rgba(255,255,255,.06);
+  --card:        linear-gradient(160deg, rgba(255,255,255,.055), rgba(255,255,255,.018));
   --border:      rgba(255,255,255,.09);
-  --shadow:      0 28px 60px rgba(0,0,0,.25);
-  --label:       #f5f5f7;
-  --label2:      rgba(245,245,247,.72);
-  --label3:      rgba(245,245,247,.46);
-  --label4:      rgba(245,245,247,.2);
+  --shadow:      0 24px 56px rgba(0,0,0,.4);
+  --label:       #f2f6f3;
+  --label2:      rgba(242,246,243,.72);
+  --label3:      rgba(242,246,243,.45);
+  --label4:      rgba(242,246,243,.22);
   --sep:         rgba(255,255,255,.08);
-  --fill:        rgba(120,120,128,.18);
-  --blue:        #0a84ff;
-  --green:       #30d158;
-  --purple:      #bf5af2;
-  --indigo:      #5e5ce6;
-  --red:         #ff453a;
-  --orange:      #ff9f0a;
-  --teal:        #5ac8fa;
-  --nb-h:        49px;
-  --tb-h:        83px;
-  --safe-top:    env(safe-area-inset-top, 44px);
-  --safe-bot:    env(safe-area-inset-bottom, 34px);
+  --lime:        #a3e635;
+  --mint:        #5eead4;
+  --violet:      #c4b5fd;
+  --indigo:      #818cf8;
+  --red:         #fb7185;
+  --green:       #4ade80;
+  --amber:       #fbbf24;
+  --sky:         #38bdf8;
+  --nb-h:        54px;
+  --tb-h:        84px;
+  --safe-top:    env(safe-area-inset-top, 24px);
+  --safe-bot:    env(safe-area-inset-bottom, 24px);
+  --disp:        'Unbounded', sans-serif;
+  --mono:        'Spline Sans Mono', monospace;
 }
 *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
 html,body,#root { min-height:100%; height:100%; }
 body {
-  background: radial-gradient(circle at top left, rgba(10,132,255,.16), transparent 22%),
-              radial-gradient(circle at top right, rgba(191,90,242,.12), transparent 20%),
-              #060608;
+  background:var(--bg);
   color:var(--label);
-  font-family:-apple-system,'SF Pro Display','SF Pro Text','Helvetica Neue',sans-serif;
+  font-family:'Hanken Grotesk',-apple-system,sans-serif;
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
   -webkit-text-size-adjust:none;
   overscroll-behavior:none;
   user-select:none;
 }
-input { font-family:inherit; user-select:text; }
+/* ── Aurora + Grain ── */
+body::before {
+  content:''; position:fixed; inset:-25%; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(42% 34% at 16% 6%,  rgba(163,230,53,.13),  transparent 62%),
+    radial-gradient(38% 30% at 86% 10%, rgba(94,234,212,.11),  transparent 62%),
+    radial-gradient(52% 42% at 50% 112%,rgba(196,181,253,.09), transparent 62%);
+  animation:drift 26s ease-in-out infinite alternate;
+}
+@keyframes drift { to { transform:translate3d(2.5%,-2%,0) scale(1.07) rotate(1deg); } }
+body::after {
+  content:''; position:fixed; inset:0; z-index:1; pointer-events:none; opacity:.05;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+#root { position:relative; z-index:2; }
+input,textarea { font-family:inherit; user-select:text; }
 button { font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; border:none; }
 input:focus, button:focus, textarea:focus { outline:none; }
-::-webkit-scrollbar { width:10px; }
+::-webkit-scrollbar { width:8px; }
 ::-webkit-scrollbar-track { background:transparent; }
-::-webkit-scrollbar-thumb { background:rgba(255,255,255,.12); border-radius:999px; }
+::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1); border-radius:999px; }
 input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
+
+.disp { font-family:var(--disp); }
+.num  { font-family:var(--mono); font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
 
 /* ── Screen layout ── */
 .screen {
   position:fixed; inset:0; display:flex; flex-direction:column;
-  padding-top:calc(var(--nb-h) + var(--safe-top) + 8px);
+  padding-top:calc(var(--nb-h) + var(--safe-top));
   padding-bottom:var(--tb-h);
 }
 .scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; }
-.content { padding:18px 18px 34px; display:flex; flex-direction:column; gap:22px; }
+.content { padding:16px 16px 36px; display:flex; flex-direction:column; gap:20px; }
+
+/* ── Entry animation ── */
+.rise { animation:rise .5s cubic-bezier(.22,1,.36,1) backwards; }
+@keyframes rise { from { opacity:0; transform:translateY(14px); } }
 
 /* ── Navbar ── */
 .navbar {
   position:fixed; top:0; left:0; right:0; z-index:90;
   height:calc(var(--nb-h) + var(--safe-top)); padding-top:var(--safe-top);
-  background:rgba(10,10,12,.92); backdrop-filter:saturate(180%) blur(26px);
-  -webkit-backdrop-filter:saturate(180%) blur(26px);
-  border-bottom:1px solid rgba(255,255,255,.06);
-  display:flex; align-items:flex-end; padding-bottom:12px;
-  padding-left:18px; padding-right:18px; gap:10px;
+  background:rgba(6,10,8,.78); backdrop-filter:saturate(160%) blur(22px);
+  -webkit-backdrop-filter:saturate(160%) blur(22px);
+  border-bottom:1px solid rgba(255,255,255,.05);
+  display:flex; align-items:center;
+  padding-left:18px; padding-right:16px; gap:10px;
 }
-.navbar-title { font-size:17px; font-weight:700; letter-spacing:-.44px; flex:1; }
-.sync-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; margin-bottom:1px; transition:background .35s ease; }
+.navbar-title {
+  font-family:var(--disp); font-size:15px; font-weight:700;
+  letter-spacing:.06em; text-transform:uppercase; flex:1;
+}
+.live-pill {
+  display:flex; align-items:center; gap:6px;
+  font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.18em;
+  padding:5px 10px 5px 8px; border-radius:999px;
+  border:1px solid; opacity:.95;
+}
+.live-dot { width:6px; height:6px; border-radius:50%; background:currentColor; animation:pulse 1.8s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1; box-shadow:0 0 0 0 currentColor;} 50%{opacity:.5; box-shadow:0 0 8px 1px currentColor;} }
+
+/* ── Live toast ── */
+.toast {
+  position:fixed; top:calc(var(--safe-top) + var(--nb-h) + 10px); left:50%; z-index:300;
+  transform:translateX(-50%);
+  display:flex; align-items:center; gap:8px;
+  background:rgba(16,24,18,.92); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(163,230,53,.35); border-radius:999px;
+  padding:9px 16px; font-size:13px; font-weight:600; color:var(--lime);
+  box-shadow:0 14px 40px rgba(0,0,0,.5), 0 0 24px rgba(163,230,53,.12);
+  animation:toastIn .4s cubic-bezier(.22,1,.36,1);
+}
+@keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(-12px) scale(.94); } }
 
 /* ── Tab bar ── */
 .tabbar {
   position:fixed; bottom:0; left:0; right:0; z-index:90;
   height:var(--tb-h); padding-bottom:var(--safe-bot);
-  background:rgba(8,8,10,.92); backdrop-filter:saturate(180%) blur(26px);
-  -webkit-backdrop-filter:saturate(180%) blur(26px);
-  border-top:1px solid rgba(255,255,255,.06);
-  display:flex; align-items:flex-start; padding-top:10px;
-  gap:8px;
+  background:rgba(5,8,6,.82); backdrop-filter:saturate(160%) blur(24px);
+  -webkit-backdrop-filter:saturate(160%) blur(24px);
+  border-top:1px solid rgba(255,255,255,.05);
+  display:flex; align-items:flex-start; padding-top:8px; gap:4px;
 }
 .tabitem {
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:4px;
-  background:transparent;
-  padding:10px 0;
-  transition:all .22s ease;
-  border-radius:18px;
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:4px; background:transparent; padding:8px 0 10px; position:relative;
+  transition:all .25s cubic-bezier(.22,1,.36,1);
 }
-.tabitem:active { opacity:.8; }
-.tabitem svg { width:24px; height:24px; }
-.tabitem span { font-size:11px; letter-spacing:-.15px; font-weight:600; }
-.tabitem[style*="color:"] {
-  background:rgba(255,255,255,.04);
+.tabitem:active { transform:scale(.92); }
+.tabitem span { font-size:10px; letter-spacing:.04em; font-weight:700; }
+.tabitem .tab-glow {
+  position:absolute; top:0; width:22px; height:3px; border-radius:0 0 3px 3px;
+  box-shadow:0 2px 12px 1px currentColor; background:currentColor;
+  animation:rise .3s ease backwards;
 }
 
 /* ── Groups / Cells ── */
 .group {
-  background:var(--bg2);
-  border-radius:18px;
-  overflow:hidden;
-  border:1px solid rgba(255,255,255,.06);
+  background:var(--card);
+  border-radius:20px; overflow:hidden;
+  border:1px solid var(--border);
   box-shadow:var(--shadow);
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
 }
 .cell {
-  display:flex; align-items:center; padding:14px 18px; gap:14px; min-height:52px;
-  position:relative;
-  background:rgba(255,255,255,.03);
-  transition:transform .22s ease, background .22s ease, border-color .22s ease;
+  display:flex; align-items:center; padding:14px 16px; gap:13px; min-height:54px;
+  position:relative; transition:background .2s ease;
 }
-.cell:hover { background:rgba(255,255,255,.06); transform:translateY(-1px); }
-.cell+.cell::before { content:''; position:absolute; top:0; left:56px; right:0; height:1px; background:rgba(255,255,255,.08); }
-.cell-icon { width:34px; height:34px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+.cell:active { background:rgba(255,255,255,.05); }
+.cell+.cell::before { content:''; position:absolute; top:0; left:52px; right:0; height:1px; background:var(--sep); }
+.cell-icon { width:36px; height:36px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
 .cell-content { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
-.cell-title { font-size:17px; letter-spacing:-.44px; color:var(--label); }
-.cell-sub { font-size:12px; color:var(--label2); }
-.section-hdr { font-size:12px; color:var(--label3); text-transform:uppercase; letter-spacing:.12em; padding:0 0 8px; }
-.section-ftr { font-size:13px; color:var(--label3); padding:10px 0 0; }
+.cell-title { font-size:16px; font-weight:600; letter-spacing:-.01em; color:var(--label); }
+.cell-sub { font-size:12px; color:var(--label3); font-weight:500; }
+.section-hdr {
+  font-family:var(--mono); font-size:11px; color:var(--label3);
+  text-transform:uppercase; letter-spacing:.2em; padding:0 2px 9px; font-weight:600;
+}
+.section-ftr { font-size:12.5px; color:var(--label3); padding:9px 2px 0; line-height:1.5; }
 
-/* ── Summary ── */
-.summary { background:var(--bg2); border-radius:14px; overflow:hidden; }
-.sum-row { display:flex; }
-.sum-col { flex:1; padding:14px 0; text-align:center; display:flex; flex-direction:column; gap:3px; }
-.sum-col+.sum-col { border-left:.5px solid var(--sep); }
-.sum-lbl { font-size:11px; letter-spacing:.07px; color:var(--label2); text-transform:uppercase; }
-.sum-val { font-size:20px; font-weight:700; letter-spacing:.35px; }
+/* ── Hero card ── */
+.hero {
+  position:relative; border-radius:24px; padding:20px; overflow:hidden;
+  background:var(--card); border:1px solid var(--border);
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+}
+.hero::before {
+  content:''; position:absolute; top:-70px; right:-50px; width:220px; height:220px;
+  border-radius:50%; background:var(--glow, rgba(163,230,53,.15)); filter:blur(54px); pointer-events:none;
+}
+.hero-lbl { font-family:var(--mono); font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--label3); font-weight:600; }
+.hero-big { font-family:var(--mono); font-size:38px; font-weight:700; letter-spacing:-.03em; line-height:1.1; }
 
-/* ── Balance banner ── */
+/* ── Paid bars ── */
+.bar-row { display:flex; align-items:center; gap:10px; }
+.bar-name { font-size:13px; font-weight:700; width:74px; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bar-track { flex:1; height:8px; border-radius:999px; background:rgba(255,255,255,.07); overflow:hidden; }
+.bar-fill { height:100%; border-radius:999px; transition:width .7s cubic-bezier(.22,1,.36,1); box-shadow:0 0 10px currentColor; }
+.bar-val { font-size:12.5px; font-weight:600; width:74px; text-align:right; flex-shrink:0; color:var(--label2); }
+
+/* ── Debt banner ── */
 .bal-banner {
-  background:rgba(10,132,255,.1); border:.5px solid rgba(10,132,255,.22);
-  border-radius:12px; padding:11px 16px; text-align:center; font-size:14px; letter-spacing:-.2px;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  background:rgba(251,191,36,.08); border:1px solid rgba(251,191,36,.22);
+  border-radius:14px; padding:12px 16px; font-size:14px; letter-spacing:-.01em;
 }
 
 /* ── Buttons ── */
 .btn {
-  width:100%; height:52px; border:none; border-radius:16px;
-  font-size:17px; font-weight:700; letter-spacing:-.45px;
-  color:#fff; transition:transform .18s ease, box-shadow .18s ease, background .18s ease;
-  box-shadow:0 18px 40px rgba(0,0,0,.18);
+  width:100%; height:54px; border:none; border-radius:17px;
+  font-size:16px; font-weight:800; letter-spacing:0;
+  color:#0a120c; transition:transform .15s ease, box-shadow .25s ease, filter .2s ease;
 }
-.btn:hover { transform:translateY(-1px); }
-.btn:active { transform:translateY(0); }
-.btn-sec {
-  background:rgba(255,255,255,.06);
-  color:var(--label);
-  font-weight:600;
-  box-shadow:none;
-}
+.btn:active { transform:scale(.97); filter:brightness(1.1); }
+.btn-sec { background:rgba(255,255,255,.07); color:var(--label); font-weight:700; box-shadow:none; }
 
 /* ── Segmented ── */
-.seg {
-  background:rgba(255,255,255,.05);
-  border-radius:16px;
-  padding:4px;
-  display:flex;
-  gap:4px;
-}
+.seg { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.06); border-radius:15px; padding:4px; display:flex; gap:4px; }
 .seg-btn {
-  flex:1;
-  height:38px;
-  border:none;
-  border-radius:14px;
-  font-size:13px;
-  font-weight:600;
-  letter-spacing:-.05px;
-  transition:all .22s ease;
-  background:transparent;
-  color:var(--label2);
+  flex:1; height:38px; border:none; border-radius:11px;
+  font-size:13px; font-weight:700; letter-spacing:0;
+  transition:all .22s ease; background:transparent; color:var(--label2);
 }
-.seg-btn.on {
-  background:rgba(255,255,255,.14);
-  color:var(--label);
-}
-.seg-btn:not(.on):hover { background:rgba(255,255,255,.08); }
+.seg-btn.on { background:rgba(255,255,255,.12); color:var(--label); box-shadow:0 4px 14px rgba(0,0,0,.25); }
 
-/* ── Wizard ── */
-.overlay { position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:200; display:flex; align-items:flex-end; }
+/* ── Sheet / Wizard ── */
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:200; display:flex; align-items:flex-end; backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
 .sheet {
-  width:100%; background:rgba(14,14,16,.98); border-radius:20px 20px 0 0;
+  width:100%; background:rgba(13,18,15,.97); border-radius:24px 24px 0 0;
   padding:10px 0 0; padding-bottom:calc(18px + var(--safe-bot));
-  animation:sheetUp .26s cubic-bezier(.52,0,.36,1);
-  box-shadow:0 -20px 60px rgba(0,0,0,.28);
-  border:1px solid rgba(255,255,255,.05);
+  animation:sheetUp .32s cubic-bezier(.22,1,.36,1);
+  box-shadow:0 -24px 70px rgba(0,0,0,.5);
+  border:1px solid rgba(255,255,255,.07);
 }
-@keyframes sheetUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
-.sheet-handle { width:38px; height:5px; border-radius:999px; background:rgba(255,255,255,.12); margin:0 auto 18px; }
+@keyframes sheetUp { from{transform:translateY(100%)} }
+.sheet-handle { width:38px; height:5px; border-radius:999px; background:rgba(255,255,255,.14); margin:0 auto 18px; }
 .sheet-hdr { padding:0 20px 16px; display:flex; justify-content:space-between; align-items:center; }
-.sheet-title { font-size:17px; font-weight:700; letter-spacing:-.44px; }
-.cancel-btn { font-size:17px; color:var(--blue); background:none; border:none; padding:0; }
-.step-bar { display:flex; gap:4px; padding:0 20px 20px; }
-.step-seg { flex:1; height:2px; border-radius:1px; transition:background .25s; background:var(--bg4); }
-.step-seg[style*="background:var(--bg4)"] { background:var(--bg4); }
+.sheet-title { font-family:var(--disp); font-size:14px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
+.cancel-btn { font-size:15px; font-weight:600; color:var(--label3); background:none; border:none; padding:0; }
+.step-bar { display:flex; gap:5px; padding:0 20px 20px; }
+.step-seg { flex:1; height:3px; border-radius:2px; transition:all .3s; }
 .sheet-body { padding:0 20px; display:flex; flex-direction:column; gap:14px; }
-.sheet-lbl { font-size:13px; color:var(--label2); letter-spacing:-.08px; }
+.sheet-lbl { font-size:14px; color:var(--label2); font-weight:600; }
 .sheet-acts { padding:20px 20px 0; display:flex; gap:10px; }
 
 /* ── Inputs ── */
 .field {
-  width:100%;
-  background:rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:14px;
-  padding:14px 16px;
-  font-size:17px;
-  color:var(--label);
-  letter-spacing:-.43px;
-  transition:box-shadow .18s ease, border-color .18s ease, background .18s ease;
+  width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.09);
+  border-radius:14px; padding:14px 16px; font-size:16px; color:var(--label);
+  transition:box-shadow .2s ease, border-color .2s ease, background .2s ease;
 }
-.field:focus {
-  background:rgba(255,255,255,.08);
-  border-color:rgba(10,132,255,.45);
-  box-shadow:0 0 0 3px rgba(10,132,255,.12);
-}
+.field:focus { background:rgba(255,255,255,.08); border-color:rgba(163,230,53,.5); box-shadow:0 0 0 3px rgba(163,230,53,.13); }
 .field::placeholder { color:var(--label3); }
 .f-euro { position:relative; }
-.f-euro::before { content:'€'; position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--label3); font-size:17px; pointer-events:none; }
-.f-euro .field { padding-left:34px; font-size:22px; font-weight:600; }
+.f-euro::before { content:'€'; position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--label3); font-size:18px; pointer-events:none; font-family:var(--mono); }
+.f-euro .field { padding-left:36px; font-size:24px; font-weight:600; font-family:var(--mono); }
 .pick { display:flex; gap:8px; }
-.pick-btn { flex:1; height:50px; border:none; border-radius:12px; font-size:15px; font-weight:600; letter-spacing:-.23px; transition:all .15s; }
-.pick-btn.on { opacity:1 !important; }
+.pick-btn { flex:1; min-height:54px; border:none; border-radius:14px; font-size:15px; font-weight:800; color:#0a120c; transition:all .15s; padding:8px; }
+.pick-btn.on { opacity:1 !important; box-shadow:0 8px 24px rgba(0,0,0,.3); }
 .pick-btn:not(.on) { background:var(--bg3) !important; color:var(--label2) !important; }
 .cat-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
-.cat-btn { height:44px; border:none; border-radius:10px; font-size:13px; font-weight:500; transition:all .15s; }
-.cat-btn.on { background:var(--fill); color:var(--label); box-shadow:inset 0 0 0 .5px rgba(255,255,255,.2); }
+.cat-btn { height:44px; border:none; border-radius:11px; font-size:13px; font-weight:600; transition:all .15s; }
+.cat-btn.on { background:rgba(196,181,253,.2); color:var(--violet); box-shadow:inset 0 0 0 1px rgba(196,181,253,.45); }
 .cat-btn:not(.on) { background:var(--bg3); color:var(--label2); }
 .emoji-grid { display:flex; flex-wrap:wrap; gap:8px; }
-.emoji-btn { width:44px; height:44px; border:none; border-radius:10px; font-size:22px; background:var(--bg3); transition:all .15s; }
-.emoji-btn.on { background:var(--bg4); box-shadow:0 0 0 1.5px rgba(255,255,255,.35); }
+.emoji-btn { width:44px; height:44px; border:none; border-radius:11px; font-size:22px; background:var(--bg3); transition:all .15s; }
+.emoji-btn.on { background:var(--bg4); box-shadow:0 0 0 1.5px rgba(255,255,255,.4); }
 .color-row { display:flex; gap:10px; flex-wrap:wrap; }
 .color-btn { width:32px; height:32px; border-radius:50%; border:none; transition:all .15s; }
-.color-btn.on { box-shadow:0 0 0 2px var(--bg2), 0 0 0 4px currentColor; }
+.color-btn.on { box-shadow:0 0 0 2px var(--bg), 0 0 0 4px currentColor; }
 
-/* ── Ring ── */
+/* ── Stepper (Grow Pflanzen) ── */
+.stepper { display:flex; align-items:center; gap:2px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:3px; flex-shrink:0; }
+.stepper button {
+  width:34px; height:34px; border-radius:9px; background:transparent; color:var(--label2);
+  font-size:20px; font-weight:600; line-height:1; transition:all .15s; display:flex; align-items:center; justify-content:center;
+}
+.stepper button:active { background:rgba(255,255,255,.1); color:var(--label); transform:scale(.92); }
+.stepper .st-val { font-family:var(--mono); font-size:17px; font-weight:700; min-width:30px; text-align:center; }
+
+/* ── Plant slots ── */
+.plant-row { display:flex; flex-wrap:wrap; gap:7px; justify-content:center; }
+.plant-slot { animation:sprout .5s cubic-bezier(.34,1.56,.64,1) backwards; }
+@keyframes sprout { from { opacity:0; transform:scale(.3) translateY(6px); } }
+
+/* ── Ring / Donut ── */
 .ring-wrap { position:relative; display:inline-flex; align-items:center; justify-content:center; }
 .ring-wrap>svg { position:absolute; }
 .ring-inner { position:relative; display:flex; flex-direction:column; align-items:center; gap:1px; }
 
 /* ── Sub cards ── */
 .sub-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-.sub-card { background:var(--bg2); border-radius:16px; padding:14px; display:flex; flex-direction:column; gap:4px; position:relative; overflow:hidden; }
-.sub-bar-bg { position:absolute; bottom:0; left:0; right:0; height:2px; background:var(--bg3); }
+.sub-card { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:14px; display:flex; flex-direction:column; gap:4px; position:relative; overflow:hidden; }
+.sub-bar-bg { position:absolute; bottom:0; left:0; right:0; height:2px; background:rgba(255,255,255,.06); }
 .sub-bar { height:100%; border-radius:0 1px 1px 0; transition:width .6s ease; }
 
+/* ── Summary (Finanzen) ── */
+.summary { background:var(--card); border:1px solid var(--border); border-radius:18px; overflow:hidden; }
+.sum-row { display:flex; }
+.sum-col { flex:1; padding:14px 0; text-align:center; display:flex; flex-direction:column; gap:3px; }
+.sum-col+.sum-col { border-left:1px solid var(--sep); }
+.sum-lbl { font-family:var(--mono); font-size:10px; letter-spacing:.16em; color:var(--label3); text-transform:uppercase; font-weight:600; }
+.sum-val { font-family:var(--mono); font-size:18px; font-weight:700; letter-spacing:-.02em; }
+
 /* ── Misc ── */
-.empty { display:flex; flex-direction:column; align-items:center; gap:8px; padding:52px 0; opacity:.4; }
-.empty-ico { font-size:42px; }
-.cell.dim { opacity:.4; }
+.empty { display:flex; flex-direction:column; align-items:center; gap:8px; padding:48px 0; opacity:.45; }
+.empty-ico { font-size:40px; }
+.cell.dim { opacity:.38; }
 .del-btn { background:none; border:none; padding:4px 0 4px 8px; color:var(--label4); font-size:22px; line-height:1; }
-.chk-btn { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all .2s; }
+.chk-btn { width:23px; height:23px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all .2s; }
+
+/* ── Putzplan ── */
+.due-chip { font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.08em; padding:4px 9px; border-radius:999px; flex-shrink:0; white-space:nowrap; }
+.fair-bar { display:flex; height:10px; border-radius:999px; overflow:hidden; background:rgba(255,255,255,.07); gap:2px; }
+.fair-seg { transition:width .7s cubic-bezier(.22,1,.36,1); border-radius:999px; }
+.done-btn { width:40px; height:40px; border-radius:13px; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1.5px solid var(--sep); background:rgba(255,255,255,.03); transition:all .2s; }
+.done-btn:active { transform:scale(.88); }
+
+/* ── Desktop / PC ── */
+@media (min-width:700px) {
+  .content { max-width:640px; margin:0 auto; width:100%; }
+  .navbar { padding-left:max(18px, calc(50vw - 320px)); padding-right:max(16px, calc(50vw - 320px)); }
+  .tabbar { padding-left:calc(50vw - 290px); padding-right:calc(50vw - 290px); }
+  .cell:hover { background:rgba(255,255,255,.05); }
+  .btn:hover { filter:brightness(1.1); transform:translateY(-1px); }
+  .done-btn:hover { background:rgba(255,255,255,.09); }
+  .sub-grid { grid-template-columns:1fr 1fr 1fr; }
+  .overlay { align-items:center; padding:24px; }
+  .sheet { max-width:520px; border-radius:24px; animation:sheetPop .3s cubic-bezier(.22,1,.36,1); }
+}
+@keyframes sheetPop { from { opacity:0; transform:translateY(20px) scale(.97); } }
 
 /* ── Firebase setup card ── */
-.setup-card { background:var(--bg2); border-radius:14px; padding:16px; }
+.setup-card { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:16px; }
 .setup-step { display:flex; gap:10px; margin-bottom:10px; align-items:flex-start; }
-.step-num { width:22px; height:22px; border-radius:50%; background:var(--bg3); color:var(--label2); font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+.step-num { width:22px; height:22px; border-radius:50%; background:var(--bg3); color:var(--label2); font-family:var(--mono); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
 </style>
 </head>
 <body>
@@ -295,7 +358,7 @@ const ADJS  = ['BLAU','GRÜN','ROT','GOLD','WILD','KÜHL','WARM','TIEF'];
 const NUNS  = ['GRAS','MOND','WALD','SEE','BERG','WIND','STEIN','LICHT'];
 const genCode = () => `${ADJS[Math.floor(Math.random()*8)]}-${NUNS[Math.floor(Math.random()*8)]}-${Math.floor(1000+Math.random()*9000)}`;
 
-const U_DEF = [{id:'u1',name:'Ich',color:'#0a84ff'},{id:'u2',name:'Mitbewohner',color:'#30d158'}];
+const U_DEF = [{id:'u1',name:'Torben',color:'#38bdf8'},{id:'u2',name:'Tom',color:'#fbbf24'}];
 
 const INIT = {
   users:  U_DEF,
@@ -305,6 +368,9 @@ const INIT = {
   ft:     [],
   ff:     [],
   ab:     [],
+  pt:     [],
+  pl:     [],
+  sl:     [],
 };
 
 /* ════════════════════════════
@@ -312,7 +378,7 @@ const INIT = {
 ════════════════════════════ */
 const Ctx = createContext(null);
 
-const MOD_DEF = { haus:true, grow:false, fin:false, abos:false };
+const MOD_DEF = { haus:true, grow:true, putz:true, fin:false, abos:false };
 
 function DataProvider({ children }) {
   const [fbCfg,  setFbCfg_]  = useState(() => ls('fb_cfg', null));
@@ -320,6 +386,8 @@ function DataProvider({ children }) {
   const [status, setStatus]  = useState('local'); // local | connecting | synced | error
   const [online, setOnline]  = useState(() => navigator.onLine);
   const [mods,   setMods_]   = useState(() => ({...MOD_DEF, ...(ls('wg_modules', {}) || {})}));
+  const [me,     setMe_]     = useState(() => ls('wg_me', null)); // wer dieses Gerät nutzt (nicht gesynct)
+  const [remotePulse, setRemotePulse] = useState(0);
   const [D, setD_] = useState(() => {
     const saved = ls('wg_data', null);
     return saved ? {...INIT, ...saved} : INIT;
@@ -330,6 +398,7 @@ function DataProvider({ children }) {
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
   }, []);
   const setMods = (m) => { setMods_(m); ss('wg_modules', m); };
+  const setMe = (id) => { setMe_(id); ss('wg_me', id); };
 
   const dbRef     = useRef(null);
   const pendingIds = useRef(new Set());
@@ -392,6 +461,9 @@ function DataProvider({ children }) {
                 ft: dedupe(prev.ft, r.ft),
                 ff: dedupe(prev.ff, r.ff),
                 ab: dedupe(prev.ab, r.ab),
+                pt: dedupe(prev.pt, r.pt),
+                pl: dedupe(prev.pl, r.pl),
+                sl: dedupe(prev.sl, r.sl),
                 gp: { ...prev.gp, ...r.gp },
               };
               ss('wg_data', next);
@@ -411,6 +483,7 @@ function DataProvider({ children }) {
         setStatus('synced');
 
         // Ongoing listener
+        let firstEvent = true;
         ref.on('value', snap2 => {
           const v = snap2.val();
           if (!v) return;
@@ -419,6 +492,7 @@ function DataProvider({ children }) {
             // Our own echo → just mark synced
             pendingIds.current.delete(_wid);
             setStatus('synced');
+            firstEvent = false;
             return;
           }
           // External change from other device
@@ -426,6 +500,8 @@ function DataProvider({ children }) {
           setD_(merged);
           ss('wg_data', merged);
           setStatus('synced');
+          if (!firstEvent) setRemotePulse(p => p + 1);
+          firstEvent = false;
         }, () => setStatus('error'));
       }, () => setStatus('error'));
 
@@ -459,6 +535,9 @@ function DataProvider({ children }) {
         ft:   dedupe(prev.ft,  r.ft),
         ff:   dedupe(prev.ff,  r.ff),
         ab:   dedupe(prev.ab,  r.ab),
+        pt:   dedupe(prev.pt,  r.pt),
+        pl:   dedupe(prev.pl,  r.pl),
+        sl:   dedupe(prev.sl,  r.sl),
         gp:   { ...prev.gp, ...r.gp },
       };
       ss('wg_data', next);
@@ -468,7 +547,7 @@ function DataProvider({ children }) {
   };
 
   return (
-    <Ctx.Provider value={{ D, set, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, mergeRemote }}>
+    <Ctx.Provider value={{ D, set, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, mergeRemote, remotePulse, me, setMe }}>
       {children}
     </Ctx.Provider>
   );
@@ -483,8 +562,8 @@ const ICONS = {
   repeat:   'M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3',
   settings: 'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z',
   check:    'M20 6L9 17l-5-5',
-  copy:     'M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2v-2M8 4a2 2 0 012-2h4a2 2 0 012 2v2a2 2 0 01-2 2h-4a2 2 0 01-2-2V4zM16 12h6m-3-3l3 3-3 3',
-  link:     'M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71',
+  bolt:     'M13 2L3 14h7l-1 8 10-12h-7l1-8z',
+  sparkle:  'M12 3l1.9 4.6 4.6 1.9-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3zM19 14.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8.8-1.9z',
 };
 const Ic = ({d,color='currentColor',size=25,sw=1.7}) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
@@ -492,21 +571,67 @@ const Ic = ({d,color='currentColor',size=25,sw=1.7}) => (
   </svg>
 );
 const ChkIco = () => (
-  <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+  <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#0a120c" strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round">
     <path d={ICONS.check}/>
   </svg>
 );
 
-/* ── Ring ── */
-function Ring({ pct, size=58, sw=4.5, color='#0a84ff', children }) {
+/* ── Animated count-up number ── */
+function CountUp({ value, dec=2, prefix='', suffix='' }) {
+  const [v, setV] = useState(value);
+  const prev = useRef(value);
+  useEffect(() => {
+    const from = prev.current, to = value;
+    prev.current = value;
+    if (from === to) return;
+    const t0 = performance.now(), dur = 650;
+    let raf;
+    const step = t => {
+      const p = Math.min((t - t0) / dur, 1);
+      const e = 1 - Math.pow(1 - p, 3);
+      setV(from + (to - from) * e);
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return <>{prefix}{Number(v).toFixed(dec)}{suffix}</>;
+}
+
+/* ── Ring (single value) ── */
+function Ring({ pct, size=58, sw=4.5, color='var(--lime)', children }) {
   const r=(size-sw*2)/2, c=2*Math.PI*r, off=c-Math.min(pct/100,1)*c;
   return (
     <div className="ring-wrap" style={{width:size,height:size}}>
       <svg width={size} height={size} style={{transform:'rotate(-90deg)'}}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--bg3)" strokeWidth={sw}/>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,.08)" strokeWidth={sw}/>
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={sw}
           strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round"
           style={{transition:'stroke-dashoffset .5s ease'}}/>
+      </svg>
+      <div className="ring-inner">{children}</div>
+    </div>
+  );
+}
+
+/* ── Donut (multi-segment, für Grow-Split) ── */
+function Donut({ segs, size=148, sw=15, children }) {
+  const r=(size-sw)/2, c=2*Math.PI*r;
+  let acc=0;
+  const arcs = segs.map((s,i)=>{
+    const dash=Math.max(s.frac*c-3,0), start=acc; acc+=s.frac;
+    if (dash<=0) return null;
+    return (
+      <circle key={i} cx={size/2} cy={size/2} r={r} fill="none" stroke={s.color} strokeWidth={sw}
+        strokeDasharray={`${dash} ${c-dash}`} strokeDashoffset={-start*c} strokeLinecap="round"
+        style={{transition:'stroke-dasharray .8s cubic-bezier(.22,1,.36,1), stroke-dashoffset .8s cubic-bezier(.22,1,.36,1)', filter:`drop-shadow(0 0 6px ${s.color}55)`}}/>
+    );
+  });
+  return (
+    <div className="ring-wrap" style={{width:size,height:size}}>
+      <svg width={size} height={size} style={{transform:'rotate(-90deg)'}}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,.07)" strokeWidth={sw}/>
+        {arcs}
       </svg>
       <div className="ring-inner">{children}</div>
     </div>
@@ -527,12 +652,12 @@ function Wiz({ open, onClose, title, color, steps, onFinish, initial }) {
       <div className="sheet" onClick={e=>e.stopPropagation()}>
         <div className="sheet-handle"/>
         <div className="sheet-hdr">
-          <span className="sheet-title">{title}</span>
+          <span className="sheet-title" style={{color}}>{title}</span>
           <button className="cancel-btn" onClick={onClose}>Abbrechen</button>
         </div>
         <div className="step-bar">
           {steps.map((_,i)=>(
-            <div key={i} className="step-seg" style={{background:i<=step?color:'var(--bg4)',opacity:i<=step?1:0.3}}/>
+            <div key={i} className="step-seg" style={{background:i<=step?color:'rgba(255,255,255,.08)',boxShadow:i<=step?`0 0 8px ${i===step?'currentColor':'transparent'}`:'none',opacity:i<=step?1:.6}}/>
           ))}
         </div>
         <div className="sheet-body">
@@ -541,7 +666,7 @@ function Wiz({ open, onClose, title, color, steps, onFinish, initial }) {
         </div>
         <div className="sheet-acts">
           {step>0&&<button className="btn btn-sec" onClick={()=>setStep(s=>s-1)}>Zurück</button>}
-          <button className="btn" style={{background:ok?color:'var(--bg3)',color:ok?'#fff':'var(--label3)'}} onClick={next}>
+          <button className="btn" style={{background:ok?color:'var(--bg3)',color:ok?'#0a120c':'var(--label3)',boxShadow:ok?`0 12px 32px ${'rgba(0,0,0,.3)'}`:'none'}} onClick={next}>
             {last?'Fertig':'Weiter'}
           </button>
         </div>
@@ -550,31 +675,33 @@ function Wiz({ open, onClose, title, color, steps, onFinish, initial }) {
   );
 }
 
-/* ── BalanceBanner ── */
+/* ── Schulden-Banner ── */
 function Bal({ bals }) {
   const d=bals.find(b=>b.net<-.01), c=bals.find(b=>b.net>.01);
   if(!d||!c) return null;
   return (
-    <div className="bal-banner">
-      <span style={{color:d.color,fontWeight:600}}>{d.name}</span>
-      <span style={{color:'var(--label2)'}}> schuldet </span>
-      <span style={{fontWeight:700}}>€{fmt(Math.abs(d.net))}</span>
-      <span style={{color:'var(--label2)'}}> an </span>
-      <span style={{color:c.color,fontWeight:600}}>{c.name}</span>
+    <div className="bal-banner rise">
+      <span style={{color:d.color,fontWeight:800}}>{d.name}</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--label3)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-5-5l5 5-5 5"/></svg>
+      <span style={{color:c.color,fontWeight:800}}>{c.name}</span>
+      <span className="num" style={{fontWeight:700,fontSize:16,color:'var(--amber)'}}>€<CountUp value={Math.abs(d.net)}/></span>
     </div>
   );
 }
 
-/* ── Navbar with sync dot ── */
+/* ── Navbar mit Live-Status ── */
 function NBar({ title, color, status }) {
   const { online } = useD();
-  const dot = !online ? '#ff9f0a' : status==='synced'?'#30d158':status==='connecting'?'#ff9f0a':status==='error'?'#ff453a':'transparent';
-  const tooltip = !online ? 'Offline – Änderungen werden später synchronisiert' : status;
+  const live = online && status==='synced';
+  const pillColor = !online ? 'var(--amber)' : status==='synced' ? 'var(--lime)' : status==='connecting' ? 'var(--amber)' : status==='error' ? 'var(--red)' : null;
+  const pillText  = !online ? 'OFFLINE' : status==='synced' ? 'LIVE' : status==='connecting' ? 'SYNC…' : status==='error' ? 'FEHLER' : null;
   return (
     <div className="navbar">
       <span className="navbar-title" style={{color}}>{title}</span>
-      {(status!=='local' || !online) && (
-        <div className="sync-dot" style={{background:dot}} title={tooltip}/>
+      {pillText && (
+        <div className="live-pill" style={{color:pillColor,borderColor:pillColor+'44',background:live?'rgba(163,230,53,.07)':'transparent'}}>
+          <span className="live-dot"/>{pillText}
+        </div>
       )}
     </div>
   );
@@ -584,15 +711,27 @@ function NBar({ title, color, status }) {
    HAUSHALT
 ══════════════════════════ */
 function Haushalt() {
-  const { D, set, status } = useD();
-  const users = D.users, items = D.hs || [];
+  const { D, set, status, me, setMe } = useD();
+  const users = D.users, items = D.hs || [], list = D.sl || [];
+  const [seg,setSeg] = useState('aus');
   const [wiz,setWiz] = useState(false);
   const [editItem,setEditItem] = useState(null);
+  const [convItem,setConvItem] = useState(null);
+  const [newName,setNewName] = useState('');
 
   const add    = d => set('hs',[{id:uid(),name:d.name||'Einkauf',price:parseFloat(d.price)||0,paidBy:d.paidBy||users[0].id,date:tod(),settled:false},...items]);
   const save   = d => set('hs',items.map(i=>i.id===editItem.id?{...i,name:d.name||i.name,price:parseFloat(d.price)||i.price,paidBy:d.paidBy||i.paidBy}:i));
   const toggle = id => set('hs',items.map(i=>i.id===id?{...i,settled:!i.settled}:i));
   const del    = id => set('hs',items.filter(i=>i.id!==id));
+
+  /* Einkaufsliste */
+  const addL      = () => { const n=newName.trim(); if(!n) return; set('sl',[{id:uid(),name:n,addedBy:me,date:tod(),done:false},...list]); setNewName(''); };
+  const toggleL   = id => set('sl',list.map(i=>i.id===id?{...i,done:!i.done}:i));
+  const delL      = id => set('sl',list.filter(i=>i.id!==id));
+  const clearDone = () => set('sl',list.filter(i=>!i.done));
+  const convert   = d => { add(d); delL(convItem.id); };
+  const sortedList=[...list.filter(i=>!i.done),...list.filter(i=>i.done)];
+  const openL=list.filter(i=>!i.done).length, doneL=list.length-openL;
 
   const open=items.filter(i=>!i.settled);
   const tot=open.reduce((s,i)=>s+i.price,0);
@@ -603,58 +742,59 @@ function Haushalt() {
     {label:'Preis',ok:d=>parseFloat(d.price)>0,render:({data:d,setData:sd})=><div className="f-euro"><input autoFocus type="number" step="0.01" min="0" className="field" placeholder="0.00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>},
     {label:'Wer hat bezahlt?',ok:d=>!!d.paidBy,render:({data:d,setData:sd})=>(
       <div className="pick">
-        {users.map(u=><button key={u.id} className={`pick-btn${d.paidBy===u.id?' on':''}`} style={{background:u.color,color:'#fff'}} onClick={()=>sd({...d,paidBy:u.id})}>{u.name}</button>)}
+        {users.map(u=><button key={u.id} className={`pick-btn${d.paidBy===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,paidBy:u.id})}>{u.name}</button>)}
       </div>
     )},
   ];
 
   return (
     <div className="screen">
-      <NBar title="Haushalt" color="var(--blue)" status={status}/>
+      <NBar title="Haushalt" color="var(--mint)" status={status}/>
       <div className="scroll">
-        {open.length>0&&(
-          <div style={{padding:'16px 16px 0',display:'flex',flexDirection:'column',gap:10}}>
-            <div className="summary">
-              <div className="sum-row">
-                {bals.map(b=>(
-                  <div key={b.id} className="sum-col">
-                    <span className="sum-lbl">{b.name}</span>
-                    <span className="sum-val" style={{color:b.color}}>€{fmtK(b.paid)}</span>
-                    <span style={{fontSize:11,color:'var(--label3)'}}>bezahlt</span>
-                  </div>
-                ))}
-                <div className="sum-col">
-                  <span className="sum-lbl">Gesamt</span>
-                  <span className="sum-val">€{fmtK(tot)}</span>
-                  <span style={{fontSize:11,color:'var(--label3)'}}>je €{fmt(tot/2)}</span>
-                </div>
-              </div>
-            </div>
-            <Bal bals={bals}/>
-          </div>
-        )}
         <div className="content">
-          <button className="btn" style={{background:'var(--blue)'}} onClick={()=>setWiz(true)}>Ausgabe hinzufügen</button>
+          <div className="seg rise">
+            {[['aus','💶 Ausgaben'],['liste',`🛒 Einkaufsliste${openL>0?` (${openL})`:''}`]].map(([v,l])=>(
+              <button key={v} className={`seg-btn${seg===v?' on':''}`} onClick={()=>setSeg(v)}>{l}</button>
+            ))}
+          </div>
+          {seg==='aus'?(
+          <>
+          <div className="hero rise" style={{'--glow':'rgba(94,234,212,.16)',animationDelay:'40ms'}}>
+            <div className="hero-lbl">Offene Ausgaben</div>
+            <div className="hero-big" style={{color:'var(--mint)',margin:'6px 0 16px'}}>€<CountUp value={tot}/></div>
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              {bals.map(b=>(
+                <div key={b.id} className="bar-row">
+                  <span className="bar-name" style={{color:b.color}}>{b.name}</span>
+                  <div className="bar-track"><div className="bar-fill" style={{width:`${tot>0?Math.min(b.paid/tot*100,100):0}%`,background:b.color,color:b.color}}/></div>
+                  <span className="bar-val num">€{fmt(b.paid)}</span>
+                </div>
+              ))}
+            </div>
+            {tot>0&&<div style={{fontSize:12,color:'var(--label3)',marginTop:12,fontWeight:500}}>50/50-Split · je <span className="num" style={{color:'var(--label2)'}}>€{fmt(tot/2)}</span></div>}
+          </div>
+          <Bal bals={bals}/>
+          <button className="btn rise" style={{background:'var(--mint)',animationDelay:'60ms'}} onClick={()=>setWiz(true)}>+ Ausgabe hinzufügen</button>
           {items.length===0
-            ?<div className="empty"><div className="empty-ico">🛒</div><span style={{fontSize:14,color:'var(--label2)'}}>Noch keine Ausgaben</span></div>
+            ?<div className="empty"><div className="empty-ico">💶</div><span style={{fontSize:14,color:'var(--label2)'}}>Noch keine Ausgaben</span></div>
             :(
-              <div>
+              <div className="rise" style={{animationDelay:'120ms'}}>
                 <div className="section-hdr">Ausgaben</div>
                 <div className="group">
-                  {items.map(item=>{
+                  {items.map((item,idx)=>{
                     const payer=users.find(u=>u.id===item.paidBy);
                     return(
                       <div key={item.id} className={`cell${item.settled?' dim':''}`}>
-                        <button className="chk-btn" style={{border:`1.5px solid ${item.settled?'var(--green)':'var(--sep)'}`,background:item.settled?'var(--green)':'none'}} onClick={()=>toggle(item.id)}>
+                        <button className="chk-btn" style={{border:`1.5px solid ${item.settled?'var(--lime)':'var(--sep)'}`,background:item.settled?'var(--lime)':'none'}} onClick={()=>toggle(item.id)}>
                           {item.settled&&<ChkIco/>}
                         </button>
                         <div className="cell-content" style={{cursor:'pointer'}} onClick={()=>setEditItem(item)}>
                           <span className="cell-title" style={{textDecoration:item.settled?'line-through':'none'}}>{item.name}</span>
-                          <span className="cell-sub">{item.date} · {payer?.name}</span>
+                          <span className="cell-sub">{item.date} · <span style={{color:payer?.color}}>{payer?.name}</span></span>
                         </div>
                         <div style={{textAlign:'right',flexShrink:0,cursor:'pointer'}} onClick={()=>setEditItem(item)}>
-                          <div style={{fontSize:17,fontWeight:600,letterSpacing:'-.43px'}}>€{fmt(item.price)}</div>
-                          <div style={{fontSize:11,color:'var(--label3)'}}>je €{fmt(item.price/2)}</div>
+                          <div className="num" style={{fontSize:16,fontWeight:700}}>€{fmt(item.price)}</div>
+                          <div className="num" style={{fontSize:11,color:'var(--label3)'}}>je €{fmt(item.price/2)}</div>
                         </div>
                         <button className="del-btn" aria-label="Ausgabe löschen" title="Ausgabe löschen" onClick={()=>{if(confirm(`"${item.name}" löschen?`))del(item.id);}}>×</button>
                       </div>
@@ -664,10 +804,61 @@ function Haushalt() {
               </div>
             )
           }
+          </>
+          ):(
+          <>
+          {!me&&(
+            <div className="hero rise" style={{'--glow':'rgba(94,234,212,.14)'}}>
+              <div className="hero-lbl" style={{marginBottom:12}}>Wer bist du auf diesem Gerät?</div>
+              <div className="pick">
+                {users.map(u=><button key={u.id} className="pick-btn" style={{background:u.color}} onClick={()=>setMe(u.id)}>{u.name}</button>)}
+              </div>
+              <div style={{fontSize:12,color:'var(--label3)',marginTop:10,lineHeight:1.5}}>Damit jeder sieht, wer was auf die Liste setzt. Später änderbar unter Mehr → Personen.</div>
+            </div>
+          )}
+          <form className="rise" style={{display:'flex',gap:8,animationDelay:'40ms'}} onSubmit={e=>{e.preventDefault();addL();}}>
+            <input className="field" style={{flex:1}} placeholder="Milch, Klopapier, Müllbeutel …" value={newName} onChange={e=>setNewName(e.target.value)}/>
+            <button type="submit" className="btn" style={{width:54,flexShrink:0,background:'var(--mint)',fontSize:26,lineHeight:1}}>+</button>
+          </form>
+          {list.length===0
+            ?<div className="empty"><div className="empty-ico">🛒</div><span style={{fontSize:14,color:'var(--label2)'}}>Liste ist leer — was fehlt?</span></div>
+            :(
+              <div className="rise" style={{animationDelay:'80ms'}}>
+                <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <span>{openL} offen{doneL>0?` · ${doneL} im Wagen`:''}</span>
+                  {doneL>0&&<button style={{background:'none',border:'none',color:'var(--mint)',fontSize:12,fontWeight:700,fontFamily:'Hanken Grotesk'}} onClick={()=>{if(confirm(`${doneL} erledigte Einträge entfernen?`))clearDone();}}>Erledigte leeren</button>}
+                </div>
+                <div className="group">
+                  {sortedList.map(i=>{
+                    const u=users.find(x=>x.id===i.addedBy);
+                    return(
+                      <div key={i.id} className={`cell${i.done?' dim':''}`}>
+                        <button className="chk-btn" style={{border:`1.5px solid ${i.done?'var(--mint)':'var(--sep)'}`,background:i.done?'var(--mint)':'none'}} onClick={()=>toggleL(i.id)}>
+                          {i.done&&<ChkIco/>}
+                        </button>
+                        <div className="cell-content">
+                          <span className="cell-title" style={{textDecoration:i.done?'line-through':'none'}}>{i.name}</span>
+                          <span className="cell-sub">von {u?<span style={{color:u.color,fontWeight:700}}>{u.name}</span>:'?'} · {i.date}</span>
+                        </div>
+                        {i.done&&(
+                          <button className="due-chip" style={{background:'rgba(94,234,212,.13)',color:'var(--mint)',border:'none',cursor:'pointer'}} onClick={()=>setConvItem(i)}>€ AUSGABE</button>
+                        )}
+                        <button className="del-btn" aria-label="Eintrag löschen" title="Eintrag löschen" onClick={()=>delL(i.id)}>×</button>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="section-ftr">Abhaken = im Einkaufswagen. Über „€ Ausgabe" landet der Einkauf direkt in der Kostenteilung.</div>
+              </div>
+            )
+          }
+          </>
+          )}
         </div>
       </div>
-      <Wiz open={wiz} onClose={()=>setWiz(false)} title="Ausgabe" color="var(--blue)" steps={steps} onFinish={add}/>
-      <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title="Bearbeiten" color="var(--blue)" steps={steps} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price),paidBy:editItem.paidBy}:null}/>
+      <Wiz open={wiz} onClose={()=>setWiz(false)} title="Ausgabe" color="var(--mint)" steps={steps} onFinish={add}/>
+      <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title="Bearbeiten" color="var(--mint)" steps={steps} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price),paidBy:editItem.paidBy}:null}/>
+      <Wiz open={!!convItem} onClose={()=>setConvItem(null)} title="Als Ausgabe übernehmen" color="var(--mint)" steps={steps} onFinish={convert} initial={convItem?{name:convItem.name,paidBy:me||undefined}:null}/>
     </div>
   );
 }
@@ -678,20 +869,23 @@ function Haushalt() {
 function Grow() {
   const { D, set, status } = useD();
   const users=D.users, plants=D.gp||{}, items=D.gi||[];
-  const [wiz,setWiz]   = useState(false);
-  const [edit,setEdit] = useState(false);
+  const [wiz,setWiz] = useState(false);
 
   const total  = Object.values(plants).reduce((s,v)=>s+(parseInt(v)||0),0);
   const share  = id => total>0?(parseInt(plants[id]||0)/total):1/users.length;
-  const pctStr = id => (share(id)*100).toFixed(2)+'%';
+  const pctStr = id => (share(id)*100).toFixed(1)+'%';
+  const setP   = (uid2,v) => set('gp',{...plants,[uid2]:Math.max(0,parseInt(v)||0)});
 
   const add    = d => set('gi',[{id:uid(),name:d.name||'Grow',price:parseFloat(d.price)||0,paidBy:d.paidBy||users[0].id,date:tod(),settled:false},...items]);
   const toggle = id => set('gi',items.map(i=>i.id===id?{...i,settled:!i.settled}:i));
   const del    = id => set('gi',items.filter(i=>i.id!==id));
-  const setP   = (uid2,v) => set('gp',{...plants,[uid2]:parseInt(v)||0});
 
   const open=items.filter(i=>!i.settled), tCost=open.reduce((s,i)=>s+i.price,0);
   const bals=users.map(u=>({ ...u, paid:open.filter(i=>i.paidBy===u.id).reduce((s,i)=>s+i.price,0), net:open.filter(i=>i.paidBy===u.id).reduce((s,i)=>s+i.price,0) - tCost*share(u.id) }));
+
+  /* Pflanzen-Slots: jede Pflanze als Icon in Besitzer-Farbe */
+  const slots=[];
+  users.forEach(u=>{ for(let i=0;i<(parseInt(plants[u.id])||0);i++) slots.push(u.color); });
 
   const steps=[
     {label:'Was wurde gekauft?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus className="field" placeholder="Dünger, Erde, Lampe …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
@@ -699,8 +893,8 @@ function Grow() {
     {label:'Wer hat bezahlt?',ok:d=>!!d.paidBy,render:({data:d,setData:sd})=>(
       <div className="pick">
         {users.map(u=>(
-          <button key={u.id} className={`pick-btn${d.paidBy===u.id?' on':''}`} style={{background:u.color,color:'#fff'}} onClick={()=>sd({...d,paidBy:u.id})}>
-            {u.name}<br/><span style={{fontSize:11,fontWeight:400}}>({pctStr(u.id)})</span>
+          <button key={u.id} className={`pick-btn${d.paidBy===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,paidBy:u.id})}>
+            {u.name}<br/><span style={{fontSize:11,fontWeight:600,opacity:.75}}>zahlt {pctStr(u.id)}</span>
           </button>
         ))}
       </div>
@@ -709,80 +903,91 @@ function Grow() {
 
   return (
     <div className="screen">
-      <NBar title="Grow" color="var(--green)" status={status}/>
+      <NBar title="Growbox" color="var(--lime)" status={status}/>
       <div className="scroll"><div className="content">
-        {/* plants */}
-        <div>
-          <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-            <span>Pflanzen-Anteil</span>
-            <button style={{background:'none',border:'none',color:'var(--green)',fontSize:13,fontWeight:500}} onClick={()=>setEdit(!edit)}>{edit?'Fertig':'Bearbeiten'}</button>
-          </div>
-          <div className="group">
-            {users.map(u=>(
-              <div key={u.id} className="cell">
-                <div style={{width:10,height:10,borderRadius:'50%',background:u.color,flexShrink:0}}/>
-                <div className="cell-content">
-                  <span className="cell-title">{u.name}</span>
-                  <span className="cell-sub">{pctStr(u.id)} der Kosten</span>
-                </div>
-                {edit
-                  ?<input type="number" min="0" style={{width:60,background:'var(--bg3)',border:'none',borderRadius:8,padding:'6px 10px',fontSize:17,fontWeight:600,color:u.color,textAlign:'center'}}
-                      value={plants[u.id]||0} onChange={e=>setP(u.id,e.target.value)}/>
-                  :<span style={{fontSize:22,fontWeight:700,color:u.color}}>{plants[u.id]||0} 🌱</span>
-                }
-              </div>
-            ))}
-            {total>0&&<div className="cell" style={{justifyContent:'center'}}><span style={{fontSize:13,color:'var(--label3)'}}>Gesamt {total} Pflanzen</span></div>}
-          </div>
-        </div>
 
-        {/* balance */}
-        {open.length>0&&(
-          <div>
-            <div className="section-hdr">Offene Bilanz</div>
-            <div className="group">
-              {bals.map(b=>(
-                <div key={b.id} className="cell">
-                  <div style={{width:10,height:10,borderRadius:'50%',background:b.color,flexShrink:0}}/>
-                  <div className="cell-content">
-                    <span className="cell-title">{b.name}</span>
-                    <span className="cell-sub">bezahlt €{fmt(b.paid)} · anteilig €{fmt(tCost*share(b.id))}</span>
+        {/* Split-Hero: Donut + Pflanzen */}
+        <div className="hero rise" style={{'--glow':'rgba(163,230,53,.17)'}}>
+          <div className="hero-lbl" style={{marginBottom:16}}>Kosten-Split nach Pflanzen</div>
+          <div style={{display:'flex',alignItems:'center',gap:20}}>
+            <Donut segs={users.map(u=>({frac:share(u.id),color:u.color}))}>
+              <span className="num" style={{fontSize:30,fontWeight:700,color:'var(--lime)'}}>{total}</span>
+              <span style={{fontSize:10,color:'var(--label3)',letterSpacing:'.14em',textTransform:'uppercase',fontFamily:'var(--mono)'}}>Pflanzen</span>
+            </Donut>
+            <div style={{flex:1,display:'flex',flexDirection:'column',gap:14}}>
+              {users.map(u=>(
+                <div key={u.id} style={{display:'flex',flexDirection:'column',gap:5}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline'}}>
+                    <span style={{fontSize:14,fontWeight:800,color:u.color}}>{u.name}</span>
+                    <span className="num" style={{fontSize:13,fontWeight:700,color:'var(--label2)'}}>{pctStr(u.id)}</span>
                   </div>
-                  <span style={{fontWeight:600,fontSize:15,color:b.net>.01?'var(--green)':b.net<-.01?'var(--red)':'var(--label3)'}}>{b.net>.01?'+':''}{fmt(b.net)}</span>
+                  <div className="stepper" style={{alignSelf:'stretch',justifyContent:'space-between'}}>
+                    <button onClick={()=>setP(u.id,(parseInt(plants[u.id])||0)-1)}>−</button>
+                    <span className="st-val" style={{color:u.color}}>{parseInt(plants[u.id])||0}</span>
+                    <button onClick={()=>setP(u.id,(parseInt(plants[u.id])||0)+1)}>+</button>
+                  </div>
                 </div>
               ))}
             </div>
-            <div style={{height:6}}/>
+          </div>
+          {slots.length>0&&(
+            <div className="plant-row" style={{marginTop:20}}>
+              {slots.map((c,i)=>(
+                <div key={i} className="plant-slot" style={{animationDelay:`${i*45}ms`}}>
+                  <Ic d={ICONS.leaf} color={c} size={24} sw={1.9}/>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Offene Bilanz */}
+        {open.length>0&&(
+          <div className="rise" style={{animationDelay:'60ms'}}>
+            <div className="section-hdr">Offene Bilanz · €{fmt(tCost)} gesamt</div>
+            <div className="group">
+              {bals.map(b=>(
+                <div key={b.id} className="cell">
+                  <div style={{width:10,height:10,borderRadius:'50%',background:b.color,boxShadow:`0 0 8px ${b.color}`,flexShrink:0}}/>
+                  <div className="cell-content">
+                    <span className="cell-title">{b.name}</span>
+                    <span className="cell-sub">bezahlt €{fmt(b.paid)} · Anteil €{fmt(tCost*share(b.id))}</span>
+                  </div>
+                  <span className="num" style={{fontWeight:700,fontSize:15,color:b.net>.01?'var(--green)':b.net<-.01?'var(--red)':'var(--label3)'}}>{b.net>.01?'+':''}<CountUp value={b.net}/></span>
+                </div>
+              ))}
+            </div>
+            <div style={{height:8}}/>
             <Bal bals={bals}/>
           </div>
         )}
 
-        <button className="btn" style={{background:'var(--green)'}} onClick={()=>setWiz(true)}>Grow-Ausgabe hinzufügen</button>
+        <button className="btn rise" style={{background:'var(--lime)',animationDelay:'100ms'}} onClick={()=>setWiz(true)}>+ Grow-Ausgabe</button>
 
         {items.length===0
           ?<div className="empty"><div className="empty-ico">🌱</div><span style={{fontSize:14,color:'var(--label2)'}}>Noch keine Ausgaben</span></div>
           :(
-            <div>
+            <div className="rise" style={{animationDelay:'140ms'}}>
               <div className="section-hdr">Ausgaben</div>
               <div className="group">
                 {items.map(item=>{
                   const payer=users.find(u=>u.id===item.paidBy);
                   return(
                     <div key={item.id} className={`cell${item.settled?' dim':''}`}>
-                      <button className="chk-btn" style={{border:`1.5px solid ${item.settled?'var(--green)':'var(--sep)'}`,background:item.settled?'var(--green)':'none'}} onClick={()=>toggle(item.id)}>
+                      <button className="chk-btn" style={{border:`1.5px solid ${item.settled?'var(--lime)':'var(--sep)'}`,background:item.settled?'var(--lime)':'none'}} onClick={()=>toggle(item.id)}>
                         {item.settled&&<ChkIco/>}
                       </button>
                       <div className="cell-content">
                         <span className="cell-title" style={{textDecoration:item.settled?'line-through':'none'}}>{item.name}</span>
-                        <span className="cell-sub">{item.date} · {payer?.name}</span>
+                        <span className="cell-sub">{item.date} · <span style={{color:payer?.color}}>{payer?.name}</span></span>
                       </div>
                       <div style={{textAlign:'right',flexShrink:0}}>
-                        <div style={{fontSize:15,fontWeight:600}}>€{fmt(item.price)}</div>
-                        <div style={{fontSize:11}}>
-                          {users.map(u=><span key={u.id} style={{color:u.color,marginLeft:4}}>{u.name} €{fmt(item.price*share(u.id))}</span>)}
+                        <div className="num" style={{fontSize:15,fontWeight:700}}>€{fmt(item.price)}</div>
+                        <div className="num" style={{fontSize:10.5}}>
+                          {users.map(u=><span key={u.id} style={{color:u.color,marginLeft:5}}>{u.name} €{fmt(item.price*share(u.id))}</span>)}
                         </div>
                       </div>
-                      <button className="del-btn" aria-label="Eintrag löschen" title="Eintrag löschen" onClick={()=>del(item.id)}>×</button>
+                      <button className="del-btn" aria-label="Eintrag löschen" title="Eintrag löschen" onClick={()=>{if(confirm(`"${item.name}" löschen?`))del(item.id);}}>×</button>
                     </div>
                   );
                 })}
@@ -791,7 +996,157 @@ function Grow() {
           )
         }
       </div></div>
-      <Wiz open={wiz} onClose={()=>setWiz(false)} title="Grow-Ausgabe" color="var(--green)" steps={steps} onFinish={add}/>
+      <Wiz open={wiz} onClose={()=>setWiz(false)} title="Grow-Ausgabe" color="var(--lime)" steps={steps} onFinish={add}/>
+    </div>
+  );
+}
+
+/* ══════════════════════════
+   PUTZPLAN
+══════════════════════════ */
+function Putzplan() {
+  const { D, set, status } = useD();
+  const users=D.users, tasks=D.pt||[], log=D.pl||[];
+  const [wiz,setWiz] = useState(false);
+
+  const todayMid = () => { const d=new Date(); d.setHours(0,0,0,0); return d; };
+  const parseIso = s => { const [y,m,dd]=s.split('-').map(Number); return new Date(y,m-1,dd); };
+  const dueIn = t => {
+    if(!t.lastDone) return 0; // noch nie gemacht → sofort fällig
+    const due=parseIso(t.lastDone); due.setDate(due.getDate()+(t.interval||7));
+    return Math.round((due-todayMid())/86400000);
+  };
+  const other = id => users.find(u=>u.id!==id)?.id || id;
+
+  const done = t => {
+    const iso=new Date().toISOString().slice(0,10);
+    set('pt', tasks.map(x=>x.id===t.id?{...x,lastDone:iso,assignee:other(x.assignee)}:x));
+    set('pl', [{id:uid(),taskId:t.id,name:t.name,em:t.em,userId:t.assignee,date:iso},...log].slice(0,200));
+  };
+  const del = id => set('pt',tasks.filter(t=>t.id!==id));
+  const add = d => set('pt',[...tasks,{id:uid(),name:d.name||'Aufgabe',em:d.em||'🧽',interval:parseInt(d.interval)||7,assignee:d.assignee||users[0].id,lastDone:null}]);
+
+  const loadDefaults = () => set('pt',[
+    {name:'Küche putzen',em:'🍳',interval:7},
+    {name:'Bad putzen',em:'🚿',interval:7},
+    {name:'Staubsaugen',em:'🧹',interval:7},
+    {name:'Müll rausbringen',em:'🗑️',interval:3},
+  ].map((t,i)=>({id:uid(),...t,assignee:users[i%users.length]?.id||users[0].id,lastDone:null})));
+
+  /* Fairness: erledigte Aufgaben der letzten 30 Tage */
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-30); cutoff.setHours(0,0,0,0);
+  const counts=users.map(u=>({...u, n:log.filter(l=>l.userId===u.id&&parseIso(l.date)>=cutoff).length}));
+  const totN=counts.reduce((s,c)=>s+c.n,0);
+
+  const sorted=[...tasks].sort((a,b)=>dueIn(a)-dueIn(b));
+  const dueNow=sorted.filter(t=>dueIn(t)<=0);
+
+  const chip = t => {
+    const d=dueIn(t);
+    if(d<0)  return <span className="due-chip" style={{background:'rgba(251,113,133,.15)',color:'var(--red)'}}>{-d}d ÜBERFÄLLIG</span>;
+    if(d===0)return <span className="due-chip" style={{background:'rgba(251,191,36,.16)',color:'var(--amber)'}}>HEUTE</span>;
+    return <span className="due-chip" style={{background:'rgba(255,255,255,.06)',color:'var(--label3)'}}>IN {d}d</span>;
+  };
+
+  const EMS=['🧽','🍳','🚿','🧹','🗑️','🧺','🪟','🌿','🛒','🧴'];
+  const IVS=[['3','Alle 3 Tage'],['7','Wöchentlich'],['14','Alle 2 Wochen'],['30','Monatlich']];
+  const steps=[
+    {label:'Was ist zu tun?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus className="field" placeholder="Küche putzen, Müll rausbringen …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
+    {label:'Symbol',render:({data:d,setData:sd})=><div className="emoji-grid">{EMS.map(e=><button key={e} className={`emoji-btn${d.em===e?' on':''}`} onClick={()=>sd({...d,em:e})}>{e}</button>)}</div>},
+    {label:'Wie oft?',ok:d=>!!d.interval,render:({data:d,setData:sd})=>(
+      <div className="cat-grid">
+        {IVS.map(([v,l])=><button key={v} className={`cat-btn${d.interval===v?' on':''}`} onClick={()=>sd({...d,interval:v})}>{l}</button>)}
+      </div>
+    )},
+    {label:'Wer startet?',ok:d=>!!d.assignee,render:({data:d,setData:sd})=>(
+      <div className="pick">
+        {users.map(u=><button key={u.id} className={`pick-btn${d.assignee===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,assignee:u.id})}>{u.name}</button>)}
+      </div>
+    )},
+  ];
+
+  return (
+    <div className="screen">
+      <NBar title="Putzplan" color="var(--amber)" status={status}/>
+      <div className="scroll"><div className="content">
+
+        <div className="hero rise" style={{'--glow':'rgba(251,191,36,.15)'}}>
+          <div className="hero-lbl">Heute dran</div>
+          {tasks.length===0
+            ?<div style={{fontSize:15,fontWeight:600,color:'var(--label2)',margin:'8px 0 16px'}}>Noch kein Plan — lad den Standard-Plan oder leg eigene Aufgaben an.</div>
+            :dueNow.length===0
+              ?<div style={{fontSize:16,fontWeight:700,color:'var(--green)',margin:'8px 0 16px'}}>Alles sauber ✨ nichts fällig</div>
+              :(
+                <div style={{display:'flex',flexDirection:'column',gap:9,margin:'10px 0 16px'}}>
+                  {dueNow.map(t=>{const u=users.find(x=>x.id===t.assignee);return(
+                    <div key={t.id} style={{display:'flex',alignItems:'center',gap:10}}>
+                      <span style={{fontSize:20,lineHeight:1}}>{t.em}</span>
+                      <span style={{flex:1,fontSize:15,fontWeight:700}}>{t.name}</span>
+                      <span style={{fontSize:14,fontWeight:800,color:u?.color}}>{u?.name}</span>
+                    </div>
+                  );})}
+                </div>
+              )
+          }
+          <div className="hero-lbl" style={{marginBottom:8}}>Putz-Score · letzte 30 Tage</div>
+          <div className="fair-bar">
+            {counts.map(c=>(<div key={c.id} className="fair-seg" style={{width:totN>0?`${c.n/totN*100}%`:'50%',background:c.color,opacity:totN>0?1:.25}}/>))}
+          </div>
+          <div style={{display:'flex',justifyContent:'space-between',marginTop:8}}>
+            {counts.map(c=>(<span key={c.id} style={{fontSize:13,fontWeight:700,color:c.color}}>{c.name} <span className="num">{c.n}×</span></span>))}
+          </div>
+        </div>
+
+        <button className="btn rise" style={{background:'var(--amber)',animationDelay:'50ms'}} onClick={()=>setWiz(true)}>+ Aufgabe anlegen</button>
+        {tasks.length===0&&(
+          <button className="btn btn-sec rise" style={{animationDelay:'80ms'}} onClick={loadDefaults}>Standard-Plan laden (Küche, Bad, Saugen, Müll)</button>
+        )}
+
+        {tasks.length>0&&(
+          <div className="rise" style={{animationDelay:'100ms'}}>
+            <div className="section-hdr">Aufgaben · Haken = erledigt, dann ist der andere dran</div>
+            <div className="group">
+              {sorted.map(t=>{
+                const u=users.find(x=>x.id===t.assignee);
+                return(
+                  <div key={t.id} className="cell">
+                    <button className="done-btn" style={{borderColor:(u?.color||'#888')+'66'}} title={`${t.name} erledigt`} onClick={()=>done(t)}>
+                      <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={u?.color||'#888'} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"><path d={ICONS.check}/></svg>
+                    </button>
+                    <div className="cell-content">
+                      <span className="cell-title">{t.em} {t.name}</span>
+                      <span className="cell-sub"><span style={{color:u?.color,fontWeight:700}}>{u?.name}</span> ist dran · alle {t.interval} Tage</span>
+                    </div>
+                    {chip(t)}
+                    <button className="del-btn" aria-label="Aufgabe löschen" title="Aufgabe löschen" onClick={()=>{if(confirm(`"${t.name}" löschen?`))del(t.id);}}>×</button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {log.length>0&&(
+          <div className="rise" style={{animationDelay:'140ms'}}>
+            <div className="section-hdr">Zuletzt erledigt</div>
+            <div className="group">
+              {log.slice(0,6).map(l=>{
+                const u=users.find(x=>x.id===l.userId);
+                return(
+                  <div key={l.id} className="cell" style={{minHeight:46,padding:'10px 16px'}}>
+                    <span style={{fontSize:16,lineHeight:1}}>{l.em||'🧽'}</span>
+                    <div className="cell-content"><span className="cell-title" style={{fontSize:14.5}}>{l.name}</span></div>
+                    <span style={{fontSize:12.5,fontWeight:700,color:u?.color}}>{u?.name}</span>
+                    <span className="num" style={{fontSize:11,color:'var(--label3)'}}>{parseIso(l.date).toLocaleDateString('de-DE')}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+      </div></div>
+      <Wiz open={wiz} onClose={()=>setWiz(false)} title="Putz-Aufgabe" color="var(--amber)" steps={steps} onFinish={add}/>
     </div>
   );
 }
@@ -820,7 +1175,7 @@ function Finanzen() {
     {label:'Art',ok:d=>!!d.type,render:({data:d,setData:sd})=>(
       <div className="pick">
         {[['inc','📈 Einnahme','var(--green)'],['exp','📉 Ausgabe','var(--red)']].map(([v,l,c])=>(
-          <button key={v} className={`pick-btn${d.type===v?' on':''}`} style={{background:c,color:'#fff'}} onClick={()=>sd({...d,type:v})}>{l}</button>
+          <button key={v} className={`pick-btn${d.type===v?' on':''}`} style={{background:c}} onClick={()=>sd({...d,type:v})}>{l}</button>
         ))}
       </div>
     )},
@@ -832,7 +1187,7 @@ function Finanzen() {
     )},
     {label:'Für wen?',ok:d=>!!d.userId,render:({data:d,setData:sd})=>(
       <div className="pick">
-        {users.map(u=><button key={u.id} className={`pick-btn${d.userId===u.id?' on':''}`} style={{background:u.color,color:'#fff'}} onClick={()=>sd({...d,userId:u.id})}>{u.name}</button>)}
+        {users.map(u=><button key={u.id} className={`pick-btn${d.userId===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,userId:u.id})}>{u.name}</button>)}
       </div>
     )},
   ];
@@ -842,7 +1197,7 @@ function Finanzen() {
     {label:'Häufigkeit',ok:d=>!!d.freq,render:({data:d,setData:sd})=>(
       <div className="pick">
         {[['m','Monatlich'],['y','Jährlich']].map(([v,l])=>(
-          <button key={v} className={`pick-btn${d.freq===v?' on':''}`} style={{background:'var(--purple)',color:'#fff'}} onClick={()=>sd({...d,freq:v})}>{l}</button>
+          <button key={v} className={`pick-btn${d.freq===v?' on':''}`} style={{background:'var(--violet)'}} onClick={()=>sd({...d,freq:v})}>{l}</button>
         ))}
       </div>
     )},
@@ -850,52 +1205,50 @@ function Finanzen() {
 
   return (
     <div className="screen">
-      <NBar title="Finanzen" color="var(--purple)" status={status}/>
+      <NBar title="Finanzen" color="var(--violet)" status={status}/>
       <div className="scroll">
-        <div style={{padding:'16px 16px 0'}}>
-          <div className="seg" style={{marginBottom:12}}>
-            {users.map(u=><button key={u.id} className={`seg-btn${uid_===u.id?' on':''}`} onClick={()=>setUid_(u.id)}>{u.name}</button>)}
+        <div className="content">
+          <div className="seg rise">
+            {users.map(u=><button key={u.id} className={`seg-btn${uid_===u.id?' on':''}`} style={uid_===u.id?{color:u.color}:{}} onClick={()=>setUid_(u.id)}>{u.name}</button>)}
           </div>
-          <div className="summary">
+          <div className="summary rise" style={{animationDelay:'40ms'}}>
             <div className="sum-row">
               {[['Einnahmen',inc,'var(--green)'],['Ausgaben',exp,'var(--red)'],['Bilanz',inc-exp,inc-exp>=0?'var(--label)':'var(--red)']].map(([l,v,c])=>(
                 <div key={l} className="sum-col">
                   <span className="sum-lbl">{l}</span>
-                  <span className="sum-val" style={{color:c,fontSize:17}}>{v<0?'-':''}€{fmtK(Math.abs(v))}</span>
+                  <span className="sum-val" style={{color:c,fontSize:16}}>{v<0?'-':''}€{fmtK(Math.abs(v))}</span>
                 </div>
               ))}
             </div>
             {fixMo>0&&(
-              <div style={{borderTop:'.5px solid var(--sep)',padding:'10px 0',textAlign:'center',fontSize:13,color:'var(--label2)'}}>
-                Fixkosten/Mo. <span style={{color:'var(--purple)',fontWeight:600}}>€{fmt(fixMo)}</span>
-                {'  ·  '}verfügbar <span style={{color:avail>=0?'var(--green)':'var(--red)',fontWeight:600}}>€{fmt(avail)}</span>
+              <div style={{borderTop:'1px solid var(--sep)',padding:'10px 0',textAlign:'center',fontSize:13,color:'var(--label2)'}}>
+                Fixkosten/Mo. <span className="num" style={{color:'var(--violet)',fontWeight:700}}>€{fmt(fixMo)}</span>
+                {'  ·  '}verfügbar <span className="num" style={{color:avail>=0?'var(--green)':'var(--red)',fontWeight:700}}>€{fmt(avail)}</span>
               </div>
             )}
           </div>
-        </div>
-        <div className="content">
-          <div className="seg">
+          <div className="seg rise" style={{animationDelay:'80ms'}}>
             {[['txs','💳 Buchungen'],['fix','📌 Fixkosten']].map(([v,l])=>(
               <button key={v} className={`seg-btn${seg===v?' on':''}`} onClick={()=>setSeg(v)}>{l}</button>
             ))}
           </div>
           {seg==='txs'?(
             <>
-              <button className="btn" style={{background:'var(--purple)'}} onClick={()=>setWiz('tx')}>Buchung hinzufügen</button>
+              <button className="btn" style={{background:'var(--violet)'}} onClick={()=>setWiz('tx')}>+ Buchung</button>
               {myTxs.length===0
                 ?<div className="empty"><div className="empty-ico">💳</div><span style={{fontSize:14,color:'var(--label2)'}}>Noch keine Buchungen</span></div>
                 :(
                   <div className="group">
                     {myTxs.map(t=>(
                       <div key={t.id} className="cell">
-                        <div className="cell-icon" style={{background:t.type==='inc'?'rgba(48,209,88,.15)':'rgba(255,69,58,.15)',fontSize:15}}>
+                        <div className="cell-icon" style={{background:t.type==='inc'?'rgba(74,222,128,.13)':'rgba(251,113,133,.13)',fontSize:15}}>
                           {t.type==='inc'?'📈':'📉'}
                         </div>
                         <div className="cell-content">
                           <span className="cell-title">{t.category}</span>
                           <span className="cell-sub">{t.date}</span>
                         </div>
-                        <span style={{fontWeight:600,fontSize:17,color:t.type==='inc'?'var(--green)':'var(--red)'}}>
+                        <span className="num" style={{fontWeight:700,fontSize:16,color:t.type==='inc'?'var(--green)':'var(--red)'}}>
                           {t.type==='inc'?'+':'-'}€{fmt(t.amount)}
                         </span>
                         <button className="del-btn" aria-label="Buchung löschen" title="Buchung löschen" onClick={()=>set('ft',txs.filter(x=>x.id!==t.id))}>×</button>
@@ -907,21 +1260,21 @@ function Finanzen() {
             </>
           ):(
             <>
-              <button className="btn" style={{background:'var(--purple)'}} onClick={()=>setWiz('fix')}>Fixkosten hinzufügen</button>
+              <button className="btn" style={{background:'var(--violet)'}} onClick={()=>setWiz('fix')}>+ Fixkosten</button>
               {fixed.length===0
                 ?<div className="empty"><div className="empty-ico">📌</div><span style={{fontSize:14,color:'var(--label2)'}}>Noch keine Fixkosten</span></div>
                 :(
                   <div className="group">
                     {fixed.map(f=>(
                       <div key={f.id} className="cell">
-                        <div className="cell-icon" style={{background:'rgba(191,90,242,.15)',fontSize:15}}>📌</div>
+                        <div className="cell-icon" style={{background:'rgba(196,181,253,.13)',fontSize:15}}>📌</div>
                         <div className="cell-content">
                           <span className="cell-title">{f.name}</span>
                           <span className="cell-sub">{f.freq==='m'?'Monatlich':'Jährlich'}</span>
                         </div>
                         <div style={{textAlign:'right',flexShrink:0}}>
-                          <div style={{fontSize:15,fontWeight:600}}>€{fmt(f.amount)}</div>
-                          {f.freq==='y'&&<div style={{fontSize:11,color:'var(--label3)'}}>€{fmt(f.amount/12)}/Mo.</div>}
+                          <div className="num" style={{fontSize:15,fontWeight:700}}>€{fmt(f.amount)}</div>
+                          {f.freq==='y'&&<div className="num" style={{fontSize:11,color:'var(--label3)'}}>€{fmt(f.amount/12)}/Mo.</div>}
                         </div>
                         <button className="del-btn" aria-label="Fixkosten löschen" title="Fixkosten löschen" onClick={()=>set('ff',fixed.filter(x=>x.id!==f.id))}>×</button>
                       </div>
@@ -933,8 +1286,8 @@ function Finanzen() {
           )}
         </div>
       </div>
-      <Wiz open={wiz==='tx'}  onClose={()=>setWiz(null)} title="Buchung"   color="var(--purple)" steps={txSteps}  onFinish={addTx}/>
-      <Wiz open={wiz==='fix'} onClose={()=>setWiz(null)} title="Fixkosten" color="var(--purple)" steps={fixSteps} onFinish={addFix}/>
+      <Wiz open={wiz==='tx'}  onClose={()=>setWiz(null)} title="Buchung"   color="var(--violet)" steps={txSteps}  onFinish={addTx}/>
+      <Wiz open={wiz==='fix'} onClose={()=>setWiz(null)} title="Fixkosten" color="var(--violet)" steps={fixSteps} onFinish={addFix}/>
     </div>
   );
 }
@@ -948,13 +1301,13 @@ function Abos() {
   const [wiz,setWiz] = useState(false);
 
   const EMS=['📱','🎵','🎬','🎮','💻','📰','🛒','☁️','🏋️','📚','🧠','🔒'];
-  const CLS=['#0a84ff','#30d158','#5e5ce6','#ff9f0a','#ff453a','#ec4899','#bf5af2','#5ac8fa','#ffd60a','#ff6961'];
+  const CLS=['#38bdf8','#4ade80','#818cf8','#fbbf24','#fb7185','#ec4899','#c4b5fd','#5eead4','#facc15','#a3e635'];
 
   const pct = s=>{ const d=Math.floor((Date.now()-new Date(s.sd))/86400000),p=s.iv==='m'?30:365; return (d%p)/p*100; };
   const dlf = s=>{ const d=Math.floor((Date.now()-new Date(s.sd))/86400000),p=s.iv==='m'?30:365; return p-(d%p); };
   const moTotal=subs.reduce((s,sub)=>s+(sub.iv==='m'?sub.price:sub.price/12),0);
 
-  const add = d => set('ab',[{id:uid(),name:d.name||'Abo',price:parseFloat(d.price)||0,iv:d.iv||'m',em:d.em||'📱',cl:d.cl||'#5e5ce6',sd:new Date().toISOString().split('T')[0]},...subs]);
+  const add = d => set('ab',[{id:uid(),name:d.name||'Abo',price:parseFloat(d.price)||0,iv:d.iv||'m',em:d.em||'📱',cl:d.cl||'#818cf8',sd:new Date().toISOString().split('T')[0]},...subs]);
 
   const steps=[
     {label:'Name des Abos?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus className="field" placeholder="Netflix, Spotify, iCloud …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
@@ -980,44 +1333,37 @@ function Abos() {
     <div className="screen">
       <NBar title="Abos" color="var(--indigo)" status={status}/>
       <div className="scroll">
-        {subs.length>0&&(
-          <div style={{padding:'16px 16px 0'}}>
-            <div className="summary">
-              <div className="sum-row">
-                {[['Pro Monat',moTotal,'var(--label)'],['Pro Jahr',moTotal*12,'var(--label2)'],['Abos',subs.length,'var(--indigo)']].map(([l,v,c])=>(
-                  <div key={l} className="sum-col">
-                    <span className="sum-lbl">{l}</span>
-                    <span className="sum-val" style={{color:c,fontSize:typeof v==='number'&&v===subs.length?22:18}}>{typeof v==='string'?v:l==='Abos'?v:`€${fmtK(v)}`}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
         <div className="content">
-          <button className="btn" style={{background:'var(--indigo)'}} onClick={()=>setWiz(true)}>Abo hinzufügen</button>
+          {subs.length>0&&(
+            <div className="hero rise" style={{'--glow':'rgba(129,140,248,.15)'}}>
+              <div className="hero-lbl">Pro Monat</div>
+              <div className="hero-big" style={{color:'var(--indigo)',margin:'6px 0 4px'}}>€<CountUp value={moTotal}/></div>
+              <div style={{fontSize:12.5,color:'var(--label3)',fontWeight:500}}>€{fmt(moTotal*12)} pro Jahr · {subs.length} {subs.length===1?'Abo':'Abos'}</div>
+            </div>
+          )}
+          <button className="btn rise" style={{background:'var(--indigo)',color:'#0a120c',animationDelay:'50ms'}} onClick={()=>setWiz(true)}>+ Abo hinzufügen</button>
           {subs.length===0
             ?<div className="empty"><div className="empty-ico">🔄</div><span style={{fontSize:14,color:'var(--label2)'}}>Noch keine Abos</span></div>
             :(
               <>
-                <div className="sub-grid">
+                <div className="sub-grid rise" style={{animationDelay:'100ms'}}>
                   {subs.map(s=>{
                     const p=pct(s),dl=dlf(s);
                     return(
                       <div key={s.id} className="sub-card" onContextMenu={e=>{e.preventDefault();confirm(`"${s.name}" löschen?`)&&set('ab',subs.filter(x=>x.id!==s.id))}}>
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:2}}>
                           <span style={{fontSize:24,lineHeight:1}}>{s.em}</span>
-                          <span style={{fontSize:10,color:'var(--label3)',letterSpacing:'.3px'}}>{s.iv==='m'?'MTL':'JÄH'}</span>
+                          <span className="num" style={{fontSize:9,color:'var(--label3)',letterSpacing:'.2em'}}>{s.iv==='m'?'MTL':'JÄHR'}</span>
                         </div>
-                        <div style={{fontSize:14,fontWeight:600,color:'var(--label)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:2}}>{s.name}</div>
-                        <div style={{fontSize:19,fontWeight:700,color:s.cl,letterSpacing:'-.3px',marginBottom:10}}>€{fmt(s.price)}</div>
+                        <div style={{fontSize:14,fontWeight:700,color:'var(--label)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:2}}>{s.name}</div>
+                        <div className="num" style={{fontSize:19,fontWeight:700,color:s.cl,marginBottom:10}}>€{fmt(s.price)}</div>
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                           <div>
-                            <div style={{fontSize:11,fontWeight:600,color:s.cl}}>{dl}d</div>
+                            <div className="num" style={{fontSize:11,fontWeight:700,color:s.cl}}>{dl}d</div>
                             <div style={{fontSize:10,color:'var(--label3)'}}>übrig</div>
                           </div>
                           <Ring pct={p} size={52} sw={4} color={s.cl}>
-                            <span style={{fontSize:10,fontWeight:700,color:'var(--label)'}}>{Math.round(p)}%</span>
+                            <span className="num" style={{fontSize:10,fontWeight:700,color:'var(--label)'}}>{Math.round(p)}%</span>
                           </Ring>
                         </div>
                         <div className="sub-bar-bg"><div className="sub-bar" style={{width:`${p}%`,background:s.cl}}/></div>
@@ -1040,7 +1386,7 @@ function Abos() {
    EINSTELLUNGEN
 ══════════════════════════ */
 function Einstellungen() {
-  const { D, set, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, mergeRemote } = useD();
+  const { D, set, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, me, setMe } = useD();
   const users=D.users;
   const [cfgText,  setCfgText]  = useState(fbCfg ? JSON.stringify(fbCfg, null, 2) : '');
   const [codeInput,setCodeInput]= useState('');
@@ -1050,7 +1396,7 @@ function Einstellungen() {
   const [importErr,setImportErr]= useState('');
   const fileInputRef = useRef(null);
 
-  const hasLocalData = (D.hs?.length||0)+(D.gi?.length||0)+(D.ft?.length||0)+(D.ff?.length||0)+(D.ab?.length||0) > 0;
+  const hasLocalData = (D.hs?.length||0)+(D.gi?.length||0)+(D.ft?.length||0)+(D.ff?.length||0)+(D.ab?.length||0)+(D.pt?.length||0)+(D.sl?.length||0) > 0;
 
   const saveCfg = () => {
     setCfgErr('');
@@ -1123,22 +1469,22 @@ function Einstellungen() {
     setTimeout(()=>setCopied(false), 2000);
   };
 
-  const statusColor  = !online?'#ff9f0a':status==='synced'?'#30d158':status==='connecting'?'#ff9f0a':status==='error'?'#ff453a':'var(--label3)';
-  const statusLabel  = !online ? 'Offline (lokal speichern, sync wenn online)' : {local:'Nur lokal',connecting:'Verbinde …',synced:'Synchronisiert ✓',error:'Verbindungsfehler'}[status];
+  const statusColor  = !online?'var(--amber)':status==='synced'?'var(--lime)':status==='connecting'?'var(--amber)':status==='error'?'var(--red)':'var(--label3)';
+  const statusLabel  = !online ? 'Offline (lokal speichern, sync wenn online)' : {local:'Nur lokal',connecting:'Verbinde …',synced:'Live synchronisiert ✓',error:'Verbindungsfehler'}[status];
 
   return (
     <div className="screen">
-      <NBar title="Einstellungen" color="var(--label)" status={status}/>
+      <NBar title="Mehr" color="var(--label)" status={status}/>
       <div className="scroll"><div className="content">
 
         {/* Sync Status */}
-        <div>
+        <div className="rise">
           <div className="section-hdr">Sync-Status</div>
           <div className="group">
             <div className="cell">
-              <div style={{width:10,height:10,borderRadius:'50%',background:statusColor,flexShrink:0}}/>
+              <div style={{width:10,height:10,borderRadius:'50%',background:statusColor,boxShadow:`0 0 10px ${statusColor}`,flexShrink:0}}/>
               <div className="cell-content">
-                <span className="cell-title" style={{color:statusColor}}>{statusLabel}</span>
+                <span className="cell-title" style={{color:statusColor,fontSize:15}}>{statusLabel}</span>
                 {status!=='local'&&<span className="cell-sub">WG-Code: {wgCode}</span>}
               </div>
             </div>
@@ -1147,41 +1493,41 @@ function Einstellungen() {
 
         {/* WG Code sharing */}
         {fbCfg&&(
-          <div>
+          <div className="rise" style={{animationDelay:'40ms'}}>
             <div className="section-hdr">WG-Code teilen</div>
             <div className="group">
               <div className="cell">
                 <div className="cell-content">
-                  <span className="cell-title" style={{fontFamily:'monospace',letterSpacing:1,fontSize:20,fontWeight:700}}>{wgCode}</span>
+                  <span className="cell-title num" style={{letterSpacing:'.05em',fontSize:19,fontWeight:700,color:'var(--lime)'}}>{wgCode}</span>
                   <span className="cell-sub">Diesen Code auf dem anderen Gerät eingeben</span>
                 </div>
-                <button onClick={copyCode} style={{background:'none',border:'none',color:copied?'var(--green)':'var(--blue)',fontSize:13,fontWeight:600,flexShrink:0}}>
+                <button onClick={copyCode} style={{background:'none',border:'none',color:copied?'var(--green)':'var(--mint)',fontSize:13,fontWeight:700,flexShrink:0}}>
                   {copied?'Kopiert ✓':'Kopieren'}
                 </button>
               </div>
               <div className="cell" style={{gap:8}}>
                 <input className="field" style={{flex:1,padding:'10px 12px',fontSize:15}} placeholder="Anderen Code eingeben …"
                   value={codeInput} onChange={e=>setCodeInput(e.target.value.toUpperCase())}/>
-                <button onClick={joinCode} style={{background:'var(--blue)',border:'none',borderRadius:10,padding:'10px 14px',color:'#fff',fontSize:14,fontWeight:600,flexShrink:0}}>
+                <button onClick={joinCode} style={{background:'var(--mint)',border:'none',borderRadius:11,padding:'11px 14px',color:'#0a120c',fontSize:14,fontWeight:800,flexShrink:0}}>
                   Beitreten
                 </button>
               </div>
             </div>
-            <div className="section-ftr">⚠️ Beitreten überschreibt deine lokalen Daten mit denen des anderen Geräts.</div>
+            <div className="section-ftr">⚠️ Beim Beitreten kannst du wählen: mergen oder überschreiben.</div>
           </div>
         )}
 
         {/* Firebase Setup */}
-        <div>
+        <div className="rise" style={{animationDelay:'80ms'}}>
           <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <span>Firebase {fbCfg?'(konfiguriert)':'einrichten'}</span>
-            {fbCfg&&<button style={{background:'none',border:'none',color:'var(--blue)',fontSize:13,fontWeight:500}} onClick={()=>setShowSetup(!showSetup)}>{showSetup?'Schließen':'Ändern'}</button>}
+            {fbCfg&&<button style={{background:'none',border:'none',color:'var(--mint)',fontSize:13,fontWeight:600,fontFamily:'Hanken Grotesk'}} onClick={()=>setShowSetup(!showSetup)}>{showSetup?'Schließen':'Ändern'}</button>}
           </div>
 
           {(!fbCfg||showSetup)&&(
             <div className="setup-card" style={{display:'flex',flexDirection:'column',gap:14}}>
               <div>
-                <div style={{fontSize:13,fontWeight:600,color:'var(--label)',marginBottom:10}}>Firebase-Projekt erstellen (kostenlos, 2 Min.)</div>
+                <div style={{fontSize:13,fontWeight:700,color:'var(--label)',marginBottom:10}}>Firebase-Projekt erstellen (kostenlos, 2 Min.)</div>
                 {[
                   ['console.firebase.google.com öffnen','Neues Projekt anlegen → beliebiger Name → Weiter'],
                   ['Realtime Database aktivieren','Build → Realtime Database → Datenbank erstellen → „Im Testmodus starten"'],
@@ -1191,23 +1537,23 @@ function Einstellungen() {
                   <div key={i} className="setup-step">
                     <div className="step-num">{i+1}</div>
                     <div>
-                      <div style={{fontSize:13,fontWeight:600,color:'var(--label)'}}>{title}</div>
+                      <div style={{fontSize:13,fontWeight:700,color:'var(--label)'}}>{title}</div>
                       <div style={{fontSize:12,color:'var(--label3)',marginTop:2,lineHeight:1.5}}>{desc}</div>
                     </div>
                   </div>
                 ))}
               </div>
               <textarea
-                style={{width:'100%',background:'var(--bg3)',border:'none',borderRadius:10,padding:'12px',fontSize:12,color:'var(--label)',letterSpacing:'.2px',lineHeight:1.6,minHeight:140,resize:'vertical'}}
+                style={{width:'100%',background:'var(--bg3)',border:'none',borderRadius:11,padding:'12px',fontSize:12,color:'var(--label)',fontFamily:'var(--mono)',lineHeight:1.6,minHeight:140,resize:'vertical'}}
                 placeholder={'{\n  "apiKey": "AIza…",\n  "databaseURL": "https://…",\n  "projectId": "…"\n}'}
                 value={cfgText} onChange={e=>setCfgText(e.target.value)}
               />
               {cfgErr&&<div style={{fontSize:12,color:'var(--red)'}}>{cfgErr}</div>}
-              <button className="btn" style={{background:cfgText.trim()?'var(--blue)':'var(--bg3)',color:cfgText.trim()?'#fff':'var(--label3)'}} onClick={saveCfg}>
+              <button className="btn" style={{background:cfgText.trim()?'var(--lime)':'var(--bg3)',color:cfgText.trim()?'#0a120c':'var(--label3)'}} onClick={saveCfg}>
                 Verbinden
               </button>
               {fbCfg&&(
-                <button style={{background:'none',border:'none',color:'var(--red)',fontSize:14,fontWeight:500}} onClick={()=>{setFbCfg(null);setCfgText('');setShowSetup(false);}}>
+                <button style={{background:'none',border:'none',color:'var(--red)',fontSize:14,fontWeight:600}} onClick={()=>{setFbCfg(null);setCfgText('');setShowSetup(false);}}>
                   Firebase trennen
                 </button>
               )}
@@ -1216,29 +1562,29 @@ function Einstellungen() {
           {fbCfg&&!showSetup&&(
             <div className="group">
               <div className="cell">
-                <div className="cell-icon" style={{background:'rgba(10,132,255,.15)',fontSize:16}}>🔥</div>
+                <div className="cell-icon" style={{background:'rgba(163,230,53,.12)',fontSize:16}}>🔥</div>
                 <div className="cell-content">
                   <span className="cell-title">Verbunden</span>
                   <span className="cell-sub">{fbCfg.projectId}</span>
                 </div>
-                <span style={{fontSize:12,color:'var(--green)',fontWeight:600}}>Aktiv</span>
+                <span style={{fontSize:12,color:'var(--green)',fontWeight:700}}>Aktiv</span>
               </div>
             </div>
           )}
         </div>
 
         {/* Module sichtbar */}
-        <div>
+        <div className="rise" style={{animationDelay:'120ms'}}>
           <div className="section-hdr">Module anzeigen</div>
           <div className="group">
-            {[['haus','Haushalt','var(--blue)'],['grow','Grow','var(--green)'],['fin','Finanzen','var(--purple)'],['abos','Abos','var(--indigo)']].map(([k,label,c])=>(
+            {[['haus','Haushalt','var(--mint)'],['grow','Growbox','var(--lime)'],['putz','Putzplan','var(--amber)'],['fin','Finanzen','var(--violet)'],['abos','Abos','var(--indigo)']].map(([k,label,c])=>(
               <div key={k} className="cell">
-                <div style={{width:10,height:10,borderRadius:'50%',background:c,flexShrink:0}}/>
+                <div style={{width:10,height:10,borderRadius:'50%',background:c,boxShadow:mods[k]?`0 0 8px ${c}`:'none',opacity:mods[k]?1:.35,flexShrink:0}}/>
                 <div className="cell-content">
                   <span className="cell-title">{label}</span>
                 </div>
                 <button onClick={()=>setMods({...mods,[k]:!mods[k]})}
-                  style={{background:mods[k]?c:'var(--bg3)',color:'#fff',border:'none',borderRadius:14,padding:'6px 14px',fontSize:13,fontWeight:600}}>
+                  style={{background:mods[k]?c:'var(--bg3)',color:mods[k]?'#0a120c':'var(--label2)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800}}>
                   {mods[k]?'An':'Aus'}
                 </button>
               </div>
@@ -1248,18 +1594,18 @@ function Einstellungen() {
         </div>
 
         {/* Backup / Restore */}
-        <div>
+        <div className="rise" style={{animationDelay:'160ms'}}>
           <div className="section-hdr">Backup</div>
           <div className="group">
             <div className="cell" style={{cursor:'pointer'}} onClick={exportData}>
-              <div className="cell-icon" style={{background:'rgba(48,209,88,.15)',fontSize:15}}>⬇️</div>
+              <div className="cell-icon" style={{background:'rgba(74,222,128,.12)',fontSize:15}}>⬇️</div>
               <div className="cell-content">
                 <span className="cell-title">Als JSON exportieren</span>
                 <span className="cell-sub">Lädt eine Backup-Datei herunter</span>
               </div>
             </div>
             <div className="cell" style={{cursor:'pointer'}} onClick={()=>fileInputRef.current?.click()}>
-              <div className="cell-icon" style={{background:'rgba(10,132,255,.15)',fontSize:15}}>⬆️</div>
+              <div className="cell-icon" style={{background:'rgba(94,234,212,.12)',fontSize:15}}>⬆️</div>
               <div className="cell-content">
                 <span className="cell-title">Backup importieren</span>
                 <span className="cell-sub">Überschreibt aktuelle Daten</span>
@@ -1272,34 +1618,39 @@ function Einstellungen() {
         </div>
 
         {/* Persons */}
-        <div>
+        <div className="rise" style={{animationDelay:'200ms'}}>
           <div className="section-hdr">Personen</div>
           <div className="group">
             {users.map(u=>(
               <div key={u.id} className="cell">
-                <div style={{width:10,height:10,borderRadius:'50%',background:u.color,flexShrink:0}}/>
-                <input className="field" style={{background:'transparent',padding:0,fontSize:17,flex:1}}
+                <div style={{width:10,height:10,borderRadius:'50%',background:u.color,boxShadow:`0 0 8px ${u.color}`,flexShrink:0}}/>
+                <input className="field" style={{background:'transparent',border:'none',padding:0,fontSize:16,fontWeight:600,flex:1}}
                   value={u.name} onChange={e=>set('users',users.map(x=>x.id===u.id?{...x,name:e.target.value}:x))}/>
+                <button onClick={()=>setMe(u.id)}
+                  style={{background:me===u.id?u.color:'var(--bg3)',color:me===u.id?'#0a120c':'var(--label3)',border:'none',borderRadius:12,padding:'7px 12px',fontSize:12,fontWeight:800,flexShrink:0}}>
+                  {me===u.id?'Das bin ich ✓':'Das bin ich'}
+                </button>
               </div>
             ))}
           </div>
+          <div className="section-ftr">„Das bin ich" gilt nur für dieses Gerät — Einträge auf der Einkaufsliste werden damit automatisch dir zugeordnet.</div>
         </div>
 
         {/* iPhone install */}
-        <div>
+        <div className="rise" style={{animationDelay:'240ms'}}>
           <div className="section-hdr">Zum Homescreen</div>
           <div className="group">
-            {[['1.','Safari öffnen'],['2.','Teilen □↑'],['3.','"Zum Home-Bildschirm"'],['4.','Startet wie eine native App']].map(([n,t])=>(
-              <div key={n} className="cell">
-                <span style={{fontSize:13,color:'var(--label3)',width:16,flexShrink:0}}>{n}</span>
-                <span className="cell-title" style={{fontSize:15}}>{t}</span>
+            {[['1','Safari öffnen'],['2','Teilen □↑'],['3','"Zum Home-Bildschirm"'],['4','Startet wie eine native App']].map(([n,t])=>(
+              <div key={n} className="cell" style={{minHeight:44,padding:'10px 16px'}}>
+                <span className="num" style={{fontSize:12,color:'var(--label3)',width:16,flexShrink:0}}>{n}</span>
+                <span className="cell-title" style={{fontSize:14.5}}>{t}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <button style={{width:'100%',height:50,border:'none',borderRadius:14,background:'var(--bg2)',color:'var(--red)',fontSize:17,fontWeight:500}}
-            onClick={()=>{if(confirm('Alle lokalen Daten löschen?')){['wg_data','fb_cfg','wg_code','wg_modules'].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>
+        <button style={{width:'100%',height:50,border:'1px solid rgba(251,113,133,.25)',borderRadius:16,background:'rgba(251,113,133,.06)',color:'var(--red)',fontSize:15,fontWeight:700}}
+            onClick={()=>{if(confirm('Alle lokalen Daten löschen?')){['wg_data','fb_cfg','wg_code','wg_modules','wg_me'].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>
           Alle lokalen Daten löschen
         </button>
 
@@ -1312,32 +1663,49 @@ function Einstellungen() {
    APP ROOT
 ══════════════════════════ */
 const TABS=[
-  {id:'haus',label:'Haushalt',color:'var(--blue)',  icon:ICONS.house   },
-  {id:'grow',label:'Grow',    color:'var(--green)', icon:ICONS.leaf    },
-  {id:'fin', label:'Finanzen',color:'var(--purple)',icon:ICONS.wallet  },
+  {id:'haus',label:'Haushalt',color:'var(--mint)',  icon:ICONS.house   },
+  {id:'grow',label:'Growbox', color:'var(--lime)',  icon:ICONS.leaf    },
+  {id:'putz',label:'Putzplan',color:'var(--amber)', icon:ICONS.sparkle },
+  {id:'fin', label:'Finanzen',color:'var(--violet)',icon:ICONS.wallet  },
   {id:'abos',label:'Abos',    color:'var(--indigo)',icon:ICONS.repeat  },
-  {id:'set', label:'Mehr',    color:'rgba(235,235,245,.3)', icon:ICONS.settings},
+  {id:'set', label:'Mehr',    color:'rgba(242,246,243,.35)', icon:ICONS.settings},
 ];
 
 function AppInner() {
-  const { mods } = useD();
+  const { mods, remotePulse } = useD();
   const visibleTabs = TABS.filter(t => t.id==='set' || mods[t.id] !== false);
   const [tab,setTab] = useState(() => visibleTabs[0]?.id || 'set');
+  const [toast,setToast] = useState(false);
   // Wenn der aktive Tab versteckt wird, auf ersten sichtbaren springen
   useEffect(() => {
     if (!visibleTabs.find(t=>t.id===tab)) setTab(visibleTabs[0]?.id || 'set');
   }, [mods]);
+  // Live-Toast wenn Änderung vom anderen Gerät reinkommt
+  useEffect(() => {
+    if (remotePulse === 0) return;
+    setToast(true);
+    const t = setTimeout(()=>setToast(false), 2800);
+    return () => clearTimeout(t);
+  }, [remotePulse]);
   return (
     <>
       {tab==='haus'&&<Haushalt/>}
       {tab==='grow'&&<Grow/>}
+      {tab==='putz'&&<Putzplan/>}
       {tab==='fin' &&<Finanzen/>}
       {tab==='abos'&&<Abos/>}
       {tab==='set' &&<Einstellungen/>}
+      {toast&&(
+        <div className="toast">
+          <Ic d={ICONS.bolt} color="var(--lime)" size={14} sw={2.2}/>
+          Live aktualisiert — neuer Eintrag vom anderen Gerät
+        </div>
+      )}
       <div className="tabbar">
         {visibleTabs.map(t=>(
-          <button key={t.id} className="tabitem" onClick={()=>setTab(t.id)} style={{color:tab===t.id?t.color:'rgba(235,235,245,.3)'}}>
-            <Ic d={t.icon} color={tab===t.id?t.color:'rgba(235,235,245,.3)'} size={24} sw={tab===t.id?2:1.6}/>
+          <button key={t.id} className="tabitem" onClick={()=>setTab(t.id)} style={{color:tab===t.id?t.color:'rgba(242,246,243,.32)'}}>
+            {tab===t.id&&<div className="tab-glow"/>}
+            <Ic d={t.icon} color={tab===t.id?t.color:'rgba(242,246,243,.32)'} size={23} sw={tab===t.id?2.1:1.6}/>
             <span>{t.label}</span>
           </button>
         ))}
