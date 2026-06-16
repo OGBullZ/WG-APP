@@ -17,10 +17,10 @@
 <!-- Firebase compat SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<!-- React + Babel -->
-<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<!-- React + Babel (production-min: kleiner & schneller) -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"></script>
 <style>
 :root {
   --bg:          #060a08;
@@ -137,6 +137,17 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 }
 @keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(-12px) scale(.94); } }
 
+/* ── Undo toast ── */
+.undo-toast {
+  position:fixed; left:50%; bottom:calc(var(--tb-h) + 12px); transform:translateX(-50%); z-index:310;
+  display:flex; align-items:center; gap:14px; max-width:calc(100vw - 32px);
+  background:rgba(20,26,22,.96); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,.1); border-radius:14px;
+  padding:11px 12px 11px 18px; font-size:14px; font-weight:600; color:var(--label);
+  box-shadow:0 14px 40px rgba(0,0,0,.5); animation:toastIn .3s cubic-bezier(.22,1,.36,1);
+}
+.undo-toast button { background:rgba(94,234,212,.14); color:var(--mint); border:none; border-radius:9px; padding:8px 14px; font-size:13px; font-weight:800; flex-shrink:0; }
+
 /* ── Tab bar ── */
 .tabbar {
   position:fixed; bottom:0; left:0; right:0; z-index:90;
@@ -230,24 +241,27 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 .seg-btn.on { background:rgba(255,255,255,.12); color:var(--label); box-shadow:0 4px 14px rgba(0,0,0,.25); }
 
 /* ── Sheet / Wizard ── */
-.overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:200; display:flex; align-items:flex-end; backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:400; display:flex; align-items:flex-end; backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
 .sheet {
   width:100%; background:rgba(13,18,15,.97); border-radius:24px 24px 0 0;
-  padding:10px 0 0; padding-bottom:calc(18px + var(--safe-bot));
+  padding:10px 0 0;
+  display:flex; flex-direction:column;
+  margin-bottom:var(--kb,0px);                       /* hebt das Sheet über die Tastatur (sonst 0) */
+  max-height:calc(100dvh - var(--kb,0px) - 6px); overflow:hidden;
   animation:sheetUp .32s cubic-bezier(.22,1,.36,1);
   box-shadow:0 -24px 70px rgba(0,0,0,.5);
   border:1px solid rgba(255,255,255,.07);
 }
 @keyframes sheetUp { from{transform:translateY(100%)} }
-.sheet-handle { width:38px; height:5px; border-radius:999px; background:rgba(255,255,255,.14); margin:0 auto 18px; }
-.sheet-hdr { padding:0 20px 16px; display:flex; justify-content:space-between; align-items:center; }
+.sheet-handle { width:38px; height:5px; border-radius:999px; background:rgba(255,255,255,.14); margin:0 auto 18px; flex:none; }
+.sheet-hdr { padding:0 20px 16px; display:flex; justify-content:space-between; align-items:center; flex:none; }
 .sheet-title { font-family:var(--disp); font-size:14px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
 .cancel-btn { font-size:15px; font-weight:600; color:var(--label3); background:none; border:none; padding:0; }
-.step-bar { display:flex; gap:5px; padding:0 20px 20px; }
+.step-bar { display:flex; gap:5px; padding:0 20px 20px; flex:none; }
 .step-seg { flex:1; height:3px; border-radius:2px; transition:all .3s; }
-.sheet-body { padding:0 20px; display:flex; flex-direction:column; gap:14px; }
+.sheet-body { padding:0 20px; display:flex; flex-direction:column; gap:14px; overflow-y:auto; -webkit-overflow-scrolling:touch; flex:1 1 auto; min-height:0; }
 .sheet-lbl { font-size:14px; color:var(--label2); font-weight:600; }
-.sheet-acts { padding:20px 20px 0; display:flex; gap:10px; }
+.sheet-acts { padding:20px 20px calc(18px + var(--safe-bot)); display:flex; gap:10px; flex:none; }
 
 /* ── Inputs ── */
 .field {
@@ -351,15 +365,43 @@ const { useState, useEffect, useRef, useCallback, createContext, useContext } = 
 const ls   = (k,fb) => { try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;} };
 const ss   = (k,v)  => { try{localStorage.setItem(k,JSON.stringify(v));}catch{} };
 const uid  = () => Math.random().toString(36).slice(2,10);
-const fmt  = n => Number(n||0).toFixed(2);
-const fmtK = n => n>=1000?(n/1000).toFixed(1)+'K':fmt(n);
+const fmt  = n => Number(n||0).toFixed(2).replace('.', ',');     // deutsche Anzeige: 8,50
+/* Beträge robust parsen: deutsches Komma „8,50" wie auch „8.50" → 8.5 */
+const parseNum = v => { const n = parseFloat(String(v ?? '').replace(/,/g,'.').replace(/[^0-9.]/g,'')); return isNaN(n) ? 0 : n; };
+const fmtK = n => n>=1000?(n/1000).toFixed(1).replace('.', ',')+'K':fmt(n);
 const tod  = () => new Date().toLocaleDateString('de-DE');
+const todayISO = () => { const d=new Date(),z=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; };
+/* Zeigt ISO-Daten (YYYY-MM-DD) als de-DE; Alt-Einträge im de-DE-Format laufen unverändert durch */
+const fmtDate  = s => { if(!s) return ''; const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s); return m?`${+m[3]}.${+m[2]}.${m[1]}`:s; };
+const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+/* Monat „YYYY-MM" aus ISO- oder de-DE-Datum extrahieren */
+const ymOf = s => { if(!s) return null; let m=/^(\d{4})-(\d{2})/.exec(s); if(m) return m[1]+'-'+m[2]; m=/^(\d{1,2})\.(\d{1,2})\.(\d{4})/.exec(s); if(m) return m[3]+'-'+String(+m[2]).padStart(2,'0'); return null; };
+const ymLabel = ym => { const [y,m]=ym.split('-'); return `${MONTHS[+m-1]} ${y}`; };
+const ymShift = (ym,delta) => { let [y,m]=ym.split('-').map(Number); m+=delta; while(m<1){m+=12;y--;} while(m>12){m-=12;y++;} return `${y}-${String(m).padStart(2,'0')}`; };
 
-const ADJS  = ['BLAU','GRÜN','ROT','GOLD','WILD','KÜHL','WARM','TIEF'];
-const NUNS  = ['GRAS','MOND','WALD','SEE','BERG','WIND','STEIN','LICHT'];
-const genCode = () => `${ADJS[Math.floor(Math.random()*8)]}-${NUNS[Math.floor(Math.random()*8)]}-${Math.floor(1000+Math.random()*9000)}`;
+/* Lokale Erinnerung anzeigen (kein Server-Push) — über Service Worker, sonst direkte Notification.
+   Greift nur, wenn die App geöffnet/gestartet wird; ohne Backend gibt es keine Hintergrund-Pushes. */
+const showLocalNote = (title, body) => {
+  try {
+    if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+      navigator.serviceWorker.ready
+        .then(r => r.showNotification(title, { body, icon:'icon.svg', badge:'icon.svg', tag:'wg-reminder' }))
+        .catch(() => { try { new Notification(title, { body }); } catch {} });
+    } else { new Notification(title, { body }); }
+  } catch {}
+};
+
+const ADJS  = ['BLAU','GRÜN','ROT','GOLD','WILD','KÜHL','WARM','TIEF','HELL','LEIS','RAU','FERN'];
+const NUNS  = ['GRAS','MOND','WALD','SEE','BERG','WIND','STEIN','LICHT','FUCHS','RABE','TAU','HAIN'];
+/* Verwechslungsfreies Alphabet (kein 0/O/1/I/L) für ein 6-stelliges Secret-Suffix.
+   12·12·31^6 ≈ 1,3·10^11 Kombinationen — Raten über die offene DB praktisch chancenlos. */
+const SAFE = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const rnd  = n => Array.from({length:n},()=>SAFE[Math.floor(Math.random()*SAFE.length)]).join('');
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const genCode = () => `${pick(ADJS)}-${pick(NUNS)}-${rnd(6)}`;
 
 const U_DEF = [{id:'u1',name:'Torben',color:'#38bdf8'},{id:'u2',name:'Tom',color:'#fbbf24'}];
+const COMMON_ITEMS = ['Milch','Brot','Eier','Butter','Klopapier','Müllbeutel','Spülmittel','Kaffee','Nudeln','Käse','Zucker','Öl'];
 
 /* Eingebaute Firebase-Config (Client-Keys sind öffentlich) — Sync läuft out-of-the-box */
 const FB_DEFAULT = {
@@ -380,14 +422,17 @@ const INIT = {
   pt:     [],
   pl:     [],
   sl:     [],
+  stl:    [],
+  rec:    [],
 };
+const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
 
 /* ════════════════════════════
    DATA CONTEXT + FIREBASE SYNC
 ════════════════════════════ */
 const Ctx = createContext(null);
 
-const MOD_DEF = { haus:true, grow:true, putz:true, fin:false, abos:false };
+const MOD_DEF = { haus:true, grow:true, putz:true, fin:false, abos:false, stats:false };
 
 function DataProvider({ children }) {
   const [fbCfg,  setFbCfg_]  = useState(() => ls('fb_cfg', FB_DEFAULT));
@@ -397,6 +442,11 @@ function DataProvider({ children }) {
   const [mods,   setMods_]   = useState(() => ({...MOD_DEF, ...(ls('wg_modules', {}) || {})}));
   const [me,     setMe_]     = useState(() => ls('wg_me', null)); // wer dieses Gerät nutzt (nicht gesynct)
   const [remotePulse, setRemotePulse] = useState(0);
+  // ── UI: Undo-Toast + Confirm-Dialog (ersetzt native confirm/prompt) ──
+  const [undoMsg,    setUndoMsg]    = useState(null);
+  const [confirmReq, setConfirmReq] = useState(null);
+  const undoFn    = useRef(null);
+  const undoTimer = useRef(null);
   const [D, setD_] = useState(() => {
     const saved = ls('wg_data', null);
     return saved ? {...INIT, ...saved} : INIT;
@@ -406,49 +456,117 @@ function DataProvider({ children }) {
     window.addEventListener('online', on); window.addEventListener('offline', off);
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
   }, []);
+  // Nur die Tastaturhöhe verfolgen (--kb). Ohne Tastatur 0 → Overlay bleibt voll, keine Lücke.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const upd = () => {
+      const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      document.documentElement.style.setProperty('--kb', kb + 'px');
+    };
+    upd();
+    vv.addEventListener('resize', upd);
+    vv.addEventListener('scroll', upd);
+    return () => { vv.removeEventListener('resize', upd); vv.removeEventListener('scroll', upd); };
+  }, []);
+  // Wiederkehrende Haushaltsausgaben für den aktuellen Monat erzeugen (deterministische ID → dedup-sicher).
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const cur = dataRef.current, templates = cur.rec || [];
+      if (!templates.length) return;
+      const YM = todayISO().slice(0,7);
+      const have = new Set((cur.hs||[]).map(i=>i.id));
+      const toAdd = templates
+        .filter(tp => (!tp.since || tp.since <= YM) && !have.has(`r-${tp.id}-${YM}`))
+        .map(tp => ({ id:`r-${tp.id}-${YM}`, name:tp.name, price:tp.price, paidBy:tp.paidBy, date:YM+'-01', settled:false, recur:true }));
+      if (toAdd.length) set('hs', [...toAdd, ...(cur.hs||[])]);
+    }, 3500); // nach dem ersten Sync, damit nichts doppelt erzeugt wird
+    return () => clearTimeout(t);
+  }, [wgCode, D.rec]);
   const setMods = (m) => { setMods_(m); ss('wg_modules', m); };
   const setMe = (id) => { setMe_(id); ss('wg_me', id); };
 
-  const dbRef     = useRef(null);
-  const pendingIds = useRef(new Set());
-  const writeTimer = useRef(null);
+  const dbRef      = useRef(null);
+  const dataRef    = useRef(D);        // stets aktueller lokaler Stand (für Listener & Flush)
+  const dirty      = useRef(new Set()); // Keys, die noch zum Server müssen
+  const pushed     = useRef({});        // Key -> zuletzt gesendeter JSON-Wert (Echo-Erkennung)
+  const flushTimer = useRef(null);
+  useEffect(() => { dataRef.current = D; }, [D]);
 
-  /* Write all data to Firebase (debounced 400ms) */
-  const pushToFb = useCallback((data) => {
+  /* Geänderte Keys gebündelt schreiben — nur betroffene Felder via update(), nicht das ganze
+     Dataset via set(). So überschreiben gleichzeitige Änderungen an verschiedenen Modulen
+     einander nicht mehr; nur ein echter Konflikt am SELBEN Feld bleibt last-write-wins. */
+  // Pro Key die letzten gesendeten Serialisierungen merken — so wird auch ein verspätetes
+  // Echo eines FRÜHEREN eigenen Writes (z.B. bei schnellen Stepper-Klicks) nicht als fremd gewertet.
+  const rememberSent = (k, ser) => {
+    const s = pushed.current[k] || (pushed.current[k] = new Set());
+    s.add(ser);
+    if (s.size > 8) s.delete(s.values().next().value);
+  };
+  const flush = useCallback(() => {
+    if (!dbRef.current || dirty.current.size === 0) return;
+    const updates = {};
+    dirty.current.forEach(k => {
+      const val = dataRef.current[k] ?? null;
+      updates[k] = val;
+      rememberSent(k, JSON.stringify(val));
+    });
+    dirty.current.clear();
+    dbRef.current.update(updates).then(() => setStatus('synced')).catch(() => setStatus('error'));
+  }, []);
+  const queuePush = useCallback((key) => {
     if (!dbRef.current) return;
-    clearTimeout(writeTimer.current);
-    writeTimer.current = setTimeout(() => {
-      const wid = uid();
-      pendingIds.current.add(wid);
-      dbRef.current.set({ ...data, _wid: wid })
-        .catch(() => setStatus('error'));
-    }, 400);
+    dirty.current.add(key);
+    clearTimeout(flushTimer.current);
+    flushTimer.current = setTimeout(flush, 400);
+  }, [flush]);
+
+  /* Alle Keys auf einmal hochschreiben (Erstpush, Import, Merge) */
+  const pushAll = useCallback((data) => {
+    if (!dbRef.current) return;
+    const updates = { _wid: null }; // veraltete Echo-Markierung einmalig entfernen
+    KEYS.forEach(k => {
+      const val = data[k] ?? null;
+      updates[k] = val;
+      rememberSent(k, JSON.stringify(val));
+    });
+    dbRef.current.update(updates).then(() => setStatus('synced')).catch(() => setStatus('error'));
   }, []);
 
-  /* Update local state + persist + push to Firebase */
+  /* Update local state + persist + nur den geänderten Key pushen */
   const set = useCallback((key, val) => {
     setD_(prev => {
       const next = { ...prev, [key]: val };
+      dataRef.current = next;
       ss('wg_data', next);
-      pushToFb(next);
       return next;
     });
-  }, [pushToFb]);
+    queuePush(key);
+  }, [queuePush]);
 
-  /* Init / re-init Firebase when config changes */
+  /* Init / re-init Firebase when config or WG-Code changes */
   useEffect(() => {
     if (!fbCfg || !wgCode) { setStatus('local'); return; }
     setStatus('connecting');
+    dirty.current.clear();
+    pushed.current = {};
+    clearTimeout(flushTimer.current);
 
     try {
-      // Avoid re-init if already initialized with same config
+      // Pro Config eine eigene benannte App → ein Config-Wechsel greift ohne Reload
+      const appName = 'wg-' + (fbCfg.projectId || fbCfg.databaseURL || 'default');
       let app;
-      try { app = firebase.app(); } catch { app = firebase.initializeApp(fbCfg); }
+      try { app = firebase.app(appName); } catch { app = firebase.initializeApp(fbCfg, appName); }
       const db = firebase.database(app);
       const ref = db.ref(`wg/${wgCode}`);
       dbRef.current = ref;
 
-      // Initial read: if Firebase has data, use it; else push local
+      const dedupe = (a=[], b=[]) => {
+        const seen = new Set();
+        return [...a, ...b].filter(x => x && x.id && !seen.has(x.id) && seen.add(x.id));
+      };
+
+      // Erst-Read: Cloud-Daten übernehmen, mergen oder lokalen Stand hochladen
       ref.once('value', snap => {
         const remote = snap.val();
         const joinMode = sessionStorage.getItem('wg_join_mode');
@@ -456,67 +574,70 @@ function DataProvider({ children }) {
         if (remote) {
           const { _wid, ...actual } = remote;
           if (joinMode === 'merge') {
-            // Merge remote into local, push merged back up
-            const dedupe = (a=[], b=[]) => {
-              const seen = new Set();
-              return [...a, ...b].filter(x => x && x.id && !seen.has(x.id) && seen.add(x.id));
-            };
             setD_(prev => {
               const r = { ...INIT, ...actual };
               const next = {
                 users: r.users?.length ? r.users : prev.users,
-                hs: dedupe(prev.hs, r.hs),
-                gi: dedupe(prev.gi, r.gi),
-                ft: dedupe(prev.ft, r.ft),
-                ff: dedupe(prev.ff, r.ff),
-                ab: dedupe(prev.ab, r.ab),
-                pt: dedupe(prev.pt, r.pt),
-                pl: dedupe(prev.pl, r.pl),
-                sl: dedupe(prev.sl, r.sl),
+                hs: dedupe(prev.hs, r.hs), gi: dedupe(prev.gi, r.gi),
+                ft: dedupe(prev.ft, r.ft), ff: dedupe(prev.ff, r.ff),
+                ab: dedupe(prev.ab, r.ab), pt: dedupe(prev.pt, r.pt),
+                pl: dedupe(prev.pl, r.pl), sl: dedupe(prev.sl, r.sl),
+                stl: dedupe(prev.stl, r.stl), rec: dedupe(prev.rec, r.rec),
                 gp: { ...prev.gp, ...r.gp },
               };
+              dataRef.current = next;
               ss('wg_data', next);
-              pushToFb(next);
+              pushAll(next);
               return next;
             });
           } else {
-            // remote wins (default for first-time pairing)
+            // Remote gewinnt (Standard beim ersten Pairing)
             const merged = { ...INIT, ...actual };
+            KEYS.forEach(k => { pushed.current[k] = new Set([JSON.stringify(merged[k] ?? null)]); });
+            dataRef.current = merged;
             setD_(merged);
             ss('wg_data', merged);
           }
         } else {
-          // First time: push local data up
-          setD_(prev => { pushToFb(prev); return prev; });
+          // Noch nichts in der Cloud: lokalen Stand hochladen
+          pushAll(dataRef.current);
         }
         setStatus('synced');
 
-        // Ongoing listener
+        // Laufender Listener: pro Key diffen; eigene Echos & in-flight Writes ignorieren
         let firstEvent = true;
         ref.on('value', snap2 => {
           const v = snap2.val();
-          if (!v) return;
-          const { _wid, ...actual } = v;
-          if (pendingIds.current.has(_wid)) {
-            // Our own echo → just mark synced
-            pendingIds.current.delete(_wid);
-            setStatus('synced');
-            firstEvent = false;
-            return;
+          if (!v) { firstEvent = false; return; }
+          const { _wid, ...remote2 } = v;
+          const adopt = {};
+          let foreign = false;
+          KEYS.forEach(k => {
+            if (!(k in remote2)) return;
+            const rs = JSON.stringify(remote2[k]);
+            if (JSON.stringify(dataRef.current[k]) === rs) return;       // lokal schon aktuell (auch Echo des letzten Writes)
+            if (pushed.current[k] && pushed.current[k].has(rs)) return;  // verspätetes Echo eines eigenen Writes
+            if (dirty.current.has(k)) return;                           // schreibe ich gerade → nicht überschreiben
+            adopt[k] = remote2[k];
+            foreign = true;
+          });
+          if (foreign) {
+            setD_(prev => {
+              const next = { ...prev, ...adopt };
+              dataRef.current = next;
+              ss('wg_data', next);
+              return next;
+            });
+            if (!firstEvent) setRemotePulse(p => p + 1);
           }
-          // External change from other device
-          const merged = { ...INIT, ...actual };
-          setD_(merged);
-          ss('wg_data', merged);
           setStatus('synced');
-          if (!firstEvent) setRemotePulse(p => p + 1);
           firstEvent = false;
         }, () => setStatus('error'));
       }, () => setStatus('error'));
 
-      return () => { ref.off(); dbRef.current = null; };
+      return () => { ref.off(); dbRef.current = null; clearTimeout(flushTimer.current); };
     } catch(e) { setStatus('error'); }
-  }, [fbCfg, wgCode, pushToFb]);
+  }, [fbCfg, wgCode, pushAll]);
 
   const setFbCfg = (cfg) => { setFbCfg_(cfg); ss('fb_cfg', cfg); };
   const setWgCode = (c) => { setWgCode_(c); ss('wg_code', c); };
@@ -524,9 +645,10 @@ function DataProvider({ children }) {
   /* Replace whole dataset (used by Import + Pair-Merge) */
   const replaceData = (next) => {
     const merged = { ...INIT, ...next };
+    dataRef.current = merged;
     setD_(merged);
     ss('wg_data', merged);
-    pushToFb(merged);
+    pushAll(merged);
   };
 
   /* Merge remote into local (used when joining and both sides have data) */
@@ -547,21 +669,72 @@ function DataProvider({ children }) {
         pt:   dedupe(prev.pt,  r.pt),
         pl:   dedupe(prev.pl,  r.pl),
         sl:   dedupe(prev.sl,  r.sl),
+        stl:  dedupe(prev.stl, r.stl),
+        rec:  dedupe(prev.rec, r.rec),
         gp:   { ...prev.gp, ...r.gp },
       };
+      dataRef.current = next;
       ss('wg_data', next);
-      pushToFb(next);
+      pushAll(next);
       return next;
     });
   };
 
+  /* Aktion mit 5-Sekunden-Undo (statt Lösch-Bestätigung) */
+  const undo = useCallback((msg, fn) => {
+    undoFn.current = fn;
+    setUndoMsg(msg);
+    clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => { setUndoMsg(null); undoFn.current = null; }, 5000);
+  }, []);
+  const runUndo = () => { clearTimeout(undoTimer.current); undoFn.current?.(); undoFn.current = null; setUndoMsg(null); };
+
+  /* Promise-basierter Bestätigungsdialog für nicht umkehrbare Aktionen */
+  const askConfirm = useCallback((opts) => new Promise(resolve => setConfirmReq({ ...opts, resolve })), []);
+  const closeConfirm = (val) => { setConfirmReq(req => { req?.resolve(val); return null; }); };
+
   return (
-    <Ctx.Provider value={{ D, set, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, mergeRemote, remotePulse, me, setMe }}>
+    <Ctx.Provider value={{ D, set, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, mergeRemote, remotePulse, me, setMe, undo, undoMsg, runUndo, askConfirm, confirmReq, closeConfirm }}>
       {children}
     </Ctx.Provider>
   );
 }
 const useD = () => useContext(Ctx);
+
+/* ── Globale UI: Undo-Toast + Bestätigungsdialog ── */
+function GlobalUI() {
+  const { undoMsg, runUndo, confirmReq, closeConfirm } = useD();
+  return ReactDOM.createPortal(
+    <>
+      {undoMsg && (
+        <div className="undo-toast">
+          <span style={{minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{undoMsg}</span>
+          <button onClick={runUndo}>Rückgängig</button>
+        </div>
+      )}
+      {confirmReq && (
+        <div className="overlay" onClick={()=>closeConfirm(false)}>
+          <div className="sheet" onClick={e=>e.stopPropagation()} style={{maxWidth:440}}>
+            <div className="sheet-handle"/>
+            <div className="sheet-hdr">
+              <span className="sheet-title" style={{color:confirmReq.danger?'var(--red)':'var(--label)'}}>{confirmReq.title||'Bestätigen'}</span>
+            </div>
+            {confirmReq.body && (
+              <div className="sheet-body"><div style={{fontSize:14.5,color:'var(--label2)',lineHeight:1.55}}>{confirmReq.body}</div></div>
+            )}
+            <div className="sheet-acts">
+              <button className="btn btn-sec" onClick={()=>closeConfirm(false)}>{confirmReq.cancelLabel||'Abbrechen'}</button>
+              <button className="btn" style={{background:confirmReq.danger?'var(--red)':'var(--lime)',color:confirmReq.danger?'#fff':'#0a120c'}} onClick={()=>closeConfirm(true)}>
+                {confirmReq.okLabel||'OK'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>,
+    document.body
+  );
+}
 
 /* ── Icons ── */
 const ICONS = {
@@ -573,6 +746,7 @@ const ICONS = {
   check:    'M20 6L9 17l-5-5',
   bolt:     'M13 2L3 14h7l-1 8 10-12h-7l1-8z',
   sparkle:  'M12 3l1.9 4.6 4.6 1.9-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3zM19 14.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8.8-1.9z',
+  chart:    'M4 20h16M7 20v-6M12 20V8M17 20v-9',
 };
 const Ic = ({d,color='currentColor',size=25,sw=1.7}) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
@@ -604,7 +778,7 @@ function CountUp({ value, dec=2, prefix='', suffix='' }) {
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
   }, [value]);
-  return <>{prefix}{Number(v).toFixed(dec)}{suffix}</>;
+  return <>{prefix}{Number(v).toFixed(dec).replace('.', ',')}{suffix}</>;
 }
 
 /* ── Ring (single value) ── */
@@ -656,7 +830,7 @@ function Wiz({ open, onClose, title, color, steps, onFinish, initial }) {
   const S=steps[step], last=step===steps.length-1;
   const ok=S.ok?S.ok(data):true;
   const next=()=>{ if(!ok)return; last?(onFinish(data),onClose()):setStep(s=>s+1); };
-  return (
+  return ReactDOM.createPortal(
     <div className="overlay" onClick={onClose}>
       <div className="sheet" onClick={e=>e.stopPropagation()}>
         <div className="sheet-handle"/>
@@ -669,7 +843,7 @@ function Wiz({ open, onClose, title, color, steps, onFinish, initial }) {
             <div key={i} className="step-seg" style={{background:i<=step?color:'rgba(255,255,255,.08)',boxShadow:i<=step?`0 0 8px ${i===step?'currentColor':'transparent'}`:'none',opacity:i<=step?1:.6}}/>
           ))}
         </div>
-        <div className="sheet-body">
+        <div className="sheet-body" onKeyDown={e=>{ if(e.key==='Enter'&&e.target.tagName!=='TEXTAREA'){ e.preventDefault(); next(); } }}>
           <div className="sheet-lbl">{S.label}</div>
           {S.render({data,setData})}
         </div>
@@ -680,7 +854,8 @@ function Wiz({ open, onClose, title, color, steps, onFinish, initial }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -694,6 +869,36 @@ function Bal({ bals }) {
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--label3)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-5-5l5 5-5 5"/></svg>
       <span style={{color:c.color,fontWeight:800}}>{c.name}</span>
       <span className="num" style={{fontWeight:700,fontSize:16,color:'var(--amber)'}}>€<CountUp value={Math.abs(d.net)}/></span>
+    </div>
+  );
+}
+
+/* ── Abrechnungs-Historie (wer hat wem wann wie viel ausgeglichen) ── */
+function SettlementHistory({ settlements, users, accent }) {
+  if (!settlements || !settlements.length) return null;
+  const nameOf = id => users.find(u=>u.id===id);
+  return (
+    <div className="rise">
+      <div className="section-hdr">Abrechnungen</div>
+      <div className="group">
+        {settlements.slice(0,12).map(s=>{
+          const from=nameOf(s.fromId), to=nameOf(s.toId), open=s.amount>0.01&&from&&to;
+          return (
+            <div key={s.id} className="cell">
+              <div className="cell-icon" style={{background:'rgba(74,222,128,.12)',color:'var(--green)',fontSize:15,fontWeight:800}}>✓</div>
+              <div className="cell-content">
+                <span className="cell-title">
+                  {open
+                    ? <><span style={{color:from.color,fontWeight:700}}>{from.name}</span> → <span style={{color:to.color,fontWeight:700}}>{to.name}</span></>
+                    : 'Ausgeglichen'}
+                </span>
+                <span className="cell-sub">{fmtDate(s.date)} · {s.n} Posten · €{fmt(s.total)} gesamt</span>
+              </div>
+              {open && <span className="num" style={{fontWeight:700,fontSize:15,color:accent}}>€{fmt(s.amount)}</span>}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -716,41 +921,85 @@ function NBar({ title, color, status }) {
   );
 }
 
+/* Wiederverwendbarer Datums-Step für die Wizards */
+const dateStepRender = ({data:d,setData:sd}) => (
+  <input type="date" className="field" value={d.date||todayISO()} onChange={e=>sd({...d,date:e.target.value})}/>
+);
+
 /* ══════════════════════════
    HAUSHALT
 ══════════════════════════ */
 function Haushalt() {
-  const { D, set, status, me, setMe } = useD();
+  const { D, set, status, me, setMe, undo, askConfirm } = useD();
   const users = D.users, items = D.hs || [], list = D.sl || [];
   const [seg,setSeg] = useState('aus');
   const [wiz,setWiz] = useState(false);
   const [editItem,setEditItem] = useState(null);
   const [convItem,setConvItem] = useState(null);
   const [newName,setNewName] = useState('');
+  const [showSettled,setShowSettled] = useState(false);
+  const [recWiz,setRecWiz] = useState(false);
+  const recs = D.rec || [];
   const listInput = useRef(null);
 
-  const add    = d => set('hs',[{id:uid(),name:d.name||'Einkauf',price:parseFloat(d.price)||0,paidBy:d.paidBy||users[0].id,date:tod(),settled:false},...items]);
-  const save   = d => set('hs',items.map(i=>i.id===editItem.id?{...i,name:d.name||i.name,price:parseFloat(d.price)||i.price,paidBy:d.paidBy||i.paidBy}:i));
-  const toggle = id => set('hs',items.map(i=>i.id===id?{...i,settled:!i.settled}:i));
-  const del    = id => set('hs',items.filter(i=>i.id!==id));
+  const addRec = d => {
+    const tp={ id:uid(), name:d.name||'Posten', price:parseNum(d.price)||0, paidBy:d.paidBy||users[0].id, since:todayISO().slice(0,7) };
+    const YM=todayISO().slice(0,7);
+    set('rec',[tp,...recs]);
+    set('hs',[{ id:`r-${tp.id}-${YM}`, name:tp.name, price:tp.price, paidBy:tp.paidBy, date:YM+'-01', settled:false, recur:true }, ...items]);
+  };
+  const delRec = id => { const old=recs, r=old.find(x=>x.id===id); set('rec',old.filter(x=>x.id!==id)); undo(`„${r?.name||'Posten'}" beendet`, ()=>set('rec',old)); };
+
+  const add    = d => set('hs',[{id:uid(),name:d.name||'Einkauf',price:parseNum(d.price)||0,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),settled:false},...items]);
+  const save   = d => set('hs',items.map(i=>i.id===editItem.id?{...i,name:d.name||i.name,price:parseNum(d.price)||i.price,paidBy:d.paidBy||i.paidBy,date:d.date||i.date}:i));
+  const toggle = id => set('hs',items.map(i=>i.id===id?{...i,settled:!i.settled,settledAt:!i.settled?todayISO():null}:i));
+  const del    = id => { const it=items.find(i=>i.id===id); set('hs',items.filter(i=>i.id!==id)); undo(`„${it?.name||'Ausgabe'}" gelöscht`, ()=>set('hs',items)); };
 
   /* Einkaufsliste */
-  const addL      = () => { const n=newName.trim(); if(!n){ listInput.current?.focus(); return; } set('sl',[{id:uid(),name:n,addedBy:me||null,date:tod(),done:false},...list]); setNewName(''); listInput.current?.focus(); };
+  const addL      = () => { const n=newName.trim(); if(!n){ listInput.current?.focus(); return; } set('sl',[{id:uid(),name:n,addedBy:me||null,date:todayISO(),done:false},...list]); setNewName(''); listInput.current?.focus(); };
+  const quickAdd  = (n) => set('sl',[{id:uid(),name:n,addedBy:me||null,date:todayISO(),done:false},...list]);
   const toggleL   = id => set('sl',list.map(i=>i.id===id?{...i,done:!i.done}:i));
-  const delL      = id => set('sl',list.filter(i=>i.id!==id));
-  const clearDone = () => set('sl',list.filter(i=>!i.done));
+  const delL      = id => { const it=list.find(i=>i.id===id); set('sl',list.filter(i=>i.id!==id)); undo(`„${it?.name||'Eintrag'}" gelöscht`, ()=>set('sl',list)); };
+  const clearDone = async () => { if(await askConfirm({title:'Erledigte leeren',body:`${doneL} erledigte Einträge aus dem Wagen entfernen?`,okLabel:'Leeren',danger:true})) set('sl',list.filter(i=>!i.done)); };
   const convert   = d => { add(d); delL(convItem.id); };
   const sortedList=[...list.filter(i=>!i.done),...list.filter(i=>i.done)];
   const openL=list.filter(i=>!i.done).length, doneL=list.length-openL;
 
   const open=items.filter(i=>!i.settled);
+  const settled=items.filter(i=>i.settled);
   const tot=open.reduce((s,i)=>s+i.price,0);
   const bals=users.map(u=>({ ...u, paid:open.filter(i=>i.paidBy===u.id).reduce((s,i)=>s+i.price,0), net:open.filter(i=>i.paidBy===u.id).reduce((s,i)=>s+i.price,0) - tot/users.length }));
+  const settlements=(D.stl||[]).filter(s=>s.mod==='hs');
+
+  /* Abrechnen: Ausgleich (wer→wem, wie viel) festhalten + offene Posten als abgerechnet markieren */
+  const settleAll = () => {
+    const debtor=bals.find(b=>b.net<-0.01), creditor=bals.find(b=>b.net>0.01);
+    const oldStl=D.stl||[];
+    const rec={ id:uid(), mod:'hs', date:todayISO(), total:tot, n:open.length, fromId:debtor?.id||null, toId:creditor?.id||null, amount:debtor?Math.abs(debtor.net):0 };
+    set('stl',[rec,...oldStl]);
+    set('hs',items.map(i=>i.settled?i:{...i,settled:true,settledAt:todayISO(),settlementId:rec.id}));
+    undo('Alles abgerechnet', ()=>{ set('stl',oldStl); set('hs',items); });
+  };
 
   const steps=[
     {label:'Was wurde gekauft?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus className="field" placeholder="Putzmittel, Toilettenpapier …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
-    {label:'Preis',ok:d=>parseFloat(d.price)>0,render:({data:d,setData:sd})=><div className="f-euro"><input autoFocus type="number" step="0.01" min="0" className="field" placeholder="0.00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>},
+    {label:'Preis & Datum',ok:d=>parseNum(d.price)>0,render:({data:d,setData:sd})=>(
+      <div style={{display:'flex',flexDirection:'column',gap:10}}>
+        <div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>
+        <input type="date" className="field" value={d.date||todayISO()} onChange={e=>sd({...d,date:e.target.value})}/>
+      </div>
+    )},
     {label:'Wer hat bezahlt?',ok:d=>!!d.paidBy,render:({data:d,setData:sd})=>(
+      <div className="pick">
+        {users.map(u=><button key={u.id} className={`pick-btn${d.paidBy===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,paidBy:u.id})}>{u.name}</button>)}
+      </div>
+    )},
+  ];
+  /* Wiederkehrend: wie steps, aber ohne Datum (läuft monatlich) */
+  const recSteps=[
+    {label:'Was wiederholt sich?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus className="field" placeholder="Internet, Putzkraft, Spotify-Family …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
+    {label:'Betrag pro Monat',ok:d=>parseNum(d.price)>0,render:({data:d,setData:sd})=><div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>},
+    {label:'Wer zahlt es?',ok:d=>!!d.paidBy,render:({data:d,setData:sd})=>(
       <div className="pick">
         {users.map(u=><button key={u.id} className={`pick-btn${d.paidBy===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,paidBy:u.id})}>{u.name}</button>)}
       </div>
@@ -785,33 +1034,84 @@ function Haushalt() {
           </div>
           <Bal bals={bals}/>
           <button className="btn rise" style={{background:'var(--mint)',animationDelay:'60ms'}} onClick={()=>setWiz(true)}>+ Ausgabe hinzufügen</button>
+          {open.length>0&&(
+            <button className="btn btn-sec rise" style={{animationDelay:'80ms'}} onClick={settleAll}>✓ Alles abrechnen ({open.length})</button>
+          )}
+          {recs.length>0&&(
+            <div className="rise" style={{animationDelay:'90ms'}}>
+              <div className="section-hdr">🔁 Wiederkehrend · monatlich</div>
+              <div className="group">
+                {recs.map(rc=>{const payer=users.find(u=>u.id===rc.paidBy);return(
+                  <div key={rc.id} className="cell">
+                    <div className="cell-icon" style={{background:'rgba(94,234,212,.12)',fontSize:15}}>🔁</div>
+                    <div className="cell-content">
+                      <span className="cell-title">{rc.name}</span>
+                      <span className="cell-sub">jeden Monat · <span style={{color:payer?.color}}>{payer?.name}</span></span>
+                    </div>
+                    <span className="num" style={{fontWeight:700,fontSize:15}}>€{fmt(rc.price)}</span>
+                    <button className="del-btn" aria-label="Wiederkehrend beenden" title="Wiederkehrend beenden" onClick={()=>delRec(rc.id)}>×</button>
+                  </div>
+                );})}
+              </div>
+            </div>
+          )}
+          <button className="btn btn-sec rise" style={{animationDelay:'100ms',fontSize:14}} onClick={()=>setRecWiz(true)}>🔁 Wiederkehrenden Posten einrichten</button>
           {items.length===0
             ?<div className="empty"><div className="empty-ico">💶</div><span style={{fontSize:14,color:'var(--label2)'}}>Noch keine Ausgaben</span></div>
             :(
+              <>
+              {open.length>0&&(
               <div className="rise" style={{animationDelay:'120ms'}}>
-                <div className="section-hdr">Ausgaben</div>
+                <div className="section-hdr">Offene Ausgaben</div>
                 <div className="group">
-                  {items.map((item,idx)=>{
+                  {open.map(item=>{
                     const payer=users.find(u=>u.id===item.paidBy);
                     return(
-                      <div key={item.id} className={`cell${item.settled?' dim':''}`}>
-                        <button className="chk-btn" style={{border:`1.5px solid ${item.settled?'var(--lime)':'var(--sep)'}`,background:item.settled?'var(--lime)':'none'}} onClick={()=>toggle(item.id)}>
-                          {item.settled&&<ChkIco/>}
-                        </button>
+                      <div key={item.id} className="cell">
+                        <button className="chk-btn" style={{border:'1.5px solid var(--sep)',background:'none'}} title="Als abgerechnet markieren" onClick={()=>toggle(item.id)}/>
                         <div className="cell-content" style={{cursor:'pointer'}} onClick={()=>setEditItem(item)}>
-                          <span className="cell-title" style={{textDecoration:item.settled?'line-through':'none'}}>{item.name}</span>
-                          <span className="cell-sub">{item.date} · <span style={{color:payer?.color}}>{payer?.name}</span></span>
+                          <span className="cell-title">{item.name}</span>
+                          <span className="cell-sub">{fmtDate(item.date)} · <span style={{color:payer?.color}}>{payer?.name}</span></span>
                         </div>
                         <div style={{textAlign:'right',flexShrink:0,cursor:'pointer'}} onClick={()=>setEditItem(item)}>
                           <div className="num" style={{fontSize:16,fontWeight:700}}>€{fmt(item.price)}</div>
                           <div className="num" style={{fontSize:11,color:'var(--label3)'}}>je €{fmt(item.price/2)}</div>
                         </div>
-                        <button className="del-btn" aria-label="Ausgabe löschen" title="Ausgabe löschen" onClick={()=>{if(confirm(`"${item.name}" löschen?`))del(item.id);}}>×</button>
+                        <button className="del-btn" aria-label="Ausgabe löschen" title="Ausgabe löschen" onClick={()=>del(item.id)}>×</button>
                       </div>
                     );
                   })}
                 </div>
               </div>
+              )}
+              <SettlementHistory settlements={settlements} users={users} accent="var(--mint)"/>
+              {settled.length>0&&(
+                <div className="rise">
+                  <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center',cursor:'pointer'}} onClick={()=>setShowSettled(s=>!s)}>
+                    <span>Posten-Details · {settled.length}</span>
+                    <span style={{color:'var(--mint)'}}>{showSettled?'Verbergen':'Anzeigen'}</span>
+                  </div>
+                  {showSettled&&(
+                    <div className="group">
+                      {settled.map(item=>{
+                        const payer=users.find(u=>u.id===item.paidBy);
+                        return(
+                          <div key={item.id} className="cell dim">
+                            <button className="chk-btn" style={{border:'1.5px solid var(--lime)',background:'var(--lime)'}} title="Wieder öffnen" onClick={()=>toggle(item.id)}><ChkIco/></button>
+                            <div className="cell-content">
+                              <span className="cell-title" style={{textDecoration:'line-through'}}>{item.name}</span>
+                              <span className="cell-sub">abgerechnet {fmtDate(item.settledAt||item.date)} · <span style={{color:payer?.color}}>{payer?.name}</span></span>
+                            </div>
+                            <div className="num" style={{fontSize:15,fontWeight:700,color:'var(--label3)'}}>€{fmt(item.price)}</div>
+                            <button className="del-btn" aria-label="Ausgabe löschen" title="Ausgabe löschen" onClick={()=>del(item.id)}>×</button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+              </>
             )
           }
           </>
@@ -830,13 +1130,24 @@ function Haushalt() {
             <input ref={listInput} className="field" style={{flex:1}} placeholder="Milch, Klopapier, Müllbeutel …" value={newName} onChange={e=>setNewName(e.target.value)}/>
             <button type="submit" className="btn" style={{width:54,flexShrink:0,background:'var(--mint)',fontSize:26,lineHeight:1}}>+</button>
           </form>
+          {(() => {
+            const offen = new Set(list.filter(i=>!i.done).map(i=>i.name.toLowerCase()));
+            const tipps = COMMON_ITEMS.filter(c=>!offen.has(c.toLowerCase())).slice(0,8);
+            return tipps.length>0 && (
+              <div className="rise" style={{display:'flex',flexWrap:'wrap',gap:7,animationDelay:'55ms'}}>
+                {tipps.map(t=>(
+                  <button key={t} onClick={()=>quickAdd(t)} style={{background:'rgba(255,255,255,.05)',border:'1px solid var(--border)',borderRadius:999,padding:'8px 13px',fontSize:13,fontWeight:600,color:'var(--label2)'}}>+ {t}</button>
+                ))}
+              </div>
+            );
+          })()}
           {list.length===0
             ?<div className="empty"><div className="empty-ico">🛒</div><span style={{fontSize:14,color:'var(--label2)'}}>Liste ist leer — was fehlt?</span></div>
             :(
               <div className="rise" style={{animationDelay:'80ms'}}>
                 <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                   <span>{openL} offen{doneL>0?` · ${doneL} im Wagen`:''}</span>
-                  {doneL>0&&<button style={{background:'none',border:'none',color:'var(--mint)',fontSize:12,fontWeight:700,fontFamily:'Hanken Grotesk'}} onClick={()=>{if(confirm(`${doneL} erledigte Einträge entfernen?`))clearDone();}}>Erledigte leeren</button>}
+                  {doneL>0&&<button style={{background:'none',border:'none',color:'var(--mint)',fontSize:12,fontWeight:700,fontFamily:'Hanken Grotesk'}} onClick={clearDone}>Erledigte leeren</button>}
                 </div>
                 <div className="group">
                   {sortedList.map(i=>{
@@ -848,7 +1159,7 @@ function Haushalt() {
                         </button>
                         <div className="cell-content">
                           <span className="cell-title" style={{textDecoration:i.done?'line-through':'none'}}>{i.name}</span>
-                          <span className="cell-sub">von {u?<span style={{color:u.color,fontWeight:700}}>{u.name}</span>:'?'} · {i.date}</span>
+                          <span className="cell-sub">von {u?<span style={{color:u.color,fontWeight:700}}>{u.name}</span>:'?'} · {fmtDate(i.date)}</span>
                         </div>
                         {i.done&&(
                           <button className="due-chip" style={{background:'rgba(94,234,212,.13)',color:'var(--mint)',border:'none',cursor:'pointer'}} onClick={()=>setConvItem(i)}>€ AUSGABE</button>
@@ -867,8 +1178,9 @@ function Haushalt() {
         </div>
       </div>
       <Wiz open={wiz} onClose={()=>setWiz(false)} title="Ausgabe" color="var(--mint)" steps={steps} onFinish={add}/>
-      <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title="Bearbeiten" color="var(--mint)" steps={steps} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price),paidBy:editItem.paidBy}:null}/>
-      <Wiz open={!!convItem} onClose={()=>setConvItem(null)} title="Als Ausgabe übernehmen" color="var(--mint)" steps={steps} onFinish={convert} initial={convItem?{name:convItem.name,paidBy:me||undefined}:null}/>
+      <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title="Bearbeiten" color="var(--mint)" steps={steps} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>
+      <Wiz open={!!convItem} onClose={()=>setConvItem(null)} title="Als Ausgabe übernehmen" color="var(--mint)" steps={steps} onFinish={convert} initial={convItem?{name:convItem.name,paidBy:me||undefined,date:todayISO()}:null}/>
+      <Wiz open={recWiz} onClose={()=>setRecWiz(false)} title="Wiederkehrend (monatlich)" color="var(--mint)" steps={recSteps} onFinish={addRec}/>
     </div>
   );
 }
@@ -877,21 +1189,34 @@ function Haushalt() {
    GROW
 ══════════════════════════ */
 function Grow() {
-  const { D, set, status } = useD();
+  const { D, set, status, undo } = useD();
   const users=D.users, plants=D.gp||{}, items=D.gi||[];
   const [wiz,setWiz] = useState(false);
+  const [editItem,setEditItem] = useState(null);
+  const [showSettled,setShowSettled] = useState(false);
 
   const total  = Object.values(plants).reduce((s,v)=>s+(parseInt(v)||0),0);
   const share  = id => total>0?(parseInt(plants[id]||0)/total):1/users.length;
   const pctStr = id => (share(id)*100).toFixed(1)+'%';
   const setP   = (uid2,v) => set('gp',{...plants,[uid2]:Math.max(0,parseInt(v)||0)});
 
-  const add    = d => set('gi',[{id:uid(),name:d.name||'Grow',price:parseFloat(d.price)||0,paidBy:d.paidBy||users[0].id,date:tod(),settled:false},...items]);
-  const toggle = id => set('gi',items.map(i=>i.id===id?{...i,settled:!i.settled}:i));
-  const del    = id => set('gi',items.filter(i=>i.id!==id));
+  const add    = d => set('gi',[{id:uid(),name:d.name||'Grow',price:parseNum(d.price)||0,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),settled:false},...items]);
+  const save   = d => set('gi',items.map(i=>i.id===editItem.id?{...i,name:d.name||i.name,price:parseNum(d.price)||i.price,paidBy:d.paidBy||i.paidBy,date:d.date||i.date}:i));
+  const toggle = id => set('gi',items.map(i=>i.id===id?{...i,settled:!i.settled,settledAt:!i.settled?todayISO():null}:i));
+  const del    = id => { const it=items.find(i=>i.id===id); set('gi',items.filter(i=>i.id!==id)); undo(`„${it?.name||'Ausgabe'}" gelöscht`, ()=>set('gi',items)); };
 
-  const open=items.filter(i=>!i.settled), tCost=open.reduce((s,i)=>s+i.price,0);
+  const open=items.filter(i=>!i.settled), settled=items.filter(i=>i.settled), tCost=open.reduce((s,i)=>s+i.price,0);
   const bals=users.map(u=>({ ...u, paid:open.filter(i=>i.paidBy===u.id).reduce((s,i)=>s+i.price,0), net:open.filter(i=>i.paidBy===u.id).reduce((s,i)=>s+i.price,0) - tCost*share(u.id) }));
+  const settlements=(D.stl||[]).filter(s=>s.mod==='gi');
+
+  const settleAll = () => {
+    const debtor=bals.find(b=>b.net<-0.01), creditor=bals.find(b=>b.net>0.01);
+    const oldStl=D.stl||[];
+    const rec={ id:uid(), mod:'gi', date:todayISO(), total:tCost, n:open.length, fromId:debtor?.id||null, toId:creditor?.id||null, amount:debtor?Math.abs(debtor.net):0 };
+    set('stl',[rec,...oldStl]);
+    set('gi',items.map(i=>i.settled?i:{...i,settled:true,settledAt:todayISO(),settlementId:rec.id}));
+    undo('Alles abgerechnet', ()=>{ set('stl',oldStl); set('gi',items); });
+  };
 
   /* Pflanzen-Slots: jede Pflanze als Icon in Besitzer-Farbe */
   const slots=[];
@@ -899,7 +1224,12 @@ function Grow() {
 
   const steps=[
     {label:'Was wurde gekauft?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus className="field" placeholder="Dünger, Erde, Lampe …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
-    {label:'Preis',ok:d=>parseFloat(d.price)>0,render:({data:d,setData:sd})=><div className="f-euro"><input autoFocus type="number" step="0.01" min="0" className="field" placeholder="0.00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>},
+    {label:'Preis & Datum',ok:d=>parseNum(d.price)>0,render:({data:d,setData:sd})=>(
+      <div style={{display:'flex',flexDirection:'column',gap:10}}>
+        <div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>
+        <input type="date" className="field" value={d.date||todayISO()} onChange={e=>sd({...d,date:e.target.value})}/>
+      </div>
+    )},
     {label:'Wer hat bezahlt?',ok:d=>!!d.paidBy,render:({data:d,setData:sd})=>(
       <div className="pick">
         {users.map(u=>(
@@ -973,40 +1303,73 @@ function Grow() {
         )}
 
         <button className="btn rise" style={{background:'var(--lime)',animationDelay:'100ms'}} onClick={()=>setWiz(true)}>+ Grow-Ausgabe</button>
+        {open.length>0&&(
+          <button className="btn btn-sec rise" style={{animationDelay:'120ms'}} onClick={settleAll}>✓ Alles abrechnen ({open.length})</button>
+        )}
 
         {items.length===0
           ?<div className="empty"><div className="empty-ico">🌱</div><span style={{fontSize:14,color:'var(--label2)'}}>Noch keine Ausgaben</span></div>
           :(
+            <>
+            {open.length>0&&(
             <div className="rise" style={{animationDelay:'140ms'}}>
-              <div className="section-hdr">Ausgaben</div>
+              <div className="section-hdr">Offene Ausgaben</div>
               <div className="group">
-                {items.map(item=>{
+                {open.map(item=>{
                   const payer=users.find(u=>u.id===item.paidBy);
                   return(
-                    <div key={item.id} className={`cell${item.settled?' dim':''}`}>
-                      <button className="chk-btn" style={{border:`1.5px solid ${item.settled?'var(--lime)':'var(--sep)'}`,background:item.settled?'var(--lime)':'none'}} onClick={()=>toggle(item.id)}>
-                        {item.settled&&<ChkIco/>}
-                      </button>
-                      <div className="cell-content">
-                        <span className="cell-title" style={{textDecoration:item.settled?'line-through':'none'}}>{item.name}</span>
-                        <span className="cell-sub">{item.date} · <span style={{color:payer?.color}}>{payer?.name}</span></span>
+                    <div key={item.id} className="cell">
+                      <button className="chk-btn" style={{border:'1.5px solid var(--sep)',background:'none'}} title="Als abgerechnet markieren" onClick={()=>toggle(item.id)}/>
+                      <div className="cell-content" style={{cursor:'pointer'}} onClick={()=>setEditItem(item)}>
+                        <span className="cell-title">{item.name}</span>
+                        <span className="cell-sub">{fmtDate(item.date)} · <span style={{color:payer?.color}}>{payer?.name}</span></span>
                       </div>
-                      <div style={{textAlign:'right',flexShrink:0}}>
+                      <div style={{textAlign:'right',flexShrink:0,cursor:'pointer'}} onClick={()=>setEditItem(item)}>
                         <div className="num" style={{fontSize:15,fontWeight:700}}>€{fmt(item.price)}</div>
                         <div className="num" style={{fontSize:10.5}}>
                           {users.map(u=><span key={u.id} style={{color:u.color,marginLeft:5}}>{u.name} €{fmt(item.price*share(u.id))}</span>)}
                         </div>
                       </div>
-                      <button className="del-btn" aria-label="Eintrag löschen" title="Eintrag löschen" onClick={()=>{if(confirm(`"${item.name}" löschen?`))del(item.id);}}>×</button>
+                      <button className="del-btn" aria-label="Eintrag löschen" title="Eintrag löschen" onClick={()=>del(item.id)}>×</button>
                     </div>
                   );
                 })}
               </div>
             </div>
+            )}
+            <SettlementHistory settlements={settlements} users={users} accent="var(--lime)"/>
+            {settled.length>0&&(
+              <div className="rise">
+                <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center',cursor:'pointer'}} onClick={()=>setShowSettled(s=>!s)}>
+                  <span>Posten-Details · {settled.length}</span>
+                  <span style={{color:'var(--lime)'}}>{showSettled?'Verbergen':'Anzeigen'}</span>
+                </div>
+                {showSettled&&(
+                  <div className="group">
+                    {settled.map(item=>{
+                      const payer=users.find(u=>u.id===item.paidBy);
+                      return(
+                        <div key={item.id} className="cell dim">
+                          <button className="chk-btn" style={{border:'1.5px solid var(--lime)',background:'var(--lime)'}} title="Wieder öffnen" onClick={()=>toggle(item.id)}><ChkIco/></button>
+                          <div className="cell-content">
+                            <span className="cell-title" style={{textDecoration:'line-through'}}>{item.name}</span>
+                            <span className="cell-sub">abgerechnet {fmtDate(item.settledAt||item.date)} · <span style={{color:payer?.color}}>{payer?.name}</span></span>
+                          </div>
+                          <div className="num" style={{fontSize:15,fontWeight:700,color:'var(--label3)'}}>€{fmt(item.price)}</div>
+                          <button className="del-btn" aria-label="Eintrag löschen" title="Eintrag löschen" onClick={()=>del(item.id)}>×</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+            </>
           )
         }
       </div></div>
       <Wiz open={wiz} onClose={()=>setWiz(false)} title="Grow-Ausgabe" color="var(--lime)" steps={steps} onFinish={add}/>
+      <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title="Bearbeiten" color="var(--lime)" steps={steps} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>
     </div>
   );
 }
@@ -1015,9 +1378,10 @@ function Grow() {
    PUTZPLAN
 ══════════════════════════ */
 function Putzplan() {
-  const { D, set, status } = useD();
+  const { D, set, status, undo } = useD();
   const users=D.users, tasks=D.pt||[], log=D.pl||[];
   const [wiz,setWiz] = useState(false);
+  const [editTask,setEditTask] = useState(null);
 
   const todayMid = () => { const d=new Date(); d.setHours(0,0,0,0); return d; };
   const parseIso = s => { const [y,m,dd]=s.split('-').map(Number); return new Date(y,m-1,dd); };
@@ -1033,8 +1397,9 @@ function Putzplan() {
     set('pt', tasks.map(x=>x.id===t.id?{...x,lastDone:iso,assignee:other(x.assignee)}:x));
     set('pl', [{id:uid(),taskId:t.id,name:t.name,em:t.em,userId:t.assignee,date:iso},...log].slice(0,200));
   };
-  const del = id => set('pt',tasks.filter(t=>t.id!==id));
+  const del = id => { const t=tasks.find(x=>x.id===id); set('pt',tasks.filter(x=>x.id!==id)); undo(`„${t?.name||'Aufgabe'}" gelöscht`, ()=>set('pt',tasks)); };
   const add = d => set('pt',[...tasks,{id:uid(),name:d.name||'Aufgabe',em:d.em||'🧽',interval:parseInt(d.interval)||7,assignee:d.assignee||users[0].id,lastDone:null}]);
+  const save = d => set('pt',tasks.map(x=>x.id===editTask.id?{...x,name:d.name||x.name,em:d.em||x.em,interval:parseInt(d.interval)||x.interval,assignee:d.assignee||x.assignee}:x));
 
   const loadDefaults = () => set('pt',[
     {name:'Küche putzen',em:'🍳',interval:7},
@@ -1123,12 +1488,12 @@ function Putzplan() {
                     <button className="done-btn" style={{borderColor:(u?.color||'#888')+'66'}} title={`${t.name} erledigt`} onClick={()=>done(t)}>
                       <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={u?.color||'#888'} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"><path d={ICONS.check}/></svg>
                     </button>
-                    <div className="cell-content">
+                    <div className="cell-content" style={{cursor:'pointer'}} onClick={()=>setEditTask(t)}>
                       <span className="cell-title">{t.em} {t.name}</span>
                       <span className="cell-sub"><span style={{color:u?.color,fontWeight:700}}>{u?.name}</span> ist dran · alle {t.interval} Tage</span>
                     </div>
                     {chip(t)}
-                    <button className="del-btn" aria-label="Aufgabe löschen" title="Aufgabe löschen" onClick={()=>{if(confirm(`"${t.name}" löschen?`))del(t.id);}}>×</button>
+                    <button className="del-btn" aria-label="Aufgabe löschen" title="Aufgabe löschen" onClick={()=>del(t.id)}>×</button>
                   </div>
                 );
               })}
@@ -1157,6 +1522,7 @@ function Putzplan() {
 
       </div></div>
       <Wiz open={wiz} onClose={()=>setWiz(false)} title="Putz-Aufgabe" color="var(--amber)" steps={steps} onFinish={add}/>
+      <Wiz open={!!editTask} onClose={()=>setEditTask(null)} title="Aufgabe bearbeiten" color="var(--amber)" steps={steps} onFinish={save} initial={editTask?{name:editTask.name,em:editTask.em,interval:String(editTask.interval),assignee:editTask.assignee}:null}/>
     </div>
   );
 }
@@ -1165,10 +1531,14 @@ function Putzplan() {
    FINANZEN
 ══════════════════════════ */
 function Finanzen() {
-  const { D, set, status } = useD();
+  const { D, set, status, undo } = useD();
   const users=D.users, txs=D.ft||[], fixed=D.ff||[];
+  const delTx  = id => { set('ft',txs.filter(x=>x.id!==id)); undo('Buchung gelöscht', ()=>set('ft',txs)); };
+  const delFix = id => { set('ff',fixed.filter(x=>x.id!==id)); undo('Fixkosten gelöscht', ()=>set('ff',fixed)); };
   const [seg,setSeg]   = useState('txs');
   const [wiz,setWiz]   = useState(null);
+  const [editTx,setEditTx]   = useState(null);
+  const [editFix,setEditFix] = useState(null);
   const [uid_,setUid_] = useState(users[0]?.id);
 
   const CATS=['Lebensmittel','Wohnen','Transport','Freizeit','Gesundheit','Grow','Sonstiges'];
@@ -1178,8 +1548,10 @@ function Finanzen() {
   const fixMo=fixed.reduce((s,f)=>s+(f.freq==='m'?f.amount:f.amount/12),0);
   const avail=inc-exp-fixMo;
 
-  const addTx  = d => set('ft',[{id:uid(),type:d.type||'exp',amount:parseFloat(d.amount)||0,category:d.cat||'Sonstiges',date:tod(),userId:d.userId||uid_},...txs]);
-  const addFix = d => set('ff',[{id:uid(),name:d.name||'',amount:parseFloat(d.amount)||0,freq:d.freq||'m'},...fixed]);
+  const addTx   = d => set('ft',[{id:uid(),type:d.type||'exp',amount:parseNum(d.amount)||0,category:d.cat||'Sonstiges',date:d.date||todayISO(),userId:d.userId||uid_},...txs]);
+  const saveTx  = d => set('ft',txs.map(x=>x.id===editTx.id?{...x,type:d.type||x.type,amount:parseNum(d.amount)||x.amount,category:d.cat||x.category,userId:d.userId||x.userId,date:d.date||x.date}:x));
+  const addFix  = d => set('ff',[{id:uid(),name:d.name||'',amount:parseNum(d.amount)||0,freq:d.freq||'m'},...fixed]);
+  const saveFix = d => set('ff',fixed.map(x=>x.id===editFix.id?{...x,name:d.name||x.name,amount:parseNum(d.amount)||x.amount,freq:d.freq||x.freq}:x));
 
   const txSteps=[
     {label:'Art',ok:d=>!!d.type,render:({data:d,setData:sd})=>(
@@ -1189,7 +1561,12 @@ function Finanzen() {
         ))}
       </div>
     )},
-    {label:'Betrag',ok:d=>parseFloat(d.amount)>0,render:({data:d,setData:sd})=><div className="f-euro"><input autoFocus type="number" step="0.01" min="0" className="field" placeholder="0.00" value={d.amount||''} onChange={e=>sd({...d,amount:e.target.value})}/></div>},
+    {label:'Betrag & Datum',ok:d=>parseNum(d.amount)>0,render:({data:d,setData:sd})=>(
+      <div style={{display:'flex',flexDirection:'column',gap:10}}>
+        <div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.amount||''} onChange={e=>sd({...d,amount:e.target.value})}/></div>
+        <input type="date" className="field" value={d.date||todayISO()} onChange={e=>sd({...d,date:e.target.value})}/>
+      </div>
+    )},
     {label:'Kategorie',ok:d=>!!d.cat,render:({data:d,setData:sd})=>(
       <div className="cat-grid">
         {CATS.map(c=><button key={c} className={`cat-btn${d.cat===c?' on':''}`} onClick={()=>sd({...d,cat:c})}>{c}</button>)}
@@ -1203,7 +1580,7 @@ function Finanzen() {
   ];
   const fixSteps=[
     {label:'Bezeichnung',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus className="field" placeholder="Miete, Strom, Internet …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
-    {label:'Betrag',ok:d=>parseFloat(d.amount)>0,render:({data:d,setData:sd})=><div className="f-euro"><input autoFocus type="number" step="0.01" min="0" className="field" placeholder="0.00" value={d.amount||''} onChange={e=>sd({...d,amount:e.target.value})}/></div>},
+    {label:'Betrag',ok:d=>parseNum(d.amount)>0,render:({data:d,setData:sd})=><div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.amount||''} onChange={e=>sd({...d,amount:e.target.value})}/></div>},
     {label:'Häufigkeit',ok:d=>!!d.freq,render:({data:d,setData:sd})=>(
       <div className="pick">
         {[['m','Monatlich'],['y','Jährlich']].map(([v,l])=>(
@@ -1254,14 +1631,14 @@ function Finanzen() {
                         <div className="cell-icon" style={{background:t.type==='inc'?'rgba(74,222,128,.13)':'rgba(251,113,133,.13)',fontSize:15}}>
                           {t.type==='inc'?'📈':'📉'}
                         </div>
-                        <div className="cell-content">
+                        <div className="cell-content" style={{cursor:'pointer'}} onClick={()=>setEditTx(t)}>
                           <span className="cell-title">{t.category}</span>
-                          <span className="cell-sub">{t.date}</span>
+                          <span className="cell-sub">{fmtDate(t.date)}</span>
                         </div>
-                        <span className="num" style={{fontWeight:700,fontSize:16,color:t.type==='inc'?'var(--green)':'var(--red)'}}>
+                        <span className="num" style={{fontWeight:700,fontSize:16,color:t.type==='inc'?'var(--green)':'var(--red)',cursor:'pointer'}} onClick={()=>setEditTx(t)}>
                           {t.type==='inc'?'+':'-'}€{fmt(t.amount)}
                         </span>
-                        <button className="del-btn" aria-label="Buchung löschen" title="Buchung löschen" onClick={()=>set('ft',txs.filter(x=>x.id!==t.id))}>×</button>
+                        <button className="del-btn" aria-label="Buchung löschen" title="Buchung löschen" onClick={()=>delTx(t.id)}>×</button>
                       </div>
                     ))}
                   </div>
@@ -1278,15 +1655,15 @@ function Finanzen() {
                     {fixed.map(f=>(
                       <div key={f.id} className="cell">
                         <div className="cell-icon" style={{background:'rgba(196,181,253,.13)',fontSize:15}}>📌</div>
-                        <div className="cell-content">
+                        <div className="cell-content" style={{cursor:'pointer'}} onClick={()=>setEditFix(f)}>
                           <span className="cell-title">{f.name}</span>
                           <span className="cell-sub">{f.freq==='m'?'Monatlich':'Jährlich'}</span>
                         </div>
-                        <div style={{textAlign:'right',flexShrink:0}}>
+                        <div style={{textAlign:'right',flexShrink:0,cursor:'pointer'}} onClick={()=>setEditFix(f)}>
                           <div className="num" style={{fontSize:15,fontWeight:700}}>€{fmt(f.amount)}</div>
                           {f.freq==='y'&&<div className="num" style={{fontSize:11,color:'var(--label3)'}}>€{fmt(f.amount/12)}/Mo.</div>}
                         </div>
-                        <button className="del-btn" aria-label="Fixkosten löschen" title="Fixkosten löschen" onClick={()=>set('ff',fixed.filter(x=>x.id!==f.id))}>×</button>
+                        <button className="del-btn" aria-label="Fixkosten löschen" title="Fixkosten löschen" onClick={()=>delFix(f.id)}>×</button>
                       </div>
                     ))}
                   </div>
@@ -1298,6 +1675,8 @@ function Finanzen() {
       </div>
       <Wiz open={wiz==='tx'}  onClose={()=>setWiz(null)} title="Buchung"   color="var(--violet)" steps={txSteps}  onFinish={addTx}/>
       <Wiz open={wiz==='fix'} onClose={()=>setWiz(null)} title="Fixkosten" color="var(--violet)" steps={fixSteps} onFinish={addFix}/>
+      <Wiz open={!!editTx}  onClose={()=>setEditTx(null)}  title="Buchung bearbeiten"   color="var(--violet)" steps={txSteps}  onFinish={saveTx}  initial={editTx?{type:editTx.type,amount:String(editTx.amount).replace(".",","),cat:editTx.category,userId:editTx.userId,date:/^\d{4}-\d{2}-\d{2}$/.test(editTx.date||'')?editTx.date:todayISO()}:null}/>
+      <Wiz open={!!editFix} onClose={()=>setEditFix(null)} title="Fixkosten bearbeiten" color="var(--violet)" steps={fixSteps} onFinish={saveFix} initial={editFix?{name:editFix.name,amount:String(editFix.amount).replace(".",","),freq:editFix.freq}:null}/>
     </div>
   );
 }
@@ -1306,9 +1685,12 @@ function Finanzen() {
    ABOS
 ══════════════════════════ */
 function Abos() {
-  const { D, set, status } = useD();
+  const { D, set, status, undo } = useD();
   const subs=D.ab||[];
+  const del = id => { const s=subs.find(x=>x.id===id); set('ab',subs.filter(x=>x.id!==id)); undo(`„${s?.name||'Abo'}" gelöscht`, ()=>set('ab',subs)); };
   const [wiz,setWiz] = useState(false);
+  const [editSub,setEditSub] = useState(null);
+  const save = d => set('ab',subs.map(x=>x.id===editSub.id?{...x,name:d.name||x.name,price:parseNum(d.price)||x.price,iv:d.iv||x.iv,em:d.em||x.em,cl:d.cl||x.cl}:x));
 
   const EMS=['📱','🎵','🎬','🎮','💻','📰','🛒','☁️','🏋️','📚','🧠','🔒'];
   const CLS=['#38bdf8','#4ade80','#818cf8','#fbbf24','#fb7185','#ec4899','#c4b5fd','#5eead4','#facc15','#a3e635'];
@@ -1317,13 +1699,13 @@ function Abos() {
   const dlf = s=>{ const d=Math.floor((Date.now()-new Date(s.sd))/86400000),p=s.iv==='m'?30:365; return p-(d%p); };
   const moTotal=subs.reduce((s,sub)=>s+(sub.iv==='m'?sub.price:sub.price/12),0);
 
-  const add = d => set('ab',[{id:uid(),name:d.name||'Abo',price:parseFloat(d.price)||0,iv:d.iv||'m',em:d.em||'📱',cl:d.cl||'#818cf8',sd:new Date().toISOString().split('T')[0]},...subs]);
+  const add = d => set('ab',[{id:uid(),name:d.name||'Abo',price:parseNum(d.price)||0,iv:d.iv||'m',em:d.em||'📱',cl:d.cl||'#818cf8',sd:new Date().toISOString().split('T')[0]},...subs]);
 
   const steps=[
     {label:'Name des Abos?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus className="field" placeholder="Netflix, Spotify, iCloud …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
-    {label:'Preis & Intervall',ok:d=>parseFloat(d.price)>0,render:({data:d,setData:sd})=>(
+    {label:'Preis & Intervall',ok:d=>parseNum(d.price)>0,render:({data:d,setData:sd})=>(
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
-        <div className="f-euro"><input autoFocus type="number" step="0.01" min="0" className="field" placeholder="0.00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>
+        <div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>
         <div className="seg">
           {[['m','Monatlich'],['y','Jährlich']].map(([v,l])=>(
             <button key={v} className={`seg-btn${d.iv===v?' on':''}`} onClick={()=>sd({...d,iv:v})}>{l}</button>
@@ -1360,10 +1742,12 @@ function Abos() {
                   {subs.map(s=>{
                     const p=pct(s),dl=dlf(s);
                     return(
-                      <div key={s.id} className="sub-card" onContextMenu={e=>{e.preventDefault();confirm(`"${s.name}" löschen?`)&&set('ab',subs.filter(x=>x.id!==s.id))}}>
+                      <div key={s.id} className="sub-card" style={{cursor:'pointer'}} onClick={()=>setEditSub(s)} onContextMenu={e=>{e.preventDefault();del(s.id);}}>
+                        <button className="del-btn" aria-label="Abo löschen" title="Abo löschen" onClick={e=>{e.stopPropagation();del(s.id);}}
+                          style={{position:'absolute',top:6,right:6,padding:0,width:24,height:24,fontSize:18,color:'var(--label4)',zIndex:2}}>×</button>
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:2}}>
                           <span style={{fontSize:24,lineHeight:1}}>{s.em}</span>
-                          <span className="num" style={{fontSize:9,color:'var(--label3)',letterSpacing:'.2em'}}>{s.iv==='m'?'MTL':'JÄHR'}</span>
+                          <span className="num" style={{fontSize:9,color:'var(--label3)',letterSpacing:'.2em',marginRight:22}}>{s.iv==='m'?'MTL':'JÄHR'}</span>
                         </div>
                         <div style={{fontSize:14,fontWeight:700,color:'var(--label)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:2}}>{s.name}</div>
                         <div className="num" style={{fontSize:19,fontWeight:700,color:s.cl,marginBottom:10}}>€{fmt(s.price)}</div>
@@ -1381,13 +1765,14 @@ function Abos() {
                     );
                   })}
                 </div>
-                <div style={{textAlign:'center',fontSize:11,color:'var(--label4)'}}>Lang drücken zum Löschen</div>
+                <div style={{textAlign:'center',fontSize:11,color:'var(--label4)'}}>Tippen zum Bearbeiten · × zum Löschen</div>
               </>
             )
           }
         </div>
       </div>
       <Wiz open={wiz} onClose={()=>setWiz(false)} title="Neues Abo" color="var(--indigo)" steps={steps} onFinish={add}/>
+      <Wiz open={!!editSub} onClose={()=>setEditSub(null)} title="Abo bearbeiten" color="var(--indigo)" steps={steps} onFinish={save} initial={editSub?{name:editSub.name,price:String(editSub.price).replace(".",","),iv:editSub.iv,em:editSub.em,cl:editSub.cl}:null}/>
     </div>
   );
 }
@@ -1396,7 +1781,7 @@ function Abos() {
    EINSTELLUNGEN
 ══════════════════════════ */
 function Einstellungen() {
-  const { D, set, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, me, setMe } = useD();
+  const { D, set, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, me, setMe, askConfirm } = useD();
   const users=D.users;
   const [cfgText,  setCfgText]  = useState(fbCfg ? JSON.stringify(fbCfg, null, 2) : '');
   const [codeInput,setCodeInput]= useState('');
@@ -1404,6 +1789,17 @@ function Einstellungen() {
   const [cfgErr,   setCfgErr]   = useState('');
   const [showSetup,setShowSetup]= useState(!fbCfg);
   const [importErr,setImportErr]= useState('');
+  const [pendingJoin,setPendingJoin] = useState(null); // WG-Code, der beigetreten werden soll (Merge/Überschreiben-Wahl)
+  const notifySupported = typeof window!=='undefined' && 'Notification' in window;
+  const [notifyOn,setNotifyOn] = useState(()=>ls('wg_notify','off')==='on' && notifySupported && Notification.permission==='granted');
+  const toggleNotify = async () => {
+    if (!notifySupported) return;
+    if (notifyOn) { ss('wg_notify','off'); setNotifyOn(false); return; }
+    let perm = Notification.permission;
+    if (perm !== 'granted') perm = await Notification.requestPermission();
+    if (perm === 'granted') { ss('wg_notify','on'); ss('wg_notify_last', null); setNotifyOn(true); }
+    else { ss('wg_notify','off'); setNotifyOn(false); }
+  };
   const fileInputRef = useRef(null);
 
   const hasLocalData = (D.hs?.length||0)+(D.gi?.length||0)+(D.ft?.length||0)+(D.ff?.length||0)+(D.ab?.length||0)+(D.pt?.length||0)+(D.sl?.length||0) > 0;
@@ -1424,22 +1820,16 @@ function Einstellungen() {
   const joinCode = () => {
     const c = codeInput.trim().toUpperCase();
     if (!c) return;
-    if (hasLocalData) {
-      const choice = window.prompt(
-        `Du hast bereits Daten auf diesem Gerät.\n\nWas soll passieren?\n  "m" = Mergen (beides behalten)\n  "r" = Remote nimmt alles (lokale Daten ÜBERSCHRIEBEN)\n  Leer/Abbruch = nichts tun`,
-        'm'
-      );
-      if (!choice) return;
-      if (choice.toLowerCase().startsWith('m')) {
-        sessionStorage.setItem('wg_join_mode','merge');
-      } else if (choice.toLowerCase().startsWith('r')) {
-        sessionStorage.setItem('wg_join_mode','remote');
-      } else { return; }
-    } else {
-      sessionStorage.setItem('wg_join_mode','remote');
-    }
+    if (hasLocalData) { setPendingJoin(c); return; } // Merge/Überschreiben per Dialog wählen
+    sessionStorage.setItem('wg_join_mode','remote');
     setWgCode(c);
     setCodeInput('');
+  };
+  const doJoin = (mode) => {
+    sessionStorage.setItem('wg_join_mode', mode);
+    setWgCode(pendingJoin);
+    setCodeInput('');
+    setPendingJoin(null);
   };
 
   /* Export */
@@ -1459,16 +1849,18 @@ function Einstellungen() {
     setImportErr('');
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = e => {
+    reader.onload = async e => {
+      let payload;
       try {
         const parsed = JSON.parse(e.target.result);
-        const payload = parsed?.data ? parsed.data : parsed;
+        payload = parsed?.data ? parsed.data : parsed;
         if (typeof payload !== 'object' || !payload) throw new Error('invalid');
-        if (!confirm('Import überschreibt alle aktuellen Daten. Fortfahren?')) return;
-        replaceData(payload);
       } catch {
         setImportErr('Datei ist kein gültiges Backup-JSON.');
+        return;
       }
+      if (await askConfirm({title:'Backup importieren',body:'Import überschreibt alle aktuellen Daten auf diesem Gerät (und im Sync). Fortfahren?',okLabel:'Importieren',danger:true}))
+        replaceData(payload);
     };
     reader.readAsText(file);
   };
@@ -1587,7 +1979,7 @@ function Einstellungen() {
         <div className="rise" style={{animationDelay:'120ms'}}>
           <div className="section-hdr">Module anzeigen</div>
           <div className="group">
-            {[['haus','Haushalt','var(--mint)'],['grow','Growbox','var(--lime)'],['putz','Putzplan','var(--amber)'],['fin','Finanzen','var(--violet)'],['abos','Abos','var(--indigo)']].map(([k,label,c])=>(
+            {[['haus','Haushalt','var(--mint)'],['grow','Growbox','var(--lime)'],['putz','Putzplan','var(--amber)'],['fin','Finanzen','var(--violet)'],['abos','Abos','var(--indigo)'],['stats','Übersicht','var(--sky)']].map(([k,label,c])=>(
               <div key={k} className="cell">
                 <div style={{width:10,height:10,borderRadius:'50%',background:c,boxShadow:mods[k]?`0 0 8px ${c}`:'none',opacity:mods[k]?1:.35,flexShrink:0}}/>
                 <div className="cell-content">
@@ -1646,6 +2038,27 @@ function Einstellungen() {
           <div className="section-ftr">„Das bin ich" gilt nur für dieses Gerät — Einträge auf der Einkaufsliste werden damit automatisch dir zugeordnet.</div>
         </div>
 
+        {/* Erinnerungen — nur zeigen, wenn das Gerät Notifications kann (iOS: nur als installierte PWA) */}
+        {notifySupported && (
+        <div className="rise" style={{animationDelay:'220ms'}}>
+          <div className="section-hdr">Erinnerungen</div>
+          <div className="group">
+            <div className="cell">
+              <div className="cell-icon" style={{background:'rgba(251,191,36,.12)',fontSize:15}}>🔔</div>
+              <div className="cell-content">
+                <span className="cell-title">Lokale Erinnerungen</span>
+                <span className="cell-sub">Beim Öffnen: fällige Putzaufgaben & Abos</span>
+              </div>
+              <button onClick={toggleNotify}
+                style={{background:notifyOn?'var(--amber)':'var(--bg3)',color:notifyOn?'#0a120c':'var(--label2)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800}}>
+                {notifyOn?'An':'Aus'}
+              </button>
+            </div>
+          </div>
+          <div className="section-ftr">Ohne Server keine Hintergrund-Pushes — geprüft wird beim Öffnen der App (max. 1×/Tag).</div>
+        </div>
+        )}
+
         {/* iPhone install */}
         <div className="rise" style={{animationDelay:'240ms'}}>
           <div className="section-hdr">Zum Homescreen</div>
@@ -1660,10 +2073,124 @@ function Einstellungen() {
         </div>
 
         <button style={{width:'100%',height:50,border:'1px solid rgba(251,113,133,.25)',borderRadius:16,background:'rgba(251,113,133,.06)',color:'var(--red)',fontSize:15,fontWeight:700}}
-            onClick={()=>{if(confirm('Alle lokalen Daten löschen?')){['wg_data','fb_cfg','wg_code','wg_modules','wg_me'].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>
+            onClick={async()=>{if(await askConfirm({title:'Alle lokalen Daten löschen',body:'Entfernt alle Daten und Einstellungen auf diesem Gerät. Über den WG-Code synchronisierte Daten auf anderen Geräten bleiben erhalten.',okLabel:'Löschen',danger:true})){['wg_data','fb_cfg','wg_code','wg_modules','wg_me'].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>
           Alle lokalen Daten löschen
         </button>
 
+      </div></div>
+      {pendingJoin && ReactDOM.createPortal(
+        <div className="overlay" onClick={()=>setPendingJoin(null)}>
+          <div className="sheet" onClick={e=>e.stopPropagation()} style={{maxWidth:440}}>
+            <div className="sheet-handle"/>
+            <div className="sheet-hdr">
+              <span className="sheet-title">WG „{pendingJoin}" beitreten</span>
+              <button className="cancel-btn" onClick={()=>setPendingJoin(null)}>Abbrechen</button>
+            </div>
+            <div className="sheet-body">
+              <div style={{fontSize:14,color:'var(--label2)',lineHeight:1.55}}>Du hast bereits Daten auf diesem Gerät. Wie sollen sie mit der WG zusammenkommen?</div>
+            </div>
+            <div className="sheet-acts" style={{flexDirection:'column'}}>
+              <button className="btn" style={{background:'var(--mint)'}} onClick={()=>doJoin('merge')}>Zusammenführen — beides behalten</button>
+              <button className="btn btn-sec" onClick={()=>doJoin('remote')}>WG übernehmen — lokale Daten ersetzen</button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════
+   STATISTIK / ÜBERSICHT
+══════════════════════════ */
+function Statistik() {
+  const { D, status } = useD();
+  const users=D.users, hs=D.hs||[], gi=D.gi||[], ab=D.ab||[];
+  const [ym,setYm] = useState(()=>todayISO().slice(0,7));
+  const nowYm = todayISO().slice(0,7);
+
+  const all = [...hs.map(i=>({...i,mod:'hs'})), ...gi.map(i=>({...i,mod:'gi'}))];
+  const month = all.filter(i=>ymOf(i.date)===ym);
+  const total = month.reduce((s,i)=>s+(i.price||0),0);
+  const hsSum = month.filter(i=>i.mod==='hs').reduce((s,i)=>s+i.price,0);
+  const giSum = month.filter(i=>i.mod==='gi').reduce((s,i)=>s+i.price,0);
+  const paidBy = users.map(u=>({...u, paid: month.filter(i=>i.paidBy===u.id).reduce((s,i)=>s+i.price,0)}));
+  const top = [...month].sort((a,b)=>b.price-a.price).slice(0,5);
+  const moAbos = ab.reduce((s,x)=>s+(x.iv==='m'?x.price:x.price/12),0);
+  const trend = Array.from({length:6},(_,k)=>{ const m=ymShift(ym,-(5-k)); return {m, t: all.filter(i=>ymOf(i.date)===m).reduce((s,i)=>s+i.price,0)}; });
+  const trendMax = Math.max(...trend.map(t=>t.t),1);
+
+  return (
+    <div className="screen">
+      <NBar title="Übersicht" color="var(--sky)" status={status}/>
+      <div className="scroll"><div className="content">
+        <div className="seg rise" style={{alignItems:'center'}}>
+          <button className="seg-btn" style={{maxWidth:54,fontSize:20}} onClick={()=>setYm(y=>ymShift(y,-1))}>‹</button>
+          <span style={{flex:2,textAlign:'center',fontWeight:700,fontFamily:'var(--disp)',fontSize:13,letterSpacing:'.04em'}}>{ymLabel(ym)}</span>
+          <button className="seg-btn" style={{maxWidth:54,fontSize:20,opacity:ym>=nowYm?.3:1}} disabled={ym>=nowYm} onClick={()=>setYm(y=>ymShift(y,1))}>›</button>
+        </div>
+
+        <div className="hero rise" style={{'--glow':'rgba(56,189,248,.16)',animationDelay:'40ms'}}>
+          <div className="hero-lbl">WG-Ausgaben · {ymLabel(ym)}</div>
+          <div className="hero-big" style={{color:'var(--sky)',margin:'6px 0 14px'}}>€<CountUp value={total}/></div>
+          <div style={{display:'flex',gap:10}}>
+            {[['Haushalt',hsSum,'var(--mint)'],['Growbox',giSum,'var(--lime)'],['Abos/Mo.',moAbos,'var(--indigo)']].map(([l,v,c])=>(
+              <div key={l} style={{flex:1}}>
+                <div style={{fontSize:11,color:'var(--label3)'}}>{l}</div>
+                <div className="num" style={{fontWeight:700,color:c,fontSize:15}}>€{fmt(v)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {total>0&&(
+          <div className="rise" style={{animationDelay:'70ms'}}>
+            <div className="section-hdr">Wer hat bezahlt</div>
+            <div className="group" style={{padding:'14px 16px',display:'flex',flexDirection:'column',gap:10}}>
+              {paidBy.map(b=>(
+                <div key={b.id} className="bar-row">
+                  <span className="bar-name" style={{color:b.color}}>{b.name}</span>
+                  <div className="bar-track"><div className="bar-fill" style={{width:`${total>0?b.paid/total*100:0}%`,background:b.color,color:b.color}}/></div>
+                  <span className="bar-val num">€{fmt(b.paid)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="rise" style={{animationDelay:'100ms'}}>
+          <div className="section-hdr">Verlauf · 6 Monate</div>
+          <div className="group" style={{padding:'16px',display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:6,height:128}}>
+            {trend.map(t=>(
+              <div key={t.m} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:6,height:'100%',justifyContent:'flex-end'}}>
+                <span className="num" style={{fontSize:9,color:'var(--label3)'}}>{t.t>0?Math.round(t.t):''}</span>
+                <div style={{width:'100%',maxWidth:26,height:`${Math.max(t.t/trendMax*100,2)}%`,background:t.m===ym?'var(--sky)':'rgba(56,189,248,.28)',borderRadius:'6px 6px 0 0',transition:'height .6s cubic-bezier(.22,1,.36,1)'}}/>
+                <span style={{fontSize:9,color:t.m===ym?'var(--sky)':'var(--label3)',fontWeight:700}}>{MONTHS[+t.m.split('-')[1]-1].slice(0,3)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {top.length>0&&(
+          <div className="rise" style={{animationDelay:'130ms'}}>
+            <div className="section-hdr">Größte Posten</div>
+            <div className="group">
+              {top.map(i=>{const payer=users.find(u=>u.id===i.paidBy);return(
+                <div key={i.id} className="cell">
+                  <div className="cell-icon" style={{background:i.mod==='hs'?'rgba(94,234,212,.12)':'rgba(163,230,53,.12)',fontSize:14}}>{i.mod==='hs'?'🏠':'🌱'}</div>
+                  <div className="cell-content">
+                    <span className="cell-title">{i.name}</span>
+                    <span className="cell-sub">{fmtDate(i.date)} · <span style={{color:payer?.color}}>{payer?.name}</span></span>
+                  </div>
+                  <span className="num" style={{fontWeight:700,fontSize:15}}>€{fmt(i.price)}</span>
+                </div>
+              );})}
+            </div>
+          </div>
+        )}
+
+        {total===0&&<div className="empty"><div className="empty-ico">📊</div><span style={{fontSize:14,color:'var(--label2)'}}>Keine Ausgaben in {ymLabel(ym)}</span></div>}
       </div></div>
     </div>
   );
@@ -1678,18 +2205,43 @@ const TABS=[
   {id:'putz',label:'Putzplan',color:'var(--amber)', icon:ICONS.sparkle },
   {id:'fin', label:'Finanzen',color:'var(--violet)',icon:ICONS.wallet  },
   {id:'abos',label:'Abos',    color:'var(--indigo)',icon:ICONS.repeat  },
+  {id:'stats',label:'Übersicht',color:'var(--sky)', icon:ICONS.chart   },
   {id:'set', label:'Mehr',    color:'rgba(242,246,243,.35)', icon:ICONS.settings},
 ];
 
 function AppInner() {
-  const { mods, remotePulse } = useD();
+  const { mods, remotePulse, D } = useD();
   const visibleTabs = TABS.filter(t => t.id==='set' || mods[t.id] !== false);
-  const [tab,setTab] = useState(() => visibleTabs[0]?.id || 'set');
+  const [tab,setTab_] = useState(() => {
+    const saved = ls('wg_tab', null); // letzten Tab merken
+    return (saved && (saved==='set' || mods[saved] !== false)) ? saved : (visibleTabs[0]?.id || 'set');
+  });
+  const setTab = (id) => { setTab_(id); ss('wg_tab', id); };
   const [toast,setToast] = useState(false);
   // Wenn der aktive Tab versteckt wird, auf ersten sichtbaren springen
   useEffect(() => {
     if (!visibleTabs.find(t=>t.id===tab)) setTab(visibleTabs[0]?.id || 'set');
   }, [mods]);
+  // Lokale Erinnerungen: einmal pro Tag beim Öffnen — überfällige Putzaufgaben & bald fällige Abos
+  useEffect(() => {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    if (ls('wg_notify','off') !== 'on') return;
+    const today = todayISO();
+    if (ls('wg_notify_last', null) === today) return;
+    const timer = setTimeout(() => {
+      const tasks = D.pt || [], subs = D.ab || [];
+      const parseIso = s => { const [y,m,dd]=String(s).split('-').map(Number); return new Date(y,m-1,dd); };
+      const todayMid = new Date(); todayMid.setHours(0,0,0,0);
+      const dueIn = t => { if(!t.lastDone) return 0; const due=parseIso(t.lastDone); due.setDate(due.getDate()+(t.interval||7)); return Math.round((due-todayMid)/86400000); };
+      const due  = (mods.putz!==false) ? tasks.filter(t=>dueIn(t)<=0) : [];
+      const soon = (mods.abos!==false) ? subs.filter(s=>{ const d=Math.floor((Date.now()-new Date(s.sd))/86400000),p=s.iv==='m'?30:365; return (p-(d%p))<=3; }) : [];
+      const msgs = [];
+      if (due.length)  msgs.push(`🧹 ${due.length} Putzaufgabe${due.length>1?'n':''} fällig: ${due.slice(0,3).map(t=>t.name).join(', ')}`);
+      if (soon.length) msgs.push(`🔄 ${soon.length} Abo${soon.length>1?'s':''} bald fällig: ${soon.slice(0,3).map(s=>s.name).join(', ')}`);
+      if (msgs.length) { ss('wg_notify_last', today); showLocalNote('WG — Erinnerung', msgs.join('\n')); }
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [D, mods]);
   // Live-Toast wenn Änderung vom anderen Gerät reinkommt
   useEffect(() => {
     if (remotePulse === 0) return;
@@ -1704,6 +2256,7 @@ function AppInner() {
       {tab==='putz'&&<Putzplan/>}
       {tab==='fin' &&<Finanzen/>}
       {tab==='abos'&&<Abos/>}
+      {tab==='stats'&&<Statistik/>}
       {tab==='set' &&<Einstellungen/>}
       {toast&&(
         <div className="toast">
@@ -1711,6 +2264,7 @@ function AppInner() {
           Live aktualisiert — neuer Eintrag vom anderen Gerät
         </div>
       )}
+      <GlobalUI/>
       <div className="tabbar">
         {visibleTabs.map(t=>(
           <button key={t.id} className="tabitem" onClick={()=>setTab(t.id)} style={{color:tab===t.id?t.color:'rgba(242,246,243,.32)'}}>
@@ -1733,6 +2287,14 @@ function App() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+<script>
+/* Service Worker: App offline-fähig nach erstem Laden (Shell + CDN-Libs gecacht) */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
 </script>
 </body>
 </html>

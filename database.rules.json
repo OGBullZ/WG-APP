@@ -1,6 +1,12 @@
 {
   "rules": {
-    ".read": true,
-    ".write": true
+    ".read": false,
+    ".write": false,
+    "wg": {
+      "$code": {
+        ".read":  "$code.length >= 6 && $code.length <= 64",
+        ".write": "$code.length >= 6 && $code.length <= 64"
+      }
+    }
   }
 }
