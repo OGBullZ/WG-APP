@@ -371,6 +371,9 @@ const parseNum = v => { const n = parseFloat(String(v ?? '').replace(/,/g,'.').r
 const fmtK = n => n>=1000?(n/1000).toFixed(1).replace('.', ',')+'K':fmt(n);
 const tod  = () => new Date().toLocaleDateString('de-DE');
 const todayISO = () => { const d=new Date(),z=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; };
+/* Ganze Tage seit einem ISO-Datum (YYYY-MM-DD), durchgehend in LOKALER Zeit gerechnet —
+   vermeidet den Off-by-one durch UTC-Parsing von new Date('YYYY-MM-DD') vs. lokalem Date.now(). */
+const daysSince = s => { const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(s||'')); if(!m) return 0; const a=new Date(+m[1],+m[2]-1,+m[3]); a.setHours(0,0,0,0); const n=new Date(); n.setHours(0,0,0,0); return Math.floor((n-a)/86400000); };
 /* Zeigt ISO-Daten (YYYY-MM-DD) als de-DE; Alt-Einträge im de-DE-Format laufen unverändert durch */
 const fmtDate  = s => { if(!s) return ''; const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s); return m?`${+m[3]}.${+m[2]}.${m[1]}`:s; };
 const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
@@ -603,6 +606,20 @@ function DataProvider({ children }) {
     queuePush(key);
   }, [queuePush]);
 
+  /* Wie set, aber der neue Wert wird aus dem AKTUELLEN Stand berechnet (prev[key]).
+     Für Undo-Rückgängig: stellt gezielt das Betroffene wieder her, ohne zwischenzeitliche
+     Änderungen (eigene oder vom anderen Gerät) am selben Key zu überschreiben. */
+  const setFn = useCallback((key, fn) => {
+    setD_(prev => {
+      const val = fn(prev[key]);
+      const next = { ...prev, [key]: isListKey(key) ? normList(val) : val };
+      dataRef.current = next;
+      ss('wg_data', next);
+      return next;
+    });
+    queuePush(key);
+  }, [queuePush]);
+
   /* Init / re-init Firebase when config or WG-Code changes */
   useEffect(() => {
     if (!fbCfg || !wgCode) { setStatus('local'); return; }
@@ -752,7 +769,7 @@ function DataProvider({ children }) {
   const closeConfirm = (val) => { setConfirmReq(req => { req?.resolve(val); return null; }); };
 
   return (
-    <Ctx.Provider value={{ D, set, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, mergeRemote, remotePulse, me, setMe, undo, undoMsg, runUndo, askConfirm, confirmReq, closeConfirm }}>
+    <Ctx.Provider value={{ D, set, setFn, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, mergeRemote, remotePulse, me, setMe, undo, undoMsg, runUndo, askConfirm, confirmReq, closeConfirm }}>
       {children}
     </Ctx.Provider>
   );
@@ -988,7 +1005,7 @@ const dateStepRender = ({data:d,setData:sd}) => (
    HAUSHALT
 ══════════════════════════ */
 function Haushalt() {
-  const { D, set, status, me, setMe, undo, askConfirm } = useD();
+  const { D, set, setFn, status, me, setMe, undo, askConfirm } = useD();
   const users = D.users, items = D.hs || [], list = D.sl || [];
   const [seg,setSeg] = useState('aus');
   const [wiz,setWiz] = useState(false);
@@ -1006,18 +1023,18 @@ function Haushalt() {
     set('rec',[tp,...recs]);
     set('hs',[{ id:`r-${tp.id}-${YM}`, name:tp.name, price:tp.price, paidBy:tp.paidBy, date:YM+'-01', settled:false, recur:true }, ...items]);
   };
-  const delRec = id => { const old=recs, r=old.find(x=>x.id===id); set('rec',old.filter(x=>x.id!==id)); undo(`„${r?.name||'Posten'}" beendet`, ()=>set('rec',old)); };
+  const delRec = id => { const r=recs.find(x=>x.id===id); set('rec',recs.filter(x=>x.id!==id)); undo(`„${r?.name||'Posten'}" beendet`, ()=>setFn('rec', cur => cur.some(x=>x.id===id)?cur:[r,...cur])); };
 
   const add    = d => set('hs',[{id:uid(),name:d.name||'Einkauf',price:parseNum(d.price)||0,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),settled:false},...items]);
   const save   = d => set('hs',items.map(i=>i.id===editItem.id?{...i,name:d.name||i.name,price:parseNum(d.price)||i.price,paidBy:d.paidBy||i.paidBy,date:d.date||i.date}:i));
   const toggle = id => set('hs',items.map(i=>i.id===id?{...i,settled:!i.settled,settledAt:!i.settled?todayISO():null}:i));
-  const del    = id => { const it=items.find(i=>i.id===id); set('hs',items.filter(i=>i.id!==id)); undo(`„${it?.name||'Ausgabe'}" gelöscht`, ()=>set('hs',items)); };
+  const del    = id => { const it=items.find(i=>i.id===id); set('hs',items.filter(i=>i.id!==id)); undo(`„${it?.name||'Ausgabe'}" gelöscht`, ()=>setFn('hs', cur => cur.some(i=>i.id===id)?cur:[it,...cur])); };
 
   /* Einkaufsliste */
   const addL      = () => { const n=newName.trim(); if(!n){ listInput.current?.focus(); return; } set('sl',[{id:uid(),name:n,addedBy:me||null,date:todayISO(),done:false},...list]); setNewName(''); listInput.current?.focus(); };
   const quickAdd  = (n) => set('sl',[{id:uid(),name:n,addedBy:me||null,date:todayISO(),done:false},...list]);
   const toggleL   = id => set('sl',list.map(i=>i.id===id?{...i,done:!i.done}:i));
-  const delL      = id => { const it=list.find(i=>i.id===id); set('sl',list.filter(i=>i.id!==id)); undo(`„${it?.name||'Eintrag'}" gelöscht`, ()=>set('sl',list)); };
+  const delL      = id => { const it=list.find(i=>i.id===id); set('sl',list.filter(i=>i.id!==id)); undo(`„${it?.name||'Eintrag'}" gelöscht`, ()=>setFn('sl', cur => cur.some(i=>i.id===id)?cur:[it,...cur])); };
   const clearDone = async () => { if(await askConfirm({title:'Erledigte leeren',body:`${doneL} erledigte Einträge aus dem Wagen entfernen?`,okLabel:'Leeren',danger:true})) set('sl',list.filter(i=>!i.done)); };
   const convert   = d => { add(d); delL(convItem.id); };
   const sortedList=[...list.filter(i=>!i.done),...list.filter(i=>i.done)];
@@ -1036,7 +1053,7 @@ function Haushalt() {
     const rec={ id:uid(), mod:'hs', date:todayISO(), total:tot, n:open.length, fromId:debtor?.id||null, toId:creditor?.id||null, amount:debtor?Math.abs(debtor.net):0 };
     set('stl',[rec,...oldStl]);
     set('hs',items.map(i=>i.settled?i:{...i,settled:true,settledAt:todayISO(),settlementId:rec.id}));
-    undo('Alles abgerechnet', ()=>{ set('stl',oldStl); set('hs',items); });
+    undo('Alles abgerechnet', ()=>{ setFn('stl', cur=>cur.filter(s=>s.id!==rec.id)); setFn('hs', cur=>cur.map(i=>i.settlementId===rec.id?{...i,settled:false,settledAt:null,settlementId:null}:i)); });
   };
 
   const steps=[
@@ -1247,7 +1264,7 @@ function Haushalt() {
    GROW
 ══════════════════════════ */
 function Grow() {
-  const { D, set, status, undo } = useD();
+  const { D, set, setFn, status, undo } = useD();
   const users=D.users, plants=D.gp||{}, items=D.gi||[];
   const [wiz,setWiz] = useState(false);
   const [editItem,setEditItem] = useState(null);
@@ -1261,7 +1278,7 @@ function Grow() {
   const add    = d => set('gi',[{id:uid(),name:d.name||'Grow',price:parseNum(d.price)||0,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),settled:false},...items]);
   const save   = d => set('gi',items.map(i=>i.id===editItem.id?{...i,name:d.name||i.name,price:parseNum(d.price)||i.price,paidBy:d.paidBy||i.paidBy,date:d.date||i.date}:i));
   const toggle = id => set('gi',items.map(i=>i.id===id?{...i,settled:!i.settled,settledAt:!i.settled?todayISO():null}:i));
-  const del    = id => { const it=items.find(i=>i.id===id); set('gi',items.filter(i=>i.id!==id)); undo(`„${it?.name||'Ausgabe'}" gelöscht`, ()=>set('gi',items)); };
+  const del    = id => { const it=items.find(i=>i.id===id); set('gi',items.filter(i=>i.id!==id)); undo(`„${it?.name||'Ausgabe'}" gelöscht`, ()=>setFn('gi', cur => cur.some(i=>i.id===id)?cur:[it,...cur])); };
 
   const open=items.filter(i=>!i.settled), settled=items.filter(i=>i.settled), tCost=open.reduce((s,i)=>s+i.price,0);
   const bals=users.map(u=>({ ...u, paid:open.filter(i=>i.paidBy===u.id).reduce((s,i)=>s+i.price,0), net:open.filter(i=>i.paidBy===u.id).reduce((s,i)=>s+i.price,0) - tCost*share(u.id) }));
@@ -1273,7 +1290,7 @@ function Grow() {
     const rec={ id:uid(), mod:'gi', date:todayISO(), total:tCost, n:open.length, fromId:debtor?.id||null, toId:creditor?.id||null, amount:debtor?Math.abs(debtor.net):0 };
     set('stl',[rec,...oldStl]);
     set('gi',items.map(i=>i.settled?i:{...i,settled:true,settledAt:todayISO(),settlementId:rec.id}));
-    undo('Alles abgerechnet', ()=>{ set('stl',oldStl); set('gi',items); });
+    undo('Alles abgerechnet', ()=>{ setFn('stl', cur=>cur.filter(s=>s.id!==rec.id)); setFn('gi', cur=>cur.map(i=>i.settlementId===rec.id?{...i,settled:false,settledAt:null,settlementId:null}:i)); });
   };
 
   /* Pflanzen-Slots: jede Pflanze als Icon in Besitzer-Farbe */
@@ -1436,7 +1453,7 @@ function Grow() {
    PUTZPLAN
 ══════════════════════════ */
 function Putzplan() {
-  const { D, set, status, undo } = useD();
+  const { D, set, setFn, status, undo } = useD();
   const users=D.users, tasks=D.pt||[], log=D.pl||[];
   const [wiz,setWiz] = useState(false);
   const [editTask,setEditTask] = useState(null);
@@ -1455,7 +1472,7 @@ function Putzplan() {
     set('pt', tasks.map(x=>x.id===t.id?{...x,lastDone:iso,assignee:other(x.assignee)}:x));
     set('pl', [{id:uid(),taskId:t.id,name:t.name,em:t.em,userId:t.assignee,date:iso},...log].slice(0,200));
   };
-  const del = id => { const t=tasks.find(x=>x.id===id); set('pt',tasks.filter(x=>x.id!==id)); undo(`„${t?.name||'Aufgabe'}" gelöscht`, ()=>set('pt',tasks)); };
+  const del = id => { const t=tasks.find(x=>x.id===id); set('pt',tasks.filter(x=>x.id!==id)); undo(`„${t?.name||'Aufgabe'}" gelöscht`, ()=>setFn('pt', cur => cur.some(x=>x.id===id)?cur:[t,...cur])); };
   const add = d => set('pt',[...tasks,{id:uid(),name:d.name||'Aufgabe',em:d.em||'🧽',interval:parseInt(d.interval)||7,assignee:d.assignee||users[0].id,lastDone:null}]);
   const save = d => set('pt',tasks.map(x=>x.id===editTask.id?{...x,name:d.name||x.name,em:d.em||x.em,interval:parseInt(d.interval)||x.interval,assignee:d.assignee||x.assignee}:x));
 
@@ -1589,10 +1606,10 @@ function Putzplan() {
    FINANZEN
 ══════════════════════════ */
 function Finanzen() {
-  const { D, set, status, undo } = useD();
+  const { D, set, setFn, status, undo } = useD();
   const users=D.users, txs=D.ft||[], fixed=D.ff||[];
-  const delTx  = id => { set('ft',txs.filter(x=>x.id!==id)); undo('Buchung gelöscht', ()=>set('ft',txs)); };
-  const delFix = id => { set('ff',fixed.filter(x=>x.id!==id)); undo('Fixkosten gelöscht', ()=>set('ff',fixed)); };
+  const delTx  = id => { const it=txs.find(x=>x.id===id); set('ft',txs.filter(x=>x.id!==id)); undo('Buchung gelöscht', ()=>setFn('ft', cur => cur.some(x=>x.id===id)?cur:[it,...cur])); };
+  const delFix = id => { const it=fixed.find(x=>x.id===id); set('ff',fixed.filter(x=>x.id!==id)); undo('Fixkosten gelöscht', ()=>setFn('ff', cur => cur.some(x=>x.id===id)?cur:[it,...cur])); };
   const [seg,setSeg]   = useState('txs');
   const [wiz,setWiz]   = useState(null);
   const [editTx,setEditTx]   = useState(null);
@@ -1743,9 +1760,9 @@ function Finanzen() {
    ABOS
 ══════════════════════════ */
 function Abos() {
-  const { D, set, status, undo } = useD();
+  const { D, set, setFn, status, undo } = useD();
   const subs=D.ab||[];
-  const del = id => { const s=subs.find(x=>x.id===id); set('ab',subs.filter(x=>x.id!==id)); undo(`„${s?.name||'Abo'}" gelöscht`, ()=>set('ab',subs)); };
+  const del = id => { const s=subs.find(x=>x.id===id); set('ab',subs.filter(x=>x.id!==id)); undo(`„${s?.name||'Abo'}" gelöscht`, ()=>setFn('ab', cur => cur.some(x=>x.id===id)?cur:[s,...cur])); };
   const [wiz,setWiz] = useState(false);
   const [editSub,setEditSub] = useState(null);
   const save = d => set('ab',subs.map(x=>x.id===editSub.id?{...x,name:d.name||x.name,price:parseNum(d.price)||x.price,iv:d.iv||x.iv,em:d.em||x.em,cl:d.cl||x.cl}:x));
@@ -1753,8 +1770,8 @@ function Abos() {
   const EMS=['📱','🎵','🎬','🎮','💻','📰','🛒','☁️','🏋️','📚','🧠','🔒'];
   const CLS=['#38bdf8','#4ade80','#818cf8','#fbbf24','#fb7185','#ec4899','#c4b5fd','#5eead4','#facc15','#a3e635'];
 
-  const pct = s=>{ const d=Math.floor((Date.now()-new Date(s.sd))/86400000),p=s.iv==='m'?30:365; return (d%p)/p*100; };
-  const dlf = s=>{ const d=Math.floor((Date.now()-new Date(s.sd))/86400000),p=s.iv==='m'?30:365; return p-(d%p); };
+  const pct = s=>{ const d=daysSince(s.sd),p=s.iv==='m'?30:365; return (d%p)/p*100; };
+  const dlf = s=>{ const d=daysSince(s.sd),p=s.iv==='m'?30:365; return p-(d%p); };
   const moTotal=subs.reduce((s,sub)=>s+(sub.iv==='m'?sub.price:sub.price/12),0);
 
   const add = d => set('ab',[{id:uid(),name:d.name||'Abo',price:parseNum(d.price)||0,iv:d.iv||'m',em:d.em||'📱',cl:d.cl||'#818cf8',sd:new Date().toISOString().split('T')[0]},...subs]);
@@ -1923,10 +1940,20 @@ function Einstellungen() {
     reader.readAsText(file);
   };
 
-  const copyCode = () => {
-    navigator.clipboard?.writeText(wgCode).catch(()=>{});
-    setCopied(true);
-    setTimeout(()=>setCopied(false), 2000);
+  const [copyFail,setCopyFail] = useState(false);
+  const copyCode = async () => {
+    const ok = await (async () => {
+      try { if (navigator.clipboard) { await navigator.clipboard.writeText(wgCode); return true; } } catch {}
+      // Fallback ohne Clipboard-API (z.B. http oder iOS-Sonderfälle): verstecktes Textfeld + execCommand
+      try {
+        const ta=document.createElement('textarea'); ta.value=wgCode;
+        ta.style.position='fixed'; ta.style.top='-1000px'; ta.style.opacity='0';
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        const done=document.execCommand('copy'); ta.remove(); return done;
+      } catch { return false; }
+    })();
+    if (ok) { setCopyFail(false); setCopied(true); setTimeout(()=>setCopied(false), 2000); }
+    else    { setCopyFail(true);  setTimeout(()=>setCopyFail(false), 2500); }
   };
 
   const statusColor  = !online?'var(--amber)':status==='synced'?'var(--lime)':status==='connecting'?'var(--amber)':status==='error'?'var(--red)':'var(--label3)';
@@ -1961,8 +1988,8 @@ function Einstellungen() {
                   <span className="cell-title num" style={{letterSpacing:'.05em',fontSize:19,fontWeight:700,color:'var(--lime)'}}>{wgCode}</span>
                   <span className="cell-sub">Diesen Code auf dem anderen Gerät eingeben</span>
                 </div>
-                <button onClick={copyCode} style={{background:'none',border:'none',color:copied?'var(--green)':'var(--mint)',fontSize:13,fontWeight:700,flexShrink:0}}>
-                  {copied?'Kopiert ✓':'Kopieren'}
+                <button onClick={copyCode} style={{background:'none',border:'none',color:copyFail?'var(--red)':copied?'var(--green)':'var(--mint)',fontSize:13,fontWeight:700,flexShrink:0}}>
+                  {copyFail?'Manuell kopieren':copied?'Kopiert ✓':'Kopieren'}
                 </button>
               </div>
               <div className="cell" style={{gap:8}}>
@@ -2292,7 +2319,7 @@ function AppInner() {
       const todayMid = new Date(); todayMid.setHours(0,0,0,0);
       const dueIn = t => { if(!t.lastDone) return 0; const due=parseIso(t.lastDone); due.setDate(due.getDate()+(t.interval||7)); return Math.round((due-todayMid)/86400000); };
       const due  = (mods.putz!==false) ? tasks.filter(t=>dueIn(t)<=0) : [];
-      const soon = (mods.abos!==false) ? subs.filter(s=>{ const d=Math.floor((Date.now()-new Date(s.sd))/86400000),p=s.iv==='m'?30:365; return (p-(d%p))<=3; }) : [];
+      const soon = (mods.abos!==false) ? subs.filter(s=>{ const d=daysSince(s.sd),p=s.iv==='m'?30:365; return (p-(d%p))<=3; }) : [];
       const msgs = [];
       if (due.length)  msgs.push(`🧹 ${due.length} Putzaufgabe${due.length>1?'n':''} fällig: ${due.slice(0,3).map(t=>t.name).join(', ')}`);
       if (soon.length) msgs.push(`🔄 ${soon.length} Abo${soon.length>1?'s':''} bald fällig: ${soon.slice(0,3).map(s=>s.name).join(', ')}`);

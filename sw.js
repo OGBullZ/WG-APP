@@ -3,7 +3,7 @@
    App-Shell + CDN-Bibliotheken (React/Babel/Firebase/Fonts) werden gecacht.
    Der Firebase-Realtime-Sync läuft weiter übers Netz (nie gecacht).
    Cache-Name bei jedem Deploy mit relevanter Änderung hochzählen. */
-const CACHE = 'wg-v11';
+const CACHE = 'wg-v12';
 const SHELL = ['./', './wgapp.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
@@ -36,9 +36,12 @@ const isLiveData = url =>
 const cacheFirst = (req) =>
   caches.match(req).then(hit => hit || fetch(req).then(res => {
     const copy = res.clone();
-    caches.open(CACHE).then(c => c.put(req, copy));
+    caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
     return res;
-  }).catch(() => hit));
+  }));
+  // Kein .catch(()=>hit): hit ist hier zwingend undefined (sonst wären wir im hit-Zweig).
+  // Schlägt fetch fehl, propagiert die Rejection an respondWith → Browser zeigt sauberen
+  // Netzwerkfehler, statt dass respondWith(undefined) selbst einen TypeError wirft.
 
 self.addEventListener('fetch', e => {
   const req = e.request;
