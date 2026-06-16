@@ -427,6 +427,41 @@ const INIT = {
 };
 const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
 
+/* Listen-Keys werden item-granular gesynct (RTDB-Map {id:item} statt Array).
+   So überleben gleichzeitige Adds an dasselbe Modul (RTDB merged pro Item),
+   statt dass der letzte komplette Array-Write die anderen Einträge überschreibt.
+   users (fix 2) und gp (Pflanzen-Map) bleiben key-level. */
+const LIST_KEYS = ['hs','gi','ft','ff','ab','pt','pl','sl','stl','rec'];
+const isListKey = k => LIST_KEYS.includes(k);
+
+/* Monotone Sequenz für stabile, geräteübergreifend deterministische Sortierung. */
+let _seq = 0;
+const nextSeq = () => { const t = Date.now(); _seq = t > _seq ? t : _seq + 1; return _seq; };
+/* Jedem Item ohne seq eins geben — rückwärts vergeben, damit die bestehende
+   Array-Reihenfolge nach absteigender seq-Sortierung erhalten bleibt. */
+const withSeq = arr => {
+  if (!Array.isArray(arr)) return [];
+  const out = arr.slice();
+  for (let i = out.length - 1; i >= 0; i--) {
+    if (out[i] && out[i].seq == null) out[i] = { ...out[i], seq: nextSeq() };
+  }
+  return out;
+};
+const bySeqDesc = (a,b) => (b.seq||0)-(a.seq||0) || (a.id<b.id?1:-1);
+/* Lokales Listen-Array normalisieren: seq ergänzen + deterministisch sortieren. */
+const normList = arr => withSeq(arr).slice().sort(bySeqDesc);
+/* RTDB-Wert (Map {id:item} ODER Alt-Array) → sortiertes Array. */
+const listToArr = m => {
+  if (Array.isArray(m)) return withSeq(m.filter(Boolean)).slice().sort(bySeqDesc);
+  if (!m || typeof m !== 'object') return [];
+  return Object.values(m).filter(Boolean).slice().sort(bySeqDesc);
+};
+const arrToMap = arr => { const o={}; (arr||[]).forEach(it=>{ if(it&&it.id!=null) o[it.id]=it; }); return o; };
+const mapSer  = map => { const o={}; for(const id in map) o[id]=JSON.stringify(map[id]); return o; };
+/* Remote-Objekt: alle Listen-Keys zu Arrays normalisieren, damit der bestehende
+   Merge-/dedupe-Code unverändert mit Arrays arbeiten kann. */
+const normalizeRemote = obj => { const o={...obj}; LIST_KEYS.forEach(k=>{ if(k in o) o[k]=listToArr(o[k]); }); return o; };
+
 /* ════════════════════════════
    DATA CONTEXT + FIREBASE SYNC
 ════════════════════════════ */
@@ -449,7 +484,11 @@ function DataProvider({ children }) {
   const undoTimer = useRef(null);
   const [D, setD_] = useState(() => {
     const saved = ls('wg_data', null);
-    return saved ? {...INIT, ...saved} : INIT;
+    const base = saved ? {...INIT, ...saved} : INIT;
+    // Listen-Keys lokal normalisieren (seq für Bestandsdaten) → stabile Reihenfolge, weniger Echo-Renders
+    const out = { ...base };
+    LIST_KEYS.forEach(k => { out[k] = normList(base[k] || []); });
+    return out;
   });
   useEffect(() => {
     const on = () => setOnline(true), off = () => setOnline(false);
@@ -489,7 +528,8 @@ function DataProvider({ children }) {
   const dbRef      = useRef(null);
   const dataRef    = useRef(D);        // stets aktueller lokaler Stand (für Listener & Flush)
   const dirty      = useRef(new Set()); // Keys, die noch zum Server müssen
-  const pushed     = useRef({});        // Key -> zuletzt gesendeter JSON-Wert (Echo-Erkennung)
+  const pushed     = useRef({});        // non-list Key -> Set letzter Serialisierungen (Echo-Erkennung)
+  const lastPushed = useRef({});        // list Key -> {id: serialized} = letzter bekannter Server-Stand (Diff-Basis)
   const flushTimer = useRef(null);
   useEffect(() => { dataRef.current = D; }, [D]);
 
@@ -507,11 +547,24 @@ function DataProvider({ children }) {
     if (!dbRef.current || dirty.current.size === 0) return;
     const updates = {};
     dirty.current.forEach(k => {
-      const val = dataRef.current[k] ?? null;
-      updates[k] = val;
-      rememberSent(k, JSON.stringify(val));
+      if (isListKey(k)) {
+        // Nur geänderte/neue/gelöschte Items als wg/<code>/<key>/<id> schreiben (bzw. null = löschen).
+        const newMap = arrToMap(dataRef.current[k]);
+        const oldSer = lastPushed.current[k] || {};
+        for (const id in newMap) {
+          const ser = JSON.stringify(newMap[id]);
+          if (oldSer[id] !== ser) updates[`${k}/${id}`] = newMap[id];
+        }
+        for (const id in oldSer) { if (!(id in newMap)) updates[`${k}/${id}`] = null; }
+        lastPushed.current[k] = mapSer(newMap);
+      } else {
+        const val = dataRef.current[k] ?? null;
+        updates[k] = val;
+        rememberSent(k, JSON.stringify(val));
+      }
     });
     dirty.current.clear();
+    if (!Object.keys(updates).length) { setStatus('synced'); return; }
     dbRef.current.update(updates).then(() => setStatus('synced')).catch(() => setStatus('error'));
   }, []);
   const queuePush = useCallback((key) => {
@@ -526,9 +579,15 @@ function DataProvider({ children }) {
     if (!dbRef.current) return;
     const updates = { _wid: null }; // veraltete Echo-Markierung einmalig entfernen
     KEYS.forEach(k => {
-      const val = data[k] ?? null;
-      updates[k] = val;
-      rememberSent(k, JSON.stringify(val));
+      if (isListKey(k)) {
+        const map = arrToMap(normList(data[k] || []));
+        updates[k] = Object.keys(map).length ? map : null;
+        lastPushed.current[k] = mapSer(map);
+      } else {
+        const val = data[k] ?? null;
+        updates[k] = val;
+        rememberSent(k, JSON.stringify(val));
+      }
     });
     dbRef.current.update(updates).then(() => setStatus('synced')).catch(() => setStatus('error'));
   }, []);
@@ -536,7 +595,7 @@ function DataProvider({ children }) {
   /* Update local state + persist + nur den geänderten Key pushen */
   const set = useCallback((key, val) => {
     setD_(prev => {
-      const next = { ...prev, [key]: val };
+      const next = { ...prev, [key]: isListKey(key) ? normList(val) : val };
       dataRef.current = next;
       ss('wg_data', next);
       return next;
@@ -550,6 +609,7 @@ function DataProvider({ children }) {
     setStatus('connecting');
     dirty.current.clear();
     pushed.current = {};
+    lastPushed.current = {};
     clearTimeout(flushTimer.current);
 
     try {
@@ -572,31 +632,30 @@ function DataProvider({ children }) {
         const joinMode = sessionStorage.getItem('wg_join_mode');
         sessionStorage.removeItem('wg_join_mode');
         if (remote) {
-          const { _wid, ...actual } = remote;
+          const { _wid, ...raw } = remote;
+          const actual = normalizeRemote(raw);                  // Listen → Arrays (egal ob Map- oder Alt-Array-Format)
+          const needsMigration = LIST_KEYS.some(k => Array.isArray(raw[k])); // Alt-Array-Format noch in der DB?
           if (joinMode === 'merge') {
             setD_(prev => {
               const r = { ...INIT, ...actual };
-              const next = {
-                users: r.users?.length ? r.users : prev.users,
-                hs: dedupe(prev.hs, r.hs), gi: dedupe(prev.gi, r.gi),
-                ft: dedupe(prev.ft, r.ft), ff: dedupe(prev.ff, r.ff),
-                ab: dedupe(prev.ab, r.ab), pt: dedupe(prev.pt, r.pt),
-                pl: dedupe(prev.pl, r.pl), sl: dedupe(prev.sl, r.sl),
-                stl: dedupe(prev.stl, r.stl), rec: dedupe(prev.rec, r.rec),
-                gp: { ...prev.gp, ...r.gp },
-              };
+              const next = { ...prev, users: r.users?.length ? r.users : prev.users, gp: { ...prev.gp, ...r.gp } };
+              LIST_KEYS.forEach(k => { next[k] = normList(dedupe(prev[k], r[k])); });
               dataRef.current = next;
               ss('wg_data', next);
-              pushAll(next);
+              pushAll(next);                                    // zusammengeführten Stand schreiben (Map-Format)
               return next;
             });
           } else {
             // Remote gewinnt (Standard beim ersten Pairing)
             const merged = { ...INIT, ...actual };
-            KEYS.forEach(k => { pushed.current[k] = new Set([JSON.stringify(merged[k] ?? null)]); });
+            KEYS.forEach(k => {
+              if (isListKey(k)) lastPushed.current[k] = mapSer(arrToMap(merged[k]));
+              else pushed.current[k] = new Set([JSON.stringify(merged[k] ?? null)]);
+            });
             dataRef.current = merged;
             setD_(merged);
             ss('wg_data', merged);
+            if (needsMigration) pushAll(merged);                // DB einmalig vom Alt-Array auf Map-Format heben
           }
         } else {
           // Noch nichts in der Cloud: lokalen Stand hochladen
@@ -604,7 +663,7 @@ function DataProvider({ children }) {
         }
         setStatus('synced');
 
-        // Laufender Listener: pro Key diffen; eigene Echos & in-flight Writes ignorieren
+        // Laufender Listener: pro Key/Item diffen; eigene Echos & in-flight Writes ignorieren
         let firstEvent = true;
         ref.on('value', snap2 => {
           const v = snap2.val();
@@ -614,14 +673,24 @@ function DataProvider({ children }) {
           let foreign = false;
           KEYS.forEach(k => {
             if (!(k in remote2)) return;
-            const rs = JSON.stringify(remote2[k]);
-            if (JSON.stringify(dataRef.current[k]) === rs) return;       // lokal schon aktuell (auch Echo des letzten Writes)
-            if (pushed.current[k] && pushed.current[k].has(rs)) return;  // verspätetes Echo eines eigenen Writes
             if (dirty.current.has(k)) return;                           // schreibe ich gerade → nicht überschreiben
-            adopt[k] = remote2[k];
-            foreign = true;
+            if (isListKey(k)) {
+              const remoteArr = listToArr(remote2[k]);
+              if (JSON.stringify(dataRef.current[k]) === JSON.stringify(remoteArr)) return; // identisch (auch eigenes Echo)
+              adopt[k] = remoteArr;
+              foreign = true;
+            } else {
+              const rs = JSON.stringify(remote2[k]);
+              if (JSON.stringify(dataRef.current[k]) === rs) return;     // lokal schon aktuell
+              if (pushed.current[k] && pushed.current[k].has(rs)) return;// verspätetes Echo eines eigenen Writes
+              adopt[k] = remote2[k];
+              foreign = true;
+            }
           });
           if (foreign) {
+            Object.keys(adopt).forEach(k => {                  // Server-Stand pro Item merken → korrekter nächster Diff
+              if (isListKey(k)) lastPushed.current[k] = mapSer(arrToMap(adopt[k]));
+            });
             setD_(prev => {
               const next = { ...prev, ...adopt };
               dataRef.current = next;
@@ -645,6 +714,7 @@ function DataProvider({ children }) {
   /* Replace whole dataset (used by Import + Pair-Merge) */
   const replaceData = (next) => {
     const merged = { ...INIT, ...next };
+    LIST_KEYS.forEach(k => { merged[k] = normList(merged[k] || []); }); // Import-Listen mit seq normalisieren
     dataRef.current = merged;
     setD_(merged);
     ss('wg_data', merged);
@@ -653,26 +723,14 @@ function DataProvider({ children }) {
 
   /* Merge remote into local (used when joining and both sides have data) */
   const mergeRemote = (remote) => {
-    const r = { ...INIT, ...remote };
+    const r = { ...INIT, ...normalizeRemote(remote) };
     setD_(prev => {
       const dedupe = (a=[], b=[]) => {
         const seen = new Set();
         return [...a, ...b].filter(x => x && x.id && !seen.has(x.id) && seen.add(x.id));
       };
-      const next = {
-        users: r.users?.length ? r.users : prev.users,
-        hs:   dedupe(prev.hs,  r.hs),
-        gi:   dedupe(prev.gi,  r.gi),
-        ft:   dedupe(prev.ft,  r.ft),
-        ff:   dedupe(prev.ff,  r.ff),
-        ab:   dedupe(prev.ab,  r.ab),
-        pt:   dedupe(prev.pt,  r.pt),
-        pl:   dedupe(prev.pl,  r.pl),
-        sl:   dedupe(prev.sl,  r.sl),
-        stl:  dedupe(prev.stl, r.stl),
-        rec:  dedupe(prev.rec, r.rec),
-        gp:   { ...prev.gp, ...r.gp },
-      };
+      const next = { ...prev, users: r.users?.length ? r.users : prev.users, gp: { ...prev.gp, ...r.gp } };
+      LIST_KEYS.forEach(k => { next[k] = normList(dedupe(prev[k], r[k])); });
       dataRef.current = next;
       ss('wg_data', next);
       pushAll(next);
