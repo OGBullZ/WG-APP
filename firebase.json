@@ -10,7 +10,10 @@
       "vercel.json",
       "README.md",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "test/**",
+      "package.json",
+      "package-lock.json"
     ],
     "rewrites": [
       { "source": "/", "destination": "/wgapp.html" }
