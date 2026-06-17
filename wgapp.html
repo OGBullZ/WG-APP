@@ -369,6 +369,10 @@ const fmt  = n => Number(n||0).toFixed(2).replace('.', ',');     // deutsche Anz
 /* Beträge robust parsen: deutsches Komma „8,50" wie auch „8.50" → 8.5 */
 const parseNum = v => { const n = parseFloat(String(v ?? '').replace(/,/g,'.').replace(/[^0-9.]/g,'')); return isNaN(n) ? 0 : n; };
 const fmtK = n => n>=1000?(n/1000).toFixed(1).replace('.', ',')+'K':fmt(n);
+/* PayPal.me-Handle aus beliebiger Eingabe extrahieren (Handle, @name, paypal.me/name, volle URL) */
+const ppHandle = s => String(s ?? '').trim().replace(/^https?:\/\//i,'').replace(/^(www\.)?paypal\.me\//i,'').replace(/^@/,'').split(/[/?#\s]/)[0].trim();
+/* PayPal.me-Zahllink mit Betrag in EUR; null wenn kein gültiger Handle */
+const ppLink = (handle, amount) => { const h=ppHandle(handle); return h ? `https://paypal.me/${encodeURIComponent(h)}/${Number(amount||0).toFixed(2)}EUR` : null; };
 const tod  = () => new Date().toLocaleDateString('de-DE');
 const todayISO = () => { const d=new Date(),z=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; };
 /* Ganze Tage seit einem ISO-Datum (YYYY-MM-DD), durchgehend in LOKALER Zeit gerechnet —
@@ -936,15 +940,28 @@ function Wiz({ open, onClose, title, color, steps, onFinish, initial }) {
 
 /* ── Schulden-Banner ── */
 function Bal({ bals }) {
+  const { me } = useD();
   const d=bals.find(b=>b.net<-.01), c=bals.find(b=>b.net>.01);
   if(!d||!c) return null;
+  const amount=Math.abs(d.net);
+  // Schuldner d zahlt an Gläubiger c → dessen PayPal.me-Link; nicht dem Gläubiger selbst anbieten
+  const link = me!==c.id ? ppLink(c.pp, amount) : null;
   return (
-    <div className="bal-banner rise">
-      <span style={{color:d.color,fontWeight:800}}>{d.name}</span>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--label3)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-5-5l5 5-5 5"/></svg>
-      <span style={{color:c.color,fontWeight:800}}>{c.name}</span>
-      <span className="num" style={{fontWeight:700,fontSize:16,color:'var(--amber)'}}>€<CountUp value={Math.abs(d.net)}/></span>
-    </div>
+    <>
+      <div className="bal-banner rise">
+        <span style={{color:d.color,fontWeight:800}}>{d.name}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--label3)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-5-5l5 5-5 5"/></svg>
+        <span style={{color:c.color,fontWeight:800}}>{c.name}</span>
+        <span className="num" style={{fontWeight:700,fontSize:16,color:'var(--amber)'}}>€<CountUp value={amount}/></span>
+      </div>
+      {link && (
+        <a className="btn rise" href={link} target="_blank" rel="noopener noreferrer"
+          style={{background:'#0070ba',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',gap:8,textDecoration:'none',marginTop:-4}}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7.2 21.3l.5-3.1h3.6c3.8 0 6.4-1.9 7-5.5.5-3-.9-4.9-3.9-4.9H8.7c-.5 0-.9.4-1 .9L5.2 20.4c-.1.5.3.9.7.9h1.3zm2.4-9.9h2.1c1.2 0 1.9.6 1.7 1.8-.2 1.4-1.2 2.1-2.7 2.1H9l.6-3.9z"/></svg>
+          €{fmt(amount)} an {c.name} per PayPal
+        </a>
+      )}
+    </>
   );
 }
 
@@ -2125,7 +2142,7 @@ function Einstellungen() {
           <div className="section-hdr">Personen</div>
           <div className="group">
             {users.map(u=>(
-              <div key={u.id} className="cell">
+              <div key={u.id} className="cell" style={{flexWrap:'wrap'}}>
                 <div style={{width:10,height:10,borderRadius:'50%',background:u.color,boxShadow:`0 0 8px ${u.color}`,flexShrink:0}}/>
                 <input className="field" style={{background:'transparent',border:'none',padding:0,fontSize:16,fontWeight:600,flex:1}}
                   value={u.name} onChange={e=>set('users',users.map(x=>x.id===u.id?{...x,name:e.target.value}:x))}/>
@@ -2133,10 +2150,16 @@ function Einstellungen() {
                   style={{background:me===u.id?u.color:'var(--bg3)',color:me===u.id?'#0a120c':'var(--label3)',border:'none',borderRadius:12,padding:'7px 12px',fontSize:12,fontWeight:800,flexShrink:0}}>
                   {me===u.id?'Das bin ich ✓':'Das bin ich'}
                 </button>
+                <div style={{flexBasis:'100%',display:'flex',alignItems:'center',gap:6,marginTop:9,paddingLeft:18}}>
+                  <span style={{fontSize:13,color:'var(--label3)',fontWeight:600,flexShrink:0}}>paypal.me/</span>
+                  <input className="field" style={{background:'var(--bg3)',border:'none',padding:'7px 10px',fontSize:14,fontWeight:600,flex:1,borderRadius:10}}
+                    placeholder="dein-name" autoCapitalize="off" autoCorrect="off" spellCheck={false}
+                    value={u.pp||''} onChange={e=>set('users',users.map(x=>x.id===u.id?{...x,pp:e.target.value}:x))}/>
+                </div>
               </div>
             ))}
           </div>
-          <div className="section-ftr">„Das bin ich" gilt nur für dieses Gerät — Einträge auf der Einkaufsliste werden damit automatisch dir zugeordnet.</div>
+          <div className="section-ftr">„Das bin ich" gilt nur für dieses Gerät. Der PayPal.me-Name ermöglicht den „Per PayPal zahlen"-Button beim Schuldenausgleich.</div>
         </div>
 
         {/* Erinnerungen — nur zeigen, wenn das Gerät Notifications kann (iOS: nur als installierte PWA) */}
