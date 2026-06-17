@@ -261,6 +261,11 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 .step-seg { flex:1; height:3px; border-radius:2px; transition:all .3s; }
 .sheet-body { padding:0 20px; display:flex; flex-direction:column; gap:14px; overflow-y:auto; -webkit-overflow-scrolling:touch; flex:1 1 auto; min-height:0; }
 .sheet-lbl { font-size:14px; color:var(--label2); font-weight:600; }
+.sheet-sublbl { font-size:11px; color:var(--label3); font-weight:700; letter-spacing:.08em; text-transform:uppercase; margin-bottom:9px; }
+.wiz-sum { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:12px 15px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.wiz-sum .nm { font-weight:700; font-size:15px; color:var(--label); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wiz-sum .am { font-family:var(--mono); font-weight:800; font-size:19px; color:var(--mint); flex:none; }
+.date-toggle { width:100%; text-align:left; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.09); border-radius:14px; padding:14px 16px; font-size:15px; color:var(--label2); cursor:pointer; }
 .sheet-acts { padding:20px 20px calc(18px + var(--safe-bot)); display:flex; gap:10px; flex:none; }
 
 /* ── Inputs ── */
@@ -359,7 +364,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useEffect, useRef, useCallback, createContext, useContext } = React;
+const { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } = React;
 
 /* ── Helpers ── */
 const ls   = (k,fb) => { try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;} };
@@ -916,6 +921,21 @@ function Donut({ segs, size=148, sw=15, children }) {
 }
 
 /* ── Wizard ── */
+/* Einklappbares Datum: default "Heute", erst auf Tap das echte date-Feld (weniger Last im Normalfall) */
+function DateField({ value, onChange }) {
+  const today = todayISO();
+  const isToday = !value || value === today;
+  const [open, setOpen] = useState(!isToday);
+  if (open || !isToday)
+    return <input type="date" className="field" value={value || today} onChange={e => onChange(e.target.value)} />;
+  return <button type="button" className="date-toggle" onClick={() => setOpen(true)}>📅 Heute · <span style={{color:'var(--mint)',fontWeight:700}}>Datum ändern</span></button>;
+}
+
+/* Zusammenfassungs-Karte oben im letzten Wizard-Schritt (Review vor "Fertig") */
+function WizSum({ name, price }) {
+  return <div className="wiz-sum"><span className="nm">{name?.trim() || '—'}</span><span className="am">€{fmt(parseNum(price) || 0)}</span></div>;
+}
+
 function Wiz({ open, onClose, title, color, steps, onFinish, initial }) {
   const [step,setStep] = useState(0);
   const [data,setData] = useState({});
@@ -1108,41 +1128,42 @@ function Haushalt() {
     undo('Alles abgerechnet', ()=>{ setFn('stl', cur=>cur.filter(s=>s.id!==rec.id)); setFn('hs', cur=>cur.map(i=>i.settlementId===rec.id?{...i,settled:false,settledAt:null,settlementId:null}:i)); });
   };
 
+  // Bezahler standardmäßig auf das eigene Gerät (me) vorbelegen → ein Tap weniger im Normalfall
+  const addInit = useMemo(()=>({ paidBy: me||undefined }), [me]);
+  // Schritt 3 (Bezahler + Aufteilung kombiniert) mit Review-Karte oben — geteilt von steps/recSteps
+  const payerSplitStep = (payLabel) => ({label:'Prüfen & aufteilen',ok:d=>!!d.paidBy,render:({data:d,setData:sd})=>(
+    <div style={{display:'flex',flexDirection:'column',gap:18}}>
+      <WizSum name={d.name} price={d.price}/>
+      <div>
+        <div className="sheet-sublbl">{payLabel}</div>
+        <div className="pick">
+          {users.map(u=><button key={u.id} className={`pick-btn${d.paidBy===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,paidBy:u.id})}>{u.name}</button>)}
+        </div>
+      </div>
+      <div>
+        <div className="sheet-sublbl">Wie aufteilen?</div>
+        <div className="pick" style={{flexDirection:'column'}}>
+          <button className={`pick-btn${!d.owedBy?' on':''}`} style={{background:'var(--mint)'}} onClick={()=>sd({...d,owedBy:null})}>Gleich teilen · 50/50</button>
+          {users.map(u=><button key={u.id} className={`pick-btn${d.owedBy===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,owedBy:u.id})}>{u.name} zahlt alles</button>)}
+        </div>
+      </div>
+    </div>
+  )});
   const steps=[
     {label:'Was wurde gekauft?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus className="field" placeholder="Putzmittel, Toilettenpapier …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
-    {label:'Preis & Datum',ok:d=>parseNum(d.price)>0,render:({data:d,setData:sd})=>(
+    {label:'Wie viel?',ok:d=>parseNum(d.price)>0,render:({data:d,setData:sd})=>(
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
         <div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>
-        <input type="date" className="field" value={d.date||todayISO()} onChange={e=>sd({...d,date:e.target.value})}/>
+        <DateField value={d.date} onChange={v=>sd({...d,date:v})}/>
       </div>
     )},
-    {label:'Wer hat bezahlt?',ok:d=>!!d.paidBy,render:({data:d,setData:sd})=>(
-      <div className="pick">
-        {users.map(u=><button key={u.id} className={`pick-btn${d.paidBy===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,paidBy:u.id})}>{u.name}</button>)}
-      </div>
-    )},
-    {label:'Wie aufteilen?',ok:()=>true,render:({data:d,setData:sd})=>(
-      <div className="pick" style={{flexDirection:'column'}}>
-        <button className={`pick-btn${!d.owedBy?' on':''}`} style={{background:'var(--mint)'}} onClick={()=>sd({...d,owedBy:null})}>Gleich teilen · 50/50</button>
-        {users.map(u=><button key={u.id} className={`pick-btn${d.owedBy===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,owedBy:u.id})}>{u.name} zahlt alles</button>)}
-      </div>
-    )},
+    payerSplitStep('Wer hat bezahlt?'),
   ];
   /* Wiederkehrend: wie steps, aber ohne Datum (läuft monatlich) */
   const recSteps=[
     {label:'Was wiederholt sich?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus className="field" placeholder="Internet, Putzkraft, Spotify-Family …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
     {label:'Betrag pro Monat',ok:d=>parseNum(d.price)>0,render:({data:d,setData:sd})=><div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>},
-    {label:'Wer zahlt es?',ok:d=>!!d.paidBy,render:({data:d,setData:sd})=>(
-      <div className="pick">
-        {users.map(u=><button key={u.id} className={`pick-btn${d.paidBy===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,paidBy:u.id})}>{u.name}</button>)}
-      </div>
-    )},
-    {label:'Wie aufteilen?',ok:()=>true,render:({data:d,setData:sd})=>(
-      <div className="pick" style={{flexDirection:'column'}}>
-        <button className={`pick-btn${!d.owedBy?' on':''}`} style={{background:'var(--mint)'}} onClick={()=>sd({...d,owedBy:null})}>Gleich teilen · 50/50</button>
-        {users.map(u=><button key={u.id} className={`pick-btn${d.owedBy===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,owedBy:u.id})}>{u.name} zahlt alles</button>)}
-      </div>
-    )},
+    payerSplitStep('Wer zahlt es?'),
   ];
 
   return (
@@ -1160,6 +1181,12 @@ function Haushalt() {
           <div className="hero rise" style={{'--glow':'rgba(94,234,212,.16)',animationDelay:'40ms'}}>
             <div className="hero-lbl">Offene Ausgaben</div>
             <div className="hero-big" style={{color:'var(--mint)',margin:'6px 0 16px'}}>€<CountUp value={tot}/></div>
+            {me ? (()=>{
+              const mine=bals.find(b=>b.id===me), net=mine?mine.net:0;
+              if(net>0.01)  return <div style={{fontSize:15,fontWeight:700,color:'var(--green)'}}>Dir wird <span className="num">€{fmt(net)}</span> geschuldet</div>;
+              if(net<-0.01) return <div style={{fontSize:15,fontWeight:700,color:'var(--amber)'}}>Du schuldest <span className="num">€{fmt(Math.abs(net))}</span></div>;
+              return tot>0 ? <div style={{fontSize:14,fontWeight:700,color:'var(--green)'}}>Alles ausgeglichen ✓</div> : <div style={{fontSize:13,color:'var(--label3)'}}>Noch nichts offen</div>;
+            })() : (
             <div style={{display:'flex',flexDirection:'column',gap:10}}>
               {bals.map(b=>(
                 <div key={b.id} className="bar-row">
@@ -1169,6 +1196,7 @@ function Haushalt() {
                 </div>
               ))}
             </div>
+            )}
             {tot>0&&(open.every(i=>!i.owedBy)
               ?<div style={{fontSize:12,color:'var(--label3)',marginTop:12,fontWeight:500}}>50/50-Split · je <span className="num" style={{color:'var(--label2)'}}>€{fmt(tot/2)}</span></div>
               :<div style={{fontSize:12,color:'var(--label3)',marginTop:12,fontWeight:500}}>Gemischter Split · einzelne Posten trägt einer allein</div>)}
@@ -1203,7 +1231,7 @@ function Haushalt() {
               <>
               {open.length>0&&(
               <div className="rise" style={{animationDelay:'120ms'}}>
-                <div className="section-hdr">Offene Ausgaben</div>
+                <div className="section-hdr">Einzelposten</div>
                 <div className="group">
                   {open.map(item=>{
                     const payer=users.find(u=>u.id===item.paidBy);
@@ -1318,10 +1346,10 @@ function Haushalt() {
           )}
         </div>
       </div>
-      <Wiz open={wiz} onClose={()=>setWiz(false)} title="Ausgabe" color="var(--mint)" steps={steps} onFinish={add}/>
+      <Wiz open={wiz} onClose={()=>setWiz(false)} title="Ausgabe" color="var(--mint)" steps={steps} onFinish={add} initial={addInit}/>
       <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title="Bearbeiten" color="var(--mint)" steps={steps} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,owedBy:editItem.owedBy||null,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>
       <Wiz open={!!convItem} onClose={()=>setConvItem(null)} title="Als Ausgabe übernehmen" color="var(--mint)" steps={steps} onFinish={convert} initial={convItem?{name:convItem.name,paidBy:me||undefined,date:todayISO()}:null}/>
-      <Wiz open={recWiz} onClose={()=>setRecWiz(false)} title="Wiederkehrend (monatlich)" color="var(--mint)" steps={recSteps} onFinish={addRec}/>
+      <Wiz open={recWiz} onClose={()=>setRecWiz(false)} title="Wiederkehrend (monatlich)" color="var(--mint)" steps={recSteps} onFinish={addRec} initial={addInit}/>
     </div>
   );
 }
@@ -1330,7 +1358,7 @@ function Haushalt() {
    GROW
 ══════════════════════════ */
 function Grow() {
-  const { D, set, setFn, status, undo } = useD();
+  const { D, set, setFn, status, undo, me } = useD();
   const users=D.users, plants=D.gp||{}, items=D.gi||[];
   const [wiz,setWiz] = useState(false);
   const [editItem,setEditItem] = useState(null);
@@ -1363,21 +1391,28 @@ function Grow() {
   const slots=[];
   users.forEach(u=>{ for(let i=0;i<(parseInt(plants[u.id])||0);i++) slots.push(u.color); });
 
+  const addInit = useMemo(()=>({ paidBy: me||undefined }), [me]);
   const steps=[
     {label:'Was wurde gekauft?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus className="field" placeholder="Dünger, Erde, Lampe …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
-    {label:'Preis & Datum',ok:d=>parseNum(d.price)>0,render:({data:d,setData:sd})=>(
+    {label:'Wie viel?',ok:d=>parseNum(d.price)>0,render:({data:d,setData:sd})=>(
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
         <div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>
-        <input type="date" className="field" value={d.date||todayISO()} onChange={e=>sd({...d,date:e.target.value})}/>
+        <DateField value={d.date} onChange={v=>sd({...d,date:v})}/>
       </div>
     )},
-    {label:'Wer hat bezahlt?',ok:d=>!!d.paidBy,render:({data:d,setData:sd})=>(
-      <div className="pick">
-        {users.map(u=>(
-          <button key={u.id} className={`pick-btn${d.paidBy===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,paidBy:u.id})}>
-            {u.name}<br/><span style={{fontSize:11,fontWeight:600,opacity:.75}}>zahlt {pctStr(u.id)}</span>
-          </button>
-        ))}
+    {label:'Prüfen & bezahlt von',ok:d=>!!d.paidBy,render:({data:d,setData:sd})=>(
+      <div style={{display:'flex',flexDirection:'column',gap:18}}>
+        <WizSum name={d.name} price={d.price}/>
+        <div>
+          <div className="sheet-sublbl">Wer hat bezahlt?</div>
+          <div className="pick">
+            {users.map(u=>(
+              <button key={u.id} className={`pick-btn${d.paidBy===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,paidBy:u.id})}>
+                {u.name}<br/><span style={{fontSize:11,fontWeight:600,opacity:.75}}>zahlt {pctStr(u.id)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     )},
   ];
@@ -1509,7 +1544,7 @@ function Grow() {
           )
         }
       </div></div>
-      <Wiz open={wiz} onClose={()=>setWiz(false)} title="Grow-Ausgabe" color="var(--lime)" steps={steps} onFinish={add}/>
+      <Wiz open={wiz} onClose={()=>setWiz(false)} title="Grow-Ausgabe" color="var(--lime)" steps={steps} onFinish={add} initial={addInit}/>
       <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title="Bearbeiten" color="var(--lime)" steps={steps} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>
     </div>
   );

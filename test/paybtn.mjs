@@ -11,6 +11,7 @@ const debtItem = { id:'x1', name:'Gruen', price:24, paidBy:'u1', owedBy:'u2', da
 async function render({ me, torbenPp }) {
   const ctx = await browser.newContext({ viewport:{ width:420, height:880 } });
   const page = await ctx.newPage();
+  page.on('pageerror', e => { console.error('PAGEERROR:', e.message); process.exitCode = 1; });
   await page.route('**/*', r => {
     const u = r.request().url();
     return (u.includes('firebasedatabase.app')||u.includes('firebaseio.com')||u.includes('googleapis.com')) ? r.abort() : r.continue();

@@ -22,19 +22,30 @@ const check = (name, cond) => (cond ? pass : fail).push(name);
 await page.goto(url, { waitUntil: 'domcontentloaded' });
 await page.waitForTimeout(2000);
 
+// --- Wizard-Struktur: 3 Schritte, Datum eingeklappt, Zusammenfassung am Ende ---
+await page.getByText('+ Ausgabe hinzufügen').click();
+check('Wizard hat 3 Schritte (statt 4)', await page.locator('.step-seg').count() === 3);
+await page.locator('input.field').first().fill('Testkauf');
+await page.getByRole('button', { name: 'Weiter' }).click();
+await page.locator('input[inputmode="decimal"]').fill('12,50');
+check('Datum ist eingeklappt (Heute-Toggle)', await page.locator('.date-toggle').count() === 1);
+await page.getByRole('button', { name: 'Weiter' }).click();
+const sumTxt = await page.locator('.wiz-sum').innerText().catch(() => '');
+check('Letzter Schritt zeigt Zusammenfassung Name+Preis', /Testkauf/.test(sumTxt) && /12,50/.test(sumTxt));
+await page.getByRole('button', { name: 'Abbrechen' }).click();
+await page.waitForTimeout(300);
+
 // Helper: eine Ausgabe über den Wizard anlegen
 async function addExpense({ name, price, paidBy, split }) {
   await page.getByText('+ Ausgabe hinzufügen').click();
-  // Step 1: Name
+  // Schritt 1: Name
   await page.locator('input.field').first().fill(name);
   await page.getByRole('button', { name: 'Weiter' }).click();
-  // Step 2: Preis (erstes Feld) + Datum default
+  // Schritt 2: Preis (Datum eingeklappt → kein Pflicht-Tap)
   await page.locator('input[inputmode="decimal"]').fill(price);
   await page.getByRole('button', { name: 'Weiter' }).click();
-  // Step 3: Wer hat bezahlt?
+  // Schritt 3 (NEU kombiniert): Bezahler + Aufteilung auf einem Screen mit Zusammenfassung
   await page.locator('.pick-btn', { hasText: new RegExp('^' + paidBy + '$') }).click();
-  await page.getByRole('button', { name: 'Weiter' }).click();
-  // Step 4 (NEU): Wie aufteilen?
   await page.locator('.pick-btn', { hasText: split }).click();
   await page.getByRole('button', { name: 'Fertig' }).click();
   await page.waitForTimeout(400);
