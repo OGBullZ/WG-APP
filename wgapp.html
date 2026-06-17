@@ -478,7 +478,13 @@ const MOD_DEF = { haus:true, grow:true, putz:true, fin:false, abos:false, stats:
 
 function DataProvider({ children }) {
   const [fbCfg,  setFbCfg_]  = useState(() => ls('fb_cfg', FB_DEFAULT));
-  const [wgCode, setWgCode_] = useState(() => ls('wg_code', genCode()));
+  const [wgCode, setWgCode_] = useState(() => {
+    const saved = ls('wg_code', null);
+    if (saved) return saved;
+    // Erststart: Auto-Code SOFORT persistieren — sonst erzeugt jeder Neustart einen neuen
+    // Zufallscode und das WG-eröffnende Gerät desynct sich von der gekoppelten WG.
+    const c = genCode(); ss('wg_code', c); return c;
+  });
   const [status, setStatus]  = useState('local'); // local | connecting | synced | error
   const [online, setOnline]  = useState(() => navigator.onLine);
   const [mods,   setMods_]   = useState(() => ({...MOD_DEF, ...(ls('wg_modules', {}) || {})}));
