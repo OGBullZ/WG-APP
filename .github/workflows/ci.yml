@@ -1,0 +1,38 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install deps
+        run: npm ci
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Serve + Tests + Visual-Render-Check
+        run: |
+          python3 -m http.server 8099 &
+          SRV=$!
+          for i in $(seq 1 30); do curl -sf http://localhost:8099/wgapp.html >/dev/null && break || sleep 0.5; done
+          set -e
+          node test/split.mjs
+          node test/persist.mjs
+          node test/paybtn.mjs
+          node test/visual.mjs
+          kill $SRV 2>/dev/null || true
+      - name: Upload Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-shots
+          path: test/shots/
+          if-no-files-found: ignore

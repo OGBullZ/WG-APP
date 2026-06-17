@@ -6,7 +6,8 @@
   "scripts": {
     "serve": "python -m http.server 8099",
     "test": "node test/split.mjs",
-    "visual": "node test/visual.mjs"
+    "visual": "node test/visual.mjs",
+    "ship": "node scripts/ship.mjs"
   },
   "repository": {
     "type": "git",
