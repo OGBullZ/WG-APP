@@ -407,7 +407,7 @@ const rnd  = n => Array.from({length:n},()=>SAFE[Math.floor(Math.random()*SAFE.l
 const pick = a => a[Math.floor(Math.random()*a.length)];
 const genCode = () => `${pick(ADJS)}-${pick(NUNS)}-${rnd(6)}`;
 
-const U_DEF = [{id:'u1',name:'Torben',color:'#38bdf8'},{id:'u2',name:'Tom',color:'#fbbf24'}];
+const U_DEF = [{id:'u1',name:'Torben',color:'#38bdf8',pp:'TorbenSteen'},{id:'u2',name:'Tom',color:'#fbbf24'}];
 const COMMON_ITEMS = ['Milch','Brot','Eier','Butter','Klopapier','Müllbeutel','Spülmittel','Kaffee','Nudeln','Käse','Zucker','Öl'];
 
 /* Eingebaute Firebase-Config (Client-Keys sind öffentlich) — Sync läuft out-of-the-box */
@@ -529,6 +529,15 @@ function DataProvider({ children }) {
     }, 3500); // nach dem ersten Sync, damit nichts doppelt erzeugt wird
     return () => clearTimeout(t);
   }, [wgCode, D.rec]);
+  // Einmal-Migration: Torbens PayPal.me-Name nachtragen, falls in der WG noch nicht gesetzt (greift auch in Bestands-WGs, synct dann auf alle Geräte).
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const cur = dataRef.current, us = cur.users || [];
+      if (us.some(u => u.id==='u1' && u.name==='Torben' && !u.pp))
+        set('users', us.map(u => u.id==='u1' && u.name==='Torben' && !u.pp ? {...u, pp:'TorbenSteen'} : u));
+    }, 3500); // erst nach erstem Sync, sonst überschreibt der Server-Load die Ergänzung wieder
+    return () => clearTimeout(t);
+  }, [wgCode, D.users]);
   const setMods = (m) => { setMods_(m); ss('wg_modules', m); };
   const setMe = (id) => { setMe_(id); ss('wg_me', id); };
 
