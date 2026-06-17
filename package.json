@@ -5,7 +5,8 @@
   "main": "sw.js",
   "scripts": {
     "serve": "python -m http.server 8099",
-    "test": "node test/split.mjs"
+    "test": "node test/split.mjs",
+    "visual": "node test/visual.mjs"
   },
   "repository": {
     "type": "git",
