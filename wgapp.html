@@ -520,7 +520,7 @@ function DataProvider({ children }) {
       const have = new Set((cur.hs||[]).map(i=>i.id));
       const toAdd = templates
         .filter(tp => (!tp.since || tp.since <= YM) && !have.has(`r-${tp.id}-${YM}`))
-        .map(tp => ({ id:`r-${tp.id}-${YM}`, name:tp.name, price:tp.price, paidBy:tp.paidBy, date:YM+'-01', settled:false, recur:true }));
+        .map(tp => ({ id:`r-${tp.id}-${YM}`, name:tp.name, price:tp.price, paidBy:tp.paidBy, owedBy:tp.owedBy||null, date:YM+'-01', settled:false, recur:true }));
       if (toAdd.length) set('hs', [...toAdd, ...(cur.hs||[])]);
     }, 3500); // nach dem ersten Sync, damit nichts doppelt erzeugt wird
     return () => clearTimeout(t);
@@ -1018,15 +1018,15 @@ function Haushalt() {
   const listInput = useRef(null);
 
   const addRec = d => {
-    const tp={ id:uid(), name:d.name||'Posten', price:parseNum(d.price)||0, paidBy:d.paidBy||users[0].id, since:todayISO().slice(0,7) };
+    const tp={ id:uid(), name:d.name||'Posten', price:parseNum(d.price)||0, paidBy:d.paidBy||users[0].id, owedBy:d.owedBy||null, since:todayISO().slice(0,7) };
     const YM=todayISO().slice(0,7);
     set('rec',[tp,...recs]);
-    set('hs',[{ id:`r-${tp.id}-${YM}`, name:tp.name, price:tp.price, paidBy:tp.paidBy, date:YM+'-01', settled:false, recur:true }, ...items]);
+    set('hs',[{ id:`r-${tp.id}-${YM}`, name:tp.name, price:tp.price, paidBy:tp.paidBy, owedBy:tp.owedBy||null, date:YM+'-01', settled:false, recur:true }, ...items]);
   };
   const delRec = id => { const r=recs.find(x=>x.id===id); set('rec',recs.filter(x=>x.id!==id)); undo(`„${r?.name||'Posten'}" beendet`, ()=>setFn('rec', cur => cur.some(x=>x.id===id)?cur:[r,...cur])); };
 
-  const add    = d => set('hs',[{id:uid(),name:d.name||'Einkauf',price:parseNum(d.price)||0,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),settled:false},...items]);
-  const save   = d => set('hs',items.map(i=>i.id===editItem.id?{...i,name:d.name||i.name,price:parseNum(d.price)||i.price,paidBy:d.paidBy||i.paidBy,date:d.date||i.date}:i));
+  const add    = d => set('hs',[{id:uid(),name:d.name||'Einkauf',price:parseNum(d.price)||0,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),owedBy:d.owedBy||null,settled:false},...items]);
+  const save   = d => set('hs',items.map(i=>i.id===editItem.id?{...i,name:d.name||i.name,price:parseNum(d.price)||i.price,paidBy:d.paidBy||i.paidBy,date:d.date||i.date,owedBy:d.owedBy||null}:i));
   const toggle = id => set('hs',items.map(i=>i.id===id?{...i,settled:!i.settled,settledAt:!i.settled?todayISO():null}:i));
   const del    = id => { const it=items.find(i=>i.id===id); set('hs',items.filter(i=>i.id!==id)); undo(`„${it?.name||'Ausgabe'}" gelöscht`, ()=>setFn('hs', cur => cur.some(i=>i.id===id)?cur:[it,...cur])); };
 
@@ -1043,7 +1043,9 @@ function Haushalt() {
   const open=items.filter(i=>!i.settled);
   const settled=items.filter(i=>i.settled);
   const tot=open.reduce((s,i)=>s+i.price,0);
-  const bals=users.map(u=>({ ...u, paid:open.filter(i=>i.paidBy===u.id).reduce((s,i)=>s+i.price,0), net:open.filter(i=>i.paidBy===u.id).reduce((s,i)=>s+i.price,0) - tot/users.length }));
+  /* Anteil einer Person an einem Posten: owedBy gesetzt → diese Person trägt alles, sonst gleichmäßig */
+  const shareOf=(i,id)=>i.owedBy?(i.owedBy===id?i.price:0):i.price/users.length;
+  const bals=users.map(u=>({ ...u, paid:open.filter(i=>i.paidBy===u.id).reduce((s,i)=>s+i.price,0), net:open.filter(i=>i.paidBy===u.id).reduce((s,i)=>s+i.price,0) - open.reduce((s,i)=>s+shareOf(i,u.id),0) }));
   const settlements=(D.stl||[]).filter(s=>s.mod==='hs');
 
   /* Abrechnen: Ausgleich (wer→wem, wie viel) festhalten + offene Posten als abgerechnet markieren */
@@ -1069,6 +1071,12 @@ function Haushalt() {
         {users.map(u=><button key={u.id} className={`pick-btn${d.paidBy===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,paidBy:u.id})}>{u.name}</button>)}
       </div>
     )},
+    {label:'Wie aufteilen?',ok:()=>true,render:({data:d,setData:sd})=>(
+      <div className="pick" style={{flexDirection:'column'}}>
+        <button className={`pick-btn${!d.owedBy?' on':''}`} style={{background:'var(--mint)'}} onClick={()=>sd({...d,owedBy:null})}>Gleich teilen · 50/50</button>
+        {users.map(u=><button key={u.id} className={`pick-btn${d.owedBy===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,owedBy:u.id})}>{u.name} zahlt alles</button>)}
+      </div>
+    )},
   ];
   /* Wiederkehrend: wie steps, aber ohne Datum (läuft monatlich) */
   const recSteps=[
@@ -1077,6 +1085,12 @@ function Haushalt() {
     {label:'Wer zahlt es?',ok:d=>!!d.paidBy,render:({data:d,setData:sd})=>(
       <div className="pick">
         {users.map(u=><button key={u.id} className={`pick-btn${d.paidBy===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,paidBy:u.id})}>{u.name}</button>)}
+      </div>
+    )},
+    {label:'Wie aufteilen?',ok:()=>true,render:({data:d,setData:sd})=>(
+      <div className="pick" style={{flexDirection:'column'}}>
+        <button className={`pick-btn${!d.owedBy?' on':''}`} style={{background:'var(--mint)'}} onClick={()=>sd({...d,owedBy:null})}>Gleich teilen · 50/50</button>
+        {users.map(u=><button key={u.id} className={`pick-btn${d.owedBy===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,owedBy:u.id})}>{u.name} zahlt alles</button>)}
       </div>
     )},
   ];
@@ -1105,7 +1119,9 @@ function Haushalt() {
                 </div>
               ))}
             </div>
-            {tot>0&&<div style={{fontSize:12,color:'var(--label3)',marginTop:12,fontWeight:500}}>50/50-Split · je <span className="num" style={{color:'var(--label2)'}}>€{fmt(tot/2)}</span></div>}
+            {tot>0&&(open.every(i=>!i.owedBy)
+              ?<div style={{fontSize:12,color:'var(--label3)',marginTop:12,fontWeight:500}}>50/50-Split · je <span className="num" style={{color:'var(--label2)'}}>€{fmt(tot/2)}</span></div>
+              :<div style={{fontSize:12,color:'var(--label3)',marginTop:12,fontWeight:500}}>Gemischter Split · einzelne Posten trägt einer allein</div>)}
           </div>
           <Bal bals={bals}/>
           <button className="btn rise" style={{background:'var(--mint)',animationDelay:'60ms'}} onClick={()=>setWiz(true)}>+ Ausgabe hinzufügen</button>
@@ -1150,7 +1166,7 @@ function Haushalt() {
                         </div>
                         <div style={{textAlign:'right',flexShrink:0,cursor:'pointer'}} onClick={()=>setEditItem(item)}>
                           <div className="num" style={{fontSize:16,fontWeight:700}}>€{fmt(item.price)}</div>
-                          <div className="num" style={{fontSize:11,color:'var(--label3)'}}>je €{fmt(item.price/2)}</div>
+                          <div className="num" style={{fontSize:11,color:'var(--label3)'}}>{item.owedBy?`${users.find(u=>u.id===item.owedBy)?.name||'?'} zahlt alles`:`je €${fmt(item.price/2)}`}</div>
                         </div>
                         <button className="del-btn" aria-label="Ausgabe löschen" title="Ausgabe löschen" onClick={()=>del(item.id)}>×</button>
                       </div>
@@ -1253,7 +1269,7 @@ function Haushalt() {
         </div>
       </div>
       <Wiz open={wiz} onClose={()=>setWiz(false)} title="Ausgabe" color="var(--mint)" steps={steps} onFinish={add}/>
-      <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title="Bearbeiten" color="var(--mint)" steps={steps} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>
+      <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title="Bearbeiten" color="var(--mint)" steps={steps} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,owedBy:editItem.owedBy||null,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>
       <Wiz open={!!convItem} onClose={()=>setConvItem(null)} title="Als Ausgabe übernehmen" color="var(--mint)" steps={steps} onFinish={convert} initial={convItem?{name:convItem.name,paidBy:me||undefined,date:todayISO()}:null}/>
       <Wiz open={recWiz} onClose={()=>setRecWiz(false)} title="Wiederkehrend (monatlich)" color="var(--mint)" steps={recSteps} onFinish={addRec}/>
     </div>

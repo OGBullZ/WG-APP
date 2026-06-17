@@ -1,0 +1,25 @@
+{
+  "name": "wg-app",
+  "version": "1.0.0",
+  "description": "Single-File-PWA zum Splitten von WG-Ausgaben. Offline-first, Firebase-Live-Sync zwischen Geräten. Nur eine HTML-Datei, kein Build.",
+  "main": "sw.js",
+  "scripts": {
+    "serve": "python -m http.server 8099",
+    "test": "node test/split.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OGBullZ/WG-APP.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/OGBullZ/WG-APP/issues"
+  },
+  "homepage": "https://github.com/OGBullZ/WG-APP#readme",
+  "devDependencies": {
+    "playwright": "^1.61.0"
+  }
+}
