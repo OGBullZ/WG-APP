@@ -3,7 +3,7 @@
    App-Shell + CDN-Bibliotheken (React/Babel/Firebase/Fonts) werden gecacht.
    Der Firebase-Realtime-Sync läuft weiter übers Netz (nie gecacht).
    Cache-Name bei jedem Deploy mit relevanter Änderung hochzählen. */
-const CACHE = 'wg-v12';
+const CACHE = 'wg-v13';
 const SHELL = ['./', './wgapp.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
