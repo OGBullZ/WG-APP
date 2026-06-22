@@ -2298,7 +2298,7 @@ function Einstellungen() {
 ══════════════════════════ */
 function Statistik() {
   const { D, status } = useD();
-  const users=D.users, hs=D.hs||[], gi=D.gi||[], ab=D.ab||[];
+  const users=D.users, hs=D.hs||[], gi=D.gi||[], ab=D.ab||[], gp=D.gp||{};
   const [ym,setYm] = useState(()=>todayISO().slice(0,7));
   const nowYm = todayISO().slice(0,7);
 
@@ -2308,6 +2308,12 @@ function Statistik() {
   const hsSum = month.filter(i=>i.mod==='hs').reduce((s,i)=>s+i.price,0);
   const giSum = month.filter(i=>i.mod==='gi').reduce((s,i)=>s+i.price,0);
   const paidBy = users.map(u=>({...u, paid: month.filter(i=>i.paidBy===u.id).reduce((s,i)=>s+i.price,0)}));
+  /* Tatsächlicher Anteil je Person (nach Split): Haushalt owedBy/50-50, Growbox nach Pflanzen-Anteil */
+  const giTot = Object.values(gp).reduce((s,v)=>s+(parseInt(v)||0),0);
+  const shareOf = (i,id) => i.mod==='hs'
+    ? (i.owedBy ? (i.owedBy===id?i.price:0) : i.price/users.length)
+    : i.price * (giTot>0 ? (parseInt(gp[id]||0)/giTot) : 1/users.length);
+  const bears = users.map(u=>({...u, share: month.reduce((s,i)=>s+shareOf(i,u.id),0)}));
   const top = [...month].sort((a,b)=>b.price-a.price).slice(0,5);
   const moAbos = ab.reduce((s,x)=>s+(x.iv==='m'?x.price:x.price/12),0);
   const trend = Array.from({length:6},(_,k)=>{ const m=ymShift(ym,-(5-k)); return {m, t: all.filter(i=>ymOf(i.date)===m).reduce((s,i)=>s+i.price,0)}; });
@@ -2345,6 +2351,21 @@ function Statistik() {
                   <span className="bar-name" style={{color:b.color}}>{b.name}</span>
                   <div className="bar-track"><div className="bar-fill" style={{width:`${total>0?b.paid/total*100:0}%`,background:b.color,color:b.color}}/></div>
                   <span className="bar-val num">€{fmt(b.paid)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {total>0&&(
+          <div className="rise" style={{animationDelay:'85ms'}}>
+            <div className="section-hdr">Wer trägt was · nach Split</div>
+            <div className="group" style={{padding:'14px 16px',display:'flex',flexDirection:'column',gap:10}}>
+              {bears.map(b=>(
+                <div key={b.id} className="bar-row">
+                  <span className="bar-name" style={{color:b.color}}>{b.name}</span>
+                  <div className="bar-track"><div className="bar-fill" style={{width:`${total>0?b.share/total*100:0}%`,background:b.color,color:b.color}}/></div>
+                  <span className="bar-val num">€{fmt(b.share)}</span>
                 </div>
               ))}
             </div>
