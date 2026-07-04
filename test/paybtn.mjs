@@ -10,6 +10,8 @@ const debtItem = { id:'x1', name:'Gruen', price:24, paidBy:'u1', owedBy:'u2', da
 
 async function render({ me, torbenPp }) {
   const ctx = await browser.newContext({ viewport:{ width:420, height:880 } });
+  // RTDB synct per WebSocket — route() fängt WS NICHT ab, ohne das hier leaken Testdaten in die echte DB
+  await ctx.routeWebSocket(/./, () => {});
   const page = await ctx.newPage();
   page.on('pageerror', e => { console.error('PAGEERROR:', e.message); process.exitCode = 1; });
   await page.route('**/*', r => {

@@ -3,6 +3,8 @@ import { chromium } from 'playwright';
 const url = 'http://localhost:8099/wgapp.html';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 420, height: 880 } });
+// RTDB synct per WebSocket — route() fängt WS NICHT ab, ohne das hier leaken Testdaten in die echte DB
+await ctx.routeWebSocket(/./, () => {});
 const page = await ctx.newPage();
 
 const errors = [];

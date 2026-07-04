@@ -479,7 +479,7 @@ const normalizeRemote = obj => { const o={...obj}; LIST_KEYS.forEach(k=>{ if(k i
 ════════════════════════════ */
 const Ctx = createContext(null);
 
-const MOD_DEF = { haus:true, grow:true, putz:true, fin:false, abos:false, stats:false };
+const MOD_DEF = { haus:true, grow:true, putz:true, fin:false, abos:false, stats:true };
 
 function DataProvider({ children }) {
   const [fbCfg,  setFbCfg_]  = useState(() => ls('fb_cfg', FB_DEFAULT));

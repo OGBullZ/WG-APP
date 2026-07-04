@@ -45,12 +45,14 @@ async function newCtx(opts) {
   await ctx.addInitScript(([data, meId]) => {
     localStorage.setItem('wg_data', JSON.stringify(data));
     localStorage.setItem('wg_me', JSON.stringify(meId));
-    localStorage.setItem('wg_modules', JSON.stringify({ grow:true, clean:true }));
+    localStorage.setItem('wg_modules', JSON.stringify({ grow:true, putz:true })); // Rest aus MOD_DEF (inkl. stats:true → Übersicht-Tab)
   }, [DEMO, 'u2']);
   await ctx.route('**/*', r => {
     const u = r.request().url();
     return (u.includes('firebasedatabase.app')||u.includes('firebaseio.com')||u.includes('googleapis.com')) ? r.abort() : r.continue();
   });
+  // RTDB synct per WebSocket — route() fängt WS NICHT ab, ohne das hier leaken Demo-Daten als Junk-WG in die echte DB
+  await ctx.routeWebSocket(/./, () => {});
   return ctx;
 }
 
@@ -92,9 +94,11 @@ async function run(prefix, ctxOpts, mode) {
     await tap('🛒 Einkaufsliste'); await shot('einkaufsliste');
     await tap('Growbox');  await shot('growbox');
     await tap('Putzplan'); await shot('putzplan');
+    await tap('Übersicht'); await page.waitForTimeout(700); await shot('uebersicht'); // CountUp ausanimieren lassen
     await tap('Mehr');     await shot('mehr');
   } else {
     await tap('Growbox'); await shot('growbox');
+    await tap('Übersicht'); await page.waitForTimeout(700); await shot('uebersicht');
   }
   await ctx.close();
 }

@@ -12,6 +12,8 @@ await page.route('**/*', route => {
   if (u.includes('firebasedatabase.app') || u.includes('firebaseio.com') || u.includes('googleapis.com')) return route.abort();
   return route.continue();
 });
+// RTDB synct per WebSocket — route() fängt WS NICHT ab, ohne das hier leaken Testdaten in die echte DB
+await page.routeWebSocket(/./, () => {});
 
 const pass = [], fail = [];
 const check = (name, cond) => (cond ? pass : fail).push(name);
