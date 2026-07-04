@@ -371,8 +371,21 @@ const ls   = (k,fb) => { try{const v=localStorage.getItem(k);return v?JSON.parse
 const ss   = (k,v)  => { try{localStorage.setItem(k,JSON.stringify(v));}catch{} };
 const uid  = () => Math.random().toString(36).slice(2,10);
 const fmt  = n => Number(n||0).toFixed(2).replace('.', ',');     // deutsche Anzeige: 8,50
-/* Beträge robust parsen: deutsches Komma „8,50" wie auch „8.50" → 8.5 */
-const parseNum = v => { const n = parseFloat(String(v ?? '').replace(/,/g,'.').replace(/[^0-9.]/g,'')); return isNaN(n) ? 0 : n; };
+/* Beträge robust parsen: deutsches Komma „8,50", englisch „8.50", Tausendertrenner
+   „1.234,56" / „1,234.56" / „1.234" — der zuletzt stehende Trenner ist der Dezimaltrenner,
+   reine Tausendermuster (1.234 / 12.345.678) werden als Ganzzahl gelesen. */
+const parseNum = v => {
+  let s = String(v ?? '').replace(/[^0-9.,]/g,'');
+  const lc = s.lastIndexOf(','), ld = s.lastIndexOf('.');
+  if (lc > -1 && ld > -1)      s = lc > ld ? s.replace(/\./g,'').replace(/,/g,'.') : s.replace(/,/g,'');
+  else if (lc > -1)            s = /^\d{1,3}(,\d{3})+$/.test(s) ? s.replace(/,/g,'') : s.slice(0,lc).replace(/,/g,'') + '.' + s.slice(lc+1);
+  else if (ld > -1) {
+    if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g,'');
+    else if (s.indexOf('.') !== ld)    s = s.slice(0,ld).replace(/\./g,'') + s.slice(ld);
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+};
 const fmtK = n => n>=1000?(n/1000).toFixed(1).replace('.', ',')+'K':fmt(n);
 /* PayPal.me-Handle aus beliebiger Eingabe extrahieren (Handle, @name, paypal.me/name, volle URL) */
 const ppHandle = s => String(s ?? '').trim().replace(/^https?:\/\//i,'').replace(/^(www\.)?paypal\.me\//i,'').replace(/^@/,'').split(/[/?#\s]/)[0].trim();
@@ -473,6 +486,15 @@ const mapSer  = map => { const o={}; for(const id in map) o[id]=JSON.stringify(m
 /* Remote-Objekt: alle Listen-Keys zu Arrays normalisieren, damit der bestehende
    Merge-/dedupe-Code unverändert mit Arrays arbeiten kann. */
 const normalizeRemote = obj => { const o={...obj}; LIST_KEYS.forEach(k=>{ if(k in o) o[k]=listToArr(o[k]); }); return o; };
+/* Kanonische Serialisierung für Lokal↔Remote-Vergleiche: RTDB strippt null-Werte und
+   liefert Keys sortiert — ein lokales Item mit z.B. owedBy:null ist inhaltlich identisch
+   zu seinem Server-Echo ohne den Key. Ohne diese Normalisierung gälte das eigene Echo
+   als Fremd-Update (falscher Live-Toast + unnötige Adoption). */
+const canonSer = v => JSON.stringify(v, (key, val) =>
+  (val && typeof val === 'object' && !Array.isArray(val))
+    ? Object.keys(val).sort().reduce((o,k)=>{ if(val[k]!==null&&val[k]!==undefined) o[k]=val[k]; return o; },{})
+    : val
+);
 
 /* ════════════════════════════
    DATA CONTEXT + FIREBASE SYNC
@@ -527,7 +549,11 @@ function DataProvider({ children }) {
     return () => { vv.removeEventListener('resize', upd); vv.removeEventListener('scroll', upd); };
   }, []);
   // Wiederkehrende Haushaltsausgaben für den aktuellen Monat erzeugen (deterministische ID → dedup-sicher).
+  // Mit Sync-Anbindung erst NACH dem ersten erfolgreichen Sync (status synced) — sonst kann ein
+  // Gerät mit altem lokalem Stand den Monatsposten neu (settled:false) erzeugen, obwohl er auf
+  // dem Server längst abgerechnet ist, und den beim Reconnect wieder „öffnen".
   useEffect(() => {
+    if (fbCfg && wgCode && status !== 'synced') return;
     const t = setTimeout(() => {
       const cur = dataRef.current, templates = cur.rec || [];
       if (!templates.length) return;
@@ -539,26 +565,42 @@ function DataProvider({ children }) {
       if (toAdd.length) set('hs', [...toAdd, ...(cur.hs||[])]);
     }, 3500); // nach dem ersten Sync, damit nichts doppelt erzeugt wird
     return () => clearTimeout(t);
-  }, [wgCode, D.rec]);
+  }, [wgCode, D.rec, status]);
   // Einmal-Migration: Torbens PayPal.me-Name nachtragen, falls in der WG noch nicht gesetzt (greift auch in Bestands-WGs, synct dann auf alle Geräte).
   useEffect(() => {
+    if (fbCfg && wgCode && status !== 'synced') return; // erst nach erstem Sync (sonst stale-Basis)
     const t = setTimeout(() => {
       const cur = dataRef.current, us = cur.users || [];
       if (us.some(u => u.id==='u1' && u.name==='Torben' && !u.pp))
         set('users', us.map(u => u.id==='u1' && u.name==='Torben' && !u.pp ? {...u, pp:'TorbenSteen'} : u));
     }, 3500); // erst nach erstem Sync, sonst überschreibt der Server-Load die Ergänzung wieder
     return () => clearTimeout(t);
-  }, [wgCode, D.users]);
+  }, [wgCode, D.users, status]);
   const setMods = (m) => { setMods_(m); ss('wg_modules', m); };
   const setMe = (id) => { setMe_(id); ss('wg_me', id); };
 
   const dbRef      = useRef(null);
   const dataRef    = useRef(D);        // stets aktueller lokaler Stand (für Listener & Flush)
   const dirty      = useRef(new Set()); // Keys, die noch zum Server müssen
+  const inflight   = useRef(new Set()); // Keys, deren Write unterwegs, aber noch unbestätigt ist
   const pushed     = useRef({});        // non-list Key -> Set letzter Serialisierungen (Echo-Erkennung)
   const lastPushed = useRef({});        // list Key -> {id: serialized} = letzter bekannter Server-Stand (Diff-Basis)
   const flushTimer = useRef(null);
   useEffect(() => { dataRef.current = D; }, [D]);
+
+  /* Offline-Härtung: unbestätigte Keys (dirty ∪ inflight) + letzter BESTÄTIGTER Server-Stand
+     überleben in localStorage. Die Firebase-Write-Queue lebt nur im RAM — wird die PWA vor
+     dem Reconnect geschlossen, wären Offline-Edits sonst beim nächsten Start (Remote-wins-
+     Init) endgültig weg. Beim Init werden pending Keys gegen wg_confirmed gedifft und die
+     lokalen Änderungen auf den Server-Stand aufgelegt (Replay). */
+  const persistPending = () => ss('wg_pending', [...new Set([...dirty.current, ...inflight.current])]);
+  const prevPending = useRef([]);      // wg_pending der Vor-Session (beim Init konsumiert)
+  const confirmKeys = (keys, sentSer) => {
+    const conf = ls('wg_confirmed', {}) || {};
+    keys.forEach(k => { inflight.current.delete(k); if (k in sentSer) conf[k] = sentSer[k]; });
+    ss('wg_confirmed', conf);
+    persistPending();
+  };
 
   /* Geänderte Keys gebündelt schreiben — nur betroffene Felder via update(), nicht das ganze
      Dataset via set(). So überschreiben gleichzeitige Änderungen an verschiedenen Modulen
@@ -573,30 +615,47 @@ function DataProvider({ children }) {
   const flush = useCallback(() => {
     if (!dbRef.current || dirty.current.size === 0) return;
     const updates = {};
+    const flushedKeys = [...dirty.current];
+    const prevPushed = {};   // Diff-Basis für Rollback, falls der Server den Write ablehnt
+    const sentSer = {};      // was dieser Flush als neuen Server-Stand etabliert (Bestätigung)
     dirty.current.forEach(k => {
       if (isListKey(k)) {
         // Nur geänderte/neue/gelöschte Items als wg/<code>/<key>/<id> schreiben (bzw. null = löschen).
         const newMap = arrToMap(dataRef.current[k]);
         const oldSer = lastPushed.current[k] || {};
+        prevPushed[k] = oldSer;
         for (const id in newMap) {
           const ser = JSON.stringify(newMap[id]);
           if (oldSer[id] !== ser) updates[`${k}/${id}`] = newMap[id];
         }
         for (const id in oldSer) { if (!(id in newMap)) updates[`${k}/${id}`] = null; }
-        lastPushed.current[k] = mapSer(newMap);
+        lastPushed.current[k] = sentSer[k] = mapSer(newMap);
       } else {
         const val = dataRef.current[k] ?? null;
         updates[k] = val;
-        rememberSent(k, JSON.stringify(val));
+        sentSer[k] = JSON.stringify(val);
+        rememberSent(k, sentSer[k]);
       }
     });
     dirty.current.clear();
-    if (!Object.keys(updates).length) { setStatus('synced'); return; }
-    dbRef.current.update(updates).then(() => setStatus('synced')).catch(() => setStatus('error'));
+    flushedKeys.forEach(k => inflight.current.add(k));
+    persistPending();
+    if (!Object.keys(updates).length) { confirmKeys(flushedKeys, sentSer); setStatus('synced'); return; }
+    dbRef.current.update(updates)
+      .then(() => { confirmKeys(flushedKeys, sentSer); setStatus('synced'); })
+      .catch(() => {
+        // Write abgelehnt (z.B. DB-Regel-Validierung): Keys zurück in die Queue + Diff-Basis
+        // zurückrollen — sonst gälte das Item fälschlich als gesynct und würde NIE wieder
+        // gesendet (stille, dauerhafte Divergenz zwischen den Geräten).
+        flushedKeys.forEach(k => { inflight.current.delete(k); dirty.current.add(k); if (k in prevPushed) lastPushed.current[k] = prevPushed[k]; });
+        persistPending();
+        setStatus('error');
+      });
   }, []);
   const queuePush = useCallback((key) => {
     if (!dbRef.current) return;
     dirty.current.add(key);
+    persistPending();
     clearTimeout(flushTimer.current);
     flushTimer.current = setTimeout(flush, 400);
   }, [flush]);
@@ -605,18 +664,24 @@ function DataProvider({ children }) {
   const pushAll = useCallback((data) => {
     if (!dbRef.current) return;
     const updates = { _wid: null }; // veraltete Echo-Markierung einmalig entfernen
+    const sentSer = {};
     KEYS.forEach(k => {
       if (isListKey(k)) {
         const map = arrToMap(normList(data[k] || []));
         updates[k] = Object.keys(map).length ? map : null;
-        lastPushed.current[k] = mapSer(map);
+        lastPushed.current[k] = sentSer[k] = mapSer(map);
       } else {
         const val = data[k] ?? null;
         updates[k] = val;
-        rememberSent(k, JSON.stringify(val));
+        sentSer[k] = JSON.stringify(val);
+        rememberSent(k, sentSer[k]);
       }
     });
-    dbRef.current.update(updates).then(() => setStatus('synced')).catch(() => setStatus('error'));
+    KEYS.forEach(k => inflight.current.add(k));
+    persistPending();
+    dbRef.current.update(updates)
+      .then(() => { confirmKeys(KEYS, sentSer); setStatus('synced'); })
+      .catch(() => { KEYS.forEach(k => { inflight.current.delete(k); dirty.current.add(k); }); persistPending(); setStatus('error'); });
   }, []);
 
   /* Update local state + persist + nur den geänderten Key pushen */
@@ -648,7 +713,11 @@ function DataProvider({ children }) {
   useEffect(() => {
     if (!fbCfg || !wgCode) { setStatus('local'); return; }
     setStatus('connecting');
+    // Pending-Keys der VORHERIGEN Session sichern, BEVOR neue persistPending-Aufrufe
+    // (Edits während 'connecting') wg_pending überschreiben — der Erst-Read braucht sie.
+    prevPending.current = ls('wg_pending', []) || [];
     dirty.current.clear();
+    inflight.current.clear();
     pushed.current = {};
     lastPushed.current = {};
     clearTimeout(flushTimer.current);
@@ -687,15 +756,51 @@ function DataProvider({ children }) {
               return next;
             });
           } else {
-            // Remote gewinnt (Standard beim ersten Pairing)
+            // Remote gewinnt (Standard beim ersten Pairing und bei jedem normalen Start).
+            // ABER: nie bestätigte Offline-Änderungen (wg_pending) zuerst wieder auf den
+            // Server-Stand auflegen — die Firebase-Write-Queue lebt nur im RAM; wurde die
+            // App vor dem Reconnect geschlossen, wären diese Edits sonst endgültig weg.
+            // Diff-Basis ist wg_confirmed (letzter bestätigter Server-Stand): nur was sich
+            // lokal GEGENÜBER DIESEM geändert hat, gewinnt — Fremd-Änderungen bleiben.
+            const pending = joinMode ? [] : prevPending.current;   // explizites „WG übernehmen" = bewusst verwerfen
+            prevPending.current = [];
+            const conf = ls('wg_confirmed', {}) || {};
             const merged = { ...INIT, ...actual };
+            const replay = [];
+            pending.forEach(k => {
+              if (!KEYS.includes(k)) return;
+              const localVal = dataRef.current[k];
+              if (isListKey(k)) {
+                const base = conf[k] || {};
+                const localMap = arrToMap(localVal || []);
+                const remoteMap = arrToMap(merged[k] || []);
+                let changed = false;
+                for (const id in localMap) {              // offline neu/geändert → lokal gewinnt
+                  if (base[id] !== JSON.stringify(localMap[id])) { remoteMap[id] = localMap[id]; changed = true; }
+                }
+                for (const id in base) {                  // offline gelöscht → bleibt gelöscht
+                  if (!(id in localMap) && (id in remoteMap)) { delete remoteMap[id]; changed = true; }
+                }
+                if (changed) { merged[k] = listToArr(remoteMap); replay.push(k); }
+              } else {
+                const ser = JSON.stringify(localVal ?? null);
+                if (ser !== conf[k] && ser !== JSON.stringify(merged[k] ?? null)) { merged[k] = localVal; replay.push(k); }
+              }
+            });
             KEYS.forEach(k => {
-              if (isListKey(k)) lastPushed.current[k] = mapSer(arrToMap(merged[k]));
-              else pushed.current[k] = new Set([JSON.stringify(merged[k] ?? null)]);
+              // Diff-Basis = echter Server-Stand, damit der Replay-Flush genau die lokalen Ops sendet
+              const serverVal = replay.includes(k) ? (actual[k] ?? INIT[k]) : merged[k];
+              if (isListKey(k)) lastPushed.current[k] = mapSer(arrToMap(serverVal));
+              else pushed.current[k] = new Set([JSON.stringify(serverVal ?? null)]);
             });
             dataRef.current = merged;
             setD_(merged);
             ss('wg_data', merged);
+            const confNew = {};
+            KEYS.forEach(k => { confNew[k] = isListKey(k) ? mapSer(arrToMap(actual[k] || [])) : JSON.stringify((k in actual ? actual[k] : INIT[k]) ?? null); });
+            ss('wg_confirmed', confNew);
+            if (replay.length) { replay.forEach(k => dirty.current.add(k)); persistPending(); setTimeout(flush, 800); }
+            else ss('wg_pending', []);
             if (needsMigration) pushAll(merged);                // DB einmalig vom Alt-Array auf Map-Format heben
           }
         } else {
@@ -717,21 +822,24 @@ function DataProvider({ children }) {
             if (dirty.current.has(k)) return;                           // schreibe ich gerade → nicht überschreiben
             if (isListKey(k)) {
               const remoteArr = listToArr(remote2[k]);
-              if (JSON.stringify(dataRef.current[k]) === JSON.stringify(remoteArr)) return; // identisch (auch eigenes Echo)
+              if (canonSer(dataRef.current[k]) === canonSer(remoteArr)) return; // identisch (auch eigenes Echo; canonSer: RTDB strippt null-Felder)
               adopt[k] = remoteArr;
               foreign = true;
             } else {
               const rs = JSON.stringify(remote2[k]);
-              if (JSON.stringify(dataRef.current[k]) === rs) return;     // lokal schon aktuell
+              if (canonSer(dataRef.current[k]) === canonSer(remote2[k])) return; // lokal schon aktuell
               if (pushed.current[k] && pushed.current[k].has(rs)) return;// verspätetes Echo eines eigenen Writes
               adopt[k] = remote2[k];
               foreign = true;
             }
           });
           if (foreign) {
+            const conf = ls('wg_confirmed', {}) || {};
             Object.keys(adopt).forEach(k => {                  // Server-Stand pro Item merken → korrekter nächster Diff
-              if (isListKey(k)) lastPushed.current[k] = mapSer(arrToMap(adopt[k]));
+              if (isListKey(k)) conf[k] = lastPushed.current[k] = mapSer(arrToMap(adopt[k]));
+              else conf[k] = JSON.stringify(adopt[k]);
             });
+            ss('wg_confirmed', conf);
             setD_(prev => {
               const next = { ...prev, ...adopt };
               dataRef.current = next;
@@ -939,7 +1047,10 @@ function WizSum({ name, price }) {
 function Wiz({ open, onClose, title, color, steps, onFinish, initial }) {
   const [step,setStep] = useState(0);
   const [data,setData] = useState({});
-  useEffect(()=>{ if(open){setStep(0);setData(initial||{});} },[open,initial]);
+  // Nur beim ÖFFNEN zurücksetzen (deps bewusst ohne initial): Edit-Sheets bekommen initial
+  // als Inline-Objekt — jedes Remote-Update rendert den Parent neu und würde sonst mitten
+  // in der Eingabe Schritt + Formulardaten auf Anfang zurückwerfen.
+  useEffect(()=>{ if(open){setStep(0);setData(initial||{});} },[open]);
   if(!open) return null;
   const S=steps[step], last=step===steps.length-1;
   const ok=S.ok?S.ok(data):true;
@@ -1150,7 +1261,7 @@ function Haushalt() {
     </div>
   )});
   const steps=[
-    {label:'Was wurde gekauft?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus className="field" placeholder="Putzmittel, Toilettenpapier …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
+    {label:'Was wurde gekauft?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus maxLength={200} className="field" placeholder="Putzmittel, Toilettenpapier …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
     {label:'Wie viel?',ok:d=>parseNum(d.price)>0,render:({data:d,setData:sd})=>(
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
         <div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>
@@ -1161,7 +1272,7 @@ function Haushalt() {
   ];
   /* Wiederkehrend: wie steps, aber ohne Datum (läuft monatlich) */
   const recSteps=[
-    {label:'Was wiederholt sich?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus className="field" placeholder="Internet, Putzkraft, Spotify-Family …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
+    {label:'Was wiederholt sich?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus maxLength={200} className="field" placeholder="Internet, Putzkraft, Spotify-Family …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
     {label:'Betrag pro Monat',ok:d=>parseNum(d.price)>0,render:({data:d,setData:sd})=><div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>},
     payerSplitStep('Wer zahlt es?'),
   ];
@@ -1297,7 +1408,7 @@ function Haushalt() {
             </div>
           )}
           <form className="rise" style={{display:'flex',gap:8,animationDelay:'40ms'}} onSubmit={e=>{e.preventDefault();addL();}}>
-            <input ref={listInput} className="field" style={{flex:1}} placeholder="Milch, Klopapier, Müllbeutel …" value={newName} onChange={e=>setNewName(e.target.value)}/>
+            <input ref={listInput} maxLength={200} className="field" style={{flex:1}} placeholder="Milch, Klopapier, Müllbeutel …" value={newName} onChange={e=>setNewName(e.target.value)}/>
             <button type="submit" className="btn" style={{width:54,flexShrink:0,background:'var(--mint)',fontSize:26,lineHeight:1}}>+</button>
           </form>
           {(() => {
@@ -1394,7 +1505,7 @@ function Grow() {
 
   const addInit = useMemo(()=>({ paidBy: me||undefined }), [me]);
   const steps=[
-    {label:'Was wurde gekauft?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus className="field" placeholder="Dünger, Erde, Lampe …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
+    {label:'Was wurde gekauft?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus maxLength={200} className="field" placeholder="Dünger, Erde, Lampe …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
     {label:'Wie viel?',ok:d=>parseNum(d.price)>0,render:({data:d,setData:sd})=>(
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
         <div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>
@@ -1570,7 +1681,7 @@ function Putzplan() {
   const other = id => users.find(u=>u.id!==id)?.id || id;
 
   const done = t => {
-    const iso=new Date().toISOString().slice(0,10);
+    const iso=todayISO(); // lokal, nicht UTC — sonst zählt „erledigt" nachts vor 1/2 Uhr zum Vortag
     set('pt', tasks.map(x=>x.id===t.id?{...x,lastDone:iso,assignee:other(x.assignee)}:x));
     set('pl', [{id:uid(),taskId:t.id,name:t.name,em:t.em,userId:t.assignee,date:iso},...log].slice(0,200));
   };
@@ -1603,7 +1714,7 @@ function Putzplan() {
   const EMS=['🧽','🍳','🚿','🧹','🗑️','🧺','🪟','🌿','🛒','🧴'];
   const IVS=[['3','Alle 3 Tage'],['7','Wöchentlich'],['14','Alle 2 Wochen'],['30','Monatlich']];
   const steps=[
-    {label:'Was ist zu tun?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus className="field" placeholder="Küche putzen, Müll rausbringen …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
+    {label:'Was ist zu tun?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus maxLength={200} className="field" placeholder="Küche putzen, Müll rausbringen …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
     {label:'Symbol',render:({data:d,setData:sd})=><div className="emoji-grid">{EMS.map(e=><button key={e} className={`emoji-btn${d.em===e?' on':''}`} onClick={()=>sd({...d,em:e})}>{e}</button>)}</div>},
     {label:'Wie oft?',ok:d=>!!d.interval,render:({data:d,setData:sd})=>(
       <div className="cat-grid">
@@ -1756,7 +1867,7 @@ function Finanzen() {
     )},
   ];
   const fixSteps=[
-    {label:'Bezeichnung',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus className="field" placeholder="Miete, Strom, Internet …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
+    {label:'Bezeichnung',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus maxLength={200} className="field" placeholder="Miete, Strom, Internet …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
     {label:'Betrag',ok:d=>parseNum(d.amount)>0,render:({data:d,setData:sd})=><div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.amount||''} onChange={e=>sd({...d,amount:e.target.value})}/></div>},
     {label:'Häufigkeit',ok:d=>!!d.freq,render:({data:d,setData:sd})=>(
       <div className="pick">
@@ -1876,10 +1987,10 @@ function Abos() {
   const dlf = s=>{ const d=daysSince(s.sd),p=s.iv==='m'?30:365; return p-(d%p); };
   const moTotal=subs.reduce((s,sub)=>s+(sub.iv==='m'?sub.price:sub.price/12),0);
 
-  const add = d => set('ab',[{id:uid(),name:d.name||'Abo',price:parseNum(d.price)||0,iv:d.iv||'m',em:d.em||'📱',cl:d.cl||'#818cf8',sd:new Date().toISOString().split('T')[0]},...subs]);
+  const add = d => set('ab',[{id:uid(),name:d.name||'Abo',price:parseNum(d.price)||0,iv:d.iv||'m',em:d.em||'📱',cl:d.cl||'#818cf8',sd:todayISO()},...subs]);
 
   const steps=[
-    {label:'Name des Abos?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus className="field" placeholder="Netflix, Spotify, iCloud …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
+    {label:'Name des Abos?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus maxLength={200} className="field" placeholder="Netflix, Spotify, iCloud …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
     {label:'Preis & Intervall',ok:d=>parseNum(d.price)>0,render:({data:d,setData:sd})=>(
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
         <div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>
@@ -1979,7 +2090,8 @@ function Einstellungen() {
   };
   const fileInputRef = useRef(null);
 
-  const hasLocalData = (D.hs?.length||0)+(D.gi?.length||0)+(D.ft?.length||0)+(D.ff?.length||0)+(D.ab?.length||0)+(D.pt?.length||0)+(D.sl?.length||0) > 0;
+  const hasLocalData = (D.hs?.length||0)+(D.gi?.length||0)+(D.ft?.length||0)+(D.ff?.length||0)+(D.ab?.length||0)+(D.pt?.length||0)+(D.sl?.length||0)
+    +(D.rec?.length||0)+(D.pl?.length||0)+(D.stl?.length||0)+Object.keys(D.gp||{}).length > 0;
 
   const saveCfg = () => {
     setCfgErr('');
@@ -1997,6 +2109,7 @@ function Einstellungen() {
   const joinCode = () => {
     const c = codeInput.trim().toUpperCase();
     if (!c) return;
+    if (c === wgCode) { setCodeInput(''); return; } // eigener Code: nichts zu tun — sonst bliebe der wg_join_mode-Marker liegen (Init-Effekt feuert nicht) und würde beim nächsten Reload unbeabsichtigt greifen
     if (hasLocalData) { setPendingJoin(c); return; } // Merge/Überschreiben per Dialog wählen
     sessionStorage.setItem('wg_join_mode','remote');
     setWgCode(c);
@@ -2213,7 +2326,7 @@ function Einstellungen() {
             {users.map(u=>(
               <div key={u.id} className="cell" style={{flexWrap:'wrap'}}>
                 <div style={{width:10,height:10,borderRadius:'50%',background:u.color,boxShadow:`0 0 8px ${u.color}`,flexShrink:0}}/>
-                <input className="field" style={{background:'transparent',border:'none',padding:0,fontSize:16,fontWeight:600,flex:1}}
+                <input className="field" maxLength={100} style={{background:'transparent',border:'none',padding:0,fontSize:16,fontWeight:600,flex:1}}
                   value={u.name} onChange={e=>set('users',users.map(x=>x.id===u.id?{...x,name:e.target.value}:x))}/>
                 <button onClick={()=>setMe(u.id)}
                   style={{background:me===u.id?u.color:'var(--bg3)',color:me===u.id?'#0a120c':'var(--label3)',border:'none',borderRadius:12,padding:'7px 12px',fontSize:12,fontWeight:800,flexShrink:0}}>
@@ -2221,7 +2334,7 @@ function Einstellungen() {
                 </button>
                 <div style={{flexBasis:'100%',display:'flex',alignItems:'center',gap:6,marginTop:9,paddingLeft:18}}>
                   <span style={{fontSize:13,color:'var(--label3)',fontWeight:600,flexShrink:0}}>paypal.me/</span>
-                  <input className="field" style={{background:'var(--bg3)',border:'none',padding:'7px 10px',fontSize:14,fontWeight:600,flex:1,borderRadius:10}}
+                  <input className="field" maxLength={100} style={{background:'var(--bg3)',border:'none',padding:'7px 10px',fontSize:14,fontWeight:600,flex:1,borderRadius:10}}
                     placeholder="dein-name" autoCapitalize="off" autoCorrect="off" spellCheck={false}
                     value={u.pp||''} onChange={e=>set('users',users.map(x=>x.id===u.id?{...x,pp:e.target.value}:x))}/>
                 </div>

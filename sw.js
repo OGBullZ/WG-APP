@@ -3,7 +3,12 @@
    App-Shell + CDN-Bibliotheken (React/Babel/Firebase/Fonts) werden gecacht.
    Der Firebase-Realtime-Sync läuft weiter übers Netz (nie gecacht).
    Cache-Name bei jedem Deploy mit relevanter Änderung hochzählen. */
-const CACHE = 'wg-v23';
+const CACHE = 'wg-v24';
+/* CDN-Bibliotheken (React/Babel/Firebase/Fonts) sind versioniert und ändern sich nie —
+   eigener Cache OHNE Versions-Suffix, der Deploys überlebt. Vorher wurden sie beim
+   activate-Cleanup jedes Deploys mitgelöscht: bis zum nächsten vollen Online-Load war
+   die App offline ein weißer Screen (HTML da, Skripte weg). */
+const CDN_CACHE = 'wg-cdn';
 const SHELL = ['./', './wgapp.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
@@ -14,7 +19,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== CDN_CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -33,10 +38,10 @@ const isLiveData = url =>
   /firebaseinstallations\.googleapis\.com/.test(url) ||
   /identitytoolkit\.googleapis\.com/.test(url);
 
-const cacheFirst = (req) =>
+const cacheFirst = (req, cacheName = CACHE) =>
   caches.match(req).then(hit => hit || fetch(req).then(res => {
     const copy = res.clone();
-    caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+    caches.open(cacheName).then(c => c.put(req, copy)).catch(() => {});
     return res;
   }));
   // Kein .catch(()=>hit): hit ist hier zwingend undefined (sonst wären wir im hit-Zweig).
@@ -49,7 +54,7 @@ self.addEventListener('fetch', e => {
   const url = req.url;
 
   if (isLiveData(url)) return;                 // durchlassen, nie cachen
-  if (isCDN(url)) { e.respondWith(cacheFirst(req)); return; }
+  if (isCDN(url)) { e.respondWith(cacheFirst(req, CDN_CACHE)); return; }
 
   // Navigationen: network-first (frische App), Offline-Fallback aus Cache
   if (req.mode === 'navigate') {
