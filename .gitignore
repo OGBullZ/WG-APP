@@ -2,3 +2,5 @@
 node_modules/
 test/*.png
 test/shots/
+.vercel
+.env*

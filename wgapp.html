@@ -644,11 +644,11 @@ const FB_DEFAULT = {
   projectId: "wgapp-65484",
 };
 
-/* ── Web-Push (Client-Wiring, Paket C) ──
-   PUSH_API = Basis-URL des Vercel-Deployments. Leerstring ⇒ alle Push-Features graceful aus
-   (kein UI-Fehler, notifyOthers ist no-op, Toggle im „Mehr"-Tab deaktiviert). Der Hauptloop
-   trägt die URL nach dem ersten Deploy ein. */
-const PUSH_API = '';
+/* ── Web-Push (Client-Wiring) ──
+   PUSH_API = Basis-URL des Push-Servers (Vercel-Deployment mit /api/notify + /api/cron).
+   Leerstring ⇒ alle Push-Features graceful aus (kein UI-Fehler, notifyOthers ist no-op,
+   Toggle im „Mehr"-Tab deaktiviert). */
+const PUSH_API = 'https://wg-app-bull-z.vercel.app';
 const VAPID_PUBLIC_KEY = 'BHklI3ymp8Q9tQ-lEXPcIRexRFS-hkfs6DdTN0LRrHVUZOCwfcNktI025qKqIAbdLTYO7_62IZlf9lKZ9-n-ryQ';
 /* VAPID-Public-Key (URL-safe base64) → Uint8Array für applicationServerKey */
 const urlBase64ToUint8Array = (base64String) => {

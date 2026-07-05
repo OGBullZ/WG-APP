@@ -13,7 +13,8 @@
       "**/node_modules/**",
       "test/**",
       "package.json",
-      "package-lock.json"
+      "package-lock.json",
+      "api/**"
     ],
     "rewrites": [
       { "source": "/", "destination": "/wgapp.html" }
