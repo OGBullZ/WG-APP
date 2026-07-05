@@ -359,6 +359,132 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 .setup-card { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:16px; }
 .setup-step { display:flex; gap:10px; margin-bottom:10px; align-items:flex-start; }
 .step-num { width:22px; height:22px; border-radius:50%; background:var(--bg3); color:var(--label2); font-family:var(--mono); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+
+/* ══════════════════════════════════════════
+   NEUE ANIMATIONEN (Paket A)
+══════════════════════════════════════════ */
+
+/* 1 · Ausgabe-Flug + Hero-Puls */
+.fly-chip {
+  position:fixed; z-index:500; pointer-events:none;
+  font-family:var(--mono); font-weight:800; font-size:15px; line-height:1;
+  padding:6px 12px; border-radius:999px; color:#0a120c;
+  background:var(--fc,#5eead4);
+  box-shadow:0 8px 24px rgba(0,0,0,.45), 0 0 16px var(--fc,#5eead4);
+  animation:flyChip .62s cubic-bezier(.5,0,.25,1) forwards;
+}
+@keyframes flyChip {
+  0%   { transform:translate(-50%,-50%) scale(.55); opacity:0; }
+  16%  { transform:translate(-50%,-50%) scale(1);   opacity:1; }
+  78%  { opacity:1; }
+  100% { transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.38); opacity:0; }
+}
+.hero-pulse { animation:heroPulse .7s ease; }
+@keyframes heroPulse {
+  0%,100% { box-shadow:var(--shadow); }
+  35%     { box-shadow:var(--shadow), 0 0 0 2px var(--pulse-c,var(--mint)), 0 0 36px 4px var(--pulse-c,var(--mint)); }
+}
+
+/* 2 · Putz erledigt — Häkchen-Draw + Partikel + Übergabe */
+.tp-check { position:fixed; z-index:500; pointer-events:none; }
+.tp-check path { stroke-dasharray:26; stroke-dashoffset:26; animation:tpDraw .45s cubic-bezier(.65,0,.35,1) forwards; }
+@keyframes tpDraw { to { stroke-dashoffset:0; } }
+.tp-particle {
+  position:fixed; z-index:500; pointer-events:none; font-size:15px; line-height:1;
+  animation:tpPart .72s ease-out forwards;
+}
+@keyframes tpPart {
+  0%   { opacity:1; transform:translate(-50%,-50%) scale(1) rotate(0deg); }
+  100% { opacity:0; transform:translate(calc(-50% + var(--px)),calc(-50% + var(--py))) scale(.5) rotate(40deg); }
+}
+.assignee-swap { display:inline-block; animation:assigneeIn .4s cubic-bezier(.22,1,.36,1); }
+@keyframes assigneeIn { from { opacity:0; transform:translateX(7px); } }
+
+/* 3 · Einkaufsliste abhaken — Wisch-Strich + Kollaps + Empty-Pop */
+.sl-leaving { animation:slLeave .6s ease forwards; overflow:hidden; transform-origin:top; }
+@keyframes slLeave {
+  0%   { transform:scaleY(1); opacity:1; }
+  52%  { transform:scaleY(1); opacity:1; }
+  100% { transform:scaleY(0); opacity:0; }
+}
+.sl-leaving .cell-title { position:relative; }
+.sl-leaving .cell-title::after {
+  content:''; position:absolute; left:0; top:52%; height:2px; width:0;
+  background:currentColor; border-radius:2px;
+  animation:slStrike .38s ease forwards;
+}
+@keyframes slStrike { to { width:100%; } }
+.sl-alldone { animation:popIn .42s cubic-bezier(.34,1.56,.64,1); }
+@keyframes popIn { from { opacity:0; transform:scale(.82); } }
+
+/* 4 · Remote-Sync-Flash */
+.flash { animation:remoteFlash 1.2s ease; }
+@keyframes remoteFlash {
+  0%,100% { background-color:transparent; }
+  32%     { background-color:var(--flash-c, rgba(94,234,212,.22)); }
+}
+
+/* 5 · Überfällig-Nudge (dezenter Ring-Puls, ~90% Ruhe) */
+.due-chip.overdue { animation:overduePulse 8s ease-in-out infinite; }
+@keyframes overduePulse {
+  0%,89%,100% { box-shadow:0 0 0 0 rgba(251,113,133,0); }
+  93%         { box-shadow:0 0 0 3px rgba(251,113,133,.30); }
+  97%         { box-shadow:0 0 0 5px rgba(251,113,133,0); }
+}
+
+/* 6 · Ausgleich — grüner Häkchen-Stempel */
+.settle-stamp {
+  position:absolute; top:16px; right:18px; z-index:5;
+  width:46px; height:46px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:24px; font-weight:900; color:var(--green);
+  background:rgba(74,222,128,.16); border:1.5px solid var(--green);
+  pointer-events:none;
+  animation:stampIn 1.1s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+@keyframes stampIn {
+  0%   { opacity:0; transform:scale(.3) rotate(-14deg); }
+  24%  { opacity:1; transform:scale(1)  rotate(-8deg); }
+  68%  { opacity:1; transform:scale(1)  rotate(-8deg); }
+  100% { opacity:0; transform:scale(1.06) rotate(-8deg); }
+}
+
+/* 7 · Tab-Wechsel direktional + Icon-Bounce */
+.tab-view { position:fixed; inset:0; z-index:2; }
+.tab-view.tab-in-r { animation:tabInR .25s cubic-bezier(.22,1,.36,1); }
+.tab-view.tab-in-l { animation:tabInL .25s cubic-bezier(.22,1,.36,1); }
+@keyframes tabInR { from { opacity:.35; transform:translateX(22px); } }
+@keyframes tabInL { from { opacity:.35; transform:translateX(-22px); } }
+.tabitem.on svg { animation:iconBounce .4s cubic-bezier(.34,1.56,.64,1); }
+@keyframes iconBounce {
+  0%   { transform:scale(1); }
+  40%  { transform:scale(1.26); }
+  70%  { transform:scale(.92); }
+  100% { transform:scale(1); }
+}
+
+/* 8 · Odometer (Rolling Digits) */
+.odo { position:relative; }
+.odo-sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; }
+.odo-d { display:inline-block; animation:odoRoll .3s cubic-bezier(.22,1,.36,1); }
+@keyframes odoRoll { from { transform:translateY(-.55em); opacity:0; } }
+
+/* 10 · Growbox-Atmen */
+.plant-slot > svg { animation:breathe 6s ease-in-out infinite alternate; }
+.plant-slot:nth-child(3n)   > svg { animation-duration:6.6s; }
+.plant-slot:nth-child(3n+1) > svg { animation-duration:5.5s; }
+@keyframes breathe { from { transform:scale(1); } to { transform:scale(1.02); } }
+
+/* Reduced-Motion: alle neuen dekorativen Animationen aus */
+@media (prefers-reduced-motion: reduce) {
+  .fly-chip, .tp-check, .tp-check path, .tp-particle, .hero-pulse, .settle-stamp,
+  .assignee-swap, .sl-leaving, .sl-leaving .cell-title::after, .flash,
+  .due-chip.overdue, .tab-view.tab-in-r, .tab-view.tab-in-l, .tabitem.on svg,
+  .plant-slot > svg, .odo-d, .sl-alldone {
+    animation:none !important;
+  }
+  .fly-chip, .tp-check, .tp-particle, .settle-stamp { display:none !important; }
+}
 </style>
 </head>
 <body>
@@ -425,6 +551,88 @@ const rnd  = n => Array.from({length:n},()=>SAFE[Math.floor(Math.random()*SAFE.l
 const pick = a => a[Math.floor(Math.random()*a.length)];
 const genCode = () => `${pick(ADJS)}-${pick(NUNS)}-${rnd(6)}`;
 
+/* ── Animations-Helfer (Paket A) ── */
+const REDUCE = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
+/* Hex → rgba (für Remote-Flash-Tint in User-Farbe) */
+const hexRgba = (hex, a=.22) => {
+  try {
+    const h=String(hex).replace('#',''); const b=h.length===3?h.split('').map(c=>c+c).join(''):h;
+    const n=parseInt(b,16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+  } catch { return `rgba(94,234,212,${a})`; }
+};
+
+/* 1 · Ausgabe-Chip fliegt von unten zur Hero-Summe, danach pulsiert der Hero kurz */
+const flyExpense = (amount, color, targetEl) => {
+  if (REDUCE() || !targetEl) return;
+  const chip = document.createElement('div');
+  chip.className = 'fly-chip'; chip.textContent = '€' + fmt(amount);
+  chip.style.setProperty('--fc', color);
+  const sx = window.innerWidth/2, sy = window.innerHeight - 130;
+  const r = targetEl.getBoundingClientRect();
+  const tx = r.left + Math.min(r.width*0.28, 60), ty = r.top + 34;
+  chip.style.left = sx+'px'; chip.style.top = sy+'px';
+  chip.style.setProperty('--dx', (tx-sx)+'px');
+  chip.style.setProperty('--dy', (ty-sy)+'px');
+  targetEl.style.setProperty('--pulse-c', color);
+  document.body.appendChild(chip);
+  let fired = false;
+  const done = () => {
+    if (fired) return; fired = true;
+    chip.remove();
+    targetEl.classList.add('hero-pulse');
+    setTimeout(() => targetEl.classList.remove('hero-pulse'), 720);
+  };
+  chip.addEventListener('animationend', done, { once:true });
+  setTimeout(done, 820);
+};
+
+/* 2 · Putz-Task erledigt: Häkchen-Draw + Emoji-Partikel + Vibration (Übergabe-Crossfade macht React) */
+const celebrateTask = (btnEl, emoji, color) => {
+  try { navigator.vibrate(30); } catch {}
+  if (REDUCE() || !btnEl) return;
+  const r = btnEl.getBoundingClientRect();
+  const cx = r.left + r.width/2, cy = r.top + r.height/2;
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS,'svg');
+  svg.setAttribute('class','tp-check');
+  svg.setAttribute('width', r.width); svg.setAttribute('height', r.height);
+  svg.setAttribute('viewBox','0 0 24 24');
+  svg.style.left = r.left+'px'; svg.style.top = r.top+'px';
+  const path = document.createElementNS(NS,'path');
+  path.setAttribute('d','M20 6L9 17l-5-5');
+  path.setAttribute('fill','none'); path.setAttribute('stroke', color);
+  path.setAttribute('stroke-width','3'); path.setAttribute('stroke-linecap','round'); path.setAttribute('stroke-linejoin','round');
+  svg.appendChild(path); document.body.appendChild(svg);
+  setTimeout(() => svg.remove(), 620);
+  for (let i=0;i<7;i++) {
+    const p = document.createElement('div');
+    p.className='tp-particle'; p.textContent = emoji || '✨';
+    p.style.left = cx+'px'; p.style.top = cy+'px';
+    const ang = (-Math.PI/2) + (Math.random()-0.5)*Math.PI*1.2;
+    const dist = 32 + Math.random()*30;
+    p.style.setProperty('--px', (Math.cos(ang)*dist)+'px');
+    p.style.setProperty('--py', (Math.sin(ang)*dist)+'px');
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 760);
+  }
+};
+
+/* 9 · Chart-Sichtbarkeit: erst animieren, wenn zum ersten Mal im Viewport (once) */
+const useInView = (threshold=0.2) => {
+  const ref = useRef(null);
+  const [seen, setSeen] = useState(false);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    if (!('IntersectionObserver' in window)) { setSeen(true); return; }
+    const io = new IntersectionObserver(es => {
+      es.forEach(e => { if (e.isIntersecting) { setSeen(true); io.disconnect(); } });
+    }, { threshold });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return [ref, seen];
+};
+
 const U_DEF = [{id:'u1',name:'Torben',color:'#38bdf8',pp:'TorbenSteen'},{id:'u2',name:'Tom',color:'#fbbf24'}];
 const COMMON_ITEMS = ['Milch','Brot','Eier','Butter','Klopapier','Müllbeutel','Spülmittel','Kaffee','Nudeln','Käse','Zucker','Öl'];
 
@@ -434,6 +642,22 @@ const FB_DEFAULT = {
   authDomain: "wgapp-65484.firebaseapp.com",
   databaseURL: "https://wgapp-65484-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "wgapp-65484",
+};
+
+/* ── Web-Push (Client-Wiring, Paket C) ──
+   PUSH_API = Basis-URL des Vercel-Deployments. Leerstring ⇒ alle Push-Features graceful aus
+   (kein UI-Fehler, notifyOthers ist no-op, Toggle im „Mehr"-Tab deaktiviert). Der Hauptloop
+   trägt die URL nach dem ersten Deploy ein. */
+const PUSH_API = '';
+const VAPID_PUBLIC_KEY = 'BHklI3ymp8Q9tQ-lEXPcIRexRFS-hkfs6DdTN0LRrHVUZOCwfcNktI025qKqIAbdLTYO7_62IZlf9lKZ9-n-ryQ';
+/* VAPID-Public-Key (URL-safe base64) → Uint8Array für applicationServerKey */
+const urlBase64ToUint8Array = (base64String) => {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
 };
 
 const INIT = {
@@ -512,11 +736,21 @@ function DataProvider({ children }) {
     // Zufallscode und das WG-eröffnende Gerät desynct sich von der gekoppelten WG.
     const c = genCode(); ss('wg_code', c); return c;
   });
+  // Stabile Geräte-ID für Push-Subscriptions (wg/<code>/push/<deviceId>). Wie beim WG-Code:
+  // beim Erststart SOFORT persistieren, sonst neue ID pro Neustart → verwaiste Push-Einträge.
+  const [deviceId] = useState(() => {
+    const saved = ls('wg_device', null);
+    if (saved) return saved;
+    const id = uid() + rnd(6); ss('wg_device', id); return id;
+  });
   const [status, setStatus]  = useState('local'); // local | connecting | synced | error
   const [online, setOnline]  = useState(() => navigator.onLine);
   const [mods,   setMods_]   = useState(() => ({...MOD_DEF, ...(ls('wg_modules', {}) || {})}));
   const [me,     setMe_]     = useState(() => ls('wg_me', null)); // wer dieses Gerät nutzt (nicht gesynct)
   const [remotePulse, setRemotePulse] = useState(0);
+  // Remote-Sync-Flash: IDs, die gerade neu vom anderen Gerät reinkamen (kurzer Farb-Puls).
+  const [flashIds, setFlashIds] = useState(() => new Set());
+  const knownIds = useRef(new Set()); // alle je gesehenen Item-IDs (lokal erzeugt ODER schon gesynct) → verhindert Flash beim Initial-Load
   // ── UI: Undo-Toast + Confirm-Dialog (ersetzt native confirm/prompt) ──
   const [undoMsg,    setUndoMsg]    = useState(null);
   const [confirmReq, setConfirmReq] = useState(null);
@@ -587,6 +821,14 @@ function DataProvider({ children }) {
   const lastPushed = useRef({});        // list Key -> {id: serialized} = letzter bekannter Server-Stand (Diff-Basis)
   const flushTimer = useRef(null);
   useEffect(() => { dataRef.current = D; }, [D]);
+  // knownIds initial seeden — beim ersten Laden/Initial-Sync darf NICHTS flashen.
+  useEffect(() => { LIST_KEYS.forEach(k => (dataRef.current[k]||[]).forEach(it => it && it.id!=null && knownIds.current.add(it.id))); }, []);
+  // Flash-Klasse nach dem Puls (~1.2s) wieder abräumen.
+  useEffect(() => {
+    if (!flashIds.size) return;
+    const t = setTimeout(() => setFlashIds(new Set()), 1300);
+    return () => clearTimeout(t);
+  }, [flashIds]);
 
   /* Offline-Härtung: unbestätigte Keys (dirty ∪ inflight) + letzter BESTÄTIGTER Server-Stand
      überleben in localStorage. Die Firebase-Write-Queue lebt nur im RAM — wird die PWA vor
@@ -688,6 +930,7 @@ function DataProvider({ children }) {
   const set = useCallback((key, val) => {
     setD_(prev => {
       const next = { ...prev, [key]: isListKey(key) ? normList(val) : val };
+      if (isListKey(key)) next[key].forEach(it => it && it.id!=null && knownIds.current.add(it.id)); // lokal → nie flashen
       dataRef.current = next;
       ss('wg_data', next);
       return next;
@@ -702,6 +945,7 @@ function DataProvider({ children }) {
     setD_(prev => {
       const val = fn(prev[key]);
       const next = { ...prev, [key]: isListKey(key) ? normList(val) : val };
+      if (isListKey(key)) next[key].forEach(it => it && it.id!=null && knownIds.current.add(it.id)); // lokal → nie flashen
       dataRef.current = next;
       ss('wg_data', next);
       return next;
@@ -846,6 +1090,16 @@ function DataProvider({ children }) {
               ss('wg_data', next);
               return next;
             });
+            // Remote-Sync-Flash: genuin NEUE Item-IDs (nicht lokal erzeugt, nicht Initial-Load) kurz pulsieren.
+            const newFlash = [];
+            Object.keys(adopt).forEach(k => {
+              if (!isListKey(k)) return;
+              (adopt[k]||[]).forEach(it => {
+                if (it && it.id!=null && !firstEvent && !knownIds.current.has(it.id)) newFlash.push(it.id);
+                if (it && it.id!=null) knownIds.current.add(it.id);
+              });
+            });
+            if (newFlash.length) setFlashIds(prev => { const n = new Set(prev); newFlash.forEach(id => n.add(id)); return n; });
             if (!firstEvent) setRemotePulse(p => p + 1);
           }
           setStatus('synced');
@@ -900,8 +1154,31 @@ function DataProvider({ children }) {
   const askConfirm = useCallback((opts) => new Promise(resolve => setConfirmReq({ ...opts, resolve })), []);
   const closeConfirm = (val) => { setConfirmReq(req => { req?.resolve(val); return null; }); };
 
+  /* ── Web-Push (Paket C) ── */
+  // Subscription unter wg/<code>/push/<deviceId> ablegen bzw. entfernen (nutzt die aktive DB-Instanz).
+  const pushSave   = useCallback((sub) => {
+    if (!dbRef.current) return Promise.reject(new Error('offline'));
+    return dbRef.current.child('push/' + deviceId).set(sub);
+  }, [deviceId]);
+  const pushRemove = useCallback(() => {
+    if (!dbRef.current) return Promise.resolve();
+    return dbRef.current.child('push/' + deviceId).remove();
+  }, [deviceId]);
+  // Fire-and-forget Push an die anderen Geräte der WG. No-op wenn PUSH_API leer / offline / kein Code.
+  // Wirft NIE und blockiert den UI-Flow nie (voll defensiv + .catch).
+  const notifyOthers = useCallback((title, body, tag) => {
+    try {
+      if (!PUSH_API || !wgCode || !navigator.onLine) return;
+      fetch(PUSH_API + '/api/notify', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code: wgCode, from: deviceId, title, body, tag }),
+      }).catch(() => {});
+    } catch {}
+  }, [wgCode, deviceId]);
+
   return (
-    <Ctx.Provider value={{ D, set, setFn, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, mergeRemote, remotePulse, me, setMe, undo, undoMsg, runUndo, askConfirm, confirmReq, closeConfirm }}>
+    <Ctx.Provider value={{ D, set, setFn, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, mergeRemote, remotePulse, me, setMe, undo, undoMsg, runUndo, askConfirm, confirmReq, closeConfirm, flashIds, deviceId, pushSave, pushRemove, notifyOthers }}>
       {children}
     </Ctx.Provider>
   );
@@ -966,7 +1243,11 @@ const ChkIco = () => (
   </svg>
 );
 
-/* ── Animated count-up number ── */
+/* ── Animated count-up number (Odometer-Stil: Ziffern rollen einzeln vertikal) ──
+   API unverändert (value, dec, prefix, suffix). Der finale sichtbare Textinhalt bleibt
+   identisch zum bisherigen Output: eine SR-/Text-Spiegelung (.odo-sr, visuell versteckt,
+   aber in innerText/Screenreader) trägt IMMER den Zielwert — die rollenden Ziffern sind
+   aria-hidden. Dauer (650ms) nicht länger als zuvor. */
 function CountUp({ value, dec=2, prefix='', suffix='' }) {
   const [v, setV] = useState(value);
   const prev = useRef(value);
@@ -985,7 +1266,16 @@ function CountUp({ value, dec=2, prefix='', suffix='' }) {
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
   }, [value]);
-  return <>{prefix}{Number(v).toFixed(dec).replace('.', ',')}{suffix}</>;
+  const str   = prefix + Number(v).toFixed(dec).replace('.', ',') + suffix;
+  const final = prefix + Number(value).toFixed(dec).replace('.', ',') + suffix;
+  return (
+    <span className="odo" aria-label={final}>
+      <span className="odo-sr">{final}</span>
+      <span aria-hidden="true">
+        {[...str].map((ch,i) => <span key={i}><span key={ch} className="odo-d">{ch}</span></span>)}
+      </span>
+    </span>
+  );
 }
 
 /* ── Ring (single value) ── */
@@ -1186,8 +1476,9 @@ const dateStepRender = ({data:d,setData:sd}) => (
    HAUSHALT
 ══════════════════════════ */
 function Haushalt() {
-  const { D, set, setFn, status, me, setMe, undo, askConfirm } = useD();
+  const { D, set, setFn, status, me, setMe, undo, askConfirm, flashIds, notifyOthers } = useD();
   const users = D.users, items = D.hs || [], list = D.sl || [];
+  const meName = users.find(u=>u.id===me)?.name || 'Jemand';
   const [seg,setSeg] = useState('aus');
   const [wiz,setWiz] = useState(false);
   const [editItem,setEditItem] = useState(null);
@@ -1197,6 +1488,9 @@ function Haushalt() {
   const [recWiz,setRecWiz] = useState(false);
   const recs = D.rec || [];
   const listInput = useRef(null);
+  const heroRef = useRef(null);          // Ziel für den Ausgabe-Flug
+  const [leaving,setLeaving] = useState(null); // sl-Item, das gerade animiert abgehakt wird
+  const [stamp,setStamp] = useState(false);    // grüner Ausgleich-Stempel
 
   const addRec = d => {
     const tp={ id:uid(), name:d.name||'Posten', price:parseNum(d.price)||0, paidBy:d.paidBy||users[0].id, owedBy:d.owedBy||null, since:todayISO().slice(0,7) };
@@ -1206,15 +1500,17 @@ function Haushalt() {
   };
   const delRec = id => { const r=recs.find(x=>x.id===id); set('rec',recs.filter(x=>x.id!==id)); undo(`„${r?.name||'Posten'}" beendet`, ()=>setFn('rec', cur => cur.some(x=>x.id===id)?cur:[r,...cur])); };
 
-  const add    = d => set('hs',[{id:uid(),name:d.name||'Einkauf',price:parseNum(d.price)||0,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),owedBy:d.owedBy||null,settled:false},...items]);
+  const add    = d => { const amt=parseNum(d.price)||0; set('hs',[{id:uid(),name:d.name||'Einkauf',price:amt,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),owedBy:d.owedBy||null,settled:false},...items]); flyExpense(amt,'#5eead4',heroRef.current); notifyOthers(`💸 ${meName} hat ${fmt(amt)} € eingetragen`, d.name||'Einkauf', 'wg-exp'); };
   const save   = d => set('hs',items.map(i=>i.id===editItem.id?{...i,name:d.name||i.name,price:parseNum(d.price)||i.price,paidBy:d.paidBy||i.paidBy,date:d.date||i.date,owedBy:d.owedBy||null}:i));
   const toggle = id => set('hs',items.map(i=>i.id===id?{...i,settled:!i.settled,settledAt:!i.settled?todayISO():null}:i));
   const del    = id => { const it=items.find(i=>i.id===id); set('hs',items.filter(i=>i.id!==id)); undo(`„${it?.name||'Ausgabe'}" gelöscht`, ()=>setFn('hs', cur => cur.some(i=>i.id===id)?cur:[it,...cur])); };
 
   /* Einkaufsliste */
-  const addL      = () => { const n=newName.trim(); if(!n){ listInput.current?.focus(); return; } set('sl',[{id:uid(),name:n,addedBy:me||null,date:todayISO(),done:false},...list]); setNewName(''); listInput.current?.focus(); };
-  const quickAdd  = (n) => set('sl',[{id:uid(),name:n,addedBy:me||null,date:todayISO(),done:false},...list]);
+  const addL      = () => { const n=newName.trim(); if(!n){ listInput.current?.focus(); return; } set('sl',[{id:uid(),name:n,addedBy:me||null,date:todayISO(),done:false},...list]); setNewName(''); listInput.current?.focus(); notifyOthers(`🛒 ${meName} braucht ${n}`, '', 'wg-shop'); };
+  const quickAdd  = (n) => { set('sl',[{id:uid(),name:n,addedBy:me||null,date:todayISO(),done:false},...list]); notifyOthers(`🛒 ${meName} braucht ${n}`, '', 'wg-shop'); };
   const toggleL   = id => set('sl',list.map(i=>i.id===id?{...i,done:!i.done}:i));
+  /* Abhaken mit Wisch-Strich + Kollaps, dann erst in den Wagen wandern. Uncheck (done→offen) sofort. */
+  const checkL    = i => { if(leaving===i.id) return; /* Doppel-Tap während der Abhak-Animation würde sonst doppelt togglen */ if(i.done||REDUCE()){ toggleL(i.id); return; } setLeaving(i.id); setTimeout(()=>{ toggleL(i.id); setLeaving(l=>l===i.id?null:l); }, 600); };
   const delL      = id => { const it=list.find(i=>i.id===id); set('sl',list.filter(i=>i.id!==id)); undo(`„${it?.name||'Eintrag'}" gelöscht`, ()=>setFn('sl', cur => cur.some(i=>i.id===id)?cur:[it,...cur])); };
   const clearDone = async () => { if(await askConfirm({title:'Erledigte leeren',body:`${doneL} erledigte Einträge aus dem Wagen entfernen?`,okLabel:'Leeren',danger:true})) set('sl',list.filter(i=>!i.done)); };
   const convert   = d => { add(d); delL(convItem.id); };
@@ -1237,6 +1533,8 @@ function Haushalt() {
     set('stl',[rec,...oldStl]);
     set('hs',items.map(i=>i.settled?i:{...i,settled:true,settledAt:todayISO(),settlementId:rec.id}));
     undo('Alles abgerechnet', ()=>{ setFn('stl', cur=>cur.filter(s=>s.id!==rec.id)); setFn('hs', cur=>cur.map(i=>i.settlementId===rec.id?{...i,settled:false,settledAt:null,settlementId:null}:i)); });
+    if(!REDUCE()){ setStamp(true); setTimeout(()=>setStamp(false),1100); }
+    notifyOthers(`🤝 ${meName} hat abgerechnet`, `€${fmt(tot)}`, 'wg-settle');
   };
 
   // Bezahler standardmäßig auf das eigene Gerät (me) vorbelegen → ein Tap weniger im Normalfall
@@ -1289,7 +1587,8 @@ function Haushalt() {
           </div>
           {seg==='aus'?(
           <>
-          <div className="hero rise" style={{'--glow':'rgba(94,234,212,.16)',animationDelay:'40ms'}}>
+          <div className="hero rise" ref={heroRef} style={{'--glow':'rgba(94,234,212,.16)',animationDelay:'40ms'}}>
+            {stamp&&<div className="settle-stamp">✓</div>}
             <div className="hero-lbl">Offene Ausgaben</div>
             <div className="hero-big" style={{color:'var(--mint)',margin:'6px 0 16px'}}>€<CountUp value={tot}/></div>
             {me ? (()=>{
@@ -1347,8 +1646,9 @@ function Haushalt() {
                 <div className="group">
                   {open.map(item=>{
                     const payer=users.find(u=>u.id===item.paidBy);
+                    const fl=flashIds.has(item.id);
                     return(
-                      <div key={item.id} className="cell">
+                      <div key={item.id} className={`cell${fl?' flash':''}`} style={fl?{'--flash-c':hexRgba(payer?.color||'#5eead4')}:undefined}>
                         <button className="chk-btn" style={{border:'1.5px solid var(--sep)',background:'none'}} title="Als abgerechnet markieren" onClick={()=>toggle(item.id)}/>
                         <div className="cell-content" style={{cursor:'pointer'}} onClick={()=>setEditItem(item)}>
                           <span className="cell-title">{item.name}</span>
@@ -1430,12 +1730,14 @@ function Haushalt() {
                   <span>{openL} offen{doneL>0?` · ${doneL} im Wagen`:''}</span>
                   {doneL>0&&<button style={{background:'none',border:'none',color:'var(--mint)',fontSize:12,fontWeight:700,fontFamily:'Hanken Grotesk'}} onClick={clearDone}>Erledigte leeren</button>}
                 </div>
+                {openL===0&&list.length>0&&<div className="sl-alldone empty" style={{padding:'20px 0'}}><div className="empty-ico">🎉</div><span style={{fontSize:14,color:'var(--label2)'}}>Alles erledigt</span></div>}
                 <div className="group">
                   {sortedList.map(i=>{
                     const u=users.find(x=>x.id===i.addedBy);
+                    const fl=flashIds.has(i.id);
                     return(
-                      <div key={i.id} className={`cell${i.done?' dim':''}`}>
-                        <button className="chk-btn" style={{border:`1.5px solid ${i.done?'var(--mint)':'var(--sep)'}`,background:i.done?'var(--mint)':'none'}} onClick={()=>toggleL(i.id)}>
+                      <div key={i.id} className={`cell${i.done?' dim':''}${leaving===i.id?' sl-leaving':''}${fl?' flash':''}`} style={fl?{'--flash-c':hexRgba(u?.color||'#5eead4')}:undefined}>
+                        <button className="chk-btn" style={{border:`1.5px solid ${i.done?'var(--mint)':'var(--sep)'}`,background:i.done?'var(--mint)':'none'}} onClick={()=>checkL(i)}>
                           {i.done&&<ChkIco/>}
                         </button>
                         <div className="cell-content">
@@ -1470,18 +1772,21 @@ function Haushalt() {
    GROW
 ══════════════════════════ */
 function Grow() {
-  const { D, set, setFn, status, undo, me } = useD();
+  const { D, set, setFn, status, undo, me, notifyOthers } = useD();
   const users=D.users, plants=D.gp||{}, items=D.gi||[];
+  const meName = users.find(u=>u.id===me)?.name || 'Jemand';
   const [wiz,setWiz] = useState(false);
   const [editItem,setEditItem] = useState(null);
   const [showSettled,setShowSettled] = useState(false);
+  const heroRef = useRef(null);
+  const [stamp,setStamp] = useState(false);
 
   const total  = Object.values(plants).reduce((s,v)=>s+(parseInt(v)||0),0);
   const share  = id => total>0?(parseInt(plants[id]||0)/total):1/users.length;
   const pctStr = id => (share(id)*100).toFixed(1)+'%';
   const setP   = (uid2,v) => set('gp',{...plants,[uid2]:Math.max(0,parseInt(v)||0)});
 
-  const add    = d => set('gi',[{id:uid(),name:d.name||'Grow',price:parseNum(d.price)||0,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),settled:false},...items]);
+  const add    = d => { const amt=parseNum(d.price)||0; set('gi',[{id:uid(),name:d.name||'Grow',price:amt,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),settled:false},...items]); flyExpense(amt,'#a3e635',heroRef.current); notifyOthers(`🌱 ${meName} hat ${fmt(amt)} € eingetragen`, d.name||'Grow', 'wg-exp'); };
   const save   = d => set('gi',items.map(i=>i.id===editItem.id?{...i,name:d.name||i.name,price:parseNum(d.price)||i.price,paidBy:d.paidBy||i.paidBy,date:d.date||i.date}:i));
   const toggle = id => set('gi',items.map(i=>i.id===id?{...i,settled:!i.settled,settledAt:!i.settled?todayISO():null}:i));
   const del    = id => { const it=items.find(i=>i.id===id); set('gi',items.filter(i=>i.id!==id)); undo(`„${it?.name||'Ausgabe'}" gelöscht`, ()=>setFn('gi', cur => cur.some(i=>i.id===id)?cur:[it,...cur])); };
@@ -1497,6 +1802,8 @@ function Grow() {
     set('stl',[rec,...oldStl]);
     set('gi',items.map(i=>i.settled?i:{...i,settled:true,settledAt:todayISO(),settlementId:rec.id}));
     undo('Alles abgerechnet', ()=>{ setFn('stl', cur=>cur.filter(s=>s.id!==rec.id)); setFn('gi', cur=>cur.map(i=>i.settlementId===rec.id?{...i,settled:false,settledAt:null,settlementId:null}:i)); });
+    if(!REDUCE()){ setStamp(true); setTimeout(()=>setStamp(false),1100); }
+    notifyOthers(`🤝 ${meName} hat abgerechnet`, `€${fmt(tCost)}`, 'wg-settle');
   };
 
   /* Pflanzen-Slots: jede Pflanze als Icon in Besitzer-Farbe */
@@ -1535,7 +1842,8 @@ function Grow() {
       <div className="scroll"><div className="content">
 
         {/* Split-Hero: Donut + Pflanzen */}
-        <div className="hero rise" style={{'--glow':'rgba(163,230,53,.17)'}}>
+        <div className="hero rise" ref={heroRef} style={{'--glow':'rgba(163,230,53,.17)'}}>
+          {stamp&&<div className="settle-stamp">✓</div>}
           <div className="hero-lbl" style={{marginBottom:16}}>Kosten-Split nach Pflanzen</div>
           <div style={{display:'flex',alignItems:'center',gap:20}}>
             <Donut segs={users.map(u=>({frac:share(u.id),color:u.color}))}>
@@ -1666,8 +1974,9 @@ function Grow() {
    PUTZPLAN
 ══════════════════════════ */
 function Putzplan() {
-  const { D, set, setFn, status, undo } = useD();
+  const { D, set, setFn, status, undo, me, notifyOthers } = useD();
   const users=D.users, tasks=D.pt||[], log=D.pl||[];
+  const meName = users.find(u=>u.id===me)?.name || 'Jemand';
   const [wiz,setWiz] = useState(false);
   const [editTask,setEditTask] = useState(null);
 
@@ -1680,10 +1989,13 @@ function Putzplan() {
   };
   const other = id => users.find(u=>u.id!==id)?.id || id;
 
-  const done = t => {
+  const done = (t, btnEl) => {
+    celebrateTask(btnEl, t.em, users.find(u=>u.id===t.assignee)?.color || '#fbbf24');
     const iso=todayISO(); // lokal, nicht UTC — sonst zählt „erledigt" nachts vor 1/2 Uhr zum Vortag
     set('pt', tasks.map(x=>x.id===t.id?{...x,lastDone:iso,assignee:other(x.assignee)}:x));
     set('pl', [{id:uid(),taskId:t.id,name:t.name,em:t.em,userId:t.assignee,date:iso},...log].slice(0,200));
+    const nextName = users.find(u=>u.id===other(t.assignee))?.name || 'Der andere';
+    notifyOthers(`✅ ${meName} hat „${t.name}" erledigt`, `${nextName}, du bist dran!`, 'wg-putz');
   };
   const del = id => { const t=tasks.find(x=>x.id===id); set('pt',tasks.filter(x=>x.id!==id)); undo(`„${t?.name||'Aufgabe'}" gelöscht`, ()=>setFn('pt', cur => cur.some(x=>x.id===id)?cur:[t,...cur])); };
   const add = d => set('pt',[...tasks,{id:uid(),name:d.name||'Aufgabe',em:d.em||'🧽',interval:parseInt(d.interval)||7,assignee:d.assignee||users[0].id,lastDone:null}]);
@@ -1706,7 +2018,7 @@ function Putzplan() {
 
   const chip = t => {
     const d=dueIn(t);
-    if(d<0)  return <span className="due-chip" style={{background:'rgba(251,113,133,.15)',color:'var(--red)'}}>{-d}d ÜBERFÄLLIG</span>;
+    if(d<0)  return <span className="due-chip overdue" style={{background:'rgba(251,113,133,.15)',color:'var(--red)'}}>{-d}d ÜBERFÄLLIG</span>;
     if(d===0)return <span className="due-chip" style={{background:'rgba(251,191,36,.16)',color:'var(--amber)'}}>HEUTE</span>;
     return <span className="due-chip" style={{background:'rgba(255,255,255,.06)',color:'var(--label3)'}}>IN {d}d</span>;
   };
@@ -1773,12 +2085,12 @@ function Putzplan() {
                 const u=users.find(x=>x.id===t.assignee);
                 return(
                   <div key={t.id} className="cell">
-                    <button className="done-btn" style={{borderColor:(u?.color||'#888')+'66'}} title={`${t.name} erledigt`} onClick={()=>done(t)}>
+                    <button className="done-btn" style={{borderColor:(u?.color||'#888')+'66'}} title={`${t.name} erledigt`} onClick={e=>done(t,e.currentTarget)}>
                       <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={u?.color||'#888'} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"><path d={ICONS.check}/></svg>
                     </button>
                     <div className="cell-content" style={{cursor:'pointer'}} onClick={()=>setEditTask(t)}>
                       <span className="cell-title">{t.em} {t.name}</span>
-                      <span className="cell-sub"><span style={{color:u?.color,fontWeight:700}}>{u?.name}</span> ist dran · alle {t.interval} Tage</span>
+                      <span className="cell-sub"><span key={u?.id} className="assignee-swap" style={{color:u?.color,fontWeight:700}}>{u?.name}</span> ist dran · alle {t.interval} Tage</span>
                     </div>
                     {chip(t)}
                     <button className="del-btn" aria-label="Aufgabe löschen" title="Aufgabe löschen" onClick={()=>del(t.id)}>×</button>
@@ -2069,7 +2381,7 @@ function Abos() {
    EINSTELLUNGEN
 ══════════════════════════ */
 function Einstellungen() {
-  const { D, set, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, me, setMe, askConfirm } = useD();
+  const { D, set, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, me, setMe, askConfirm, deviceId, pushSave, pushRemove } = useD();
   const users=D.users;
   const [cfgText,  setCfgText]  = useState(fbCfg ? JSON.stringify(fbCfg, null, 2) : '');
   const [codeInput,setCodeInput]= useState('');
@@ -2089,6 +2401,66 @@ function Einstellungen() {
     else { ss('wg_notify','off'); setNotifyOn(false); }
   };
   const fileInputRef = useRef(null);
+
+  /* ── Web-Push (Paket C) ── */
+  const pushCapable = typeof window!=='undefined' && 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+  const isStandalone = () => { try { return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; } catch { return false; } };
+  const isIOS = () => { try { return /iphone|ipad|ipod/i.test(navigator.userAgent||''); } catch { return false; } };
+  const iOSNeedsInstall = isIOS() && !isStandalone();
+  const showPush = pushCapable || iOSNeedsInstall;
+  const [pushOn,   setPushOn]   = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushMsg,  setPushMsg]  = useState('');
+  const [pushPerm, setPushPerm] = useState(pushCapable ? Notification.permission : 'default');
+  const flashPush = (m) => { setPushMsg(m); setTimeout(()=>setPushMsg(''), 4000); };
+  // Zustand aus der TATSÄCHLICHEN Subscription ableiten (nicht aus localStorage).
+  useEffect(() => {
+    if (!pushCapable) return;
+    let alive = true;
+    (async () => {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if (alive) setPushOn(!!sub);
+      } catch {}
+    })();
+    return () => { alive = false; };
+  }, []);
+  const enablePush = async () => {
+    setPushBusy(true);
+    try {
+      let perm = Notification.permission;
+      if (perm !== 'granted') perm = await Notification.requestPermission();
+      setPushPerm(perm);
+      if (perm !== 'granted') { flashPush('Berechtigung nicht erteilt.'); setPushBusy(false); return; }
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
+      const j = sub.toJSON() || {};
+      await pushSave({ endpoint: j.endpoint, p256dh: (j.keys&&j.keys.p256dh)||null, auth: (j.keys&&j.keys.auth)||null, name: (users.find(u=>u.id===me)?.name)||'Gerät', t: Date.now() });
+      setPushOn(true);
+      flashPush('Push aktiviert ✓');
+    } catch (e) {
+      // Falls Subscribe klappte, aber der RTDB-Write scheiterte (offline/keine DB): wieder abmelden, damit Zustand ehrlich bleibt.
+      try { const reg = await navigator.serviceWorker.ready; const s = await reg.pushManager.getSubscription(); if (s) await s.unsubscribe(); } catch {}
+      setPushOn(false);
+      flashPush('Konnte nicht aktivieren — online und mit der WG verbunden?');
+    }
+    setPushBusy(false);
+  };
+  const disablePush = async () => {
+    setPushBusy(true);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) await sub.unsubscribe();
+      await pushRemove();
+      setPushOn(false);
+      flashPush('Push deaktiviert');
+    } catch { flashPush('Konnte nicht deaktivieren.'); }
+    setPushBusy(false);
+  };
+  const togglePush = () => { if (pushBusy || !pushCapable || !PUSH_API || pushPerm==='denied') return; pushOn ? disablePush() : enablePush(); };
+  const pushDisabled = !PUSH_API || !pushCapable || pushBusy || pushPerm==='denied';
 
   const hasLocalData = (D.hs?.length||0)+(D.gi?.length||0)+(D.ft?.length||0)+(D.ff?.length||0)+(D.ab?.length||0)+(D.pt?.length||0)+(D.sl?.length||0)
     +(D.rec?.length||0)+(D.pl?.length||0)+(D.stl?.length||0)+Object.keys(D.gp||{}).length > 0;
@@ -2365,6 +2737,32 @@ function Einstellungen() {
         </div>
         )}
 
+        {/* Push-Benachrichtigungen (Paket C) — echte Server-Pushes an die anderen WG-Geräte */}
+        {showPush && (
+        <div className="rise" style={{animationDelay:'230ms'}}>
+          <div className="section-hdr">Push-Benachrichtigungen</div>
+          <div className="group">
+            <div className="cell">
+              <div className="cell-icon" style={{background:'rgba(56,189,248,.12)',fontSize:15}}>📲</div>
+              <div className="cell-content">
+                <span className="cell-title">Push an die WG</span>
+                <span className="cell-sub">Neue Ausgaben, Putz & Einkäufe — auch bei geschlossener App</span>
+              </div>
+              <button onClick={togglePush} disabled={pushDisabled}
+                style={{background:(!pushDisabled&&pushOn)?'var(--sky)':'var(--bg3)',color:(!pushDisabled&&pushOn)?'#0a120c':'var(--label2)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800,opacity:pushDisabled?.5:1}}>
+                {pushBusy?'…':pushOn?'An':'Aus'}
+              </button>
+            </div>
+          </div>
+          <div className="section-ftr" style={pushMsg?{color:'var(--sky)'}:undefined}>
+            {!PUSH_API ? 'Server noch nicht konfiguriert — Push bald verfügbar.'
+             : pushPerm==='denied' ? 'In den Browser-Einstellungen blockiert. Dort erlauben, um Push zu aktivieren.'
+             : iOSNeedsInstall ? 'Auf dem iPhone zuerst über Teilen → Zum Home-Bildschirm hinzufügen, dann hier aktivieren.'
+             : pushMsg || 'Jedes Gerät einzeln aktivieren. Läuft über den WG-Code.'}
+          </div>
+        </div>
+        )}
+
         {/* iPhone install */}
         <div className="rise" style={{animationDelay:'240ms'}}>
           <div className="section-hdr">Zum Homescreen</div>
@@ -2415,6 +2813,10 @@ function Statistik() {
   const users=D.users, hs=D.hs||[], gi=D.gi||[], ab=D.ab||[], gp=D.gp||{};
   const [ym,setYm] = useState(()=>todayISO().slice(0,7));
   const nowYm = todayISO().slice(0,7);
+  // Charts erst beim ersten Sichtbarwerden füllen (once) — nutzt die bestehenden width/height-Transitions
+  const [payRef,paySeen]   = useInView();
+  const [bearRef,bearSeen] = useInView();
+  const [trendRef,trendSeen] = useInView();
 
   const all = [...hs.map(i=>({...i,mod:'hs'})), ...gi.map(i=>({...i,mod:'gi'}))];
   const month = all.filter(i=>ymOf(i.date)===ym);
@@ -2459,11 +2861,11 @@ function Statistik() {
         {total>0&&(
           <div className="rise" style={{animationDelay:'70ms'}}>
             <div className="section-hdr">Wer hat bezahlt</div>
-            <div className="group" style={{padding:'14px 16px',display:'flex',flexDirection:'column',gap:10}}>
+            <div className="group" ref={payRef} style={{padding:'14px 16px',display:'flex',flexDirection:'column',gap:10}}>
               {paidBy.map(b=>(
                 <div key={b.id} className="bar-row">
                   <span className="bar-name" style={{color:b.color}}>{b.name}</span>
-                  <div className="bar-track"><div className="bar-fill" style={{width:`${total>0?b.paid/total*100:0}%`,background:b.color,color:b.color}}/></div>
+                  <div className="bar-track"><div className="bar-fill" style={{width:`${paySeen&&total>0?b.paid/total*100:0}%`,background:b.color,color:b.color}}/></div>
                   <span className="bar-val num">€{fmt(b.paid)}</span>
                 </div>
               ))}
@@ -2474,11 +2876,11 @@ function Statistik() {
         {total>0&&(
           <div className="rise" style={{animationDelay:'85ms'}}>
             <div className="section-hdr">Wer trägt was · nach Split</div>
-            <div className="group" style={{padding:'14px 16px',display:'flex',flexDirection:'column',gap:10}}>
+            <div className="group" ref={bearRef} style={{padding:'14px 16px',display:'flex',flexDirection:'column',gap:10}}>
               {bears.map(b=>(
                 <div key={b.id} className="bar-row">
                   <span className="bar-name" style={{color:b.color}}>{b.name}</span>
-                  <div className="bar-track"><div className="bar-fill" style={{width:`${total>0?b.share/total*100:0}%`,background:b.color,color:b.color}}/></div>
+                  <div className="bar-track"><div className="bar-fill" style={{width:`${bearSeen&&total>0?b.share/total*100:0}%`,background:b.color,color:b.color}}/></div>
                   <span className="bar-val num">€{fmt(b.share)}</span>
                 </div>
               ))}
@@ -2488,11 +2890,11 @@ function Statistik() {
 
         <div className="rise" style={{animationDelay:'100ms'}}>
           <div className="section-hdr">Verlauf · 6 Monate</div>
-          <div className="group" style={{padding:'16px',display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:6,height:128}}>
+          <div className="group" ref={trendRef} style={{padding:'16px',display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:6,height:128}}>
             {trend.map(t=>(
               <div key={t.m} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:6,height:'100%',justifyContent:'flex-end'}}>
                 <span className="num" style={{fontSize:9,color:'var(--label3)'}}>{t.t>0?Math.round(t.t):''}</span>
-                <div style={{width:'100%',maxWidth:26,height:`${Math.max(t.t/trendMax*100,2)}%`,background:t.m===ym?'var(--sky)':'rgba(56,189,248,.28)',borderRadius:'6px 6px 0 0',transition:'height .6s cubic-bezier(.22,1,.36,1)'}}/>
+                <div style={{width:'100%',maxWidth:26,height:`${trendSeen?Math.max(t.t/trendMax*100,2):0}%`,background:t.m===ym?'var(--sky)':'rgba(56,189,248,.28)',borderRadius:'6px 6px 0 0',transition:'height .6s cubic-bezier(.22,1,.36,1)'}}/>
                 <span style={{fontSize:9,color:t.m===ym?'var(--sky)':'var(--label3)',fontWeight:700}}>{MONTHS[+t.m.split('-')[1]-1].slice(0,3)}</span>
               </div>
             ))}
@@ -2543,7 +2945,9 @@ function AppInner() {
     const saved = ls('wg_tab', null); // letzten Tab merken
     return (saved && (saved==='set' || mods[saved] !== false)) ? saved : (visibleTabs[0]?.id || 'set');
   });
-  const setTab = (id) => { setTab_(id); ss('wg_tab', id); };
+  const [dir,setDir] = useState(1); // Slide-Richtung: +1 neuer Tab rechts, -1 links
+  const idxOf = (id) => TABS.findIndex(t => t.id===id);
+  const setTab = (id) => { setDir(idxOf(id) >= idxOf(tab) ? 1 : -1); setTab_(id); ss('wg_tab', id); };
   const [toast,setToast] = useState(false);
   // Wenn der aktive Tab versteckt wird, auf ersten sichtbaren springen
   useEffect(() => {
@@ -2578,13 +2982,15 @@ function AppInner() {
   }, [remotePulse]);
   return (
     <>
-      {tab==='haus'&&<Haushalt/>}
-      {tab==='grow'&&<Grow/>}
-      {tab==='putz'&&<Putzplan/>}
-      {tab==='fin' &&<Finanzen/>}
-      {tab==='abos'&&<Abos/>}
-      {tab==='stats'&&<Statistik/>}
-      {tab==='set' &&<Einstellungen/>}
+      <div key={tab} className={`tab-view ${dir>=0?'tab-in-r':'tab-in-l'}`}>
+        {tab==='haus'&&<Haushalt/>}
+        {tab==='grow'&&<Grow/>}
+        {tab==='putz'&&<Putzplan/>}
+        {tab==='fin' &&<Finanzen/>}
+        {tab==='abos'&&<Abos/>}
+        {tab==='stats'&&<Statistik/>}
+        {tab==='set' &&<Einstellungen/>}
+      </div>
       {toast&&(
         <div className="toast">
           <Ic d={ICONS.bolt} color="var(--lime)" size={14} sw={2.2}/>
@@ -2594,7 +3000,7 @@ function AppInner() {
       <GlobalUI/>
       <div className="tabbar">
         {visibleTabs.map(t=>(
-          <button key={t.id} className="tabitem" onClick={()=>setTab(t.id)} style={{color:tab===t.id?t.color:'rgba(242,246,243,.32)'}}>
+          <button key={t.id} className={`tabitem${tab===t.id?' on':''}`} onClick={()=>setTab(t.id)} style={{color:tab===t.id?t.color:'rgba(242,246,243,.32)'}}>
             {tab===t.id&&<div className="tab-glow"/>}
             <Ic d={t.icon} color={tab===t.id?t.color:'rgba(242,246,243,.32)'} size={23} sw={tab===t.id?2.1:1.6}/>
             <span>{t.label}</span>

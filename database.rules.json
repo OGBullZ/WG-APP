@@ -28,6 +28,18 @@
         "stl": { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
         "rec": { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
 
+        "push": {
+          "$dev": {
+            ".validate": "newData.hasChildren(['endpoint'])",
+            "endpoint": { ".validate": "newData.isString() && newData.val().length <= 1000" },
+            "p256dh":   { ".validate": "newData.isString() && newData.val().length <= 300" },
+            "auth":     { ".validate": "newData.isString() && newData.val().length <= 200" },
+            "name":     { ".validate": "newData.isString() && newData.val().length <= 100" },
+            "t":        { ".validate": "newData.isNumber()" },
+            "$other":   { ".validate": false }
+          }
+        },
+
         "$other": { ".validate": false }
       }
     }

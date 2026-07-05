@@ -48,6 +48,30 @@ const cacheFirst = (req, cacheName = CACHE) =>
   // Schlägt fetch fehl, propagiert die Rejection an respondWith → Browser zeigt sauberen
   // Netzwerkfehler, statt dass respondWith(undefined) selbst einen TypeError wirft.
 
+/* Web-Push: Server (Vercel /api/notify, /api/cron) schickt JSON {title, body, tag, url} */
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch {}
+  e.waitUntil(self.registration.showNotification(d.title || 'WG-App', {
+    body: d.body || '',
+    icon: './icon.svg',
+    badge: './icon.svg',
+    tag: d.tag || 'wg-push',
+    data: { url: d.url || './' },
+  }));
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || './';
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const c of list) if ('focus' in c) return c.focus();
+      return self.clients.openWindow(url);
+    })
+  );
+});
+
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
