@@ -44,7 +44,8 @@ module.exports = async (req, res) => {
   try {
     const subs = await loadSubs(code);
     const payload = { title: safeTitle, body: safeBody, tag: tag || undefined, url: url || undefined };
-    const { sent, removed } = await sendToSubs(subs, payload, { excludeDevice: from });
+    const { sent, removed, errors } = await sendToSubs(subs, payload, { excludeDevice: from });
+    if (errors && errors.length) console.error('push errors:', JSON.stringify(errors));
     res.status(200).json({ sent, removed });
   } catch (err) {
     res.status(500).json({ error: (err && err.message) || 'push fehlgeschlagen' });
