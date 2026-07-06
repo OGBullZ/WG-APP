@@ -27,6 +27,7 @@
         "sl":  { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
         "stl": { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
         "rec": { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
+        "arc": { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
 
         "push": {
           "$dev": {
@@ -36,6 +37,14 @@
             "auth":     { ".validate": "newData.isString() && newData.val().length <= 200" },
             "name":     { ".validate": "newData.isString() && newData.val().length <= 100" },
             "t":        { ".validate": "newData.isNumber()" },
+            "exp":      { ".validate": "newData.isBoolean()" },
+            "shop":     { ".validate": "newData.isBoolean()" },
+            "putz":     { ".validate": "newData.isBoolean()" },
+            "settle":   { ".validate": "newData.isBoolean()" },
+            "remind":   { ".validate": "newData.isBoolean()" },
+            "quiet":    { ".validate": "newData.isBoolean()" },
+            "qs":       { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 23" },
+            "qe":       { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 23" },
             "$other":   { ".validate": false }
           }
         },

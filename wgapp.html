@@ -636,6 +636,10 @@ const useInView = (threshold=0.2) => {
 const U_DEF = [{id:'u1',name:'Torben',color:'#38bdf8',pp:'TorbenSteen'},{id:'u2',name:'Tom',color:'#fbbf24'}];
 const COMMON_ITEMS = ['Milch','Brot','Eier','Butter','Klopapier','Müllbeutel','Spülmittel','Kaffee','Nudeln','Käse','Zucker','Öl'];
 
+/* Optionale Kategorien für Haushalt-Ausgaben (Übersicht → „Kategorien · Haushalt"). */
+const CATS = [['food','🛒','Lebensmittel'],['home','🧴','Haushalt'],['fun','🎉','Freizeit'],['fix','📄','Fixkosten'],['other','📦','Sonstiges']];
+const CAT_COLORS = { food:'#5eead4', home:'#38bdf8', fun:'#fbbf24', fix:'#a78bfa', other:'#94a3b8' };
+
 /* Eingebaute Firebase-Config (Client-Keys sind öffentlich) — Sync läuft out-of-the-box */
 const FB_DEFAULT = {
   apiKey: "AIzaSyDUI_cByyzZGXvszsOhdvZw9tlOJ4A_k1Y",
@@ -673,14 +677,16 @@ const INIT = {
   sl:     [],
   stl:    [],
   rec:    [],
+  arc:    [],
 };
 const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
 
 /* Listen-Keys werden item-granular gesynct (RTDB-Map {id:item} statt Array).
    So überleben gleichzeitige Adds an dasselbe Modul (RTDB merged pro Item),
    statt dass der letzte komplette Array-Write die anderen Einträge überschreibt.
-   users (fix 2) und gp (Pflanzen-Map) bleiben key-level. */
-const LIST_KEYS = ['hs','gi','ft','ff','ab','pt','pl','sl','stl','rec'];
+   users (fix 2) und gp (Pflanzen-Map) bleiben key-level.
+   arc = Archiv (alte abgerechnete hs/gi/stl-Einträge, s. archiveCutoff in Einstellungen). */
+const LIST_KEYS = ['hs','gi','ft','ff','ab','pt','pl','sl','stl','rec','arc'];
 const isListKey = k => LIST_KEYS.includes(k);
 
 /* Monotone Sequenz für stabile, geräteübergreifend deterministische Sortierung. */
@@ -795,7 +801,7 @@ function DataProvider({ children }) {
       const have = new Set((cur.hs||[]).map(i=>i.id));
       const toAdd = templates
         .filter(tp => (!tp.since || tp.since <= YM) && !have.has(`r-${tp.id}-${YM}`))
-        .map(tp => ({ id:`r-${tp.id}-${YM}`, name:tp.name, price:tp.price, paidBy:tp.paidBy, owedBy:tp.owedBy||null, date:YM+'-01', settled:false, recur:true }));
+        .map(tp => ({ id:`r-${tp.id}-${YM}`, name:tp.name, price:tp.price, paidBy:tp.paidBy, owedBy:tp.owedBy||null, cat:tp.cat||null, date:YM+'-01', settled:false, recur:true }));
       if (toAdd.length) set('hs', [...toAdd, ...(cur.hs||[])]);
     }, 3500); // nach dem ersten Sync, damit nichts doppelt erzeugt wird
     return () => clearTimeout(t);
@@ -1164,21 +1170,26 @@ function DataProvider({ children }) {
     if (!dbRef.current) return Promise.resolve();
     return dbRef.current.child('push/' + deviceId).remove();
   }, [deviceId]);
+  // Push-Typ-/Ruhezeit-Prefs am bestehenden Subscription-Record aktualisieren (Merge, kein Overwrite).
+  const pushPrefsUpdate = useCallback((prefs) => {
+    if (!dbRef.current) return Promise.reject(new Error('offline'));
+    return dbRef.current.child('push/' + deviceId).update(prefs);
+  }, [deviceId]);
   // Fire-and-forget Push an die anderen Geräte der WG. No-op wenn PUSH_API leer / offline / kein Code.
   // Wirft NIE und blockiert den UI-Flow nie (voll defensiv + .catch).
-  const notifyOthers = useCallback((title, body, tag) => {
+  const notifyOthers = useCallback((title, body, tag, type) => {
     try {
       if (!PUSH_API || !wgCode || !navigator.onLine) return;
       fetch(PUSH_API + '/api/notify', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ code: wgCode, from: deviceId, title, body, tag }),
+        body: JSON.stringify({ code: wgCode, from: deviceId, title, body, tag, type }),
       }).catch(() => {});
     } catch {}
   }, [wgCode, deviceId]);
 
   return (
-    <Ctx.Provider value={{ D, set, setFn, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, mergeRemote, remotePulse, me, setMe, undo, undoMsg, runUndo, askConfirm, confirmReq, closeConfirm, flashIds, deviceId, pushSave, pushRemove, notifyOthers }}>
+    <Ctx.Provider value={{ D, set, setFn, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, mergeRemote, remotePulse, me, setMe, undo, undoMsg, runUndo, askConfirm, confirmReq, closeConfirm, flashIds, deviceId, pushSave, pushRemove, pushPrefsUpdate, notifyOthers }}>
       {children}
     </Ctx.Provider>
   );
@@ -1493,21 +1504,21 @@ function Haushalt() {
   const [stamp,setStamp] = useState(false);    // grüner Ausgleich-Stempel
 
   const addRec = d => {
-    const tp={ id:uid(), name:d.name||'Posten', price:parseNum(d.price)||0, paidBy:d.paidBy||users[0].id, owedBy:d.owedBy||null, since:todayISO().slice(0,7) };
+    const tp={ id:uid(), name:d.name||'Posten', price:parseNum(d.price)||0, paidBy:d.paidBy||users[0].id, owedBy:d.owedBy||null, cat:d.cat||null, since:todayISO().slice(0,7) };
     const YM=todayISO().slice(0,7);
     set('rec',[tp,...recs]);
-    set('hs',[{ id:`r-${tp.id}-${YM}`, name:tp.name, price:tp.price, paidBy:tp.paidBy, owedBy:tp.owedBy||null, date:YM+'-01', settled:false, recur:true }, ...items]);
+    set('hs',[{ id:`r-${tp.id}-${YM}`, name:tp.name, price:tp.price, paidBy:tp.paidBy, owedBy:tp.owedBy||null, cat:tp.cat, date:YM+'-01', settled:false, recur:true }, ...items]);
   };
   const delRec = id => { const r=recs.find(x=>x.id===id); set('rec',recs.filter(x=>x.id!==id)); undo(`„${r?.name||'Posten'}" beendet`, ()=>setFn('rec', cur => cur.some(x=>x.id===id)?cur:[r,...cur])); };
 
-  const add    = d => { const amt=parseNum(d.price)||0; set('hs',[{id:uid(),name:d.name||'Einkauf',price:amt,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),owedBy:d.owedBy||null,settled:false},...items]); flyExpense(amt,'#5eead4',heroRef.current); notifyOthers(`💸 ${meName} hat ${fmt(amt)} € eingetragen`, d.name||'Einkauf', 'wg-exp'); };
-  const save   = d => set('hs',items.map(i=>i.id===editItem.id?{...i,name:d.name||i.name,price:parseNum(d.price)||i.price,paidBy:d.paidBy||i.paidBy,date:d.date||i.date,owedBy:d.owedBy||null}:i));
+  const add    = d => { const amt=parseNum(d.price)||0; set('hs',[{id:uid(),name:d.name||'Einkauf',price:amt,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),owedBy:d.owedBy||null,cat:d.cat||null,settled:false},...items]); flyExpense(amt,'#5eead4',heroRef.current); notifyOthers(`💸 ${meName} hat ${fmt(amt)} € eingetragen`, d.name||'Einkauf', 'wg-exp', 'exp'); };
+  const save   = d => set('hs',items.map(i=>i.id===editItem.id?{...i,name:d.name||i.name,price:parseNum(d.price)||i.price,paidBy:d.paidBy||i.paidBy,date:d.date||i.date,owedBy:d.owedBy||null,cat:d.cat||null}:i));
   const toggle = id => set('hs',items.map(i=>i.id===id?{...i,settled:!i.settled,settledAt:!i.settled?todayISO():null}:i));
   const del    = id => { const it=items.find(i=>i.id===id); set('hs',items.filter(i=>i.id!==id)); undo(`„${it?.name||'Ausgabe'}" gelöscht`, ()=>setFn('hs', cur => cur.some(i=>i.id===id)?cur:[it,...cur])); };
 
   /* Einkaufsliste */
-  const addL      = () => { const n=newName.trim(); if(!n){ listInput.current?.focus(); return; } set('sl',[{id:uid(),name:n,addedBy:me||null,date:todayISO(),done:false},...list]); setNewName(''); listInput.current?.focus(); notifyOthers(`🛒 ${meName} braucht ${n}`, '', 'wg-shop'); };
-  const quickAdd  = (n) => { set('sl',[{id:uid(),name:n,addedBy:me||null,date:todayISO(),done:false},...list]); notifyOthers(`🛒 ${meName} braucht ${n}`, '', 'wg-shop'); };
+  const addL      = () => { const n=newName.trim(); if(!n){ listInput.current?.focus(); return; } set('sl',[{id:uid(),name:n,addedBy:me||null,date:todayISO(),done:false},...list]); setNewName(''); listInput.current?.focus(); notifyOthers(`🛒 ${meName} braucht ${n}`, '', 'wg-shop', 'shop'); };
+  const quickAdd  = (n) => { set('sl',[{id:uid(),name:n,addedBy:me||null,date:todayISO(),done:false},...list]); notifyOthers(`🛒 ${meName} braucht ${n}`, '', 'wg-shop', 'shop'); };
   const toggleL   = id => set('sl',list.map(i=>i.id===id?{...i,done:!i.done}:i));
   /* Abhaken mit Wisch-Strich + Kollaps, dann erst in den Wagen wandern. Uncheck (done→offen) sofort. */
   const checkL    = i => { if(leaving===i.id) return; /* Doppel-Tap während der Abhak-Animation würde sonst doppelt togglen */ if(i.done||REDUCE()){ toggleL(i.id); return; } setLeaving(i.id); setTimeout(()=>{ toggleL(i.id); setLeaving(l=>l===i.id?null:l); }, 600); };
@@ -1534,7 +1545,7 @@ function Haushalt() {
     set('hs',items.map(i=>i.settled?i:{...i,settled:true,settledAt:todayISO(),settlementId:rec.id}));
     undo('Alles abgerechnet', ()=>{ setFn('stl', cur=>cur.filter(s=>s.id!==rec.id)); setFn('hs', cur=>cur.map(i=>i.settlementId===rec.id?{...i,settled:false,settledAt:null,settlementId:null}:i)); });
     if(!REDUCE()){ setStamp(true); setTimeout(()=>setStamp(false),1100); }
-    notifyOthers(`🤝 ${meName} hat abgerechnet`, `€${fmt(tot)}`, 'wg-settle');
+    notifyOthers(`🤝 ${meName} hat abgerechnet`, `€${fmt(tot)}`, 'wg-settle', 'settle');
   };
 
   // Bezahler standardmäßig auf das eigene Gerät (me) vorbelegen → ein Tap weniger im Normalfall
@@ -1558,8 +1569,25 @@ function Haushalt() {
       </div>
     </div>
   )});
+  /* Name-Schritt inkl. optionaler Kategorie-Chips — von steps UND recSteps genutzt. */
+  const catChips = ({data:d,setData:sd}) => (
+    <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:10}}>
+      {CATS.map(([k,em,label])=>(
+        <button key={k} type="button" onClick={()=>sd({...d,cat:d.cat===k?null:k})}
+          style={{fontSize:12,borderRadius:12,padding:'6px 10px',border:'none',fontWeight:d.cat===k?800:600,
+            background:d.cat===k?CAT_COLORS[k]:'var(--bg3)',color:d.cat===k?'#0a120c':'var(--label2)'}}>
+          {em} {label}
+        </button>
+      ))}
+    </div>
+  );
   const steps=[
-    {label:'Was wurde gekauft?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus maxLength={200} className="field" placeholder="Putzmittel, Toilettenpapier …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
+    {label:'Was wurde gekauft?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=>(
+      <>
+        <input autoFocus maxLength={200} className="field" placeholder="Putzmittel, Toilettenpapier …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>
+        {catChips({data:d,setData:sd})}
+      </>
+    )},
     {label:'Wie viel?',ok:d=>parseNum(d.price)>0,render:({data:d,setData:sd})=>(
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
         <div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>
@@ -1570,7 +1598,12 @@ function Haushalt() {
   ];
   /* Wiederkehrend: wie steps, aber ohne Datum (läuft monatlich) */
   const recSteps=[
-    {label:'Was wiederholt sich?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus maxLength={200} className="field" placeholder="Internet, Putzkraft, Spotify-Family …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
+    {label:'Was wiederholt sich?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=>(
+      <>
+        <input autoFocus maxLength={200} className="field" placeholder="Internet, Putzkraft, Spotify-Family …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>
+        {catChips({data:d,setData:sd})}
+      </>
+    )},
     {label:'Betrag pro Monat',ok:d=>parseNum(d.price)>0,render:({data:d,setData:sd})=><div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>},
     payerSplitStep('Wer zahlt es?'),
   ];
@@ -1761,7 +1794,7 @@ function Haushalt() {
         </div>
       </div>
       <Wiz open={wiz} onClose={()=>setWiz(false)} title="Ausgabe" color="var(--mint)" steps={steps} onFinish={add} initial={addInit}/>
-      <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title="Bearbeiten" color="var(--mint)" steps={steps} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,owedBy:editItem.owedBy||null,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>
+      <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title="Bearbeiten" color="var(--mint)" steps={steps} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,owedBy:editItem.owedBy||null,cat:editItem.cat||null,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>
       <Wiz open={!!convItem} onClose={()=>setConvItem(null)} title="Als Ausgabe übernehmen" color="var(--mint)" steps={steps} onFinish={convert} initial={convItem?{name:convItem.name,paidBy:me||undefined,date:todayISO()}:null}/>
       <Wiz open={recWiz} onClose={()=>setRecWiz(false)} title="Wiederkehrend (monatlich)" color="var(--mint)" steps={recSteps} onFinish={addRec} initial={addInit}/>
     </div>
@@ -1786,7 +1819,7 @@ function Grow() {
   const pctStr = id => (share(id)*100).toFixed(1)+'%';
   const setP   = (uid2,v) => set('gp',{...plants,[uid2]:Math.max(0,parseInt(v)||0)});
 
-  const add    = d => { const amt=parseNum(d.price)||0; set('gi',[{id:uid(),name:d.name||'Grow',price:amt,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),settled:false},...items]); flyExpense(amt,'#a3e635',heroRef.current); notifyOthers(`🌱 ${meName} hat ${fmt(amt)} € eingetragen`, d.name||'Grow', 'wg-exp'); };
+  const add    = d => { const amt=parseNum(d.price)||0; set('gi',[{id:uid(),name:d.name||'Grow',price:amt,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),settled:false},...items]); flyExpense(amt,'#a3e635',heroRef.current); notifyOthers(`🌱 ${meName} hat ${fmt(amt)} € eingetragen`, d.name||'Grow', 'wg-exp', 'exp'); };
   const save   = d => set('gi',items.map(i=>i.id===editItem.id?{...i,name:d.name||i.name,price:parseNum(d.price)||i.price,paidBy:d.paidBy||i.paidBy,date:d.date||i.date}:i));
   const toggle = id => set('gi',items.map(i=>i.id===id?{...i,settled:!i.settled,settledAt:!i.settled?todayISO():null}:i));
   const del    = id => { const it=items.find(i=>i.id===id); set('gi',items.filter(i=>i.id!==id)); undo(`„${it?.name||'Ausgabe'}" gelöscht`, ()=>setFn('gi', cur => cur.some(i=>i.id===id)?cur:[it,...cur])); };
@@ -1803,7 +1836,7 @@ function Grow() {
     set('gi',items.map(i=>i.settled?i:{...i,settled:true,settledAt:todayISO(),settlementId:rec.id}));
     undo('Alles abgerechnet', ()=>{ setFn('stl', cur=>cur.filter(s=>s.id!==rec.id)); setFn('gi', cur=>cur.map(i=>i.settlementId===rec.id?{...i,settled:false,settledAt:null,settlementId:null}:i)); });
     if(!REDUCE()){ setStamp(true); setTimeout(()=>setStamp(false),1100); }
-    notifyOthers(`🤝 ${meName} hat abgerechnet`, `€${fmt(tCost)}`, 'wg-settle');
+    notifyOthers(`🤝 ${meName} hat abgerechnet`, `€${fmt(tCost)}`, 'wg-settle', 'settle');
   };
 
   /* Pflanzen-Slots: jede Pflanze als Icon in Besitzer-Farbe */
@@ -1995,7 +2028,7 @@ function Putzplan() {
     set('pt', tasks.map(x=>x.id===t.id?{...x,lastDone:iso,assignee:other(x.assignee)}:x));
     set('pl', [{id:uid(),taskId:t.id,name:t.name,em:t.em,userId:t.assignee,date:iso},...log].slice(0,200));
     const nextName = users.find(u=>u.id===other(t.assignee))?.name || 'Der andere';
-    notifyOthers(`✅ ${meName} hat „${t.name}" erledigt`, `${nextName}, du bist dran!`, 'wg-putz');
+    notifyOthers(`✅ ${meName} hat „${t.name}" erledigt`, `${nextName}, du bist dran!`, 'wg-putz', 'putz');
   };
   const del = id => { const t=tasks.find(x=>x.id===id); set('pt',tasks.filter(x=>x.id!==id)); undo(`„${t?.name||'Aufgabe'}" gelöscht`, ()=>setFn('pt', cur => cur.some(x=>x.id===id)?cur:[t,...cur])); };
   const add = d => set('pt',[...tasks,{id:uid(),name:d.name||'Aufgabe',em:d.em||'🧽',interval:parseInt(d.interval)||7,assignee:d.assignee||users[0].id,lastDone:null}]);
@@ -2381,7 +2414,7 @@ function Abos() {
    EINSTELLUNGEN
 ══════════════════════════ */
 function Einstellungen() {
-  const { D, set, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, me, setMe, askConfirm, deviceId, pushSave, pushRemove } = useD();
+  const { D, set, setFn, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, me, setMe, undo, askConfirm, deviceId, pushSave, pushRemove, pushPrefsUpdate } = useD();
   const users=D.users;
   const [cfgText,  setCfgText]  = useState(fbCfg ? JSON.stringify(fbCfg, null, 2) : '');
   const [codeInput,setCodeInput]= useState('');
@@ -2390,6 +2423,7 @@ function Einstellungen() {
   const [showSetup,setShowSetup]= useState(!fbCfg);
   const [importErr,setImportErr]= useState('');
   const [pendingJoin,setPendingJoin] = useState(null); // WG-Code, der beigetreten werden soll (Merge/Überschreiben-Wahl)
+  const [showArchive,setShowArchive] = useState(false);
   const notifySupported = typeof window!=='undefined' && 'Notification' in window;
   const [notifyOn,setNotifyOn] = useState(()=>ls('wg_notify','off')==='on' && notifySupported && Notification.permission==='granted');
   const toggleNotify = async () => {
@@ -2413,6 +2447,18 @@ function Einstellungen() {
   const [pushMsg,  setPushMsg]  = useState('');
   const [pushPerm, setPushPerm] = useState(pushCapable ? Notification.permission : 'default');
   const flashPush = (m) => { setPushMsg(m); setTimeout(()=>setPushMsg(''), 4000); };
+  /* Push-Feinschliff: konfigurierbare Typen pro Gerät + Ruhezeiten. Quelle der Wahrheit für die UI
+     ist localStorage; bei aktivem Push zusätzlich in die RTDB-Subscription gespiegelt. */
+  const PUSH_PREFS_DEF = { exp:true, shop:true, putz:true, settle:true, remind:true, quiet:false, qs:22, qe:8 };
+  const [pushPrefs, setPushPrefs] = useState(() => ({ ...PUSH_PREFS_DEF, ...(ls('wg_push_prefs', {}) || {}) }));
+  const setPref = (patch) => {
+    setPushPrefs(prev => {
+      const next = { ...prev, ...patch };
+      ss('wg_push_prefs', next);
+      if (pushOn) pushPrefsUpdate(next).catch(()=>{});
+      return next;
+    });
+  };
   // Zustand aus der TATSÄCHLICHEN Subscription ableiten (nicht aus localStorage).
   useEffect(() => {
     if (!pushCapable) return;
@@ -2436,7 +2482,7 @@ function Einstellungen() {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
       const j = sub.toJSON() || {};
-      await pushSave({ endpoint: j.endpoint, p256dh: (j.keys&&j.keys.p256dh)||null, auth: (j.keys&&j.keys.auth)||null, name: (users.find(u=>u.id===me)?.name)||'Gerät', t: Date.now() });
+      await pushSave({ endpoint: j.endpoint, p256dh: (j.keys&&j.keys.p256dh)||null, auth: (j.keys&&j.keys.auth)||null, name: (users.find(u=>u.id===me)?.name)||'Gerät', t: Date.now(), ...pushPrefs });
       setPushOn(true);
       flashPush('Push aktiviert ✓');
     } catch (e) {
@@ -2463,7 +2509,51 @@ function Einstellungen() {
   const pushDisabled = !PUSH_API || !pushCapable || pushBusy || pushPerm==='denied';
 
   const hasLocalData = (D.hs?.length||0)+(D.gi?.length||0)+(D.ft?.length||0)+(D.ff?.length||0)+(D.ab?.length||0)+(D.pt?.length||0)+(D.sl?.length||0)
-    +(D.rec?.length||0)+(D.pl?.length||0)+(D.stl?.length||0)+Object.keys(D.gp||{}).length > 0;
+    +(D.rec?.length||0)+(D.pl?.length||0)+(D.stl?.length||0)+(D.arc?.length||0)+Object.keys(D.gp||{}).length > 0;
+
+  /* ── Archiv: abgerechnete Posten + Abrechnungen älter als 3 volle Monate ──
+     Cutoff = erster Tag des Monats, der 3 Monate vor dem aktuellen liegt
+     (z.B. heute 2026-07 → Cutoff 2026-04-01). ISO-Datumsstrings sortieren
+     lexikographisch korrekt, deshalb reicht String-Vergleich. */
+  const archiveCutoff = ymShift(todayISO().slice(0,7), -3) + '-01';
+  const arc  = D.arc || [];
+  const oldHs  = (D.hs||[]).filter(i => i.settled && (i.settledAt||i.date) < archiveCutoff);
+  const oldGi  = (D.gi||[]).filter(i => i.settled && (i.settledAt||i.date) < archiveCutoff);
+  const oldStl = (D.stl||[]).filter(s => s.date < archiveCutoff);
+  const archiveCandidates = [
+    ...oldHs.map(i=>({...i,src:'hs'})),
+    ...oldGi.map(i=>({...i,src:'gi'})),
+    ...oldStl.map(s=>({...s,src:'stl'})),
+  ];
+  const archiveCount = archiveCandidates.length;
+  const doArchive = async () => {
+    if (!archiveCount) return;
+    const ok = await askConfirm({ title:'Archivieren?', body:`${archiveCount} abgerechnete Einträge wandern ins Archiv. Sie bleiben in der Übersicht sichtbar.`, okLabel:'Archivieren' });
+    if (!ok) return;
+    const moved = archiveCandidates;
+    const hsIds = new Set(oldHs.map(i=>i.id)), giIds = new Set(oldGi.map(i=>i.id)), stlIds = new Set(oldStl.map(s=>s.id));
+    set('arc', [...moved, ...arc]);
+    set('hs', (D.hs||[]).filter(i=>!hsIds.has(i.id)));
+    set('gi', (D.gi||[]).filter(i=>!giIds.has(i.id)));
+    set('stl', (D.stl||[]).filter(s=>!stlIds.has(s.id)));
+    undo(`${moved.length} Einträge archiviert`, () => {
+      setFn('arc', cur => cur.filter(a => !moved.some(m=>m.id===a.id && m.src===a.src)));
+      ['hs','gi','stl'].forEach(k => {
+        setFn(k, cur => {
+          const back = moved.filter(m=>m.src===k).map(({src,...rest})=>rest).filter(r=>!cur.some(x=>x.id===r.id));
+          return back.length ? [...back, ...cur] : cur;
+        });
+      });
+    });
+  };
+  const arcByMonth = () => {
+    const groups = {};
+    [...arc].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).forEach(it => {
+      const ym = ymOf(it.date) || 'unbekannt';
+      (groups[ym] = groups[ym] || []).push(it);
+    });
+    return groups;
+  };
 
   const saveCfg = () => {
     setCfgErr('');
@@ -2667,6 +2757,33 @@ function Einstellungen() {
           <div className="section-ftr">Mindestens ein Modul muss aktiv sein.</div>
         </div>
 
+        {/* Archiv */}
+        <div className="rise" style={{animationDelay:'150ms'}}>
+          <div className="section-hdr">Archiv</div>
+          <div className="group">
+            <div className="cell">
+              <div className="cell-icon" style={{background:'rgba(56,189,248,.12)',fontSize:15}}>🗄️</div>
+              <div className="cell-content">
+                <span className="cell-title">Abgerechnetes archivieren</span>
+                <span className="cell-sub">{archiveCount>0 ? `${archiveCount} Posten älter als 3 Monate` : 'Nichts zu archivieren'}</span>
+              </div>
+              <button onClick={doArchive} disabled={archiveCount===0}
+                style={{background:archiveCount>0?'var(--sky)':'var(--bg3)',color:archiveCount>0?'#0a120c':'var(--label2)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800,opacity:archiveCount===0?.5:1}}>
+                Archivieren
+              </button>
+            </div>
+            {arc.length>0 && (
+              <div className="cell" style={{cursor:'pointer'}} onClick={()=>setShowArchive(true)}>
+                <div className="cell-icon" style={{background:'rgba(148,163,184,.12)',fontSize:15}}>📂</div>
+                <div className="cell-content">
+                  <span className="cell-title">Archiv ansehen</span>
+                  <span className="cell-sub">{arc.length} Einträge</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Backup / Restore */}
         <div className="rise" style={{animationDelay:'160ms'}}>
           <div className="section-hdr">Backup</div>
@@ -2753,6 +2870,50 @@ function Einstellungen() {
                 {pushBusy?'…':pushOn?'An':'Aus'}
               </button>
             </div>
+            {pushOn && !pushDisabled && [
+              ['exp','💸','Ausgaben'],
+              ['shop','🛒','Einkaufsliste'],
+              ['putz','✅','Putzplan'],
+              ['settle','🤝','Abrechnung'],
+              ['remind','⏰','Morgen-Erinnerungen'],
+            ].map(([key,em,label]) => (
+              <div key={key} className="cell" style={{minHeight:44,padding:'8px 16px'}}>
+                <div className="cell-content">
+                  <span className="cell-title" style={{fontSize:14.5}}>{em} {label}</span>
+                </div>
+                <button onClick={()=>setPref({[key]: !pushPrefs[key]})}
+                  style={{background:pushPrefs[key]?'var(--sky)':'var(--bg3)',color:pushPrefs[key]?'#0a120c':'var(--label2)',border:'none',borderRadius:14,padding:'5px 12px',fontSize:12,fontWeight:800}}>
+                  {pushPrefs[key]?'An':'Aus'}
+                </button>
+              </div>
+            ))}
+            {pushOn && !pushDisabled && (
+              <div className="cell" style={{minHeight:44,padding:'8px 16px'}}>
+                <div className="cell-content">
+                  <span className="cell-title" style={{fontSize:14.5}}>🌙 Ruhezeiten</span>
+                </div>
+                <button onClick={()=>setPref({quiet: !pushPrefs.quiet})}
+                  style={{background:pushPrefs.quiet?'var(--sky)':'var(--bg3)',color:pushPrefs.quiet?'#0a120c':'var(--label2)',border:'none',borderRadius:14,padding:'5px 12px',fontSize:12,fontWeight:800}}>
+                  {pushPrefs.quiet?'An':'Aus'}
+                </button>
+              </div>
+            )}
+            {pushOn && !pushDisabled && pushPrefs.quiet && (
+              <div className="cell" style={{minHeight:44,padding:'8px 16px'}}>
+                <div className="cell-content" style={{flexDirection:'row',alignItems:'center',gap:8}}>
+                  <span className="cell-sub">von</span>
+                  <select value={pushPrefs.qs} onChange={e=>setPref({qs:+e.target.value})}
+                    style={{background:'var(--bg3)',color:'var(--label)',border:'none',borderRadius:10,padding:'6px 10px'}}>
+                    {Array.from({length:24},(_,h)=>h).map(h=><option key={h} value={h}>{h} Uhr</option>)}
+                  </select>
+                  <span className="cell-sub">bis</span>
+                  <select value={pushPrefs.qe} onChange={e=>setPref({qe:+e.target.value})}
+                    style={{background:'var(--bg3)',color:'var(--label)',border:'none',borderRadius:10,padding:'6px 10px'}}>
+                    {Array.from({length:24},(_,h)=>h).map(h=><option key={h} value={h}>{h} Uhr</option>)}
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
           <div className="section-ftr" style={pushMsg?{color:'var(--sky)'}:undefined}>
             {!PUSH_API ? 'Server noch nicht konfiguriert — Push bald verfügbar.'
@@ -2782,6 +2943,40 @@ function Einstellungen() {
         </button>
 
       </div></div>
+      {showArchive && ReactDOM.createPortal(
+        <div className="overlay" onClick={()=>setShowArchive(false)}>
+          <div className="sheet" onClick={e=>e.stopPropagation()}>
+            <div className="sheet-handle"/>
+            <div className="sheet-hdr">
+              <span className="sheet-title">Archiv</span>
+              <button className="cancel-btn" onClick={()=>setShowArchive(false)}>Schließen</button>
+            </div>
+            <div className="sheet-body">
+              {Object.entries(arcByMonth()).map(([ym,arr]) => (
+                <div key={ym}>
+                  <div className="section-hdr" style={{padding:'0 0 8px'}}>{ymLabel(ym)}</div>
+                  <div className="group">
+                    {arr.map(it => (
+                      <div key={it.src+'-'+it.id} className="cell">
+                        <div className="cell-icon" style={{background:it.src==='hs'?'rgba(94,234,212,.12)':it.src==='gi'?'rgba(163,230,53,.12)':'rgba(56,189,248,.12)',fontSize:14}}>
+                          {it.src==='hs'?'🏠':it.src==='gi'?'🌱':'🤝'}
+                        </div>
+                        <div className="cell-content">
+                          <span className="cell-title">{it.src==='stl'?'Abrechnung':it.name}</span>
+                          <span className="cell-sub">{fmtDate(it.date)}</span>
+                        </div>
+                        <span className="num" style={{fontWeight:700,fontSize:15}}>€{fmt(it.src==='stl'?it.total:it.price)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {arc.length===0 && <div className="empty"><div className="empty-ico">🗄️</div><span style={{fontSize:14,color:'var(--label2)'}}>Noch nichts archiviert</span></div>}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
       {pendingJoin && ReactDOM.createPortal(
         <div className="overlay" onClick={()=>setPendingJoin(null)}>
           <div className="sheet" onClick={e=>e.stopPropagation()} style={{maxWidth:440}}>
@@ -2810,15 +3005,20 @@ function Einstellungen() {
 ══════════════════════════ */
 function Statistik() {
   const { D, status } = useD();
-  const users=D.users, hs=D.hs||[], gi=D.gi||[], ab=D.ab||[], gp=D.gp||{};
+  const users=D.users, hs=D.hs||[], gi=D.gi||[], ab=D.ab||[], gp=D.gp||{}, arc=D.arc||[], pl=D.pl||[];
   const [ym,setYm] = useState(()=>todayISO().slice(0,7));
   const nowYm = todayISO().slice(0,7);
   // Charts erst beim ersten Sichtbarwerden füllen (once) — nutzt die bestehenden width/height-Transitions
   const [payRef,paySeen]   = useInView();
   const [bearRef,bearSeen] = useInView();
+  const [catRef,catSeen]   = useInView();
   const [trendRef,trendSeen] = useInView();
+  const [plRef,plSeen]     = useInView();
 
-  const all = [...hs.map(i=>({...i,mod:'hs'})), ...gi.map(i=>({...i,mod:'gi'}))];
+  // Archivierte hs/gi-Ausgaben fließen weiter in Monatswähler/Trend/Größte Posten ein
+  // (stl-Archiv-Einträge sind Abrechnungen, keine Ausgaben — bleiben außen vor).
+  const arcExpenses = arc.filter(a=>a.src==='hs'||a.src==='gi').map(({src,...rest})=>({...rest,mod:src}));
+  const all = [...hs.map(i=>({...i,mod:'hs'})), ...gi.map(i=>({...i,mod:'gi'})), ...arcExpenses];
   const month = all.filter(i=>ymOf(i.date)===ym);
   const total = month.reduce((s,i)=>s+(i.price||0),0);
   const hsSum = month.filter(i=>i.mod==='hs').reduce((s,i)=>s+i.price,0);
@@ -2835,6 +3035,28 @@ function Statistik() {
   const trend = Array.from({length:6},(_,k)=>{ const m=ymShift(ym,-(5-k)); return {m, t: all.filter(i=>ymOf(i.date)===m).reduce((s,i)=>s+i.price,0)}; });
   const trendMax = Math.max(...trend.map(t=>t.t),1);
 
+  // Δ zum Vormonat: prev≈0 → keine sinnvolle Prozent-Basis, Zeile bleibt weg.
+  const prevYm = ymShift(ym,-1);
+  const prev = all.filter(i=>ymOf(i.date)===prevYm).reduce((s,i)=>s+(i.price||0),0);
+  const deltaRatio = prev>0.005 ? Math.abs(total-prev)/prev : null;
+  const deltaPct = deltaRatio!=null ? Math.round(deltaRatio*100) : null;
+
+  // Kategorien · Haushalt (nur hs-Posten des Monats, inkl. archivierte).
+  const hsMonth = month.filter(i=>i.mod==='hs');
+  const catBuckets = (() => {
+    const sums = {};
+    hsMonth.forEach(i => { const k = (i.cat && CAT_COLORS[i.cat]) ? i.cat : 'none'; sums[k] = (sums[k]||0) + i.price; });
+    return Object.entries(sums).map(([k,v]) => {
+      if (k==='none') return { k, v, em:'➖', label:'Ohne Kategorie', color:'rgba(255,255,255,.25)' };
+      const [,em,label] = CATS.find(c=>c[0]===k);
+      return { k, v, em, label, color:CAT_COLORS[k] };
+    }).filter(b=>b.v>0).sort((a,b)=>b.v-a.v);
+  })();
+
+  // Putzplan · 6 Monate: erledigte Aufgaben je User, gleiches 6-Monats-Raster wie `trend`.
+  const plCounts = trend.map(t => ({ m:t.m, counts: users.map(u => ({ id:u.id, color:u.color, n: pl.filter(e=>ymOf(e.date)===t.m && e.userId===u.id).length })) }));
+  const plMax = Math.max(...plCounts.flatMap(t=>t.counts.map(c=>c.n)), 1);
+
   return (
     <div className="screen">
       <NBar title="Übersicht" color="var(--sky)" status={status}/>
@@ -2848,6 +3070,11 @@ function Statistik() {
         <div className="hero rise" style={{'--glow':'rgba(56,189,248,.16)',animationDelay:'40ms'}}>
           <div className="hero-lbl">WG-Ausgaben · {ymLabel(ym)}</div>
           <div className="hero-big" style={{color:'var(--sky)',margin:'6px 0 14px'}}>€<CountUp value={total}/></div>
+          {prev>0.005 && (
+            <div style={{fontSize:12,fontWeight:700,margin:'-10px 0 10px',color:deltaRatio<=0.005?'var(--label3)':total>prev?'var(--amber)':'var(--mint)'}}>
+              {deltaRatio<=0.005 ? '≈ wie Vormonat' : `${total>prev?'▲':'▼'} ${deltaPct} % vs. Vormonat`}
+            </div>
+          )}
           <div style={{display:'flex',gap:10}}>
             {[['Haushalt',hsSum,'var(--mint)'],['Growbox',giSum,'var(--lime)'],['Abos/Mo.',moAbos,'var(--indigo)']].map(([l,v,c])=>(
               <div key={l} style={{flex:1}}>
@@ -2888,6 +3115,21 @@ function Statistik() {
           </div>
         )}
 
+        {hsMonth.length>0&&(
+          <div className="rise" style={{animationDelay:'92ms'}}>
+            <div className="section-hdr">Kategorien · Haushalt</div>
+            <div className="group" ref={catRef} style={{padding:'14px 16px',display:'flex',flexDirection:'column',gap:10}}>
+              {catBuckets.map(b=>(
+                <div key={b.k} className="bar-row">
+                  <span className="bar-name" style={{color:b.color,width:118,fontSize:12.5}}>{b.em} {b.label}</span>
+                  <div className="bar-track"><div className="bar-fill" style={{width:`${catSeen&&hsSum>0?b.v/hsSum*100:0}%`,background:b.color,color:b.color}}/></div>
+                  <span className="bar-val num">€{fmt(b.v)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="rise" style={{animationDelay:'100ms'}}>
           <div className="section-hdr">Verlauf · 6 Monate</div>
           <div className="group" ref={trendRef} style={{padding:'16px',display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:6,height:128}}>
@@ -2900,6 +3142,36 @@ function Statistik() {
             ))}
           </div>
         </div>
+
+        {pl.length>0&&(
+          <div className="rise" style={{animationDelay:'115ms'}}>
+            <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span>Putzplan · 6 Monate</span>
+              <span style={{display:'flex',gap:10}}>
+                {users.map(u=>(
+                  <span key={u.id} style={{display:'flex',alignItems:'center',gap:4,color:u.color,textTransform:'none',letterSpacing:0}}>
+                    <span style={{width:6,height:6,borderRadius:'50%',background:u.color,display:'inline-block'}}/>{u.name}
+                  </span>
+                ))}
+              </span>
+            </div>
+            <div className="group" ref={plRef} style={{padding:'16px',display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:6,height:128}}>
+              {plCounts.map(t=>(
+                <div key={t.m} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:6,height:'100%',justifyContent:'flex-end'}}>
+                  <div style={{display:'flex',gap:3,alignItems:'flex-end',height:'100%',width:'100%',justifyContent:'center'}}>
+                    {t.counts.map(c=>(
+                      <div key={c.id} style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',height:'100%',width:'100%',maxWidth:12}}>
+                        <span className="num" style={{fontSize:8,color:'var(--label3)'}}>{c.n>0?c.n:''}</span>
+                        <div style={{width:'100%',maxWidth:12,height:`${plSeen?(c.n>0?Math.max(c.n/plMax*100,2):0):0}%`,background:c.color,borderRadius:'4px 4px 0 0',transition:'height .6s cubic-bezier(.22,1,.36,1)'}}/>
+                      </div>
+                    ))}
+                  </div>
+                  <span style={{fontSize:9,color:'var(--label3)',fontWeight:700}}>{MONTHS[+t.m.split('-')[1]-1].slice(0,3)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {top.length>0&&(
           <div className="rise" style={{animationDelay:'130ms'}}>

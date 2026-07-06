@@ -28,6 +28,7 @@ module.exports = async (req, res) => {
   const { code, from, tag, url } = body;
   const title = body.title;
   const msgBody = body.body;
+  const type = ['exp', 'shop', 'putz', 'settle'].includes(body.type) ? body.type : undefined;
 
   if (typeof code !== 'string' || code.length < 6 || code.length > 64) {
     res.status(400).json({ error: 'invalid code' });
@@ -44,9 +45,9 @@ module.exports = async (req, res) => {
   try {
     const subs = await loadSubs(code);
     const payload = { title: safeTitle, body: safeBody, tag: tag || undefined, url: url || undefined };
-    const { sent, removed, errors } = await sendToSubs(subs, payload, { excludeDevice: from });
+    const { sent, removed, skipped, errors } = await sendToSubs(subs, payload, { excludeDevice: from, type });
     if (errors && errors.length) console.error('push errors:', JSON.stringify(errors));
-    res.status(200).json({ sent, removed });
+    res.status(200).json({ sent, removed, skipped });
   } catch (err) {
     res.status(500).json({ error: (err && err.message) || 'push fehlgeschlagen' });
   }

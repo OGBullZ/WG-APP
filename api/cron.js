@@ -120,7 +120,7 @@ module.exports = async (req, res) => {
   if (messages.length) {
     const subs = await loadSubs(code);
     for (const msg of messages) {
-      const r = await sendToSubs(subs, msg);
+      const r = await sendToSubs(subs, msg, { type: 'remind' });
       sent += r.sent;
     }
   }
