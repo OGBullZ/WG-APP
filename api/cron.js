@@ -3,6 +3,8 @@
 // crons) und pusht an alle Geräte der (einzigen) WG:
 //  - heute fällige/überfällige Putz-Tasks (gleiche Due-Logik wie wgapp.html)
 //  - Abos, die heute oder morgen abbuchen
+//  - am Monatsletzten: offene Haushalt/Grow-Summe als Abrechnungs-Erinnerung
+//  - am 1.: Monats-Digest über den Vormonat (inkl. Δ zum Monat davor)
 // Vercel-Prozesse laufen in UTC — "heute" wird deshalb explizit für
 // Europe/Berlin bestimmt (siehe CLAUDE.md-Gotcha zu UTC-Off-by-one).
 
@@ -58,6 +60,20 @@ function toArray(v) {
   if (Array.isArray(v)) return v;
   if (v && typeof v === 'object') return Object.values(v);
   return [];
+}
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+function monthKeyOf(y, m) { return `${y}-${pad2(m)}`; }
+function prevMonth(y, m) { return m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 }; }
+function monthName(y, m) {
+  return new Intl.DateTimeFormat('de-DE', { month: 'long' }).format(new Date(y, m - 1, 1));
+}
+// Summe aller Posten eines Monats (Datum 'YYYY-MM-…', auch rec-Posten mit 'YYYY-MM-01').
+function sumByMonth(items, key) {
+  return items.filter((i) => String(i.date || '').startsWith(key)).reduce((s, i) => s + (Number(i.price) || 0), 0);
+}
+function sumOpen(items) {
+  return items.filter((i) => !i.settled).reduce((s, i) => s + (Number(i.price) || 0), 0);
 }
 
 module.exports = async (req, res) => {
@@ -116,6 +132,55 @@ module.exports = async (req, res) => {
     });
   }
 
+  const hs = toArray(wg.hs);
+  const gi = toArray(wg.gi);
+  const { y, m, d } = berlinTodayParts();
+
+  // Monatsletzter: offene Posten anmahnen, damit die Abrechnung nicht liegen bleibt
+  let settleReminder = 0;
+  if (d === new Date(y, m, 0).getDate()) {
+    const openHs = sumOpen(hs);
+    const openGi = sumOpen(gi);
+    const open = openHs + openGi;
+    if (open > 0.005) {
+      const parts = [];
+      if (openHs > 0.005) parts.push(`Haushalt ${fmtPrice(openHs)} €`);
+      if (openGi > 0.005) parts.push(`Growbox ${fmtPrice(openGi)} €`);
+      messages.push({
+        title: 'Abrechnung',
+        body: `💶 Monatsende: ${fmtPrice(open)} € offen (${parts.join(' + ')}) — Zeit abzurechnen`,
+        tag: `settle-${monthKeyOf(y, m)}`,
+      });
+      settleReminder = 1;
+    }
+  }
+
+  // 1. des Monats: Digest über den Vormonat. Vormonats-Posten liegen immer noch
+  // in hs/gi (Archiv verschiebt erst nach 3 vollen Monaten) — arc nicht nötig.
+  let digest = 0;
+  if (d === 1) {
+    const pm = prevMonth(y, m);
+    const ppm = prevMonth(pm.y, pm.m);
+    const kPrev = monthKeyOf(pm.y, pm.m);
+    const hsPrev = sumByMonth(hs, kPrev);
+    const giPrev = sumByMonth(gi, kPrev);
+    const tPrev = hsPrev + giPrev;
+    const tBefore = sumByMonth(hs, monthKeyOf(ppm.y, ppm.m)) + sumByMonth(gi, monthKeyOf(ppm.y, ppm.m));
+    if (tPrev > 0.005) {
+      const delta = tPrev - tBefore;
+      const deltaTxt = tBefore <= 0.005 ? ''
+        : Math.abs(delta) < 0.005 ? ' · ≈ wie im Vormonat'
+        : delta > 0 ? ` · ▲ ${fmtPrice(delta)} € mehr als im ${monthName(ppm.y, ppm.m)}`
+        : ` · ▼ ${fmtPrice(-delta)} € weniger als im ${monthName(ppm.y, ppm.m)}`;
+      messages.push({
+        title: 'Monats-Rückblick',
+        body: `📊 ${monthName(pm.y, pm.m)}: ${fmtPrice(tPrev)} € ausgegeben (Haushalt ${fmtPrice(hsPrev)} €, Growbox ${fmtPrice(giPrev)} €)${deltaTxt}`,
+        tag: `digest-${kPrev}`,
+      });
+      digest = 1;
+    }
+  }
+
   let sent = 0;
   if (messages.length) {
     const subs = await loadSubs(code);
@@ -125,5 +190,5 @@ module.exports = async (req, res) => {
     }
   }
 
-  res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, sent });
+  res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, sent });
 };
