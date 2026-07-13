@@ -5,6 +5,8 @@
 //  - Abos, die heute oder morgen abbuchen
 //  - am Monatsletzten: offene Haushalt/Grow-Summe als Abrechnungs-Erinnerung
 //  - am 1.: Monats-Digest über den Vormonat (inkl. Δ zum Monat davor)
+//  - Kategorie-Budgets (wg/<code>/bud): Warnung bei 80 %/100 % — je Monat/Kategorie/Stufe
+//    genau einmal, Marker in wg/<code>/budSent
 // Vercel-Prozesse laufen in UTC — "heute" wird deshalb explizit für
 // Europe/Berlin bestimmt (siehe CLAUDE.md-Gotcha zu UTC-Off-by-one).
 
@@ -181,6 +183,39 @@ module.exports = async (req, res) => {
     }
   }
 
+  // Kategorie-Budgets: 80/100 %-Warnung, einmal pro Monat+Kategorie+Stufe (Marker budSent).
+  // Nur echte hs-Kategorie-Treffer zählen (Posten ohne cat laufen in kein Budget).
+  const CAT_LABELS = { food: 'Lebensmittel', home: 'Haushalt', fun: 'Freizeit', fix: 'Fixkosten', other: 'Sonstiges' };
+  let budWarns = 0;
+  const buds = toArray(wg.bud).filter((b) => b && b.id && Number(b.limit) > 0);
+  if (buds.length) {
+    const ymKey = monthKeyOf(y, m);
+    const sentMarks = wg.budSent || {};
+    for (const b of buds) {
+      const spent = hs.filter((i) => String(i.date || '').startsWith(ymKey) && i.cat === b.id)
+        .reduce((s, i) => s + (Number(i.price) || 0), 0);
+      const limit = Number(b.limit);
+      const level = spent >= limit ? 100 : spent >= limit * 0.8 ? 80 : 0;
+      if (!level) continue;
+      const markId = `${ymKey}-${b.id}-${level}`;
+      if (sentMarks[markId]) continue;
+      const label = CAT_LABELS[b.id] || b.id;
+      messages.push({
+        title: 'Budget',
+        body: level === 100
+          ? `🚨 Budget ${label} überschritten: ${fmtPrice(spent)} € von ${fmtPrice(limit)} €`
+          : `⚠️ Budget ${label} bei ${Math.round((spent / limit) * 100)} %: ${fmtPrice(spent)} € von ${fmtPrice(limit)} €`,
+        tag: `bud-${markId}`,
+      });
+      try {
+        await fetch(`${DB_BASE}/wg/${encodeURIComponent(code)}/budSent/${encodeURIComponent(markId)}.json`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: markId, t: Date.now() }),
+        });
+      } catch (_) { /* best effort — schlimmstenfalls morgen eine Doppel-Warnung */ }
+      budWarns++;
+    }
+  }
+
   let sent = 0;
   if (messages.length) {
     const subs = await loadSubs(code);
@@ -190,5 +225,5 @@ module.exports = async (req, res) => {
     }
   }
 
-  res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, sent });
+  res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, budWarns, sent });
 };

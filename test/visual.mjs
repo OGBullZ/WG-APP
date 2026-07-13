@@ -24,9 +24,9 @@ const DEMO = {
     { id:'u2', name:'Tom',    color:'#fbbf24' },
   ],
   hs: [
-    { id:'h1', name:'Putzmittel', price:24, paidBy:'u1', owedBy:'u2', date:today, settled:false },
-    { id:'h2', name:'Klopapier',  price:8,  paidBy:'u2', owedBy:null, date:today, settled:false },
-    { id:'h3', name:'Internet',   price:30, paidBy:'u1', owedBy:null, date:today, settled:false },
+    { id:'h1', name:'Putzmittel', price:24, paidBy:'u1', owedBy:'u2', date:today, settled:false, cat:'home' },
+    { id:'h2', name:'Klopapier',  price:8,  paidBy:'u2', owedBy:null, date:today, settled:false, cat:'home' },
+    { id:'h3', name:'Internet',   price:30, paidBy:'u1', owedBy:null, date:today, settled:false, cat:'fix' },
   ],
   sl: [
     { id:'s1', name:'Milch',      addedBy:'u2', date:today, done:false },
@@ -34,7 +34,13 @@ const DEMO = {
     { id:'s3', name:'Spülmittel', addedBy:'u2', date:today, done:true  },
   ],
   gp: { u1:7, u2:2 },
-  gi: [ { id:'g1', name:'Dünger', price:15, paidBy:'u2', date:today, settled:false } ],
+  gi: [
+    { id:'g1', name:'Dünger', price:15, paidBy:'u2', date:today, settled:false, cat:'duenger' },
+    { id:'g2', name:'LED-Panel', price:60, paidBy:'u1', date:today, settled:false, cat:'equip' },
+  ],
+  gh: [ { id:'e1', date:today, grams:42.5, note:'Northern Lights' } ],
+  bud: [ { id:'home', limit:30 } ],
+  slh: [ { id:'hafermilch', name:'Hafermilch', n:5 }, { id:'tofu', name:'Tofu', n:3 } ],
 };
 
 const browser = await chromium.launch();

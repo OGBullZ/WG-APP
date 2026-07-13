@@ -639,6 +639,9 @@ const COMMON_ITEMS = ['Milch','Brot','Eier','Butter','Klopapier','Müllbeutel','
 /* Optionale Kategorien für Haushalt-Ausgaben (Übersicht → „Kategorien · Haushalt"). */
 const CATS = [['food','🛒','Lebensmittel'],['home','🧴','Haushalt'],['fun','🎉','Freizeit'],['fix','📄','Fixkosten'],['other','📦','Sonstiges']];
 const CAT_COLORS = { food:'#5eead4', home:'#38bdf8', fun:'#fbbf24', fix:'#a78bfa', other:'#94a3b8' };
+/* Optionale Kategorien für Grow-Ausgaben (Übersicht → „Kategorien · Growbox"). */
+const GROW_CATS = [['duenger','🧪','Dünger'],['erde','🪴','Erde'],['equip','💡','Equipment'],['strom','⚡','Strom'],['gsonst','📦','Sonstiges']];
+const GROW_CAT_COLORS = { duenger:'#a3e635', erde:'#fbbf24', equip:'#38bdf8', strom:'#c4b5fd', gsonst:'#94a3b8' };
 
 /* Eingebaute Firebase-Config (Client-Keys sind öffentlich) — Sync läuft out-of-the-box */
 const FB_DEFAULT = {
@@ -678,6 +681,9 @@ const INIT = {
   stl:    [],
   rec:    [],
   arc:    [],
+  slh:    [],
+  gh:     [],
+  bud:    [],
 };
 const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
 
@@ -685,8 +691,9 @@ const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
    So überleben gleichzeitige Adds an dasselbe Modul (RTDB merged pro Item),
    statt dass der letzte komplette Array-Write die anderen Einträge überschreibt.
    users (fix 2) und gp (Pflanzen-Map) bleiben key-level.
-   arc = Archiv (alte abgerechnete hs/gi/stl-Einträge, s. archiveCutoff in Einstellungen). */
-const LIST_KEYS = ['hs','gi','ft','ff','ab','pt','pl','sl','stl','rec','arc'];
+   arc = Archiv (alte abgerechnete hs/gi/stl-Einträge, s. archiveCutoff in Einstellungen).
+   slh = Einkaufslisten-Historie (id=Slug, n=Kaufzähler), gh = Ernte-Log, bud = Kategorie-Budgets (id=Cat-Key). */
+const LIST_KEYS = ['hs','gi','ft','ff','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud'];
 const isListKey = k => LIST_KEYS.includes(k);
 
 /* Monotone Sequenz für stabile, geräteübergreifend deterministische Sortierung. */
@@ -1519,7 +1526,10 @@ function Haushalt({goGrow}) {
   /* Einkaufsliste */
   const addL      = () => { const n=newName.trim(); if(!n){ listInput.current?.focus(); return; } set('sl',[{id:uid(),name:n,addedBy:me||null,date:todayISO(),done:false},...list]); setNewName(''); listInput.current?.focus(); notifyOthers(`🛒 ${meName} braucht ${n}`, '', 'wg-shop', 'shop'); };
   const quickAdd  = (n) => { set('sl',[{id:uid(),name:n,addedBy:me||null,date:todayISO(),done:false},...list]); notifyOthers(`🛒 ${meName} braucht ${n}`, '', 'wg-shop', 'shop'); };
-  const toggleL   = id => set('sl',list.map(i=>i.id===id?{...i,done:!i.done}:i));
+  /* Kaufzähler für lernende Vorschläge: beim Abhaken (offen→erledigt) hochzählen.
+     id = Slug (RTDB-Pfad-sicher), name behält die zuletzt getippte Schreibweise. */
+  const bumpSlh   = name => { const n=String(name||'').trim(); if(!n) return; const sid=n.toLowerCase().replace(/[.#$/\[\]]/g,'_').slice(0,80); setFn('slh', cur => { const l=cur||[]; const ex=l.find(x=>x.id===sid); return ex ? l.map(x=>x.id===sid?{...x,n:(x.n||0)+1,name:n}:x) : [{id:sid,name:n,n:1},...l]; }); };
+  const toggleL   = id => { const it=list.find(i=>i.id===id); if(it&&!it.done) bumpSlh(it.name); set('sl',list.map(i=>i.id===id?{...i,done:!i.done}:i)); };
   /* Abhaken mit Wisch-Strich + Kollaps, dann erst in den Wagen wandern. Uncheck (done→offen) sofort. */
   const checkL    = i => { if(leaving===i.id) return; /* Doppel-Tap während der Abhak-Animation würde sonst doppelt togglen */ if(i.done||REDUCE()){ toggleL(i.id); return; } setLeaving(i.id); setTimeout(()=>{ toggleL(i.id); setLeaving(l=>l===i.id?null:l); }, 600); };
   const delL      = id => { const it=list.find(i=>i.id===id); set('sl',list.filter(i=>i.id!==id)); undo(`„${it?.name||'Eintrag'}" gelöscht`, ()=>setFn('sl', cur => cur.some(i=>i.id===id)?cur:[it,...cur])); };
@@ -1765,7 +1775,10 @@ function Haushalt({goGrow}) {
           </form>
           {(() => {
             const offen = new Set(list.filter(i=>!i.done).map(i=>i.name.toLowerCase()));
-            const tipps = COMMON_ITEMS.filter(c=>!offen.has(c.toLowerCase())).slice(0,8);
+            /* Lernende Vorschläge: eigene häufige Käufe (≥2×) vor der statischen Liste */
+            const learned = [...(D.slh||[])].filter(x=>(x.n||0)>=2).sort((a,b)=>(b.n||0)-(a.n||0)).map(x=>x.name);
+            const pool = [...learned, ...COMMON_ITEMS.filter(c=>!learned.some(l=>l.toLowerCase()===c.toLowerCase()))];
+            const tipps = pool.filter(c=>!offen.has(c.toLowerCase())).slice(0,8);
             return tipps.length>0 && (
               <div className="rise" style={{display:'flex',flexWrap:'wrap',gap:7,animationDelay:'55ms'}}>
                 {tipps.map(t=>(
@@ -1847,13 +1860,35 @@ function Grow() {
   const pctStr = id => (share(id)*100).toFixed(1)+'%';
   const setP   = (uid2,v) => set('gp',{...plants,[uid2]:Math.max(0,parseInt(v)||0)});
 
-  const add    = d => { const amt=parseNum(d.price)||0; set('gi',[{id:uid(),name:d.name||'Grow',price:amt,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),settled:false},...items]); flyExpense(amt,'#a3e635',heroRef.current); notifyOthers(`🌱 ${meName} hat ${fmt(amt)} € eingetragen`, d.name||'Grow', 'wg-exp', 'exp'); };
-  const save   = d => set('gi',items.map(i=>i.id===editItem.id?{...i,name:d.name||i.name,price:parseNum(d.price)||i.price,paidBy:d.paidBy||i.paidBy,date:d.date||i.date}:i));
+  const add    = d => { const amt=parseNum(d.price)||0; set('gi',[{id:uid(),name:d.name||'Grow',price:amt,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),cat:d.cat||null,settled:false},...items]); flyExpense(amt,'#a3e635',heroRef.current); notifyOthers(`🌱 ${meName} hat ${fmt(amt)} € eingetragen`, d.name||'Grow', 'wg-exp', 'exp'); };
+  const save   = d => set('gi',items.map(i=>i.id===editItem.id?{...i,name:d.name||i.name,price:parseNum(d.price)||i.price,paidBy:d.paidBy||i.paidBy,date:d.date||i.date,cat:d.cat||null}:i));
   const toggle = id => set('gi',items.map(i=>i.id===id?{...i,settled:!i.settled,settledAt:!i.settled?todayISO():null}:i));
   const del    = id => { const it=items.find(i=>i.id===id); set('gi',items.filter(i=>i.id!==id)); undo(`„${it?.name||'Ausgabe'}" gelöscht`, ()=>setFn('gi', cur => cur.some(i=>i.id===id)?cur:[it,...cur])); };
 
   const settled=items.filter(i=>i.settled);
   const bals=users.map(u=>({ ...u, paid:open.filter(i=>i.paidBy===u.id).reduce((s,i)=>s+i.price,0), net:net(u.id) }));
+
+  /* Ernte-Log: Zyklus-Kosten = alle gi-Ausgaben (inkl. abgerechnet + Archiv) zwischen Vor-Ernte und Ernte */
+  const ghList=D.gh||[];
+  const [harvWiz,setHarvWiz]=useState(false);
+  const allGiCost=[...items, ...(D.arc||[]).filter(a=>a.src==='gi')];
+  const harvAsc=[...ghList].sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const cycles=harvAsc.map((h,ix)=>{
+    const from=ix>0?String(harvAsc[ix-1].date):'';
+    const cost=allGiCost.filter(i=>String(i.date||'')>from&&String(i.date||'')<=String(h.date)).reduce((s,i)=>s+(Number(i.price)||0),0);
+    const g=Number(h.grams)||0;
+    return {...h,cost,gpg:g>0?cost/g:null};
+  });
+  const harv=[...cycles].reverse();
+  const totG=cycles.reduce((s,h)=>s+(Number(h.grams)||0),0);
+  const avgGpg=totG>0?cycles.reduce((s,h)=>s+h.cost,0)/totG:null;
+  const addHarv=d=>{ const g=parseNum(d.grams)||0; const note=(d.note||'').trim(); set('gh',[{id:uid(),date:d.date||todayISO(),grams:g,...(note?{note}:{})},...ghList]); notifyOthers(`🌾 ${meName} hat eine Ernte eingetragen`, `${fmt(g)} g`, 'wg-exp', 'exp'); };
+  const delHarv=id=>{ const it=ghList.find(x=>x.id===id); set('gh',ghList.filter(x=>x.id!==id)); undo('Ernte gelöscht', ()=>setFn('gh', cur => cur.some(x=>x.id===id)?cur:[it,...cur])); };
+  const harvSteps=[
+    {label:'Wann geerntet?',ok:()=>true,render:({data:d,setData:sd})=><DateField value={d.date} onChange={v=>sd({...d,date:v})}/>},
+    {label:'Wie viel? (Gramm)',ok:d=>parseNum(d.grams)>0,render:({data:d,setData:sd})=><input autoFocus type="text" inputMode="decimal" className="field" placeholder="z. B. 42,5" value={d.grams||''} onChange={e=>sd({...d,grams:e.target.value})}/>},
+    {label:'Notiz (optional)',ok:()=>true,render:({data:d,setData:sd})=><input autoFocus maxLength={200} className="field" placeholder="Sorte, Qualität …" value={d.note||''} onChange={e=>sd({...d,note:e.target.value})}/>},
+  ];
   const settlements=(D.stl||[]).filter(s=>s.mod==='gi');
 
   const settleAll = () => {
@@ -1873,7 +1908,20 @@ function Grow() {
 
   const addInit = useMemo(()=>({ paidBy: me||undefined }), [me]);
   const steps=[
-    {label:'Was wurde gekauft?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus maxLength={200} className="field" placeholder="Dünger, Erde, Lampe …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
+    {label:'Was wurde gekauft?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=>(
+      <>
+        <input autoFocus maxLength={200} className="field" placeholder="Dünger, Erde, Lampe …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>
+        <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:10}}>
+          {GROW_CATS.map(([k,em,label])=>(
+            <button key={k} type="button" onClick={()=>sd({...d,cat:d.cat===k?null:k})}
+              style={{fontSize:12,borderRadius:12,padding:'6px 10px',border:'none',fontWeight:d.cat===k?800:600,
+                background:d.cat===k?GROW_CAT_COLORS[k]:'var(--bg3)',color:d.cat===k?'#0a120c':'var(--label2)'}}>
+              {em} {label}
+            </button>
+          ))}
+        </div>
+      </>
+    )},
     {label:'Wie viel?',ok:d=>parseNum(d.price)>0,render:({data:d,setData:sd})=>(
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
         <div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>
@@ -2024,9 +2072,34 @@ function Grow() {
             </>
           )
         }
+
+        {/* Ernte-Log: Gramm je Ernte + Zyklus-Kosten (gi zwischen den Ernten) + €/g */}
+        <div className="rise" style={{animationDelay:'160ms'}}>
+          <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <span>🌾 Ernten{harv.length>0?` · ${harv.length}`:''}</span>
+            {avgGpg!=null&&<span className="num" style={{color:'var(--lime)',textTransform:'none',letterSpacing:0}}>Ø €{fmt(avgGpg)}/g</span>}
+          </div>
+          {harv.length>0&&(
+            <div className="group" style={{marginBottom:10}}>
+              {harv.map(h=>(
+                <div key={h.id} className="cell">
+                  <div className="cell-icon" style={{background:'rgba(163,230,53,.12)',fontSize:15}}>🌾</div>
+                  <div className="cell-content">
+                    <span className="cell-title"><span className="num">{fmt(Number(h.grams)||0)} g</span>{h.note?` · ${h.note}`:''}</span>
+                    <span className="cell-sub">{fmtDate(h.date)} · Zyklus €{fmt(h.cost)}</span>
+                  </div>
+                  {h.gpg!=null&&<span className="num" style={{fontWeight:700,fontSize:14,color:'var(--lime)'}}>€{fmt(h.gpg)}/g</span>}
+                  <button className="del-btn" aria-label="Ernte löschen" title="Ernte löschen" onClick={()=>delHarv(h.id)}>×</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <button className="btn btn-sec" style={{fontSize:14}} onClick={()=>setHarvWiz(true)}>+ Ernte erfassen</button>
+        </div>
       </div></div>
+      <Wiz open={harvWiz} onClose={()=>setHarvWiz(false)} title="Ernte" color="var(--lime)" steps={harvSteps} onFinish={addHarv} initial={{date:todayISO()}}/>
       <Wiz open={wiz} onClose={()=>setWiz(false)} title="Grow-Ausgabe" color="var(--lime)" steps={steps} onFinish={add} initial={addInit}/>
-      <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title="Bearbeiten" color="var(--lime)" steps={steps} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>
+      <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title="Bearbeiten" color="var(--lime)" steps={steps} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,cat:editItem.cat||null,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>
     </div>
   );
 }
@@ -2624,6 +2697,28 @@ function Einstellungen() {
     URL.revokeObjectURL(url);
   };
 
+  /* CSV-Export: Ausgaben (hs/gi inkl. Archiv) + Abrechnungen — Semikolon + BOM für deutsches Excel */
+  const exportCsv = () => {
+    const esc = v => { const s=String(v==null?'':v); return /[;"\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+    const eur = n => Number(n||0).toFixed(2).replace('.',',');
+    const uname = id => (D.users||[]).find(u=>u.id===id)?.name||'';
+    const catLabel = k => (CATS.find(c=>c[0]===k)||GROW_CATS.find(c=>c[0]===k))?.[2]||'';
+    const rows = [['Modul','Name','Betrag (€)','Bezahlt von','Datum','Kategorie','Status']];
+    const addRow = (i,mod,st) => rows.push([mod,i.name||'',eur(i.price),uname(i.paidBy),i.date||'',catLabel(i.cat),st]);
+    (D.hs||[]).forEach(i=>addRow(i,'Haushalt',i.settled?'abgerechnet':'offen'));
+    (D.gi||[]).forEach(i=>addRow(i,'Growbox',i.settled?'abgerechnet':'offen'));
+    (D.arc||[]).filter(a=>a.src==='hs'||a.src==='gi').forEach(a=>addRow(a,a.src==='hs'?'Haushalt':'Growbox','archiviert'));
+    [...(D.stl||[]), ...(D.arc||[]).filter(a=>a.src==='stl')].forEach(s=>
+      rows.push(['Abrechnung', s.mod==='hs'?'Haushalt':'Growbox', eur(s.amount!=null?s.amount:s.total), `${uname(s.fromId)} → ${uname(s.toId)}`, s.date||'', '', `${s.n||0} Posten`]));
+    const blob = new Blob(['﻿'+rows.map(r=>r.map(esc).join(';')).join('\r\n')], {type:'text/csv;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `wg-export-${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   /* Import */
   const importFile = (file) => {
     setImportErr('');
@@ -2821,6 +2916,13 @@ function Einstellungen() {
               <div className="cell-content">
                 <span className="cell-title">Als JSON exportieren</span>
                 <span className="cell-sub">Lädt eine Backup-Datei herunter</span>
+              </div>
+            </div>
+            <div className="cell" style={{cursor:'pointer'}} onClick={exportCsv}>
+              <div className="cell-icon" style={{background:'rgba(56,189,248,.12)',fontSize:15}}>📊</div>
+              <div className="cell-content">
+                <span className="cell-title">Als CSV exportieren</span>
+                <span className="cell-sub">Ausgaben + Abrechnungen für Excel/Sheets</span>
               </div>
             </div>
             <div className="cell" style={{cursor:'pointer'}} onClick={()=>fileInputRef.current?.click()}>
@@ -3032,14 +3134,16 @@ function Einstellungen() {
    STATISTIK / ÜBERSICHT
 ══════════════════════════ */
 function Statistik() {
-  const { D, status } = useD();
+  const { D, status, setFn } = useD();
   const users=D.users, hs=D.hs||[], gi=D.gi||[], ab=D.ab||[], gp=D.gp||{}, arc=D.arc||[], pl=D.pl||[];
   const [ym,setYm] = useState(()=>todayISO().slice(0,7));
   const nowYm = todayISO().slice(0,7);
+  const [budCat,setBudCat] = useState(null); // Kategorie, für die gerade ein Budget gesetzt wird
   // Charts erst beim ersten Sichtbarwerden füllen (once) — nutzt die bestehenden width/height-Transitions
   const [payRef,paySeen]   = useInView();
   const [bearRef,bearSeen] = useInView();
   const [catRef,catSeen]   = useInView();
+  const [gcatRef,gcatSeen] = useInView();
   const [trendRef,trendSeen] = useInView();
   const [plRef,plSeen]     = useInView();
 
@@ -3069,6 +3173,13 @@ function Statistik() {
   const deltaRatio = prev>0.005 ? Math.abs(total-prev)/prev : null;
   const deltaPct = deltaRatio!=null ? Math.round(deltaRatio*100) : null;
 
+  // Gesamt-Saldo über alles (2 Personen): offene hs+gi-Posten, gleiche Split-Logik wie die Tabs.
+  // Nur Anzeige — abgerechnet wird weiter pro Modul.
+  const openAll = [...hs.filter(i=>!i.settled).map(i=>({...i,mod:'hs'})), ...gi.filter(i=>!i.settled).map(i=>({...i,mod:'gi'}))];
+  const netOf = id => openAll.reduce((s,i)=>s+(i.paidBy===id?(i.price||0):0)-shareOf(i,id),0);
+  const nets = users.map(u=>({...u, net:netOf(u.id)}));
+  const netDeb = nets.find(n=>n.net<-0.01), netCred = nets.find(n=>n.net>0.01);
+
   // Kategorien · Haushalt (nur hs-Posten des Monats, inkl. archivierte).
   const hsMonth = month.filter(i=>i.mod==='hs');
   const catBuckets = (() => {
@@ -3078,6 +3189,27 @@ function Statistik() {
       if (k==='none') return { k, v, em:'➖', label:'Ohne Kategorie', color:'rgba(255,255,255,.25)' };
       const [,em,label] = CATS.find(c=>c[0]===k);
       return { k, v, em, label, color:CAT_COLORS[k] };
+    }).filter(b=>b.v>0).sort((a,b)=>b.v-a.v);
+  })();
+
+  // Budgets: Monatslimit je Haushalt-Kategorie (synced Key bud, id=Cat-Key).
+  const budMap = Object.fromEntries((D.bud||[]).map(b=>[b.id, Number(b.limit)||0]));
+  const saveBud = d => { const lim=parseNum(d.limit)||0; const cat=budCat; setFn('bud', cur => { const l=(cur||[]).filter(x=>x.id!==cat); return lim>0?[{id:cat,limit:lim},...l]:l; }); };
+  const budSteps = [
+    {label:'Monatslimit (leer = kein Budget)',ok:()=>true,render:({data:d,setData:sd})=>(
+      <div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.limit||''} onChange={e=>sd({...d,limit:e.target.value})}/></div>
+    )},
+  ];
+
+  // Kategorien · Growbox (nur gi-Posten des Monats, inkl. archivierte).
+  const giMonth = month.filter(i=>i.mod==='gi');
+  const gcatBuckets = (() => {
+    const sums = {};
+    giMonth.forEach(i => { const k = (i.cat && GROW_CAT_COLORS[i.cat]) ? i.cat : 'none'; sums[k] = (sums[k]||0) + i.price; });
+    return Object.entries(sums).map(([k,v]) => {
+      if (k==='none') return { k, v, em:'➖', label:'Ohne Kategorie', color:'rgba(255,255,255,.25)' };
+      const [,em,label] = GROW_CATS.find(c=>c[0]===k);
+      return { k, v, em, label, color:GROW_CAT_COLORS[k] };
     }).filter(b=>b.v>0).sort((a,b)=>b.v-a.v);
   })();
 
@@ -3113,6 +3245,20 @@ function Statistik() {
           </div>
         </div>
 
+        {openAll.length>0&&(
+          <div className="group rise" style={{padding:'13px 16px',display:'flex',alignItems:'center',gap:12,animationDelay:'55ms'}}>
+            <div className="cell-icon" style={{background:'rgba(56,189,248,.12)',fontSize:15}}>Σ</div>
+            <div className="cell-content">
+              <span className="cell-title" style={{fontSize:14.5}}>
+                {netDeb&&netCred
+                  ? <><span style={{color:netDeb.color,fontWeight:800}}>{netDeb.name}</span> schuldet <span style={{color:netCred.color,fontWeight:800}}>{netCred.name}</span> insgesamt <span className="num" style={{fontWeight:800}}>€{fmt(Math.abs(netDeb.net))}</span></>
+                  : <>Netto über alles: <span style={{color:'var(--green)',fontWeight:800}}>ausgeglichen ✓</span></>}
+              </span>
+              <span className="cell-sub">Haushalt + Growbox, offene Posten · abgerechnet wird pro Modul</span>
+            </div>
+          </div>
+        )}
+
         {total>0&&(
           <div className="rise" style={{animationDelay:'70ms'}}>
             <div className="section-hdr">Wer hat bezahlt</div>
@@ -3147,10 +3293,31 @@ function Statistik() {
           <div className="rise" style={{animationDelay:'92ms'}}>
             <div className="section-hdr">Kategorien · Haushalt</div>
             <div className="group" ref={catRef} style={{padding:'14px 16px',display:'flex',flexDirection:'column',gap:10}}>
-              {catBuckets.map(b=>(
+              {catBuckets.map(b=>{
+                const limit=b.k!=='none'?(budMap[b.k]||0):0;
+                const pct=limit>0?b.v/limit:0;
+                const warn=limit>0&&pct>=1?'var(--red)':limit>0&&pct>=0.8?'var(--amber)':null;
+                return (
+                  <div key={b.k} className="bar-row" style={b.k!=='none'?{cursor:'pointer'}:undefined} onClick={b.k!=='none'?()=>setBudCat(b.k):undefined}>
+                    <span className="bar-name" style={{color:warn||b.color,width:118,fontSize:12.5}}>{b.em} {b.label}</span>
+                    <div className="bar-track"><div className="bar-fill" style={{width:`${catSeen?(limit>0?Math.min(pct*100,100):(hsSum>0?b.v/hsSum*100:0)):0}%`,background:warn||b.color,color:warn||b.color}}/></div>
+                    <span className="bar-val num" style={warn?{color:warn}:undefined}>€{fmt(b.v)}{limit>0?<span style={{color:'var(--label3)',fontWeight:500}}> / {fmt(limit)}</span>:''}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="section-ftr">Kategorie antippen, um ein Monatsbudget zu setzen — ab 80 % warnt die App per Push.</div>
+          </div>
+        )}
+
+        {giMonth.length>0&&(
+          <div className="rise" style={{animationDelay:'96ms'}}>
+            <div className="section-hdr">Kategorien · Growbox</div>
+            <div className="group" ref={gcatRef} style={{padding:'14px 16px',display:'flex',flexDirection:'column',gap:10}}>
+              {gcatBuckets.map(b=>(
                 <div key={b.k} className="bar-row">
                   <span className="bar-name" style={{color:b.color,width:118,fontSize:12.5}}>{b.em} {b.label}</span>
-                  <div className="bar-track"><div className="bar-fill" style={{width:`${catSeen&&hsSum>0?b.v/hsSum*100:0}%`,background:b.color,color:b.color}}/></div>
+                  <div className="bar-track"><div className="bar-fill" style={{width:`${gcatSeen&&giSum>0?b.v/giSum*100:0}%`,background:b.color,color:b.color}}/></div>
                   <span className="bar-val num">€{fmt(b.v)}</span>
                 </div>
               ))}
@@ -3221,6 +3388,7 @@ function Statistik() {
 
         {total===0&&<div className="empty"><div className="empty-ico">📊</div><span style={{fontSize:14,color:'var(--label2)'}}>Keine Ausgaben in {ymLabel(ym)}</span></div>}
       </div></div>
+      <Wiz open={!!budCat} onClose={()=>setBudCat(null)} title={budCat?`Budget · ${CATS.find(c=>c[0]===budCat)?.[2]||''}`:'Budget'} color="var(--sky)" steps={budSteps} onFinish={saveBud} initial={budCat?{limit:budMap[budCat]?String(budMap[budCat]).replace('.',','):''}:null}/>
     </div>
   );
 }
