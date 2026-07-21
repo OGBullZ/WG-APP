@@ -1548,6 +1548,16 @@ function Haushalt({goGrow}) {
   /* Growbox-Hinweis: offene Grow-Kosten hier sichtbar machen, damit sie nicht übersehen werden (Bilanz bleibt getrennt — anderer Split) */
   const gc = growCalc(D);
   const gNet = me ? gc.net(me) : 0;
+  /* Persönliche Gesamt-Bilanz (Haushalt + Growbox) aus me-Sicht — Donut zeigt die Zusammensetzung,
+     damit Grow-Kosten nicht übersehen werden und „mein Anteil" nicht mit der WG-Gesamtsumme verwechselt wird. */
+  const growOn  = mods.grow!==false;
+  const hsShare = me ? open.reduce((s,i)=>s+shareOf(i,me),0) : 0;   // mein offener Haushalt-Anteil (50/50 bzw. owedBy)
+  const giShare = (me&&growOn) ? gc.tCost*gc.share(me) : 0;          // mein offener Grow-Anteil (nach Pflanzen-Split)
+  const myCost  = hsShare + giShare;                                // was ich diesen Zyklus insgesamt trage
+  const hsNet   = me ? (bals.find(b=>b.id===me)?.net||0) : 0;
+  const totalNet= hsNet + (growOn?gNet:0);                          // netto: bereits Ausgelegtes verrechnet
+  const hsPct   = myCost>0 ? Math.round(hsShare/myCost*100) : 0;
+  const giPct   = 100 - hsPct;
 
   /* Abrechnen: Ausgleich (wer→wem, wie viel) festhalten + offene Posten als abgerechnet markieren */
   const settleAll = () => {
@@ -1633,16 +1643,54 @@ function Haushalt({goGrow}) {
           </div>
           {seg==='aus'?(
           <>
+          {me ? (
+          <div className="hero rise" ref={heroRef} style={{'--glow':'rgba(94,234,212,.16)',animationDelay:'40ms'}}>
+            {stamp&&<div className="settle-stamp">✓</div>}
+            <div className="hero-lbl" style={{marginBottom:16}}>Deine Bilanz</div>
+            <div style={{display:'flex',alignItems:'center',gap:20}}>
+              {myCost>0.01 ? (
+                <Donut segs={[{frac:hsShare/myCost,color:'var(--mint)'},...(growOn&&giShare>0?[{frac:giShare/myCost,color:'var(--lime)'}]:[])]} size={128} sw={14}>
+                  <span className="num" style={{fontSize:23,fontWeight:700,color:'#f2f6f3'}}>€{fmt(myCost)}</span>
+                  <span style={{fontSize:9,color:'var(--label3)',letterSpacing:'.14em',textTransform:'uppercase',fontFamily:'var(--mono)'}}>dein Anteil</span>
+                </Donut>
+              ) : (
+                <Donut segs={[{frac:1,color:'rgba(94,234,212,.18)'}]} size={128} sw={14}>
+                  <span style={{fontSize:28}}>🎉</span>
+                </Donut>
+              )}
+              <div style={{flex:1,display:'flex',flexDirection:'column',gap:12}}>
+                <div style={{display:'flex',alignItems:'center',gap:9}}>
+                  <div style={{width:9,height:9,borderRadius:'50%',background:'var(--mint)',boxShadow:'0 0 8px var(--mint)',flexShrink:0}}/>
+                  <span style={{flex:1,fontSize:13.5,fontWeight:700,color:'var(--label2)'}}>Haushalt</span>
+                  <span className="num" style={{fontSize:13.5,fontWeight:700}}>€{fmt(hsShare)}</span>
+                  <span className="num" style={{fontSize:11,color:'var(--label3)',width:36,textAlign:'right'}}>{myCost>0?hsPct:0}%</span>
+                </div>
+                {growOn&&(
+                  <button onClick={goGrow} style={{display:'flex',alignItems:'center',gap:9,background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit'}}>
+                    <div style={{width:9,height:9,borderRadius:'50%',background:'var(--lime)',boxShadow:'0 0 8px var(--lime)',flexShrink:0}}/>
+                    <span style={{flex:1,fontSize:13.5,fontWeight:700,color:'var(--label2)',textAlign:'left'}}>Growbox</span>
+                    <span className="num" style={{fontSize:13.5,fontWeight:700}}>€{fmt(giShare)}</span>
+                    <span className="num" style={{fontSize:11,color:'var(--label3)',width:36,textAlign:'right'}}>{myCost>0?giPct:0}%</span>
+                    <span style={{color:'var(--label3)',fontSize:16,lineHeight:1,marginLeft:1}}>›</span>
+                  </button>
+                )}
+              </div>
+            </div>
+            <div style={{marginTop:18,paddingTop:15,borderTop:'1px solid rgba(255,255,255,.08)',textAlign:'center'}}>
+              {totalNet<-0.01
+                ? <div style={{fontSize:16,fontWeight:800,color:'var(--amber)'}}>Du schuldest insgesamt <span className="num">€{fmt(Math.abs(totalNet))}</span></div>
+                : totalNet>0.01
+                ? <div style={{fontSize:16,fontWeight:800,color:'var(--green)'}}>Dir wird <span className="num">€{fmt(totalNet)}</span> geschuldet</div>
+                : <div style={{fontSize:15,fontWeight:700,color:'var(--green)'}}>Alles ausgeglichen ✓</div>}
+              <div style={{fontSize:11,color:'var(--label3)',marginTop:5,fontWeight:500}}>{growOn?'Haushalt + Growbox':'Nur Haushalt'} · abgerechnet wird pro Bereich</div>
+            </div>
+          </div>
+          ) : (
+          <>
           <div className="hero rise" ref={heroRef} style={{'--glow':'rgba(94,234,212,.16)',animationDelay:'40ms'}}>
             {stamp&&<div className="settle-stamp">✓</div>}
             <div className="hero-lbl">Offene Ausgaben</div>
             <div className="hero-big" style={{color:'var(--mint)',margin:'6px 0 16px'}}>€<CountUp value={tot}/></div>
-            {me ? (()=>{
-              const mine=bals.find(b=>b.id===me), net=mine?mine.net:0;
-              if(net>0.01)  return <div style={{fontSize:15,fontWeight:700,color:'var(--green)'}}>Dir wird <span className="num">€{fmt(net)}</span> geschuldet</div>;
-              if(net<-0.01) return <div style={{fontSize:15,fontWeight:700,color:'var(--amber)'}}>Du schuldest <span className="num">€{fmt(Math.abs(net))}</span></div>;
-              return tot>0 ? <div style={{fontSize:14,fontWeight:700,color:'var(--green)'}}>Alles ausgeglichen ✓</div> : <div style={{fontSize:13,color:'var(--label3)'}}>Noch nichts offen</div>;
-            })() : (
             <div style={{display:'flex',flexDirection:'column',gap:10}}>
               <div style={{fontSize:11,color:'var(--label3)',fontWeight:600,letterSpacing:'.03em',textTransform:'uppercase'}}>Ausgelegt</div>
               {bals.map(b=>(
@@ -1652,27 +1700,23 @@ function Haushalt({goGrow}) {
                   <span className="bar-val num">€{fmt(b.paid)}</span>
                 </div>
               ))}
+              <div style={{fontSize:12,color:'var(--label3)',marginTop:4,fontWeight:500,textAlign:'center',lineHeight:1.5}}>Wähle unter <b>Mehr → Personen</b> dein Gerät für deine persönliche Bilanz.</div>
             </div>
-            )}
             {tot>0&&(open.every(i=>!i.owedBy)
               ?<div style={{fontSize:12,color:'var(--label3)',marginTop:12,fontWeight:500}}>50/50-Split · je <span className="num" style={{color:'var(--label2)'}}>€{fmt(tot/users.length)}</span></div>
               :<div style={{fontSize:12,color:'var(--label3)',marginTop:12,fontWeight:500}}>Gemischter Split · einzelne Posten trägt einer allein</div>)}
           </div>
-          {mods.grow!==false&&gc.tCost>0&&(
+          {growOn&&gc.tCost>0&&(
             <button className="group cell rise" style={{width:'100%',border:'1px solid rgba(163,230,53,.28)',textAlign:'left',cursor:'pointer',fontFamily:'inherit',animationDelay:'50ms'}} onClick={goGrow}>
               <div className="cell-icon" style={{background:'rgba(163,230,53,.12)'}}><Ic d={ICONS.leaf} color="var(--lime)" size={19} sw={2}/></div>
               <div className="cell-content">
                 <span className="cell-title" style={{color:'var(--lime)',fontWeight:700}}>Growbox · <span className="num">€{fmt(gc.tCost)}</span> offen</span>
-                <span className="cell-sub">
-                  {me
-                    ? (gNet>0.01 ? <>Dir wird <span className="num" style={{color:'var(--green)',fontWeight:700}}>€{fmt(gNet)}</span> geschuldet</>
-                      : gNet<-0.01 ? <>Du schuldest <span className="num" style={{color:'var(--amber)',fontWeight:700}}>€{fmt(Math.abs(gNet))}</span></>
-                      : 'Alles ausgeglichen ✓')
-                    : `${gc.open.length} offene${gc.open.length===1?'r':''} Posten`}
-                </span>
+                <span className="cell-sub">{gc.open.length} offene{gc.open.length===1?'r':''} Posten</span>
               </div>
               <span style={{color:'var(--label3)',fontSize:22,lineHeight:1,flexShrink:0}}>›</span>
             </button>
+          )}
+          </>
           )}
           <Bal bals={bals}/>
           <button className="btn rise" style={{background:'var(--mint)',animationDelay:'60ms'}} onClick={()=>setWiz(true)}>+ Ausgabe hinzufügen</button>
