@@ -1396,7 +1396,7 @@ function Wiz({ open, onClose, title, color, steps, onFinish, initial }) {
 
 /* ── Schulden-Banner ── */
 const PP_LOGO = <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7.2 21.3l.5-3.1h3.6c3.8 0 6.4-1.9 7-5.5.5-3-.9-4.9-3.9-4.9H8.7c-.5 0-.9.4-1 .9L5.2 20.4c-.1.5.3.9.7.9h1.3zm2.4-9.9h2.1c1.2 0 1.9.6 1.7 1.8-.2 1.4-1.2 2.1-2.7 2.1H9l.6-3.9z"/></svg>;
-function Bal({ bals }) {
+function Bal({ bals, noShare }) {
   const { me } = useD();
   const [shared,setShared] = useState(false);
   const d=bals.find(b=>b.net<-.01), c=bals.find(b=>b.net>.01);
@@ -1425,10 +1425,12 @@ function Bal({ bals }) {
           PayPal-Zahlung möglich, sobald {c.name} unter <b>Mehr&nbsp;→&nbsp;Personen</b> einen PayPal-Namen hinterlegt.
         </div>
       ) : isCreditor ? (
+        noShare ? null : (
         <button className="btn rise" onClick={shareLink}
           style={{background:'#0070ba',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',gap:8,border:'none',marginTop:-4}}>
           {PP_LOGO}{shared ? 'Link kopiert ✓' : `Zahlungslink an ${d.name} teilen`}
         </button>
+        )
       ) : (
         <a className="btn rise" href={link} target="_blank" rel="noopener noreferrer"
           style={{background:'#0070ba',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',gap:8,textDecoration:'none',marginTop:-4}}>
@@ -2060,7 +2062,7 @@ function Grow() {
               ))}
             </div>
             <div style={{height:8}}/>
-            <Bal bals={bals}/>
+            <Bal bals={bals} noShare/>
           </div>
         )}
 
