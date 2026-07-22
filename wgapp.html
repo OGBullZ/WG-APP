@@ -1648,41 +1648,52 @@ function Haushalt({goGrow}) {
             {stamp&&<div className="settle-stamp">✓</div>}
             <div className="hero-lbl" style={{marginBottom:16}}>Deine Bilanz</div>
             <div style={{display:'flex',alignItems:'center',gap:20}}>
+              {/* Donut-Mitte zeigt jetzt den Netto-Saldo (was ich schulde / mein Guthaben) statt der Gesamtkosten —
+                  die absolute Summe „dein Anteil" lebt nur noch im Übersicht-Tab. Ring = Zusammensetzung nach Prozent. */}
               {myCost>0.01 ? (
                 <Donut segs={[{frac:hsShare/myCost,color:'var(--mint)'},...(growOn&&giShare>0?[{frac:giShare/myCost,color:'var(--lime)'}]:[])]} size={128} sw={14}>
-                  <span className="num" style={{fontSize:23,fontWeight:700,color:'#f2f6f3'}}>€{fmt(myCost)}</span>
-                  <span style={{fontSize:9,color:'var(--label3)',letterSpacing:'.14em',textTransform:'uppercase',fontFamily:'var(--mono)'}}>dein Anteil</span>
+                  {totalNet<-0.01 ? (
+                    <>
+                      <span className="num" style={{fontSize:23,fontWeight:800,color:'var(--amber)'}}>€{fmt(Math.abs(totalNet))}</span>
+                      <span style={{fontSize:9,color:'var(--label3)',letterSpacing:'.14em',textTransform:'uppercase',fontFamily:'var(--mono)'}}>ich schulde</span>
+                    </>
+                  ) : totalNet>0.01 ? (
+                    <>
+                      <span className="num" style={{fontSize:23,fontWeight:800,color:'var(--green)'}}>€{fmt(totalNet)}</span>
+                      <span style={{fontSize:9,color:'var(--label3)',letterSpacing:'.14em',textTransform:'uppercase',fontFamily:'var(--mono)'}}>Guthaben</span>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{fontSize:26,color:'var(--green)'}}>✓</span>
+                      <span style={{fontSize:9,color:'var(--label3)',letterSpacing:'.14em',textTransform:'uppercase',fontFamily:'var(--mono)'}}>quitt</span>
+                    </>
+                  )}
                 </Donut>
               ) : (
                 <Donut segs={[{frac:1,color:'rgba(94,234,212,.18)'}]} size={128} sw={14}>
                   <span style={{fontSize:28}}>🎉</span>
                 </Donut>
               )}
-              <div style={{flex:1,display:'flex',flexDirection:'column',gap:12}}>
+              <div style={{flex:1,display:'flex',flexDirection:'column',gap:14}}>
                 <div style={{display:'flex',alignItems:'center',gap:9}}>
                   <div style={{width:9,height:9,borderRadius:'50%',background:'var(--mint)',boxShadow:'0 0 8px var(--mint)',flexShrink:0}}/>
                   <span style={{flex:1,fontSize:13.5,fontWeight:700,color:'var(--label2)'}}>Haushalt</span>
-                  <span className="num" style={{fontSize:13.5,fontWeight:700}}>€{fmt(hsShare)}</span>
-                  <span className="num" style={{fontSize:11,color:'var(--label3)',width:36,textAlign:'right'}}>{myCost>0?hsPct:0}%</span>
+                  <span className="num" style={{fontSize:17,fontWeight:800}}>{myCost>0?hsPct:0}%</span>
+                  <span className="num" style={{fontSize:11,color:'var(--label3)',width:52,textAlign:'right'}}>€{fmt(hsShare)}</span>
                 </div>
                 {growOn&&(
                   <button onClick={goGrow} style={{display:'flex',alignItems:'center',gap:9,background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit'}}>
                     <div style={{width:9,height:9,borderRadius:'50%',background:'var(--lime)',boxShadow:'0 0 8px var(--lime)',flexShrink:0}}/>
                     <span style={{flex:1,fontSize:13.5,fontWeight:700,color:'var(--label2)',textAlign:'left'}}>Growbox</span>
-                    <span className="num" style={{fontSize:13.5,fontWeight:700}}>€{fmt(giShare)}</span>
-                    <span className="num" style={{fontSize:11,color:'var(--label3)',width:36,textAlign:'right'}}>{myCost>0?giPct:0}%</span>
+                    <span className="num" style={{fontSize:17,fontWeight:800}}>{myCost>0?giPct:0}%</span>
+                    <span className="num" style={{fontSize:11,color:'var(--label3)',width:52,textAlign:'right'}}>€{fmt(giShare)}</span>
                     <span style={{color:'var(--label3)',fontSize:16,lineHeight:1,marginLeft:1}}>›</span>
                   </button>
                 )}
               </div>
             </div>
-            <div style={{marginTop:18,paddingTop:15,borderTop:'1px solid rgba(255,255,255,.08)',textAlign:'center'}}>
-              {totalNet<-0.01
-                ? <div style={{fontSize:16,fontWeight:800,color:'var(--amber)'}}>Du schuldest insgesamt <span className="num">€{fmt(Math.abs(totalNet))}</span></div>
-                : totalNet>0.01
-                ? <div style={{fontSize:16,fontWeight:800,color:'var(--green)'}}>Dir wird <span className="num">€{fmt(totalNet)}</span> geschuldet</div>
-                : <div style={{fontSize:15,fontWeight:700,color:'var(--green)'}}>Alles ausgeglichen ✓</div>}
-              <div style={{fontSize:11,color:'var(--label3)',marginTop:5,fontWeight:500}}>{growOn?'Haushalt + Growbox':'Nur Haushalt'} · abgerechnet wird pro Bereich</div>
+            <div style={{marginTop:16,paddingTop:13,borderTop:'1px solid rgba(255,255,255,.08)',textAlign:'center',fontSize:11,color:'var(--label3)',fontWeight:500}}>
+              {growOn?'Haushalt + Growbox':'Nur Haushalt'} · abgerechnet wird pro Bereich · Gesamtausgaben in der Übersicht
             </div>
           </div>
           ) : (
