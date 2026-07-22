@@ -1354,7 +1354,7 @@ function WizSum({ name, price }) {
   return <div className="wiz-sum"><span className="nm">{name?.trim() || '—'}</span><span className="am">€{fmt(parseNum(price) || 0)}</span></div>;
 }
 
-function Wiz({ open, onClose, title, color, steps, onFinish, initial }) {
+function Wiz({ open, onClose, title, color, steps, onFinish, initial, quickOk }) {
   const [step,setStep] = useState(0);
   const [data,setData] = useState({});
   // Nur beim ÖFFNEN zurücksetzen (deps bewusst ohne initial): Edit-Sheets bekommen initial
@@ -1365,6 +1365,9 @@ function Wiz({ open, onClose, title, color, steps, onFinish, initial }) {
   const S=steps[step], last=step===steps.length-1;
   const ok=S.ok?S.ok(data):true;
   const next=()=>{ if(!ok)return; last?(onFinish(data),onClose()):setStep(s=>s+1); };
+  // Schnellerfassung: sobald Name+Betrag reichen, ohne Split-Schritt mit Standard-Defaults speichern
+  const canQuick = quickOk && !last && quickOk(data);
+  const finishNow = () => { onFinish(data); onClose(); };
   return ReactDOM.createPortal(
     <div className="overlay" onClick={onClose}>
       <div className="sheet" onClick={e=>e.stopPropagation()}>
@@ -1382,6 +1385,12 @@ function Wiz({ open, onClose, title, color, steps, onFinish, initial }) {
           <div className="sheet-lbl">{S.label}</div>
           {S.render({data,setData})}
         </div>
+        {canQuick && (
+          <button onClick={finishNow}
+            style={{margin:'0 20px 2px',padding:'11px',borderRadius:14,border:`1px dashed ${color}`,background:'transparent',color,fontWeight:700,fontSize:13,fontFamily:'inherit',cursor:'pointer'}}>
+            ⚡ Sofort speichern · ich zahle, 50/50
+          </button>
+        )}
         <div className="sheet-acts">
           {step>0&&<button className="btn btn-sec" onClick={()=>setStep(s=>s-1)}>Zurück</button>}
           <button className="btn" style={{background:ok?color:'var(--bg3)',color:ok?'#0a120c':'var(--label3)',boxShadow:ok?`0 12px 32px ${'rgba(0,0,0,.3)'}`:'none'}} onClick={next}>
@@ -1683,14 +1692,14 @@ function Haushalt({goGrow}) {
                   <div style={{width:9,height:9,borderRadius:'50%',background:'var(--mint)',boxShadow:'0 0 8px var(--mint)',flexShrink:0}}/>
                   <span style={{flex:1,fontSize:13.5,fontWeight:700,color:'var(--label2)'}}>Haushalt</span>
                   <span className="num" style={{fontSize:17,fontWeight:800}}>{myCost>0?hsPct:0}%</span>
-                  <span className="num" style={{fontSize:11,color:'var(--label3)',width:52,textAlign:'right'}}>€{fmt(hsShare)}</span>
+                  <span className="num" style={{fontSize:11.5,color:'var(--label2)',width:52,textAlign:'right'}}>€{fmt(hsShare)}</span>
                 </div>
                 {growOn&&(
                   <button onClick={goGrow} style={{display:'flex',alignItems:'center',gap:9,background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit'}}>
                     <div style={{width:9,height:9,borderRadius:'50%',background:'var(--lime)',boxShadow:'0 0 8px var(--lime)',flexShrink:0}}/>
                     <span style={{flex:1,fontSize:13.5,fontWeight:700,color:'var(--label2)',textAlign:'left'}}>Growbox</span>
                     <span className="num" style={{fontSize:17,fontWeight:800}}>{myCost>0?giPct:0}%</span>
-                    <span className="num" style={{fontSize:11,color:'var(--label3)',width:52,textAlign:'right'}}>€{fmt(giShare)}</span>
+                    <span className="num" style={{fontSize:11.5,color:'var(--label2)',width:52,textAlign:'right'}}>€{fmt(giShare)}</span>
                     <span style={{color:'var(--label3)',fontSize:16,lineHeight:1,marginLeft:1}}>›</span>
                   </button>
                 )}
@@ -1734,6 +1743,13 @@ function Haushalt({goGrow}) {
           </>
           )}
           <Bal bals={bals}/>
+          {growOn && Math.abs(gNet)>0.01 && (
+            <button className="rise" onClick={goGrow}
+              style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginTop:-4,padding:'11px 14px',borderRadius:14,border:'1px solid rgba(163,230,53,.28)',background:'rgba(163,230,53,.06)',color:'var(--lime)',fontWeight:700,fontSize:13.5,fontFamily:'inherit',cursor:'pointer',animationDelay:'55ms'}}>
+              <Ic d={ICONS.leaf} color="var(--lime)" size={16} sw={2}/>
+              Growbox: {gNet<-0.01?<>noch <span className="num">€{fmt(-gNet)}</span> offen</>:<><span className="num">€{fmt(gNet)}</span> Guthaben</>} · im Grow-Tab ›
+            </button>
+          )}
           <button className="btn rise" style={{background:'var(--mint)',animationDelay:'60ms'}} onClick={()=>setWiz(true)}>+ Ausgabe hinzufügen</button>
           {open.length>0&&(
             <button className="btn btn-sec rise" style={{animationDelay:'80ms'}} onClick={settleAll}>✓ Alles abrechnen ({open.length})</button>
@@ -1884,7 +1900,7 @@ function Haushalt({goGrow}) {
           )}
         </div>
       </div>
-      <Wiz open={wiz} onClose={()=>setWiz(false)} title="Ausgabe" color="var(--mint)" steps={steps} onFinish={add} initial={addInit}/>
+      <Wiz open={wiz} onClose={()=>setWiz(false)} title="Ausgabe" color="var(--mint)" steps={steps} onFinish={add} initial={addInit} quickOk={d=>d.name?.trim()&&parseNum(d.price)>0&&d.paidBy}/>
       <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title="Bearbeiten" color="var(--mint)" steps={steps} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,owedBy:editItem.owedBy||null,cat:editItem.cat||null,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>
       <Wiz open={!!convItem} onClose={()=>setConvItem(null)} title="Als Ausgabe übernehmen" color="var(--mint)" steps={steps} onFinish={convert} initial={convItem?{name:convItem.name,paidBy:me||undefined,date:todayISO()}:null}/>
       <Wiz open={recWiz} onClose={()=>setRecWiz(false)} title="Wiederkehrend (monatlich)" color="var(--mint)" steps={recSteps} onFinish={addRec} initial={addInit}/>
@@ -1916,7 +1932,9 @@ function Grow() {
   const [stamp,setStamp] = useState(false);
 
   const { total, share, open, tCost, net } = growCalc(D);
-  const pctStr = id => (share(id)*100).toFixed(1).replace('.',',')+'%';
+  // Ganze Prozente (konsistent mit dem Haushalt-Hero); zweiter Wert als 100-Komplement → Summe exakt 100 %
+  const p0 = users[0] ? Math.round(share(users[0].id)*100) : 0;
+  const pctStr = id => (id===users[0]?.id ? p0 : 100-p0) + '%';
   const setP   = (uid2,v) => set('gp',{...plants,[uid2]:Math.max(0,parseInt(v)||0)});
 
   const add    = d => { const amt=parseNum(d.price)||0; set('gi',[{id:uid(),name:d.name||'Grow',price:amt,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),cat:d.cat||null,settled:false},...items]); flyExpense(amt,'#a3e635',heroRef.current); notifyOthers(`🌱 ${meName} hat ${fmt(amt)} € eingetragen`, d.name||'Grow', 'wg-exp', 'exp'); };
@@ -2157,7 +2175,7 @@ function Grow() {
         </div>
       </div></div>
       <Wiz open={harvWiz} onClose={()=>setHarvWiz(false)} title="Ernte" color="var(--lime)" steps={harvSteps} onFinish={addHarv} initial={{date:todayISO()}}/>
-      <Wiz open={wiz} onClose={()=>setWiz(false)} title="Grow-Ausgabe" color="var(--lime)" steps={steps} onFinish={add} initial={addInit}/>
+      <Wiz open={wiz} onClose={()=>setWiz(false)} title="Grow-Ausgabe" color="var(--lime)" steps={steps} onFinish={add} initial={addInit} quickOk={d=>d.name?.trim()&&parseNum(d.price)>0&&d.paidBy}/>
       <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title="Bearbeiten" color="var(--lime)" steps={steps} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,cat:editItem.cat||null,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>
     </div>
   );
