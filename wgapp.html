@@ -260,6 +260,8 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 .step-bar { display:flex; gap:5px; padding:0 20px 20px; flex:none; }
 .step-seg { flex:1; height:3px; border-radius:2px; transition:all .3s; }
 .sheet-body { padding:0 20px; display:flex; flex-direction:column; gap:14px; overflow-y:auto; -webkit-overflow-scrolling:touch; flex:1 1 auto; min-height:0; }
+.chip-scroll { scrollbar-width:none; -ms-overflow-style:none; }
+.chip-scroll::-webkit-scrollbar { display:none; }
 .sheet-lbl { font-size:14px; color:var(--label2); font-weight:600; }
 .sheet-sublbl { font-size:11px; color:var(--label3); font-weight:700; letter-spacing:.08em; text-transform:uppercase; margin-bottom:9px; }
 .wiz-sum { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:12px 15px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
@@ -1594,10 +1596,10 @@ function Haushalt({goGrow}) {
   )});
   /* Name-Schritt inkl. optionaler Kategorie-Chips — von steps UND recSteps genutzt. */
   const catChips = ({data:d,setData:sd}) => (
-    <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:10}}>
+    <div className="chip-scroll" style={{display:'flex',gap:6,marginTop:10,overflowX:'auto',paddingBottom:2}}>
       {CATS.map(([k,em,label])=>(
         <button key={k} type="button" onClick={()=>sd({...d,cat:d.cat===k?null:k})}
-          style={{fontSize:12,borderRadius:12,padding:'6px 10px',border:'none',fontWeight:d.cat===k?800:600,
+          style={{fontSize:12,borderRadius:12,padding:'6px 10px',border:'none',fontWeight:d.cat===k?800:600,flexShrink:0,whiteSpace:'nowrap',
             background:d.cat===k?CAT_COLORS[k]:'var(--bg3)',color:d.cat===k?'#0a120c':'var(--label2)'}}>
           {em} {label}
         </button>
@@ -2254,7 +2256,7 @@ function Putzplan() {
           }
           <div className="hero-lbl" style={{marginBottom:8}}>Putz-Score · letzte 30 Tage</div>
           <div className="fair-bar">
-            {counts.map(c=>(<div key={c.id} className="fair-seg" style={{width:totN>0?`${c.n/totN*100}%`:'50%',background:c.color,opacity:totN>0?1:.25}}/>))}
+            {totN>0 && counts.map(c=>(<div key={c.id} className="fair-seg" style={{width:`${c.n/totN*100}%`,background:c.color}}/>))}
           </div>
           <div style={{display:'flex',justifyContent:'space-between',marginTop:8}}>
             {counts.map(c=>(<span key={c.id} style={{fontSize:13,fontWeight:700,color:c.color}}>{c.name} <span className="num">{c.n}×</span></span>))}
