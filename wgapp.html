@@ -1654,12 +1654,12 @@ function Haushalt({goGrow}) {
                 <Donut segs={[{frac:hsShare/myCost,color:'var(--mint)'},...(growOn&&giShare>0?[{frac:giShare/myCost,color:'var(--lime)'}]:[])]} size={128} sw={14}>
                   {totalNet<-0.01 ? (
                     <>
-                      <span className="num" style={{fontSize:23,fontWeight:800,color:'var(--amber)'}}>€{fmt(Math.abs(totalNet))}</span>
+                      <span className="num" style={{fontSize:23,fontWeight:800,color:'var(--amber)'}}>€<CountUp value={Math.abs(totalNet)}/></span>
                       <span style={{fontSize:9,color:'var(--label3)',letterSpacing:'.14em',textTransform:'uppercase',fontFamily:'var(--mono)'}}>ich schulde</span>
                     </>
                   ) : totalNet>0.01 ? (
                     <>
-                      <span className="num" style={{fontSize:23,fontWeight:800,color:'var(--green)'}}>€{fmt(totalNet)}</span>
+                      <span className="num" style={{fontSize:23,fontWeight:800,color:'var(--green)'}}>€<CountUp value={totalNet}/></span>
                       <span style={{fontSize:9,color:'var(--label3)',letterSpacing:'.14em',textTransform:'uppercase',fontFamily:'var(--mono)'}}>Guthaben</span>
                     </>
                   ) : (
@@ -1912,7 +1912,7 @@ function Grow() {
   const [stamp,setStamp] = useState(false);
 
   const { total, share, open, tCost, net } = growCalc(D);
-  const pctStr = id => (share(id)*100).toFixed(1)+'%';
+  const pctStr = id => (share(id)*100).toFixed(1).replace('.',',')+'%';
   const setP   = (uid2,v) => set('gp',{...plants,[uid2]:Math.max(0,parseInt(v)||0)});
 
   const add    = d => { const amt=parseNum(d.price)||0; set('gi',[{id:uid(),name:d.name||'Grow',price:amt,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),cat:d.cat||null,settled:false},...items]); flyExpense(amt,'#a3e635',heroRef.current); notifyOthers(`🌱 ${meName} hat ${fmt(amt)} € eingetragen`, d.name||'Grow', 'wg-exp', 'exp'); };
