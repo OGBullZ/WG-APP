@@ -1522,6 +1522,8 @@ function Haushalt({goGrow}) {
   const heroRef = useRef(null);          // Ziel für den Ausgabe-Flug
   const [leaving,setLeaving] = useState(null); // sl-Item, das gerade animiert abgehakt wird
   const [stamp,setStamp] = useState(false);    // grüner Ausgleich-Stempel
+  const [bringOpen,setBringOpen] = useState(false); // „Bitte mitbringen"-Schnellfenster
+  const [bringName,setBringName] = useState('');
 
   const addRec = d => {
     const tp={ id:uid(), name:d.name||'Posten', price:parseNum(d.price)||0, paidBy:d.paidBy||users[0].id, owedBy:d.owedBy||null, cat:d.cat||null, since:todayISO().slice(0,7) };
@@ -1532,6 +1534,15 @@ function Haushalt({goGrow}) {
   const delRec = id => { const r=recs.find(x=>x.id===id); set('rec',recs.filter(x=>x.id!==id)); undo(`„${r?.name||'Posten'}" beendet`, ()=>setFn('rec', cur => cur.some(x=>x.id===id)?cur:[r,...cur])); };
 
   const add    = d => { const amt=parseNum(d.price)||0; set('hs',[{id:uid(),name:d.name||'Einkauf',price:amt,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),owedBy:d.owedBy||null,cat:d.cat||null,settled:false},...items]); flyExpense(amt,'#5eead4',heroRef.current); notifyOthers(`💸 ${meName} hat ${fmt(amt)} € eingetragen`, d.name||'Einkauf', 'wg-exp', 'exp'); };
+  // Vergessenes schnell melden: landet in der Einkaufsliste + Sofort-Push „bitte bring X mit" an den anderen
+  const sendBring = () => {
+    const n=bringName.trim(); if(!n){ return; }
+    const it={id:uid(),name:n,addedBy:me||null,date:todayISO(),done:false};
+    set('sl',[it,...list]);
+    notifyOthers(`🛒 Bitte bring ${n} mit`, meName?`— ${meName}`:'', 'wg-shop', 'shop');
+    undo(`🛒 „${n}" gesendet`, ()=>setFn('sl', cur=>cur.filter(i=>i.id!==it.id)));
+    setBringName(''); setBringOpen(false);
+  };
   const save   = d => set('hs',items.map(i=>i.id===editItem.id?{...i,name:d.name||i.name,price:parseNum(d.price)||i.price,paidBy:d.paidBy||i.paidBy,date:d.date||i.date,owedBy:d.owedBy||null,cat:d.cat||null}:i));
   const toggle = id => set('hs',items.map(i=>i.id===id?{...i,settled:!i.settled,settledAt:!i.settled?todayISO():null}:i));
   const del    = id => { const it=items.find(i=>i.id===id); set('hs',items.filter(i=>i.id!==id)); undo(`„${it?.name||'Ausgabe'}" gelöscht`, ()=>setFn('hs', cur => cur.some(i=>i.id===id)?cur:[it,...cur])); };
@@ -1746,6 +1757,10 @@ function Haushalt({goGrow}) {
             </button>
           )}
           <button className="btn rise" style={{background:'var(--mint)',animationDelay:'60ms'}} onClick={()=>setWiz(true)}>+ Ausgabe hinzufügen</button>
+          <button className="rise" onClick={()=>setBringOpen(true)}
+            style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,padding:'9px 14px',marginTop:-2,borderRadius:12,border:'none',background:'var(--bg3)',color:'var(--label2)',fontWeight:600,fontSize:13,fontFamily:'inherit',cursor:'pointer',animationDelay:'70ms'}}>
+            🛒 Vergessen? Mitbringen lassen
+          </button>
           {open.length>0&&(
             <button className="btn btn-sec rise" style={{animationDelay:'80ms'}} onClick={settleAll}>✓ Alles abrechnen ({open.length})</button>
           )}
@@ -1899,6 +1914,26 @@ function Haushalt({goGrow}) {
       <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title="Bearbeiten" color="var(--mint)" steps={steps} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,owedBy:editItem.owedBy||null,cat:editItem.cat||null,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>
       <Wiz open={!!convItem} onClose={()=>setConvItem(null)} title="Als Ausgabe übernehmen" color="var(--mint)" steps={steps} onFinish={convert} initial={convItem?{name:convItem.name,paidBy:me||undefined,date:todayISO()}:null}/>
       <Wiz open={recWiz} onClose={()=>setRecWiz(false)} title="Wiederkehrend (monatlich)" color="var(--mint)" steps={recSteps} onFinish={addRec} initial={addInit}/>
+      {bringOpen && ReactDOM.createPortal(
+        <div className="overlay" onClick={()=>setBringOpen(false)}>
+          <div className="sheet" onClick={e=>e.stopPropagation()}>
+            <div className="sheet-handle"/>
+            <div className="sheet-body" style={{gap:12,paddingTop:6}}>
+              <div style={{textAlign:'center',fontSize:38,lineHeight:1}}>🛒</div>
+              <div className="hero-lbl" style={{textAlign:'center'}}>Bitte mitbringen</div>
+              <div style={{fontSize:13.5,color:'var(--label2)',lineHeight:1.5,textAlign:'center'}}>
+                Landet in der Einkaufsliste — {users.find(u=>u.id!==me)?.name || 'dein Mitbewohner'} bekommt sofort eine Push.
+              </div>
+              <input className="field" autoFocus maxLength={80} placeholder="z.B. Milch, Klopapier …"
+                value={bringName} onChange={e=>setBringName(e.target.value)}
+                onKeyDown={e=>{ if(e.key==='Enter') sendBring(); }}/>
+            </div>
+            <div className="sheet-acts">
+              <button className="btn btn-sec" style={{flex:1}} onClick={()=>{ setBringName(''); setBringOpen(false); }}>Abbrechen</button>
+              <button className="btn" disabled={!bringName.trim()} style={{background:'var(--mint)',color:'#0a120c',flex:1,whiteSpace:'nowrap',opacity:bringName.trim()?1:.45,cursor:bringName.trim()?'pointer':'default'}} onClick={sendBring}>🔔 Senden</button>
+            </div>
+          </div>
+        </div>, document.body)}
     </div>
   );
 }
