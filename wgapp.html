@@ -3529,6 +3529,10 @@ function myBalance(D, me, mods){
 /* Idiotensicheres Start-Pop-up: großer offener Betrag, wenn me beim Öffnen Schulden hat. */
 function DebtAlert({ info, onClose }){
   const amt = Math.abs(info.total);
+  // Aufschlüsselung nur zeigen, wenn KEIN Bereich ein Guthaben ist — sonst summieren die Teilbeträge
+  // nicht zum Gesamtbetrag (z.B. Haushalt −35 + Growbox +2 = −33 → „€33" mit „Haushalt €35" wäre widersprüchlich).
+  const noCredit = info.hs < 0.01 && (!info.growOn || info.g < 0.01);
+  const showBreakdown = noCredit && (info.hs < -0.01 || (info.growOn && info.g < -0.01));
   return ReactDOM.createPortal(
     <div className="overlay" onClick={onClose}>
       <div className="sheet" onClick={e=>e.stopPropagation()}>
@@ -3538,7 +3542,7 @@ function DebtAlert({ info, onClose }){
           <div className="hero-lbl" style={{marginTop:6}}>Deine Bilanz</div>
           <div style={{fontSize:15.5,color:'var(--label2)',fontWeight:600}}>Du schuldest {info.other?.name || 'der WG'}</div>
           <div className="num" style={{fontSize:56,fontWeight:800,color:'var(--amber)',lineHeight:1.05,margin:'6px 0 4px'}}>€{fmt(amt)}</div>
-          {(info.hs<-0.01 || (info.growOn&&info.g<-0.01)) && (
+          {showBreakdown && (
             <div style={{display:'flex',justifyContent:'center',gap:22,marginTop:6,fontSize:13.5,color:'var(--label3)'}}>
               {info.hs<-0.01 && <span>Haushalt <span className="num" style={{color:'var(--label2)',fontWeight:700}}>€{fmt(-info.hs)}</span></span>}
               {info.growOn&&info.g<-0.01 && <span>Growbox <span className="num" style={{color:'var(--label2)',fontWeight:700}}>€{fmt(-info.g)}</span></span>}
