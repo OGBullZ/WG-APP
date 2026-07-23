@@ -74,6 +74,13 @@ async function run(prefix, ctxOpts, mode) {
   await page.goto(url, { waitUntil:'domcontentloaded' });
   await page.waitForTimeout(1700);
 
+  // Start-Pop-up bei Schulden (me=Tom schuldet): dokumentieren + schließen, damit die Kern-Screenshots frei sind
+  if (await page.getByText('Verstanden').isVisible().catch(()=>false)) {
+    if (mode==='mobile') await shot('start-popup-schulden');
+    await page.getByRole('button', { name:'Verstanden' }).click();
+    await page.waitForTimeout(400);
+  }
+
   await shot('haushalt');               // personalisierter Hero + gemischter Split + PayPal
 
   // Wizard: auf Tablet/Desktop zentriertes Modal, auf Handy Bottom-Sheet

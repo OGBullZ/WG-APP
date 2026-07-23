@@ -1670,15 +1670,10 @@ function Haushalt({goGrow}) {
                       <span className="num" style={{fontSize:23,fontWeight:800,color:'var(--amber)'}}>€<CountUp value={Math.abs(totalNet)}/></span>
                       <span style={{fontSize:9,color:'var(--label3)',letterSpacing:'.14em',textTransform:'uppercase',fontFamily:'var(--mono)'}}>ich schulde</span>
                     </>
-                  ) : totalNet>0.01 ? (
-                    <>
-                      <span className="num" style={{fontSize:23,fontWeight:800,color:'var(--green)'}}>€<CountUp value={totalNet}/></span>
-                      <span style={{fontSize:9,color:'var(--label3)',letterSpacing:'.14em',textTransform:'uppercase',fontFamily:'var(--mono)'}}>Guthaben</span>
-                    </>
                   ) : (
                     <>
                       <span style={{fontSize:26,color:'var(--green)'}}>✓</span>
-                      <span style={{fontSize:9,color:'var(--label3)',letterSpacing:'.14em',textTransform:'uppercase',fontFamily:'var(--mono)'}}>quitt</span>
+                      <span style={{fontSize:9,color:'var(--label3)',letterSpacing:'.14em',textTransform:'uppercase',fontFamily:'var(--mono)'}}>alles gut</span>
                     </>
                   )}
                 </Donut>
@@ -1743,11 +1738,11 @@ function Haushalt({goGrow}) {
           </>
           )}
           <Bal bals={bals}/>
-          {growOn && Math.abs(gNet)>0.01 && (
+          {growOn && gNet<-0.01 && (
             <button className="rise" onClick={goGrow}
               style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginTop:-4,padding:'11px 14px',borderRadius:14,border:'1px solid rgba(163,230,53,.28)',background:'rgba(163,230,53,.06)',color:'var(--lime)',fontWeight:700,fontSize:13.5,fontFamily:'inherit',cursor:'pointer',animationDelay:'55ms'}}>
               <Ic d={ICONS.leaf} color="var(--lime)" size={16} sw={2}/>
-              Growbox: {gNet<-0.01?<>noch <span className="num">€{fmt(-gNet)}</span> offen</>:<><span className="num">€{fmt(gNet)}</span> Guthaben</>} · im Grow-Tab ›
+              Growbox: noch <span className="num">€{fmt(-gNet)}</span> offen · im Grow-Tab ›
             </button>
           )}
           <button className="btn rise" style={{background:'var(--mint)',animationDelay:'60ms'}} onClick={()=>setWiz(true)}>+ Ausgabe hinzufügen</button>
@@ -3483,8 +3478,49 @@ const TABS=[
   {id:'set', label:'Mehr',    color:'rgba(242,246,243,.35)', icon:ICONS.settings},
 ];
 
+/* Persönliche Netto-Bilanz (Haushalt + Growbox) aus me-Sicht — fürs Start-Pop-up.
+   total<0 = ich schulde. hs/g = Netto pro Bereich, other = der Gläubiger (2-Personen-WG). */
+function myBalance(D, me, mods){
+  const users = D.users||[];
+  const open = (D.hs||[]).filter(i=>!i.settled);
+  const shareOf=(i,id)=>i.owedBy?(i.owedBy===id?i.price:0):i.price/(users.length||1);
+  const hs = me ? open.reduce((s,i)=>s+((i.paidBy===me?(i.price||0):0)-shareOf(i,me)),0) : 0;
+  const growOn = mods.grow!==false;
+  const g = (me&&growOn) ? growCalc(D).net(me) : 0;
+  const other = users.find(u=>u.id!==me) || null;
+  return { total: hs+g, hs, g, growOn, other };
+}
+
+/* Idiotensicheres Start-Pop-up: großer offener Betrag, wenn me beim Öffnen Schulden hat. */
+function DebtAlert({ info, onClose }){
+  const amt = Math.abs(info.total);
+  return ReactDOM.createPortal(
+    <div className="overlay" onClick={onClose}>
+      <div className="sheet" onClick={e=>e.stopPropagation()}>
+        <div className="sheet-handle"/>
+        <div className="sheet-body" style={{textAlign:'center',alignItems:'center',gap:6,paddingTop:6}}>
+          <div style={{fontSize:44,lineHeight:1}}>💸</div>
+          <div className="hero-lbl" style={{marginTop:6}}>Deine Bilanz</div>
+          <div style={{fontSize:15.5,color:'var(--label2)',fontWeight:600}}>Du schuldest {info.other?.name || 'der WG'}</div>
+          <div className="num" style={{fontSize:56,fontWeight:800,color:'var(--amber)',lineHeight:1.05,margin:'6px 0 4px'}}>€{fmt(amt)}</div>
+          {(info.hs<-0.01 || (info.growOn&&info.g<-0.01)) && (
+            <div style={{display:'flex',justifyContent:'center',gap:22,marginTop:6,fontSize:13.5,color:'var(--label3)'}}>
+              {info.hs<-0.01 && <span>Haushalt <span className="num" style={{color:'var(--label2)',fontWeight:700}}>€{fmt(-info.hs)}</span></span>}
+              {info.growOn&&info.g<-0.01 && <span>Growbox <span className="num" style={{color:'var(--label2)',fontWeight:700}}>€{fmt(-info.g)}</span></span>}
+            </div>
+          )}
+        </div>
+        <div className="sheet-acts">
+          <button className="btn" style={{background:'var(--mint)',color:'#0a120c',flex:1}} onClick={onClose}>Verstanden</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function AppInner() {
-  const { mods, remotePulse, D } = useD();
+  const { mods, remotePulse, D, me } = useD();
   const visibleTabs = TABS.filter(t => t.id==='set' || mods[t.id] !== false);
   const [tab,setTab_] = useState(() => {
     const saved = ls('wg_tab', null); // letzten Tab merken
@@ -3494,6 +3530,21 @@ function AppInner() {
   const idxOf = (id) => TABS.findIndex(t => t.id===id);
   const setTab = (id) => { setDir(idxOf(id) >= idxOf(tab) ? 1 : -1); setTab_(id); ss('wg_tab', id); };
   const [toast,setToast] = useState(false);
+  // Start-Pop-up bei Schulden: einmal pro App-Öffnung den offenen Betrag groß zeigen (idiotensicher)
+  const [debtInfo,setDebtInfo] = useState(null);
+  const debtShownRef = useRef(false);
+  useEffect(() => {
+    if (debtShownRef.current) return;
+    if (!me || !(D.users||[]).length) return;
+    // kurz warten, bis der initiale RTDB-Sync durch ist → Pop-up nutzt den frischesten Stand
+    const t = setTimeout(() => {
+      if (debtShownRef.current) return;
+      debtShownRef.current = true;
+      const bal = myBalance(D, me, mods);
+      if (bal.total < -0.01) setDebtInfo(bal);
+    }, 700);
+    return () => clearTimeout(t);
+  }, [me, D, mods]);
   // Wenn der aktive Tab versteckt wird, auf ersten sichtbaren springen
   useEffect(() => {
     if (!visibleTabs.find(t=>t.id===tab)) setTab(visibleTabs[0]?.id || 'set');
@@ -3543,6 +3594,7 @@ function AppInner() {
         </div>
       )}
       <GlobalUI/>
+      {debtInfo && <DebtAlert info={debtInfo} onClose={()=>setDebtInfo(null)}/>}
       <div className="tabbar">
         {visibleTabs.map(t=>(
           <button key={t.id} className={`tabitem${tab===t.id?' on':''}`} onClick={()=>setTab(t.id)} style={{color:tab===t.id?t.color:'rgba(242,246,243,.32)'}}>
