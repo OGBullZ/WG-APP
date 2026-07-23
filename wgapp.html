@@ -3511,7 +3511,41 @@ function DebtAlert({ info, onClose }){
           )}
         </div>
         <div className="sheet-acts">
-          <button className="btn" style={{background:'var(--mint)',color:'#0a120c',flex:1}} onClick={onClose}>Verstanden</button>
+          <button className="btn" style={{background:'var(--mint)',color:'#0a120c',flex:1}} onClick={onClose}>Später</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+/* Start-Einrichtung: PayPal.me-Namen hinterlegen (mit „Später"-Option), damit die WG per Klick zahlen kann. */
+function PayPalSetup({ onClose }){
+  const { D, set, me } = useD();
+  const [val,setVal] = useState('');
+  const handle = ppHandle(val);
+  const save = () => { if(handle) set('users',(D.users||[]).map(u=>u.id===me?{...u,pp:handle}:u)); onClose(); };
+  return ReactDOM.createPortal(
+    <div className="overlay" onClick={onClose}>
+      <div className="sheet" onClick={e=>e.stopPropagation()}>
+        <div className="sheet-handle"/>
+        <div className="sheet-body" style={{gap:12,paddingTop:6}}>
+          <div style={{textAlign:'center',fontSize:42,lineHeight:1}}>💳</div>
+          <div className="hero-lbl" style={{textAlign:'center'}}>PayPal einrichten</div>
+          <div style={{fontSize:14,color:'var(--label2)',lineHeight:1.5,textAlign:'center'}}>
+            Hinterlege deinen PayPal.me-Namen, damit dir die WG offene Beträge per Klick schicken kann.
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:6,marginTop:2}}>
+            <span style={{fontSize:14,color:'var(--label3)',fontWeight:600,flexShrink:0}}>paypal.me/</span>
+            <input className="field" maxLength={100} autoFocus autoCapitalize="off" autoCorrect="off" spellCheck={false}
+              style={{background:'var(--bg3)',border:'none',padding:'9px 12px',fontSize:15,fontWeight:600,flex:1,borderRadius:10}}
+              placeholder="dein-name" value={val} onChange={e=>setVal(e.target.value)}
+              onKeyDown={e=>{ if(e.key==='Enter'&&handle) save(); }}/>
+          </div>
+        </div>
+        <div className="sheet-acts">
+          <button className="btn btn-sec" onClick={onClose}>Später</button>
+          <button className="btn" disabled={!handle} style={{background:'#0070ba',color:'#fff',flex:1,opacity:handle?1:.45,cursor:handle?'pointer':'default'}} onClick={save}>Speichern</button>
         </div>
       </div>
     </div>,
@@ -3530,18 +3564,28 @@ function AppInner() {
   const idxOf = (id) => TABS.findIndex(t => t.id===id);
   const setTab = (id) => { setDir(idxOf(id) >= idxOf(tab) ? 1 : -1); setTab_(id); ss('wg_tab', id); };
   const [toast,setToast] = useState(false);
-  // Start-Pop-up bei Schulden: einmal pro App-Öffnung den offenen Betrag groß zeigen (idiotensicher)
+  // Start-Flow (max. 1× pro Woche, nicht bei jedem Öffnen): erst PayPal einrichten (falls kein Handle),
+  // danach der offene Schuldbetrag groß (idiotensicher) — beide mit „Später"-Option.
   const [debtInfo,setDebtInfo] = useState(null);
-  const debtShownRef = useRef(false);
+  const [startStep,setStartStep] = useState(null); // 'pp' | 'debt' | null
+  const startShownRef = useRef(false);
   useEffect(() => {
-    if (debtShownRef.current) return;
+    if (startShownRef.current) return;
     if (!me || !(D.users||[]).length) return;
-    // kurz warten, bis der initiale RTDB-Sync durch ist → Pop-up nutzt den frischesten Stand
+    // kurz warten, bis der initiale RTDB-Sync durch ist → Flow nutzt den frischesten Stand
     const t = setTimeout(() => {
-      if (debtShownRef.current) return;
-      debtShownRef.current = true;
+      if (startShownRef.current) return;
+      startShownRef.current = true;
+      const last = ls('wg_start_shown', null);
+      if (last && daysSince(last) < 7) return;            // diese Woche schon dran → nichts
+      const meUser = (D.users||[]).find(u=>u.id===me);
+      const needsPP = meUser && !ppHandle(meUser.pp);
       const bal = myBalance(D, me, mods);
-      if (bal.total < -0.01) setDebtInfo(bal);
+      const hasDebt = bal.total < -0.01;
+      if (!needsPP && !hasDebt) return;                    // nichts zu zeigen → Marker NICHT setzen
+      ss('wg_start_shown', todayISO());                    // Wochen-Sperre erst ab dem Moment, wo etwas gezeigt wurde
+      if (hasDebt) setDebtInfo(bal);
+      setStartStep(needsPP ? 'pp' : 'debt');
     }, 700);
     return () => clearTimeout(t);
   }, [me, D, mods]);
@@ -3594,7 +3638,8 @@ function AppInner() {
         </div>
       )}
       <GlobalUI/>
-      {debtInfo && <DebtAlert info={debtInfo} onClose={()=>setDebtInfo(null)}/>}
+      {startStep==='pp' && <PayPalSetup onClose={()=>setStartStep(debtInfo ? 'debt' : null)}/>}
+      {startStep==='debt' && debtInfo && <DebtAlert info={debtInfo} onClose={()=>setStartStep(null)}/>}
       <div className="tabbar">
         {visibleTabs.map(t=>(
           <button key={t.id} className={`tabitem${tab===t.id?' on':''}`} onClick={()=>setTab(t.id)} style={{color:tab===t.id?t.color:'rgba(242,246,243,.32)'}}>

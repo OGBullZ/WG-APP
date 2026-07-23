@@ -74,10 +74,16 @@ async function run(prefix, ctxOpts, mode) {
   await page.goto(url, { waitUntil:'domcontentloaded' });
   await page.waitForTimeout(1700);
 
-  // Start-Pop-up bei Schulden (me=Tom schuldet): dokumentieren + schließen, damit die Kern-Screenshots frei sind
-  if (await page.getByText('Verstanden').isVisible().catch(()=>false)) {
+  // Start-Flow (me=Tom, kein PayPal-Handle + Schulden): erst PayPal-Einrichtung, dann Schulden-Pop-up —
+  // dokumentieren + jeweils „Später" klicken, damit die Kern-Screenshots frei sind.
+  if (await page.getByText('PayPal einrichten').isVisible().catch(()=>false)) {
+    if (mode==='mobile') await shot('start-popup-paypal');
+    await page.getByRole('button', { name:'Später' }).click();
+    await page.waitForTimeout(400);
+  }
+  if (await page.getByText('Du schuldest').isVisible().catch(()=>false)) {
     if (mode==='mobile') await shot('start-popup-schulden');
-    await page.getByRole('button', { name:'Verstanden' }).click();
+    await page.getByRole('button', { name:'Später' }).click();
     await page.waitForTimeout(400);
   }
 
