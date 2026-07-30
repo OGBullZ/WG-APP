@@ -52,6 +52,13 @@ await page.addInitScript(([u, hsItems, stlItems]) => {
 await page.goto(url, { waitUntil: 'domcontentloaded' });
 await page.waitForTimeout(1500);
 
+// Wöchentlicher Start-Flow (PayPal-Einrichtung → Schulden-Hinweis) legt ein Overlay über die
+// Tabbar und blockiert jeden Klick — beide Sheets per „Später" schließen.
+for (let i = 0; i < 2; i++) {
+  const later = page.getByRole('button', { name: 'Später' });
+  if (await later.count()) { await later.first().click(); await page.waitForTimeout(400); }
+}
+
 // --- Zum Mehr-Tab wechseln und archivieren ---
 await page.locator('.tabbar .tabitem', { hasText: 'Mehr' }).click();
 await page.waitForTimeout(300);

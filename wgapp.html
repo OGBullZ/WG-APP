@@ -329,6 +329,28 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 .sum-lbl { font-family:var(--mono); font-size:10px; letter-spacing:.16em; color:var(--label3); text-transform:uppercase; font-weight:600; }
 .sum-val { font-family:var(--mono); font-size:18px; font-weight:700; letter-spacing:-.02em; }
 
+/* ── Privater Bereich: PIN-Sperre ── */
+/* Bewusst kompakt: das Pad muss auf kleinen Viewports (iPhone 13 = 664px CSS-Höhe)
+   komplett über der Tabbar liegen, sonst ist die untere Reihe (0 / ⌫) verdeckt. */
+.pin-wrap { display:flex; flex-direction:column; align-items:center; gap:12px; padding:12px 0 6px; }
+.pin-lock { font-size:34px; line-height:1; }
+.pin-title { font-size:17px; font-weight:700; letter-spacing:-.01em; text-align:center; }
+.pin-sub { font-size:12.5px; color:var(--label2); text-align:center; max-width:280px; line-height:1.4; }
+.pin-dots { display:flex; gap:15px; padding:2px 0; }
+.pin-dot { width:15px; height:15px; border-radius:50%; border:1.5px solid var(--label3); transition:all .18s; }
+.pin-dot.on { background:var(--violet); border-color:var(--violet); transform:scale(1.12); }
+.pin-wrap.err .pin-dots { animation:pinShake .38s; }
+.pin-dot.bad { background:var(--red); border-color:var(--red); }
+@keyframes pinShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-9px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(4px)} }
+.pin-pad { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; width:100%; max-width:258px; }
+.pin-key { height:50px; border-radius:15px; background:var(--card); border:1px solid var(--border); font-family:var(--mono); font-size:22px; font-weight:700; color:var(--label); display:flex; align-items:center; justify-content:center; transition:transform .1s, background .15s; }
+.pin-key:active { transform:scale(.94); background:var(--bg3); }
+.pin-key.ghost { background:none; border-color:transparent; font-size:17px; font-weight:600; color:var(--label2); }
+.pin-err { font-size:13px; color:var(--red); font-weight:600; min-height:17px; }
+.priv-note { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--label3); background:var(--bg3); border-radius:12px; padding:9px 12px; line-height:1.35; }
+/* Ab Tablet ist reichlich Höhe da — Pad etwas tiefer setzen statt oben zu kleben. */
+@media (min-width:700px) { .pin-wrap { padding-top:56px; gap:15px; } }
+
 /* ── Misc ── */
 .empty { display:flex; flex-direction:column; align-items:center; gap:8px; padding:48px 0; opacity:.45; }
 .empty-ico { font-size:40px; }
@@ -499,6 +521,9 @@ const ls   = (k,fb) => { try{const v=localStorage.getItem(k);return v?JSON.parse
 const ss   = (k,v)  => { try{localStorage.setItem(k,JSON.stringify(v));}catch{} };
 const uid  = () => Math.random().toString(36).slice(2,10);
 const fmt  = n => Number(n||0).toFixed(2).replace('.', ',');     // deutsche Anzeige: 8,50
+// Mit Tausenderpunkt (1.450,00) — für den privaten Finanzbereich, wo Gehalt/Miete
+// in der Größenordnung liegen, in der fmt ohne Trenner schwer lesbar wird.
+const fmtT = n => Number(n||0).toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 });
 /* Beträge robust parsen: deutsches Komma „8,50", englisch „8.50", Tausendertrenner
    „1.234,56" / „1,234.56" / „1.234" — der zuletzt stehende Trenner ist der Dezimaltrenner,
    reine Tausendermuster (1.234 / 12.345.678) werden als Ganzzahl gelesen. */
@@ -674,8 +699,6 @@ const INIT = {
   hs:     [],
   gp:     {},
   gi:     [],
-  ft:     [],
-  ff:     [],
   ab:     [],
   pt:     [],
   pl:     [],
@@ -695,7 +718,7 @@ const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
    users (fix 2) und gp (Pflanzen-Map) bleiben key-level.
    arc = Archiv (alte abgerechnete hs/gi/stl-Einträge, s. archiveCutoff in Einstellungen).
    slh = Einkaufslisten-Historie (id=Slug, n=Kaufzähler), gh = Ernte-Log, bud = Kategorie-Budgets (id=Cat-Key). */
-const LIST_KEYS = ['hs','gi','ft','ff','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud'];
+const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud'];
 const isListKey = k => LIST_KEYS.includes(k);
 
 /* Monotone Sequenz für stabile, geräteübergreifend deterministische Sortierung. */
@@ -740,7 +763,18 @@ const canonSer = v => JSON.stringify(v, (key, val) =>
 ════════════════════════════ */
 const Ctx = createContext(null);
 
-const MOD_DEF = { haus:true, grow:true, putz:true, fin:false, abos:false, stats:true };
+const MOD_DEF = { haus:true, grow:true, putz:true, fin:true, abos:false, stats:true };
+
+/* Einmalige Migration: `wg_modules` speichert bei jedem Toggle den VOLLEN Snapshot,
+   auf Bestandsgeräten steht dort also fin:false und würde den neuen Default schlagen.
+   Der private Finanzbereich wäre damit unsichtbar → genau einmal erzwingen. */
+const migrateMods = m => {
+  if (ls('wg_priv_tab_v1', null)) return m;
+  const out = { ...m, fin:true };
+  ss('wg_priv_tab_v1', 1);
+  ss('wg_modules', out); // MUSS mitgeschrieben werden — sonst gewinnt beim nächsten Start
+  return out;            // wieder der alte Snapshot (fin:false) und der Tab verschwindet.
+};
 
 function DataProvider({ children }) {
   const [fbCfg,  setFbCfg_]  = useState(() => ls('fb_cfg', FB_DEFAULT));
@@ -760,7 +794,7 @@ function DataProvider({ children }) {
   });
   const [status, setStatus]  = useState('local'); // local | connecting | synced | error
   const [online, setOnline]  = useState(() => navigator.onLine);
-  const [mods,   setMods_]   = useState(() => ({...MOD_DEF, ...(ls('wg_modules', {}) || {})}));
+  const [mods,   setMods_]   = useState(() => migrateMods({...MOD_DEF, ...(ls('wg_modules', {}) || {})}));
   const [me,     setMe_]     = useState(() => ls('wg_me', null)); // wer dieses Gerät nutzt (nicht gesynct)
   const [remotePulse, setRemotePulse] = useState(0);
   // Remote-Sync-Flash: IDs, die gerade neu vom anderen Gerät reinkamen (kurzer Farb-Puls).
@@ -1484,8 +1518,10 @@ function SettlementHistory({ settlements, users, accent }) {
 function NBar({ title, color, status }) {
   const { online } = useD();
   const live = online && status==='synced';
-  const pillColor = !online ? 'var(--amber)' : status==='synced' ? 'var(--lime)' : status==='connecting' ? 'var(--amber)' : status==='error' ? 'var(--red)' : null;
-  const pillText  = !online ? 'OFFLINE' : status==='synced' ? 'LIVE' : status==='connecting' ? 'SYNC…' : status==='error' ? 'FEHLER' : null;
+  // 'privat' = privater Bereich: bewusst nicht gesynct, Online-Status daher irrelevant.
+  // (NICHT 'local' — das ist der Startwert des Sync-Status und würde überall eine Pille zeigen.)
+  const pillColor = status==='privat' ? 'var(--violet)' : !online ? 'var(--amber)' : status==='synced' ? 'var(--lime)' : status==='connecting' ? 'var(--amber)' : status==='error' ? 'var(--red)' : null;
+  const pillText  = status==='privat' ? 'LOKAL'         : !online ? 'OFFLINE'     : status==='synced' ? 'LIVE'        : status==='connecting' ? 'SYNC…'        : status==='error' ? 'FEHLER'     : null;
   return (
     <div className="navbar">
       <span className="navbar-title" style={{color}}>{title}</span>
@@ -2369,30 +2405,149 @@ function Putzplan() {
 }
 
 /* ══════════════════════════
-   FINANZEN
+   PRIVATER FINANZBEREICH
+   Bewusst NICHT gesynct: Buchungen (tx) + Fixkosten (fix) liegen ausschliesslich
+   in localStorage `wg_priv` auf DIESEM Geraet — nie in der RTDB, nie im WG-Export.
+   Zusaetzlich per 4-stelliger PIN gesperrt (Hash+Salt in `wg_priv_pin`; die PIN
+   selbst wird nirgends gespeichert). Entsperrung gilt nur fuer die laufende
+   Sitzung — App neu laden = wieder gesperrt.
 ══════════════════════════ */
+const PRIV_KEY='wg_priv', PRIV_PIN='wg_priv_pin';
+const privLoad = () => { const p=ls(PRIV_KEY,null)||{}; return { tx:Array.isArray(p.tx)?p.tx:[], fix:Array.isArray(p.fix)?p.fix:[] }; };
+const privSave = p => ss(PRIV_KEY,{tx:p.tx||[],fix:p.fix||[]});
+
+/* PIN-Hash: SHA-256(salt+pin), hex. Fallback (kein crypto.subtle, z.B. http-Kontext)
+   ist ein simpler Rolling-Hash — schwaecher, aber die Sperre bleibt funktionsfaehig. */
+const pinHash = async (pin, salt) => {
+  const s = salt+':'+pin;
+  try {
+    if (crypto?.subtle) {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
+  } catch {}
+  let h=5381; for(let i=0;i<s.length;i++){ h=((h<<5)+h+s.charCodeAt(i))>>>0; }
+  return 'fb'+h.toString(16);
+};
+const randSalt = () => { try{ const a=new Uint8Array(8); crypto.getRandomValues(a); return Array.from(a).map(b=>b.toString(16).padStart(2,'0')).join(''); }catch{ return String(Date.now()); } };
+
+/* Ziffernblock — gemeinsam fuer „PIN festlegen", „PIN bestaetigen" und „Entsperren". */
+function PinPad({ title, sub, value, onKey, onDel, err, extra }) {
+  return (
+    <div className={`pin-wrap${err?' err':''}`}>
+      <div className="pin-lock">{err?'🔓':'🔒'}</div>
+      <div className="pin-title">{title}</div>
+      {sub&&<div className="pin-sub">{sub}</div>}
+      <div className="pin-dots">
+        {[0,1,2,3].map(i=><div key={i} className={`pin-dot${i<value.length?' on':''}${err?' bad':''}`}/>)}
+      </div>
+      <div className="pin-err">{err||''}</div>
+      <div className="pin-pad">
+        {['1','2','3','4','5','6','7','8','9'].map(n=>(
+          <button key={n} className="pin-key" onClick={()=>onKey(n)}>{n}</button>
+        ))}
+        <div/>
+        <button className="pin-key" onClick={()=>onKey('0')}>0</button>
+        <button className="pin-key ghost" aria-label="Löschen" onClick={onDel}>⌫</button>
+      </div>
+      {extra}
+    </div>
+  );
+}
+
+/* Sperrbildschirm: legt beim ersten Mal eine PIN an (2× eingeben), danach Abfrage. */
+function PrivLock({ onUnlock }) {
+  const stored = ls(PRIV_PIN,null);
+  const setup  = !stored?.h;
+  const [pin,setPin]   = useState('');
+  const [first,setFirst] = useState(null); // Setup: erste Eingabe
+  const [err,setErr]   = useState('');
+  const busy = useRef(false);
+
+  const reset = m => { setErr(m); setPin(''); setTimeout(()=>setErr(''),1400); };
+
+  const submit = async code => {
+    if (busy.current) return; busy.current=true;
+    try {
+      if (setup) {
+        if (first===null) { setFirst(code); setPin(''); return; }
+        if (first!==code) { setFirst(null); reset('PINs stimmen nicht überein'); return; }
+        const salt = randSalt();
+        ss(PRIV_PIN, { h: await pinHash(code, salt), s: salt });
+        onUnlock();
+      } else {
+        const h = await pinHash(code, stored.s||'');
+        if (h===stored.h) onUnlock(); else reset('Falsche PIN');
+      }
+    } finally { busy.current=false; }
+  };
+
+  const onKey = n => { if (pin.length>=4) return; const v=pin+n; setPin(v); if (v.length===4) submit(v); };
+
+  const title = setup ? (first===null?'PIN festlegen':'PIN wiederholen') : 'PIN eingeben';
+  // Der Datenschutz-Hinweis steckt bewusst im Untertitel statt in einer eigenen
+  // Notiz-Box — sonst wird das Pad auf kleinen Displays unten abgeschnitten.
+  const sub   = setup
+    ? (first===null
+        ? 'Vier Ziffern schützen deinen privaten Bereich. Die Daten liegen nur auf diesem Gerät und werden nicht mit der WG geteilt.'
+        : 'Zur Sicherheit noch einmal dieselbe PIN.')
+    : 'Dein privater Finanzbereich ist gesperrt.';
+
+  return (
+    <div className="screen">
+      <NBar title="Privat" color="var(--violet)" status="privat"/>
+      <div className="scroll">
+        <div className="content">
+          <PinPad title={title} sub={sub} value={pin} err={err}
+                  onKey={onKey} onDel={()=>{ setPin(p=>p.slice(0,-1)); }}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const PRIV_CATS=['Wohnen','Lebensmittel','Transport','Freizeit','Gesundheit','Versicherung','Sparen','Sonstiges'];
+const monKey = d => (d||'').slice(0,7);
+const monLabel = m => { const [y,mo]=m.split('-'); return ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'][(+mo||1)-1]+' '+y; };
+const monShift = (m,delta) => { const [y,mo]=m.split('-').map(Number); const d=new Date(y,(mo-1)+delta,1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); };
+
 function Finanzen() {
-  const { D, set, setFn, status, undo } = useD();
-  const users=D.users, txs=D.ft||[], fixed=D.ff||[];
-  const delTx  = id => { const it=txs.find(x=>x.id===id); set('ft',txs.filter(x=>x.id!==id)); undo('Buchung gelöscht', ()=>setFn('ft', cur => cur.some(x=>x.id===id)?cur:[it,...cur])); };
-  const delFix = id => { const it=fixed.find(x=>x.id===id); set('ff',fixed.filter(x=>x.id!==id)); undo('Fixkosten gelöscht', ()=>setFn('ff', cur => cur.some(x=>x.id===id)?cur:[it,...cur])); };
+  const { undo } = useD();
+  const [locked,setLocked] = useState(true);
+  const [priv,setPriv_]    = useState(privLoad);
+  const setPriv = p => { setPriv_(p); privSave(p); };
+
   const [seg,setSeg]   = useState('txs');
   const [wiz,setWiz]   = useState(null);
   const [editTx,setEditTx]   = useState(null);
   const [editFix,setEditFix] = useState(null);
-  const [uid_,setUid_] = useState(users[0]?.id);
+  const [mon,setMon]   = useState(() => todayISO().slice(0,7));
 
-  const CATS=['Lebensmittel','Wohnen','Transport','Freizeit','Gesundheit','Grow','Sonstiges'];
-  const myTxs=txs.filter(t=>t.userId===uid_);
-  const inc=myTxs.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0);
-  const exp=myTxs.filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
-  const fixMo=fixed.reduce((s,f)=>s+(f.freq==='m'?f.amount:f.amount/12),0);
-  const avail=inc-exp-fixMo;
+  if (locked) return <PrivLock onUnlock={()=>setLocked(false)}/>;
 
-  const addTx   = d => set('ft',[{id:uid(),type:d.type||'exp',amount:parseNum(d.amount)||0,category:d.cat||'Sonstiges',date:d.date||todayISO(),userId:d.userId||uid_},...txs]);
-  const saveTx  = d => set('ft',txs.map(x=>x.id===editTx.id?{...x,type:d.type||x.type,amount:parseNum(d.amount)||x.amount,category:d.cat||x.category,userId:d.userId||x.userId,date:d.date||x.date}:x));
-  const addFix  = d => set('ff',[{id:uid(),name:d.name||'',amount:parseNum(d.amount)||0,freq:d.freq||'m'},...fixed]);
-  const saveFix = d => set('ff',fixed.map(x=>x.id===editFix.id?{...x,name:d.name||x.name,amount:parseNum(d.amount)||x.amount,freq:d.freq||x.freq}:x));
+  const txs=priv.tx, fixed=priv.fix;
+  const monTxs = txs.filter(t=>monKey(t.date)===mon);
+  const inc = monTxs.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0);
+  const exp = monTxs.filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
+  const fixMo = fixed.reduce((s,f)=>s+(f.freq==='m'?f.amount:f.amount/12),0);
+  const avail = inc-exp-fixMo;
+  const isCur = mon===todayISO().slice(0,7);
+
+  const addTx  = d => setPriv({...priv, tx:[{id:uid(),type:d.type||'exp',amount:parseNum(d.amount)||0,category:d.cat||'Sonstiges',note:(d.note||'').trim(),date:d.date||todayISO()},...txs]});
+  const saveTx = d => setPriv({...priv, tx:txs.map(x=>x.id===editTx.id?{...x,type:d.type||x.type,amount:parseNum(d.amount)||x.amount,category:d.cat||x.category,note:(d.note||'').trim(),date:d.date||x.date}:x)});
+  const delTx  = id => { const it=txs.find(x=>x.id===id); setPriv({...priv, tx:txs.filter(x=>x.id!==id)}); undo('Buchung gelöscht', ()=>setPriv_(cur=>{ const n=cur.tx.some(x=>x.id===id)?cur:{...cur,tx:[it,...cur.tx]}; privSave(n); return n; })); };
+
+  const addFix  = d => setPriv({...priv, fix:[{id:uid(),name:(d.name||'').trim(),amount:parseNum(d.amount)||0,freq:d.freq||'m',day:d.day?Math.min(31,Math.max(1,parseInt(d.day,10)||1)):null},...fixed]});
+  const saveFix = d => setPriv({...priv, fix:fixed.map(x=>x.id===editFix.id?{...x,name:(d.name||x.name).trim(),amount:parseNum(d.amount)||x.amount,freq:d.freq||x.freq,day:d.day?Math.min(31,Math.max(1,parseInt(d.day,10)||1)):x.day}:x)});
+  const delFix  = id => { const it=fixed.find(x=>x.id===id); setPriv({...priv, fix:fixed.filter(x=>x.id!==id)}); undo('Fixkosten gelöscht', ()=>setPriv_(cur=>{ const n=cur.fix.some(x=>x.id===id)?cur:{...cur,fix:[it,...cur.fix]}; privSave(n); return n; })); };
+
+  const backup = () => {
+    try {
+      const blob=new Blob([JSON.stringify({v:1,exported:new Date().toISOString(),...priv},null,2)],{type:'application/json'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+      a.download=`privat-finanzen-${todayISO()}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+    } catch {}
+  };
 
   const txSteps=[
     {label:'Art',ok:d=>!!d.type,render:({data:d,setData:sd})=>(
@@ -2408,73 +2563,81 @@ function Finanzen() {
         <input type="date" className="field" value={d.date||todayISO()} onChange={e=>sd({...d,date:e.target.value})}/>
       </div>
     )},
-    {label:'Kategorie',ok:d=>!!d.cat,render:({data:d,setData:sd})=>(
-      <div className="cat-grid">
-        {CATS.map(c=><button key={c} className={`cat-btn${d.cat===c?' on':''}`} onClick={()=>sd({...d,cat:c})}>{c}</button>)}
-      </div>
-    )},
-    {label:'Für wen?',ok:d=>!!d.userId,render:({data:d,setData:sd})=>(
-      <div className="pick">
-        {users.map(u=><button key={u.id} className={`pick-btn${d.userId===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,userId:u.id})}>{u.name}</button>)}
+    {label:'Kategorie & Notiz',ok:d=>!!d.cat,render:({data:d,setData:sd})=>(
+      <div style={{display:'flex',flexDirection:'column',gap:12}}>
+        <div className="cat-grid">
+          {PRIV_CATS.map(c=><button key={c} className={`cat-btn${d.cat===c?' on':''}`} onClick={()=>sd({...d,cat:c})}>{c}</button>)}
+        </div>
+        <input maxLength={100} className="field" placeholder="Notiz (optional)" value={d.note||''} onChange={e=>sd({...d,note:e.target.value})}/>
       </div>
     )},
   ];
   const fixSteps=[
-    {label:'Bezeichnung',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus maxLength={200} className="field" placeholder="Miete, Strom, Internet …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
+    {label:'Bezeichnung',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus maxLength={100} className="field" placeholder="Miete, Strom, Handy …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
     {label:'Betrag',ok:d=>parseNum(d.amount)>0,render:({data:d,setData:sd})=><div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.amount||''} onChange={e=>sd({...d,amount:e.target.value})}/></div>},
-    {label:'Häufigkeit',ok:d=>!!d.freq,render:({data:d,setData:sd})=>(
-      <div className="pick">
-        {[['m','Monatlich'],['y','Jährlich']].map(([v,l])=>(
-          <button key={v} className={`pick-btn${d.freq===v?' on':''}`} style={{background:'var(--violet)'}} onClick={()=>sd({...d,freq:v})}>{l}</button>
-        ))}
+    {label:'Häufigkeit & Fälligkeit',ok:d=>!!d.freq,render:({data:d,setData:sd})=>(
+      <div style={{display:'flex',flexDirection:'column',gap:12}}>
+        <div className="pick">
+          {[['m','Monatlich'],['y','Jährlich']].map(([v,l])=>(
+            <button key={v} className={`pick-btn${d.freq===v?' on':''}`} style={{background:'var(--violet)'}} onClick={()=>sd({...d,freq:v})}>{l}</button>
+          ))}
+        </div>
+        {d.freq==='m'&&<input type="text" inputMode="numeric" maxLength={2} className="field" placeholder="Fällig am … (Tag, optional)" value={d.day||''} onChange={e=>sd({...d,day:e.target.value.replace(/\D/g,'')})}/>}
       </div>
     )},
   ];
 
   return (
     <div className="screen">
-      <NBar title="Finanzen" color="var(--violet)" status={status}/>
+      <NBar title="Privat" color="var(--violet)" status="privat"/>
       <div className="scroll">
         <div className="content">
-          <div className="seg rise">
-            {users.map(u=><button key={u.id} className={`seg-btn${uid_===u.id?' on':''}`} style={uid_===u.id?{color:u.color}:{}} onClick={()=>setUid_(u.id)}>{u.name}</button>)}
+          <div className="priv-note rise">🔒 Nur auf diesem Gerät · nicht mit der WG geteilt</div>
+
+          <div className="seg rise" style={{animationDelay:'40ms'}}>
+            <button className="seg-btn" aria-label="Vorheriger Monat" onClick={()=>setMon(m=>monShift(m,-1))}>‹</button>
+            <button className="seg-btn on" onClick={()=>setMon(todayISO().slice(0,7))}>{monLabel(mon)}</button>
+            <button className="seg-btn" aria-label="Nächster Monat" disabled={isCur} style={isCur?{opacity:.3}:{}} onClick={()=>{ if(!isCur) setMon(m=>monShift(m,1)); }}>›</button>
           </div>
-          <div className="summary rise" style={{animationDelay:'40ms'}}>
+
+          <div className="summary rise" style={{animationDelay:'80ms'}}>
             <div className="sum-row">
+              {/* Bewusst fmtT statt fmtK: bei Gehalt/Miete zählt der exakte Betrag —
+                  fmtK würde 1450 als „1,4K" anzeigen (gerundet UND abgeschnitten). */}
               {[['Einnahmen',inc,'var(--green)'],['Ausgaben',exp,'var(--red)'],['Bilanz',inc-exp,inc-exp>=0?'var(--label)':'var(--red)']].map(([l,v,c])=>(
                 <div key={l} className="sum-col">
                   <span className="sum-lbl">{l}</span>
-                  <span className="sum-val" style={{color:c,fontSize:16}}>{v<0?'-':''}€{fmtK(Math.abs(v))}</span>
+                  <span className="sum-val" style={{color:c,fontSize:14}}>{v<0?'-':''}€{fmtT(Math.abs(v))}</span>
                 </div>
               ))}
             </div>
-            {fixMo>0&&(
-              <div style={{borderTop:'1px solid var(--sep)',padding:'10px 0',textAlign:'center',fontSize:13,color:'var(--label2)'}}>
-                Fixkosten/Mo. <span className="num" style={{color:'var(--violet)',fontWeight:700}}>€{fmt(fixMo)}</span>
-                {'  ·  '}verfügbar <span className="num" style={{color:avail>=0?'var(--green)':'var(--red)',fontWeight:700}}>€{fmt(avail)}</span>
-              </div>
-            )}
+            <div style={{borderTop:'1px solid var(--sep)',padding:'10px 0',textAlign:'center',fontSize:13,color:'var(--label2)'}}>
+              Fixkosten/Mo. <span className="num" style={{color:'var(--violet)',fontWeight:700}}>€{fmtT(fixMo)}</span>
+              {'  ·  '}bleibt <span className="num" style={{color:avail>=0?'var(--green)':'var(--red)',fontWeight:700}}>{avail<0?'-':''}€{fmtT(Math.abs(avail))}</span>
+            </div>
           </div>
-          <div className="seg rise" style={{animationDelay:'80ms'}}>
+
+          <div className="seg rise" style={{animationDelay:'120ms'}}>
             {[['txs','💳 Buchungen'],['fix','📌 Fixkosten']].map(([v,l])=>(
               <button key={v} className={`seg-btn${seg===v?' on':''}`} onClick={()=>setSeg(v)}>{l}</button>
             ))}
           </div>
+
           {seg==='txs'?(
             <>
               <button className="btn" style={{background:'var(--violet)'}} onClick={()=>setWiz('tx')}>+ Buchung</button>
-              {myTxs.length===0
-                ?<div className="empty"><div className="empty-ico">💳</div><span style={{fontSize:14,color:'var(--label2)'}}>Noch keine Buchungen</span></div>
+              {monTxs.length===0
+                ?<div className="empty"><div className="empty-ico">💳</div><span style={{fontSize:14,color:'var(--label2)'}}>Keine Buchungen im {monLabel(mon)}</span></div>
                 :(
                   <div className="group">
-                    {myTxs.map(t=>(
+                    {monTxs.map(t=>(
                       <div key={t.id} className="cell">
                         <div className="cell-icon" style={{background:t.type==='inc'?'rgba(74,222,128,.13)':'rgba(251,113,133,.13)',fontSize:15}}>
                           {t.type==='inc'?'📈':'📉'}
                         </div>
                         <div className="cell-content" style={{cursor:'pointer'}} onClick={()=>setEditTx(t)}>
-                          <span className="cell-title">{t.category}</span>
-                          <span className="cell-sub">{fmtDate(t.date)}</span>
+                          <span className="cell-title">{t.note?t.note:t.category}</span>
+                          <span className="cell-sub">{t.note?`${t.category} · ${fmtDate(t.date)}`:fmtDate(t.date)}</span>
                         </div>
                         <span className="num" style={{fontWeight:700,fontSize:16,color:t.type==='inc'?'var(--green)':'var(--red)',cursor:'pointer'}} onClick={()=>setEditTx(t)}>
                           {t.type==='inc'?'+':'-'}€{fmt(t.amount)}
@@ -2498,7 +2661,7 @@ function Finanzen() {
                         <div className="cell-icon" style={{background:'rgba(196,181,253,.13)',fontSize:15}}>📌</div>
                         <div className="cell-content" style={{cursor:'pointer'}} onClick={()=>setEditFix(f)}>
                           <span className="cell-title">{f.name}</span>
-                          <span className="cell-sub">{f.freq==='m'?'Monatlich':'Jährlich'}</span>
+                          <span className="cell-sub">{f.freq==='m'?(f.day?`Monatlich · am ${f.day}.`:'Monatlich'):'Jährlich'}</span>
                         </div>
                         <div style={{textAlign:'right',flexShrink:0,cursor:'pointer'}} onClick={()=>setEditFix(f)}>
                           <div className="num" style={{fontSize:15,fontWeight:700}}>€{fmt(f.amount)}</div>
@@ -2512,16 +2675,21 @@ function Finanzen() {
               }
             </>
           )}
+
+          <div style={{display:'flex',gap:9,marginTop:16}}>
+            <button className="btn" style={{background:'var(--bg3)',color:'var(--label2)',flex:1,fontSize:13}} onClick={backup}>⬇︎ Sichern</button>
+            <button className="btn" style={{background:'var(--bg3)',color:'var(--label2)',flex:1,fontSize:13}} onClick={()=>setLocked(true)}>🔒 Sperren</button>
+          </div>
+          <div className="section-ftr">Lokale Daten haben kein Cloud-Backup — „Sichern" legt eine JSON-Datei ab.</div>
         </div>
       </div>
       <Wiz open={wiz==='tx'}  onClose={()=>setWiz(null)} title="Buchung"   color="var(--violet)" steps={txSteps}  onFinish={addTx}/>
       <Wiz open={wiz==='fix'} onClose={()=>setWiz(null)} title="Fixkosten" color="var(--violet)" steps={fixSteps} onFinish={addFix}/>
-      <Wiz open={!!editTx}  onClose={()=>setEditTx(null)}  title="Buchung bearbeiten"   color="var(--violet)" steps={txSteps}  onFinish={saveTx}  initial={editTx?{type:editTx.type,amount:String(editTx.amount).replace(".",","),cat:editTx.category,userId:editTx.userId,date:/^\d{4}-\d{2}-\d{2}$/.test(editTx.date||'')?editTx.date:todayISO()}:null}/>
-      <Wiz open={!!editFix} onClose={()=>setEditFix(null)} title="Fixkosten bearbeiten" color="var(--violet)" steps={fixSteps} onFinish={saveFix} initial={editFix?{name:editFix.name,amount:String(editFix.amount).replace(".",","),freq:editFix.freq}:null}/>
+      <Wiz open={!!editTx}  onClose={()=>setEditTx(null)}  title="Buchung bearbeiten"   color="var(--violet)" steps={txSteps}  onFinish={saveTx}  initial={editTx?{type:editTx.type,amount:String(editTx.amount).replace(".",","),cat:editTx.category,note:editTx.note||'',date:/^\d{4}-\d{2}-\d{2}$/.test(editTx.date||'')?editTx.date:todayISO()}:null}/>
+      <Wiz open={!!editFix} onClose={()=>setEditFix(null)} title="Fixkosten bearbeiten" color="var(--violet)" steps={fixSteps} onFinish={saveFix} initial={editFix?{name:editFix.name,amount:String(editFix.amount).replace(".",","),freq:editFix.freq,day:editFix.day?String(editFix.day):''}:null}/>
     </div>
   );
 }
-
 /* ══════════════════════════
    ABOS
 ══════════════════════════ */
@@ -2716,7 +2884,7 @@ function Einstellungen() {
   const togglePush = () => { if (pushBusy || !pushCapable || !PUSH_API || pushPerm==='denied') return; pushOn ? disablePush() : enablePush(); };
   const pushDisabled = !PUSH_API || !pushCapable || pushBusy || pushPerm==='denied';
 
-  const hasLocalData = (D.hs?.length||0)+(D.gi?.length||0)+(D.ft?.length||0)+(D.ff?.length||0)+(D.ab?.length||0)+(D.pt?.length||0)+(D.sl?.length||0)
+  const hasLocalData = (D.hs?.length||0)+(D.gi?.length||0)+(D.ab?.length||0)+(D.pt?.length||0)+(D.sl?.length||0)
     +(D.rec?.length||0)+(D.pl?.length||0)+(D.stl?.length||0)+(D.arc?.length||0)+Object.keys(D.gp||{}).length > 0;
 
   /* ── Archiv: abgerechnete Posten + Abrechnungen älter als 3 volle Monate ──
@@ -2971,7 +3139,7 @@ function Einstellungen() {
         <div className="rise" style={{animationDelay:'120ms'}}>
           <div className="section-hdr">Module anzeigen</div>
           <div className="group">
-            {[['haus','Haushalt','var(--mint)'],['grow','Growbox','var(--lime)'],['putz','Putzplan','var(--amber)'],['fin','Finanzen','var(--violet)'],['abos','Abos','var(--indigo)'],['stats','Übersicht','var(--sky)']].map(([k,label,c])=>(
+            {[['haus','Haushalt','var(--mint)'],['grow','Growbox','var(--lime)'],['putz','Putzplan','var(--amber)'],['fin','Privat','var(--violet)'],['abos','Abos','var(--indigo)'],['stats','Übersicht','var(--sky)']].map(([k,label,c])=>(
               <div key={k} className="cell">
                 <div style={{width:10,height:10,borderRadius:'50%',background:c,boxShadow:mods[k]?`0 0 8px ${c}`:'none',opacity:mods[k]?1:.35,flexShrink:0}}/>
                 <div className="cell-content">
@@ -3175,7 +3343,7 @@ function Einstellungen() {
         </div>
 
         <button style={{width:'100%',height:50,border:'1px solid rgba(251,113,133,.25)',borderRadius:16,background:'rgba(251,113,133,.06)',color:'var(--red)',fontSize:15,fontWeight:700}}
-            onClick={async()=>{if(await askConfirm({title:'Alle lokalen Daten löschen',body:'Entfernt alle Daten und Einstellungen auf diesem Gerät. Über den WG-Code synchronisierte Daten auf anderen Geräten bleiben erhalten.',okLabel:'Löschen',danger:true})){['wg_data','fb_cfg','wg_code','wg_modules','wg_me'].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>
+            onClick={async()=>{if(await askConfirm({title:'Alle lokalen Daten löschen',body:'Entfernt alle Daten und Einstellungen auf diesem Gerät. Über den WG-Code synchronisierte Daten auf anderen Geräten bleiben erhalten — der private Finanzbereich (nur lokal, inkl. PIN) ist danach unwiderruflich weg.',okLabel:'Löschen',danger:true})){['wg_data','fb_cfg','wg_code','wg_modules','wg_me','wg_priv','wg_priv_pin','wg_priv_tab_v1'].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>
           Alle lokalen Daten löschen
         </button>
 
@@ -3507,7 +3675,7 @@ const TABS=[
   {id:'haus',label:'Haushalt',color:'var(--mint)',  icon:ICONS.house   },
   {id:'grow',label:'Growbox', color:'var(--lime)',  icon:ICONS.leaf    },
   {id:'putz',label:'Putzplan',color:'var(--amber)', icon:ICONS.sparkle },
-  {id:'fin', label:'Finanzen',color:'var(--violet)',icon:ICONS.wallet  },
+  {id:'fin', label:'Privat',  color:'var(--violet)',icon:ICONS.wallet  },
   {id:'abos',label:'Abos',    color:'var(--indigo)',icon:ICONS.repeat  },
   {id:'stats',label:'Übersicht',color:'var(--sky)', icon:ICONS.chart   },
   {id:'set', label:'Mehr',    color:'rgba(242,246,243,.35)', icon:ICONS.settings},

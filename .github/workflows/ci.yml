@@ -27,6 +27,8 @@ jobs:
           node test/split.mjs
           node test/persist.mjs
           node test/paybtn.mjs
+          node test/archive.mjs
+          node test/privat.mjs
           node test/visual.mjs
           kill $SRV 2>/dev/null || true
       - name: Upload Screenshots

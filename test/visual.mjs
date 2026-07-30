@@ -119,6 +119,31 @@ async function run(prefix, ctxOpts, mode) {
     await tap('Growbox'); await shot('growbox');
     await tap('Übersicht'); await page.waitForTimeout(700); await shot('uebersicht');
   }
+
+  // ── Privater Finanzbereich: gesperrt → PIN anlegen → entsperrt ──
+  // Der Seed unten legt PIN + Demo-Buchungen NICHT an; der Bereich startet also
+  // im Einrichtungs-Zustand, genau wie beim ersten echten Öffnen.
+  await page.locator('.tabbar .tabitem', { hasText:'Privat' }).click();
+  await page.waitForTimeout(450);
+  await shot('privat-1-pin-anlegen');
+  const pin = async d => { for (const n of d) { await page.locator('.pin-key', { hasText:new RegExp(`^${n}$`) }).click(); await page.waitForTimeout(80); } };
+  await pin('1234'); await page.waitForTimeout(350);
+  await pin('1234'); await page.waitForTimeout(650);
+  await shot('privat-2-uebersicht');
+  await page.getByRole('button', { name:'📌 Fixkosten' }).click(); await page.waitForTimeout(350);
+  await shot('privat-3-fixkosten');
+  await page.getByRole('button', { name:'+ Fixkosten' }).click(); await page.waitForTimeout(400);
+  await page.locator('input.field').first().fill('Miete');
+  if (mode === 'mobile') {
+    await page.locator('input.field').first().focus();
+    await page.evaluate(() => document.documentElement.style.setProperty('--kb', '336px'));
+    await shot('privat-4-wizard-tastatur-offen');
+    await page.evaluate(() => document.documentElement.style.setProperty('--kb', '0px'));
+  }
+  await page.getByRole('button', { name:'Abbrechen' }).click(); await page.waitForTimeout(300);
+  await page.getByRole('button', { name:'🔒 Sperren' }).click(); await page.waitForTimeout(450);
+  await shot('privat-5-gesperrt');
+
   await ctx.close();
 }
 

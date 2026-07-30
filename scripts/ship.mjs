@@ -20,7 +20,7 @@ const server = spawn('python', ['-m', 'http.server', '8099'], { stdio: 'ignore' 
 let gateOk = false;
 try {
   await sleep(1600);
-  for (const t of ['test/split.mjs', 'test/persist.mjs', 'test/paybtn.mjs']) {
+  for (const t of ['test/split.mjs', 'test/persist.mjs', 'test/paybtn.mjs', 'test/archive.mjs', 'test/privat.mjs']) {
     console.log('   • ' + t);
     sh(`node ${t}`);
   }

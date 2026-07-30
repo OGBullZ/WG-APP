@@ -23,6 +23,8 @@ npm run serve     # python -m http.server 8099  (in eigenem Terminal)
 npm test          # node test/split.mjs — Wizard-Flow + Split-Logik
 node test/persist.mjs   # WG-Code-Persistenz
 node test/paybtn.mjs    # PayPal-Button (3 Sichten)
+node test/archive.mjs   # Archivierung abgerechneter Posten
+node test/privat.mjs    # Privater Finanzbereich: PIN + kein Sync-Leak
 npm run visual    # Screenshot-Harness: Handy/Tablet/Desktop + Tastatur-offen
 ```
 
@@ -32,7 +34,17 @@ npm run visual    # Screenshot-Harness: Handy/Tablet/Desktop + Tastatur-offen
 
 ## Datenmodell (localStorage `wg_data` / RTDB `wg/<code>`)
 
-`users` (id/name/color/pp), Listen-Keys: `hs` Haushalt, `gi` Grow-Ausgaben, `gp` Pflanzen-Anteile, `sl` Einkaufsliste, `pt`/`pl` Putzplan, `ft`/`ff` Finanzen, `ab` Abos, `stl` Abrechnungen, `rec` Wiederkehrend. Nicht gesynct: `wg_me` (Geräte-Identität), `wg_modules`, `wg_tab`.
+`users` (id/name/color/pp), Listen-Keys: `hs` Haushalt, `gi` Grow-Ausgaben, `gp` Pflanzen-Anteile, `sl` Einkaufsliste, `pt`/`pl` Putzplan, `ab` Abos, `stl` Abrechnungen, `rec` Wiederkehrend. Nicht gesynct: `wg_me` (Geräte-Identität), `wg_modules`, `wg_tab`.
+
+### Privater Finanzbereich (Tab „Privat")
+
+Bewusst **außerhalb** des Sync-Datensatzes — die einzigen Daten der App, die die WG nicht teilt:
+
+- Eigener localStorage-Key **`wg_priv`** = `{tx:[…], fix:[…]}` (Buchungen + Fixkosten wie Miete). Läuft NICHT durch `KEYS`/`LIST_KEYS` → wird nie gepusht, ist nicht im JSON-/CSV-Export enthalten. Sicherung nur über den „⬇︎ Sichern"-Button im Tab selbst.
+- **PIN-Sperre**: `wg_priv_pin` = `{h:<SHA-256(salt+pin)>, s:<salt>}` (die PIN selbst wird nirgends gespeichert). Entsperrung gilt nur für die laufende Sitzung — Reload sperrt wieder.
+- Die alten synced Keys `ft`/`ff` sind entfernt; in `database.rules.json` stehen sie auf `".validate": false`, damit dort nie wieder private Daten landen.
+- `MOD_DEF.fin` ist jetzt `true` + einmalige Migration `migrateMods` (Marker `wg_priv_tab_v1`), weil Bestandsgeräte ein `wg_modules` mit `fin:false` gespeichert haben. **Die Migration muss `wg_modules` mitschreiben**, sonst ist der Tab beim nächsten Start wieder weg.
+- Test: `node test/privat.mjs` (24 Checks, u.a. „nichts davon liegt in `wg_data`").
 
 ## Gotchas (teuer gelernt)
 
