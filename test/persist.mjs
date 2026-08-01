@@ -24,6 +24,7 @@ const check = (name, cond) => (cond ? pass : fail).push(name);
 
 // --- Erststart: kein wg_code im localStorage ---
 await page.goto(url, { waitUntil: 'domcontentloaded' });
+await page.locator('.tabbar').waitFor({ timeout: 30000 });   // siehe archive.mjs
 await page.waitForTimeout(1500);
 const stored1 = await page.evaluate(() => localStorage.getItem('wg_code'));
 check('Erststart persistiert wg_code sofort in localStorage', stored1 !== null);

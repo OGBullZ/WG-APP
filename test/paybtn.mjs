@@ -24,6 +24,7 @@ async function render({ me, torbenPp }) {
     if (meId) localStorage.setItem('wg_me', JSON.stringify(meId));
   }, [users, [debtItem], me]);
   await page.goto(url, { waitUntil:'domcontentloaded' });
+  await page.locator('.tabbar').waitFor({ timeout: 30000 });   // siehe archive.mjs
   await page.waitForTimeout(1500);
   const banner = await page.evaluate(() => {
     const el = document.querySelector('.bal-banner');

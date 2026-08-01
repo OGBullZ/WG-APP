@@ -72,6 +72,7 @@ async function run(prefix, ctxOpts, mode) {
   const tap  = async (t) => { await page.locator(`text=${t}`).first().click(); await page.waitForTimeout(420); };
 
   await page.goto(url, { waitUntil:'domcontentloaded' });
+  await page.locator('.tabbar').waitFor({ timeout: 30000 });   // siehe archive.mjs
   await page.waitForTimeout(1700);
 
   // Start-Flow (me=Tom, kein PayPal-Handle + Schulden): erst PayPal-Einrichtung, dann Schulden-Pop-up —

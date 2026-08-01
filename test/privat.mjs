@@ -31,6 +31,9 @@ await page.addInitScript(() => {
 });
 
 await page.goto(url, { waitUntil: 'domcontentloaded' });
+// siehe archive.mjs — hier auf das gerenderte Wurzelelement warten statt auf die
+// Tabbar, die in diesem Szenario hinter dem Start-Overlay nicht sichtbar wird.
+await page.locator('#root > *').first().waitFor({ timeout: 30000 });
 await page.waitForTimeout(2200);
 // Start-Pop-ups wegklicken
 for (let i = 0; i < 2; i++) {

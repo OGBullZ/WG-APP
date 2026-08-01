@@ -22,6 +22,7 @@ const pass = [], fail = [];
 const check = (name, cond) => (cond ? pass : fail).push(name);
 
 await page.goto(url, { waitUntil: 'domcontentloaded' });
+await page.locator('.tabbar').waitFor({ timeout: 30000 });   // siehe archive.mjs
 await page.waitForTimeout(2000);
 
 // --- Wizard-Struktur: 3 Schritte, Datum eingeklappt, Zusammenfassung am Ende ---

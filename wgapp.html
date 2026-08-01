@@ -13,14 +13,16 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com">
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 <!-- Firebase compat SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<!-- React + Babel (production-min: kleiner & schneller) -->
+<!-- React (production-min: kleiner & schneller).
+     Babel-Standalone wird NICHT mehr fest geladen — siehe JSX-Compile-Cache am Seitenende. -->
 <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"></script>
 <style>
 :root {
   --bg:          #060a08;
@@ -32,8 +34,8 @@
   --shadow:      0 24px 56px rgba(0,0,0,.4);
   --label:       #f2f6f3;
   --label2:      rgba(242,246,243,.72);
-  --label3:      rgba(242,246,243,.45);
-  --label4:      rgba(242,246,243,.22);
+  --label3:      rgba(242,246,243,.56);   /* .45 war 4,21:1 → unter WCAG AA (4,5:1) */
+  --label4:      rgba(242,246,243,.38);   /* .22 war 1,83:1 → unter 3:1 für Bedien-Icons (×) */
   --sep:         rgba(255,255,255,.08);
   --lime:        #a3e635;
   --mint:        #5eead4;
@@ -79,7 +81,11 @@ body::after {
 #root { position:relative; z-index:2; }
 input,textarea { font-family:inherit; user-select:text; }
 button { font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; border:none; }
+/* Maus/Touch ohne Fokusring, Tastatur MIT — vorher war jeder Fokus unsichtbar (WCAG 2.4.7) */
 input:focus, button:focus, textarea:focus { outline:none; }
+input:focus-visible, button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+  outline:2px solid var(--mint); outline-offset:2px; border-radius:6px;
+}
 ::-webkit-scrollbar { width:8px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1); border-radius:999px; }
@@ -164,6 +170,11 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 }
 .tabitem:active { transform:scale(.92); }
 .tabitem span { font-size:10px; letter-spacing:.04em; font-weight:700; }
+/* Nur für Screenreader (Überschriften-Struktur, ohne das Layout zu ändern) */
+.sr-only {
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+}
 .tabitem .tab-glow {
   position:absolute; top:0; width:22px; height:3px; border-radius:0 0 3px 3px;
   box-shadow:0 2px 12px 1px currentColor; background:currentColor;
@@ -355,8 +366,9 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 .empty { display:flex; flex-direction:column; align-items:center; gap:8px; padding:48px 0; opacity:.45; }
 .empty-ico { font-size:40px; }
 .cell.dim { opacity:.38; }
-.del-btn { background:none; border:none; padding:4px 0 4px 8px; color:var(--label4); font-size:22px; line-height:1; }
-.chk-btn { width:23px; height:23px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all .2s; }
+/* Tap-Ziele: WCAG 2.2 verlangt min. 24×24 CSS-px — vorher 21×30 bzw. 23×23 */
+.del-btn { background:none; border:none; padding:6px 3px 6px 9px; min-width:26px; color:var(--label4); font-size:22px; line-height:1; }
+.chk-btn { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all .2s; }
 
 /* ── Putzplan ── */
 .due-chip { font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.08em; padding:4px 9px; border-radius:999px; flex-shrink:0; white-space:nowrap; }
@@ -513,7 +525,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 </head>
 <body>
 <div id="root"></div>
-<script type="text/babel">
+<script type="text/jsx-src" id="jsx-src">
 const { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } = React;
 
 /* ── Helpers ── */
@@ -1923,7 +1935,8 @@ function Haushalt({goGrow}) {
                     const fl=flashIds.has(i.id);
                     return(
                       <div key={i.id} className={`cell${i.done?' dim':''}${leaving===i.id?' sl-leaving':''}${fl?' flash':''}`} style={fl?{'--flash-c':hexRgba(u?.color||'#5eead4')}:undefined}>
-                        <button className="chk-btn" style={{border:`1.5px solid ${i.done?'var(--mint)':'var(--sep)'}`,background:i.done?'var(--mint)':'none'}} onClick={()=>checkL(i)}>
+                        <button className="chk-btn" aria-label={i.done?`${i.name} wieder öffnen`:`${i.name} abhaken`} aria-pressed={!!i.done}
+                          style={{border:`1.5px solid ${i.done?'var(--mint)':'var(--sep)'}`,background:i.done?'var(--mint)':'none'}} onClick={()=>checkL(i)}>
                           {i.done&&<ChkIco/>}
                         </button>
                         <div className="cell-content">
@@ -3220,7 +3233,7 @@ function Einstellungen() {
             {users.map(u=>(
               <div key={u.id} className="cell" style={{flexWrap:'wrap'}}>
                 <div style={{width:10,height:10,borderRadius:'50%',background:u.color,boxShadow:`0 0 8px ${u.color}`,flexShrink:0}}/>
-                <input className="field" maxLength={100} style={{background:'transparent',border:'none',padding:0,fontSize:16,fontWeight:600,flex:1}}
+                <input className="field" maxLength={100} aria-label="Name der Person" style={{background:'transparent',border:'none',padding:0,fontSize:16,fontWeight:600,flex:1}}
                   value={u.name} onChange={e=>set('users',users.map(x=>x.id===u.id?{...x,name:e.target.value}:x))}/>
                 <button onClick={()=>setMe(u.id)}
                   style={{background:me===u.id?u.color:'var(--bg3)',color:me===u.id?'#0a120c':'var(--label3)',border:'none',borderRadius:12,padding:'7px 12px',fontSize:12,fontWeight:800,flexShrink:0}}>
@@ -3228,7 +3241,7 @@ function Einstellungen() {
                 </button>
                 <div style={{flexBasis:'100%',display:'flex',alignItems:'center',gap:6,marginTop:9,paddingLeft:18}}>
                   <span style={{fontSize:13,color:'var(--label3)',fontWeight:600,flexShrink:0}}>paypal.me/</span>
-                  <input className="field" maxLength={100} style={{background:'var(--bg3)',border:'none',padding:'7px 10px',fontSize:14,fontWeight:600,flex:1,borderRadius:10}}
+                  <input className="field" maxLength={100} aria-label={`PayPal.me-Name von ${u.name}`} style={{background:'var(--bg3)',border:'none',padding:'7px 10px',fontSize:14,fontWeight:600,flex:1,borderRadius:10}}
                     placeholder="dein-name" autoCapitalize="off" autoCorrect="off" spellCheck={false}
                     value={u.pp||''} onChange={e=>set('users',users.map(x=>x.id===u.id?{...x,pp:e.target.value}:x))}/>
                 </div>
@@ -3830,6 +3843,9 @@ function AppInner() {
   return (
     <>
       <div key={tab} className={`tab-view ${dir>=0?'tab-in-r':'tab-in-l'}`}>
+        {/* Seitenüberschrift: das Dokument hatte bisher gar keine Überschrift —
+            Screenreader konnten nicht sagen, welcher Bereich offen ist. */}
+        <h1 className="sr-only">{(TABS.find(t=>t.id===tab)||{}).label || 'WG'}</h1>
         {tab==='haus'&&<Haushalt goGrow={()=>setTab('grow')}/>}
         {tab==='grow'&&<Grow/>}
         {tab==='putz'&&<Putzplan/>}
@@ -3849,9 +3865,10 @@ function AppInner() {
       {startStep==='debt' && debtInfo && <DebtAlert info={debtInfo} onClose={()=>setStartStep(null)}/>}
       <div className="tabbar">
         {visibleTabs.map(t=>(
-          <button key={t.id} className={`tabitem${tab===t.id?' on':''}`} onClick={()=>setTab(t.id)} style={{color:tab===t.id?t.color:'rgba(242,246,243,.32)'}}>
+          <button key={t.id} className={`tabitem${tab===t.id?' on':''}`} aria-current={tab===t.id?'page':undefined}
+            onClick={()=>setTab(t.id)} style={{color:tab===t.id?t.color:'var(--label3)'}}>
             {tab===t.id&&<div className="tab-glow"/>}
-            <Ic d={t.icon} color={tab===t.id?t.color:'rgba(242,246,243,.32)'} size={23} sw={tab===t.id?2.1:1.6}/>
+            <Ic d={t.icon} color={tab===t.id?t.color:'var(--label3)'} size={23} sw={tab===t.id?2.1:1.6}/>
             <span>{t.label}</span>
           </button>
         ))}
@@ -3869,6 +3886,80 @@ function App() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+<script>
+/* ── JSX-Compile-Cache ───────────────────────────────────────────────────────
+   Der App-Code oben ist JSX und musste bisher bei JEDEM Start von
+   @babel/standalone (2,8 MB) im Browser übersetzt werden. Gemessen mit 4× CPU-
+   Drosselung (≈ Mittelklasse-Handy): 11,6 s bis die App bedienbar war, davon
+   9,6 s ein einziger Long-Task (Babel-Parse + Transform).
+
+   Jetzt: einmal übersetzen, Ergebnis unter einem Hash des Quelltexts in
+   localStorage legen und beim nächsten Start direkt ausführen — Babel wird dann
+   gar nicht erst geladen. Ändert sich der Quelltext (Deploy), ändert sich der
+   Hash → automatisch neu übersetzt, kein Bump von Hand nötig.
+   Kein Build-Schritt, die Datei bleibt weiterhin allein lauffähig. */
+(function () {
+  var src = document.getElementById('jsx-src').textContent;
+  // FNV-1a über den Quelltext (~10 ms) — Cache-Schlüssel, damit alter Code nie überlebt
+  var h = 2166136261;
+  for (var i = 0; i < src.length; i++) { h ^= src.charCodeAt(i); h = Math.imul(h, 16777619); }
+  var KEY = 'wg_jsx_' + (h >>> 0).toString(36) + '_' + src.length;
+
+  function run(code) {
+    var s = document.createElement('script');
+    s.text = code + '\n//# sourceURL=wgapp-jsx.js';
+    document.head.appendChild(s);
+  }
+
+  var cached = null;
+  try { cached = localStorage.getItem(KEY); } catch (e) {}
+  if (cached) {
+    run(cached);
+    // Selbstheilung: sollte das Kompilat im Speicher je beschädigt sein, rendert nichts.
+    // Dann Cache wegwerfen und EINMAL pro Sitzung neu laden (kein Reload-Kreisel).
+    setTimeout(function () {
+      if (document.getElementById('root').firstChild) return;
+      try {
+        if (sessionStorage.getItem('wg_jsx_healed')) return;
+        sessionStorage.setItem('wg_jsx_healed', '1');
+        localStorage.removeItem(KEY);
+      } catch (e) { return; }
+      location.reload();
+    }, 5000);
+    return;
+  }
+
+  // Quelltext hat sich geändert → alte Kompilate wegräumen (sonst wächst der Speicher)
+  try {
+    Object.keys(localStorage).forEach(function (k) { if (k.indexOf('wg_jsx_') === 0) localStorage.removeItem(k); });
+  } catch (e) {}
+
+  var b = document.createElement('script');
+  b.src = 'https://unpkg.com/@babel/standalone@7.25.6/babel.min.js';
+  b.onload = function () {
+    var code;
+    try {
+      // exakt die Optionen, die babel-standalone für <script type="text/babel"> nutzt
+      // (nur ohne inline-sourcemap — die verdoppelt das Kompilat im Cache)
+      code = Babel.transform(src, {
+        filename: 'wgapp.jsx',
+        presets: ['react', 'env'],
+        plugins: ['transform-class-properties', 'transform-object-rest-spread', 'transform-flow-strip-types'],
+        sourceMaps: false
+      }).code;
+    } catch (err) { console.error('JSX-Transform fehlgeschlagen', err); return; }
+    try { localStorage.setItem(KEY, code); } catch (e) {}   // voller Speicher: läuft trotzdem, nur ohne Cache
+    run(code);
+  };
+  b.onerror = function () {
+    document.getElementById('root').innerHTML =
+      '<div style="padding:48px 24px;text-align:center;font-family:system-ui;color:#f2f6f3">' +
+      '<div style="font-size:34px">📡</div><p style="opacity:.7;line-height:1.6">' +
+      'App konnte nicht geladen werden.<br>Einmal mit Internet öffnen, danach läuft sie wieder offline.</p></div>';
+  };
+  document.head.appendChild(b);
+})();
 </script>
 <script>
 /* Service Worker: App offline-fähig nach erstem Laden (Shell + CDN-Libs gecacht) */

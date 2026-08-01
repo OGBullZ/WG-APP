@@ -50,6 +50,9 @@ await page.addInitScript(([u, hsItems, stlItems]) => {
 }, [users, [oldHs1, oldHs2, freshHs], [oldStl]]);
 
 await page.goto(url, { waitUntil: 'domcontentloaded' });
+// Auf die gerenderte App warten, nicht auf die Uhr: beim allerersten Start muss Babel
+// erst geladen werden (JSX-Compile-Cache), das dauert länger als jede feste Wartezeit.
+await page.locator('.tabbar').waitFor({ timeout: 30000 });
 await page.waitForTimeout(1500);
 
 // Wöchentlicher Start-Flow (PayPal-Einrichtung → Schulden-Hinweis) legt ein Overlay über die
