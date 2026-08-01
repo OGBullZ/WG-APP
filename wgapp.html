@@ -35,7 +35,7 @@
   --label:       #f2f6f3;
   --label2:      rgba(242,246,243,.72);
   --label3:      rgba(242,246,243,.56);   /* .45 war 4,21:1 → unter WCAG AA (4,5:1) */
-  --label4:      rgba(242,246,243,.38);   /* .22 war 1,83:1 → unter 3:1 für Bedien-Icons (×) */
+  --label4:      rgba(242,246,243,.50);   /* .22 war 1,83:1; .38 ergab 3,30:1 — als Icon zulässig, aber knapp */
   --sep:         rgba(255,255,255,.08);
   --lime:        #a3e635;
   --mint:        #5eead4;
@@ -267,7 +267,8 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 .sheet-handle { width:38px; height:5px; border-radius:999px; background:rgba(255,255,255,.14); margin:0 auto 18px; flex:none; }
 .sheet-hdr { padding:0 20px 16px; display:flex; justify-content:space-between; align-items:center; flex:none; }
 .sheet-title { font-family:var(--disp); font-size:14px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
-.cancel-btn { font-size:15px; font-weight:600; color:var(--label3); background:none; border:none; padding:0; }
+/* padding statt 0: WCAG 2.2 verlangt 24px Tap-Ziel, vorher 78x17 */
+.cancel-btn { font-size:15px; font-weight:600; color:var(--label3); background:none; border:none; padding:6px 4px; }
 .step-bar { display:flex; gap:5px; padding:0 20px 20px; flex:none; }
 .step-seg { flex:1; height:3px; border-radius:2px; transition:all .3s; }
 .sheet-body { padding:0 20px; display:flex; flex-direction:column; gap:14px; overflow-y:auto; -webkit-overflow-scrolling:touch; flex:1 1 auto; min-height:0; }
@@ -1752,7 +1753,7 @@ function Haushalt({goGrow}) {
                   <button onClick={goGrow} style={{display:'flex',alignItems:'center',gap:9,background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit'}}>
                     <div style={{width:9,height:9,borderRadius:'50%',background:'var(--lime)',boxShadow:'0 0 8px var(--lime)',flexShrink:0}}/>
                     <span style={{flex:1,fontSize:13.5,fontWeight:700,color:'var(--label2)',textAlign:'left'}}>Growbox</span>
-                    <span className="num" style={{fontSize:17,fontWeight:800}}>{myCost>0?giPct:0}%</span>
+                    <span className="num" style={{fontSize:17,fontWeight:800,color:'var(--label)'}}>{myCost>0?giPct:0}%</span>
                     <span className="num" style={{fontSize:11.5,color:'var(--label2)',width:52,textAlign:'right'}}>€{fmt(giShare)}</span>
                     <span style={{color:'var(--label3)',fontSize:16,lineHeight:1,marginLeft:1}}>›</span>
                   </button>
@@ -3076,7 +3077,7 @@ function Einstellungen() {
                   <span className="cell-title num" style={{letterSpacing:'.05em',fontSize:19,fontWeight:700,color:'var(--lime)'}}>{wgCode}</span>
                   <span className="cell-sub">Diesen Code auf dem anderen Gerät eingeben</span>
                 </div>
-                <button onClick={copyCode} style={{background:'none',border:'none',color:copyFail?'var(--red)':copied?'var(--green)':'var(--mint)',fontSize:13,fontWeight:700,flexShrink:0}}>
+                <button onClick={copyCode} style={{background:'none',border:'none',padding:'7px 4px',color:copyFail?'var(--red)':copied?'var(--green)':'var(--mint)',fontSize:13,fontWeight:700,flexShrink:0}}>
                   {copyFail?'Manuell kopieren':copied?'Kopiert ✓':'Kopieren'}
                 </button>
               </div>
@@ -3096,7 +3097,7 @@ function Einstellungen() {
         <div className="rise" style={{animationDelay:'80ms'}}>
           <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <span>Firebase {fbCfg?'(konfiguriert)':'einrichten'}</span>
-            {fbCfg&&<button style={{background:'none',border:'none',color:'var(--mint)',fontSize:13,fontWeight:600,fontFamily:'Hanken Grotesk'}} onClick={()=>setShowSetup(!showSetup)}>{showSetup?'Schließen':'Ändern'}</button>}
+            {fbCfg&&<button style={{background:'none',border:'none',padding:'7px 4px',color:'var(--mint)',fontSize:13,fontWeight:600,fontFamily:'Hanken Grotesk'}} onClick={()=>setShowSetup(!showSetup)}>{showSetup?'Schließen':'Ändern'}</button>}
           </div>
 
           {(!fbCfg||showSetup)&&(
@@ -3159,7 +3160,7 @@ function Einstellungen() {
                   <span className="cell-title">{label}</span>
                 </div>
                 <button onClick={()=>setMods({...mods,[k]:!mods[k]})}
-                  style={{background:mods[k]?c:'var(--bg3)',color:mods[k]?'#0a120c':'var(--label2)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800}}>
+                  style={{background:mods[k]?c:'var(--bg3)',color:mods[k]?'#0a120c':'var(--label)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800}}>
                   {mods[k]?'An':'Aus'}
                 </button>
               </div>
@@ -3691,7 +3692,7 @@ const TABS=[
   {id:'fin', label:'Privat',  color:'var(--violet)',icon:ICONS.wallet  },
   {id:'abos',label:'Abos',    color:'var(--indigo)',icon:ICONS.repeat  },
   {id:'stats',label:'Übersicht',color:'var(--sky)', icon:ICONS.chart   },
-  {id:'set', label:'Mehr',    color:'rgba(242,246,243,.35)', icon:ICONS.settings},
+  {id:'set', label:'Mehr',    color:'rgba(242,246,243,.82)', icon:ICONS.settings},
 ];
 
 /* Persönliche Netto-Bilanz (Haushalt + Growbox) aus me-Sicht — fürs Start-Pop-up.

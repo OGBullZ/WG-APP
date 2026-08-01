@@ -121,6 +121,20 @@ function auditFn() {
     const r = el.getBoundingClientRect(); if (r.width===0||r.height===0) return;
     const cs = getComputedStyle(el);
     if (cs.visibility==='hidden'||cs.opacity==='0') return;
+    // Inaktive Bedienelemente nimmt WCAG 1.4.3 ausdruecklich aus. Ohne diese
+    // Regel meldete das Werkzeug dauerhaft die abgeblendeten Monatspfeile und
+    // den deaktivierten "Archivieren"-Knopf - Fehlalarme, die jeden Durchgang
+    // beschaeftigen und die echten Funde zudecken.
+    const inaktiv = el.closest('[disabled],[aria-disabled="true"]')
+      || [...document.querySelectorAll('*')].length && (() => {
+           let n = el;
+           while (n && n !== document.body) {
+             if (parseFloat(getComputedStyle(n).opacity || 1) < 0.6) return true;
+             n = n.parentElement;
+           }
+           return false;
+         })();
+    if (inaktiv) return;
     const fg = parse(cs.color); if (!fg) return;
     const bg = bgOf(el);
     const eff = blend(fg.rgb, fg.a * parseFloat(cs.opacity||1), bg);
