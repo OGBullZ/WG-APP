@@ -4,7 +4,8 @@ WG-Splitter für 2 Personen (Torben + Tom). Single-File-PWA, Live-Sync zwischen 
 
 ## Stack & Architektur
 
-- **Eine Datei:** `wgapp.html` (~1450 Z.) — React 18 + Babel-Standalone via CDN, KEIN Build-Schritt.
+- **Eine Datei:** `wgapp.html` (~3970 Z.) — React 18 via CDN, KEIN Build-Schritt.
+- **JSX-Compile-Cache (seit wg-v42):** Der App-Code steht in `<script type="text/jsx-src">`, wird **einmal** von Babel übersetzt und unter `localStorage.wg_jsx_<FNV1a-Hash>_<len>` abgelegt; danach wird Babel gar nicht mehr geladen (live 3423 ms → 113 ms). Quelltext ändert sich → Hash ändert sich → automatisch neu. **Folge für Tests: nach `goto` auf die gerenderte App warten** (`.tabbar` bzw. `#root > *`), nie auf eine feste Zeit — beim Erststart lädt Babel erst nach dem HTML.
 - **Sync:** Firebase RTDB `wgapp-65484` (europe-west1), Pfad `wg/<wgCode>`. Item-granular als Map `{id:item}` pro Listen-Key (Phase-1-Sync). localStorage offline-first; RTDB überlagert.
 - **Pairing:** WG-Code (`WORT-WORT-XXXXXX`). Liegt in `localStorage.wg_code` und wird beim Erststart sofort persistiert (sonst Desync, s. Gotchas).
 - **PWA:** `sw.js` (App-Shell + CDN cache-first; RTDB/Auth nie gecacht). `manifest.json`, `icon.svg`.
@@ -25,7 +26,11 @@ node test/persist.mjs   # WG-Code-Persistenz
 node test/paybtn.mjs    # PayPal-Button (3 Sichten)
 node test/archive.mjs   # Archivierung abgerechneter Posten
 node test/privat.mjs    # Privater Finanzbereich: PIN + kein Sync-Leak
+node test/jsxcache.mjs  # JSX-Compile-Cache: Trefferfall, Deploy-Wechsel, Selbstheilung
 npm run visual    # Screenshot-Harness: Handy/Tablet/Desktop + Tastatur-offen
+
+CPU=4 node test/_perf.mjs   # Startzeit messen (CPU-Drosselung, Erst- vs. Zweitstart)
+node test/_audit.mjs        # a11y-Diagnose: Tap-Ziele, Kontraste, Labels, Fokus
 ```
 
 - Tests blocken Firebase (`page.route(... abort)`) → laufen isoliert lokal, **echte WG unberührt**. Seeden Demo-Daten via `addInitScript`.
