@@ -122,6 +122,20 @@ check('10c Ernte ist mit dem Zyklus verknüpft', afterHarv.gz[0].ghId === afterH
 check('11 ohne offenen Zyklus erscheint der Start-Button', await page.locator('.btn', { hasText: 'Zyklus starten' }).count() === 1);
 check('11b Zyklus-Karte ist weg', await page.locator('.phase-chip').count() === 0);
 
+// --- 6b) Fehleingabe: Ernte wieder löschen muss den Zyklus zurückholen ---
+await page.locator('.del-btn[aria-label="Ernte löschen"]').first().click();
+await page.waitForTimeout(700);
+const afterDel = await page.evaluate(() => JSON.parse(localStorage.getItem('wg_data')));
+check('11c gelöschte Ernte öffnet den Zyklus wieder', !afterDel.gz[0].end && !afterDel.gz[0].ghId);
+check('11d Zyklus behält Phase und Startdatum', afterDel.gz[0].phase === 'trock' && afterDel.gz[0].start === cycle.start);
+check('11e Zyklus-Karte ist wieder da', await page.locator('.phase-chip').count() === 4);
+// Undo stellt beides wieder her: Ernte UND beendeter Zyklus
+await page.locator('.undo-toast button', { hasText: 'Rückgängig' }).click();
+await page.waitForTimeout(700);
+const afterUndo = await page.evaluate(() => JSON.parse(localStorage.getItem('wg_data')));
+check('11f Rückgängig holt die Ernte zurück', (afterUndo.gh || []).length === 1);
+check('11g Rückgängig beendet den Zyklus wieder', !!afterUndo.gz[0].end && afterUndo.gz[0].ghId === afterUndo.gh[0].id);
+
 // --- 7) Neuen Zyklus über den Wizard anlegen ---
 await page.locator('.btn', { hasText: 'Zyklus starten' }).click();
 await page.waitForTimeout(400);

@@ -547,7 +547,9 @@ const { useState, useEffect, useRef, useCallback, useMemo, createContext, useCon
 
 /* ── Helpers ── */
 const ls   = (k,fb) => { try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;} };
-const ss   = (k,v)  => { try{localStorage.setItem(k,JSON.stringify(v));}catch{} };
+/* Gibt zurück, OB geschrieben wurde. Für gesyncte Daten ist ein Fehlschlag verschmerzbar
+   (die RTDB hat sie), für den privaten Bereich nicht — der wertet den Rückgabewert aus. */
+const ss   = (k,v)  => { try{localStorage.setItem(k,JSON.stringify(v));return true;}catch{return false;} };
 const uid  = () => Math.random().toString(36).slice(2,10);
 const fmt  = n => Number(n||0).toFixed(2).replace('.', ',');     // deutsche Anzeige: 8,50
 // Mit Tausenderpunkt (1.450,00) — für den privaten Finanzbereich, wo Gehalt/Miete
@@ -2155,7 +2157,18 @@ function Grow() {
     if(cy) set('gz',gzList.map(c=>c.id===cy.id?{...c,end:date,ghId:rec.id}:c));
     notifyOthers(`🌾 ${meName} hat eine Ernte eingetragen`, `${fmt(g)} g`, 'wg-exp', 'exp');
   };
-  const delHarv=id=>{ const it=ghList.find(x=>x.id===id); set('gh',ghList.filter(x=>x.id!==id)); undo('Ernte gelöscht', ()=>setFn('gh', cur => cur.some(x=>x.id===id)?cur:[it,...cur])); };
+  /* Die Ernte hat den Zyklus beendet — wird sie gelöscht (Fehleingabe), muss er wieder
+     aufgehen. Sonst wäre die laufende Runde mit Phase und Gieß-Verlauf unerreichbar weg. */
+  const delHarv=id=>{
+    const it=ghList.find(x=>x.id===id);
+    const linked=gzList.find(c=>c.ghId===id);
+    set('gh',ghList.filter(x=>x.id!==id));
+    if(linked) set('gz',gzList.map(c=>c.id===linked.id?{...c,end:null,ghId:null}:c));
+    undo('Ernte gelöscht', ()=>{
+      setFn('gh', cur => cur.some(x=>x.id===id)?cur:[it,...cur]);
+      if(linked) setFn('gz', cur => cur.map(c=>c.id===linked.id?{...c,end:linked.end,ghId:linked.ghId}:c));
+    });
+  };
   const harvSteps=[
     {label:'Wann geerntet?',ok:()=>true,render:({data:d,setData:sd})=><DateField value={d.date} onChange={v=>sd({...d,date:v})}/>},
     {label:'Wie viel? (Gramm)',ok:d=>parseNum(d.grams)>0,render:({data:d,setData:sd})=><input autoFocus type="text" inputMode="decimal" className="field" placeholder="z. B. 42,5" value={d.grams||''} onChange={e=>sd({...d,grams:e.target.value})}/>},
@@ -2608,7 +2621,7 @@ function Putzplan() {
 ══════════════════════════ */
 const PRIV_KEY='wg_priv', PRIV_PIN='wg_priv_pin';
 const privLoad = () => { const p=ls(PRIV_KEY,null)||{}; return { tx:Array.isArray(p.tx)?p.tx:[], fix:Array.isArray(p.fix)?p.fix:[] }; };
-const privSave = p => ss(PRIV_KEY,{tx:p.tx||[],fix:p.fix||[]});
+const privSave = p => ss(PRIV_KEY,{tx:p.tx||[],fix:p.fix||[]}); // false = nicht geschrieben (voller Speicher)
 
 /* PIN-Hash: SHA-256(salt+pin), hex. Fallback (kein crypto.subtle, z.B. http-Kontext)
    ist ein simpler Rolling-Hash — schwaecher, aber die Sperre bleibt funktionsfaehig. */
@@ -2709,7 +2722,17 @@ function Finanzen() {
   const { undo } = useD();
   const [locked,setLocked] = useState(true);
   const [priv,setPriv_]    = useState(privLoad);
-  const setPriv = p => { setPriv_(p); privSave(p); };
+  /* Geschrieben wird zentral hier statt in jedem Aufrufer — so ist auch der Undo-Pfad
+     abgedeckt und der Updater bleibt seiteneffektfrei. Schlägt das Schreiben fehl
+     (voller Gerätespeicher), MUSS das sichtbar werden: diese Daten liegen nur hier,
+     ein stiller Fehlschlag wäre unwiederbringlicher Verlust (verifiziert, s. Banner). */
+  const [saveErr,setSaveErr] = useState(false);
+  const mounted = useRef(false);
+  useEffect(() => {
+    if (!mounted.current) { mounted.current = true; return; } // beim Mount nichts zurückschreiben
+    setSaveErr(!privSave(priv));
+  }, [priv]);
+  const setPriv = setPriv_;
 
   const [seg,setSeg]   = useState('txs');
   const [wiz,setWiz]   = useState(null);
@@ -2729,11 +2752,11 @@ function Finanzen() {
 
   const addTx  = d => setPriv({...priv, tx:[{id:uid(),type:d.type||'exp',amount:parseNum(d.amount)||0,category:d.cat||'Sonstiges',note:(d.note||'').trim(),date:d.date||todayISO()},...txs]});
   const saveTx = d => setPriv({...priv, tx:txs.map(x=>x.id===editTx.id?{...x,type:d.type||x.type,amount:parseNum(d.amount)||x.amount,category:d.cat||x.category,note:(d.note||'').trim(),date:d.date||x.date}:x)});
-  const delTx  = id => { const it=txs.find(x=>x.id===id); setPriv({...priv, tx:txs.filter(x=>x.id!==id)}); undo('Buchung gelöscht', ()=>setPriv_(cur=>{ const n=cur.tx.some(x=>x.id===id)?cur:{...cur,tx:[it,...cur.tx]}; privSave(n); return n; })); };
+  const delTx  = id => { const it=txs.find(x=>x.id===id); setPriv({...priv, tx:txs.filter(x=>x.id!==id)}); undo('Buchung gelöscht', ()=>setPriv_(cur=>cur.tx.some(x=>x.id===id)?cur:{...cur,tx:[it,...cur.tx]})); };
 
   const addFix  = d => setPriv({...priv, fix:[{id:uid(),name:(d.name||'').trim(),amount:parseNum(d.amount)||0,freq:d.freq||'m',day:d.day?Math.min(31,Math.max(1,parseInt(d.day,10)||1)):null},...fixed]});
   const saveFix = d => setPriv({...priv, fix:fixed.map(x=>x.id===editFix.id?{...x,name:(d.name||x.name).trim(),amount:parseNum(d.amount)||x.amount,freq:d.freq||x.freq,day:d.day?Math.min(31,Math.max(1,parseInt(d.day,10)||1)):x.day}:x)});
-  const delFix  = id => { const it=fixed.find(x=>x.id===id); setPriv({...priv, fix:fixed.filter(x=>x.id!==id)}); undo('Fixkosten gelöscht', ()=>setPriv_(cur=>{ const n=cur.fix.some(x=>x.id===id)?cur:{...cur,fix:[it,...cur.fix]}; privSave(n); return n; })); };
+  const delFix  = id => { const it=fixed.find(x=>x.id===id); setPriv({...priv, fix:fixed.filter(x=>x.id!==id)}); undo('Fixkosten gelöscht', ()=>setPriv_(cur=>cur.fix.some(x=>x.id===id)?cur:{...cur,fix:[it,...cur.fix]})); };
 
   const backup = () => {
     try {
@@ -2787,6 +2810,18 @@ function Finanzen() {
       <div className="scroll">
         <div className="content">
           <div className="priv-note rise">🔒 Nur auf diesem Gerät · nicht mit der WG geteilt</div>
+
+          {/* Bleibt stehen, bis das Speichern wieder klappt — nicht wegklickbar, weil die
+              Änderung sonst beim Schließen der App spurlos verschwindet. */}
+          {saveErr && (
+            <div className="group rise" role="alert" style={{padding:'13px 16px',display:'flex',alignItems:'center',gap:12,border:'1px solid rgba(251,113,133,.42)',background:'rgba(251,113,133,.08)'}}>
+              <div className="cell-icon" style={{background:'rgba(251,113,133,.14)',fontSize:15}}>⚠️</div>
+              <div className="cell-content">
+                <span className="cell-title" style={{color:'var(--red)'}}>Nicht gespeichert</span>
+                <span className="cell-sub">Der Gerätespeicher ist voll — beim Schließen der App wäre die Änderung weg. Jetzt „⬇︎ Sichern" antippen, dann Speicher freimachen.</span>
+              </div>
+            </div>
+          )}
 
           <div className="seg rise" style={{animationDelay:'40ms'}}>
             <button className="seg-btn" aria-label="Vorheriger Monat" onClick={()=>setMon(m=>monShift(m,-1))}>‹</button>
