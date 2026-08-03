@@ -1165,7 +1165,13 @@ function DataProvider({ children }) {
           let foreign = false;
           KEYS.forEach(k => {
             if (!(k in remote2)) return;
-            if (dirty.current.has(k)) return;                           // schreibe ich gerade → nicht überschreiben
+            // Nicht überschreiben, solange an dem Key eine eigene Änderung offen ist: `dirty`
+            // = noch nicht rausgeschickt, `inflight` = unterwegs und unbestätigt. Ohne die
+            // zweite Prüfung trug ein Fremd-Event den Server-Stand von VOR dem eigenen Write
+            // ein — ein gerade gelöschter Posten stand damit wieder da (Zombie, s. test/sync.mjs).
+            // Verworfen wird dabei nichts: Firebase merged item-granular, das Event nach der
+            // Bestätigung liefert Fremd-Änderung UND eigene Änderung zusammen.
+            if (dirty.current.has(k) || inflight.current.has(k)) return;
             if (isListKey(k)) {
               const remoteArr = listToArr(remote2[k]);
               if (canonSer(dataRef.current[k]) === canonSer(remoteArr)) return; // identisch (auch eigenes Echo; canonSer: RTDB strippt null-Felder)
