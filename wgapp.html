@@ -242,6 +242,22 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 .btn:active { transform:scale(.97); filter:brightness(1.1); }
 .btn-sec { background:rgba(255,255,255,.07); color:var(--label); font-weight:700; box-shadow:none; }
 
+/* ── Grow-Zyklus: Phasen-Chips + kompakter Aktions-Button (Tap-Ziel bleibt 44px) ── */
+.phase-chip {
+  flex:1; min-width:0; min-height:46px; border:none; border-radius:13px; padding:6px 3px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  font-size:11px; font-weight:700; font-family:inherit; letter-spacing:-.01em;
+  background:var(--bg3); color:var(--label2); transition:background .2s ease, color .2s ease;
+}
+.phase-chip.on { background:var(--lime); color:#0a120c; font-weight:800; }
+.phase-chip .em { font-size:15px; line-height:1; }
+.mini-btn {
+  min-height:44px; padding:0 14px; border-radius:13px; border:none; flex-shrink:0;
+  font-size:13.5px; font-weight:800; font-family:inherit; color:#0a120c; background:var(--lime);
+  transition:transform .15s ease, filter .2s ease;
+}
+.mini-btn:active { transform:scale(.95); filter:brightness(1.1); }
+
 /* ── Segmented ── */
 .seg { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.06); border-radius:15px; padding:4px; display:flex; gap:4px; }
 .seg-btn {
@@ -683,6 +699,20 @@ const CAT_COLORS = { food:'#5eead4', home:'#38bdf8', fun:'#fbbf24', fix:'#a78bfa
 const GROW_CATS = [['duenger','🧪','Dünger'],['erde','🪴','Erde'],['equip','💡','Equipment'],['strom','⚡','Strom'],['gsonst','📦','Sonstiges']];
 const GROW_CAT_COLORS = { duenger:'#a3e635', erde:'#fbbf24', equip:'#38bdf8', strom:'#c4b5fd', gsonst:'#94a3b8' };
 
+/* Grow-Zyklus (Key `gz`): Phasen mit typischer Dauer in Tagen — Orientierung für den
+   Fortschrittsbalken und den einmaligen „Phase durch?"-Push (api/cron.js kennt dieselbe
+   Tabelle, beide müssen zusammen geändert werden). Letzter Wert = wird in dieser Phase
+   gegossen (in der Trocknung nicht). */
+const GROW_PHASES = [
+  ['keim', '🌱', 'Keimung',   10, true ],
+  ['veg',  '🍃', 'Vegetativ', 28, true ],
+  ['blu',  '🌸', 'Blüte',     63, true ],
+  ['trock','🍂', 'Trocknung', 10, false],
+];
+const PHASE_OF = k => GROW_PHASES.find(p => p[0] === k) || GROW_PHASES[0];
+const PHASE_NEXT = k => { const i = GROW_PHASES.findIndex(p => p[0] === k); return i >= 0 && i < GROW_PHASES.length-1 ? GROW_PHASES[i+1] : null; };
+const WATER_IV_DEF = 3; // Standard-Gießintervall in Tagen, pro Zyklus einstellbar (Feld wiv)
+
 /* Eingebaute Firebase-Config (Client-Keys sind öffentlich) — Sync läuft out-of-the-box */
 const FB_DEFAULT = {
   apiKey: "AIzaSyDUI_cByyzZGXvszsOhdvZw9tlOJ4A_k1Y",
@@ -722,6 +752,7 @@ const INIT = {
   slh:    [],
   gh:     [],
   bud:    [],
+  gz:     [],
 };
 const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
 
@@ -730,8 +761,9 @@ const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
    statt dass der letzte komplette Array-Write die anderen Einträge überschreibt.
    users (fix 2) und gp (Pflanzen-Map) bleiben key-level.
    arc = Archiv (alte abgerechnete hs/gi/stl-Einträge, s. archiveCutoff in Einstellungen).
-   slh = Einkaufslisten-Historie (id=Slug, n=Kaufzähler), gh = Ernte-Log, bud = Kategorie-Budgets (id=Cat-Key). */
-const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud'];
+   slh = Einkaufslisten-Historie (id=Slug, n=Kaufzähler), gh = Ernte-Log, bud = Kategorie-Budgets (id=Cat-Key),
+   gz = Grow-Zyklen {start, phase, pAt, wiv, lastW, lastWBy, wn, end} — offen ist der ohne `end`. */
+const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz'];
 const isListKey = k => LIST_KEYS.includes(k);
 
 /* Monotone Sequenz für stabile, geräteübergreifend deterministische Sortierung. */
@@ -2001,6 +2033,28 @@ function growCalc(D){
   const net=id=>open.filter(i=>i.paidBy===id).reduce((s,i)=>s+i.price,0)-tCost*share(id);
   return { total, share, open, tCost, net };
 }
+/* Offener Grow-Zyklus = der ohne `end`; bei mehreren (Sync-Kollision) gewinnt der zuletzt gestartete. */
+const openCycle = D => (D.gz||[]).filter(c => c && !c.end)
+  .slice().sort((a,b) => String(b.start||'').localeCompare(String(a.start||'')))[0] || null;
+
+/* Abgeleitete Zyklus-Werte. Tag 1 = Starttag (nicht 0 — „Tag 0" liest sich niemand als heute).
+   waterIn: Tage bis zum nächsten Gießen, ≤0 = fällig/überfällig; null in Phasen ohne Gießen.
+   over: Tage über der typischen Phasendauer (>0 = Phase ist rechnerisch durch). */
+function cycleInfo(cy) {
+  if (!cy) return null;
+  const ph = PHASE_OF(cy.phase);
+  const iv = Math.max(1, parseInt(cy.wiv) || WATER_IV_DEF);
+  const sinceW = daysSince(cy.lastW || cy.start);
+  return {
+    ph, iv, sinceW,
+    dayTot: daysSince(cy.start) + 1,
+    dayPh:  daysSince(cy.pAt || cy.start) + 1,
+    watered: !!cy.lastW,
+    waterIn: ph[4] ? iv - sinceW : null,
+    over:    daysSince(cy.pAt || cy.start) + 1 - ph[3],
+  };
+}
+
 function Grow() {
   const { D, set, setFn, status, undo, me, notifyOthers } = useD();
   const users=D.users, plants=D.gp||{}, items=D.gi||[];
@@ -2025,6 +2079,60 @@ function Grow() {
   const settled=items.filter(i=>i.settled);
   const bals=users.map(u=>({ ...u, paid:open.filter(i=>i.paidBy===u.id).reduce((s,i)=>s+i.price,0), net:net(u.id) }));
 
+  /* Zyklus-Tracker: eine offene Runde mit Phase + Gieß-Rhythmus. Die Gieß-Erinnerung
+     schickt der Cron (api/cron.js) aus denselben Feldern — Format nicht einseitig ändern. */
+  const gzList=D.gz||[];
+  const cy=openCycle(D), ci=cycleInfo(cy);
+  const [cycWiz,setCycWiz]=useState(false);
+  const patchCy=patch=>set('gz',gzList.map(c=>c.id===cy.id?{...c,...patch}:c));
+  const startCycle=d=>{
+    const rec={id:uid(),start:d.start||todayISO(),phase:d.phase||'keim',pAt:d.start||todayISO(),wiv:parseInt(d.wiv)||WATER_IV_DEF,lastW:null,wn:0};
+    set('gz',[rec,...gzList]);
+    notifyOthers(`🌱 ${meName} hat einen neuen Zyklus gestartet`, `${PHASE_OF(rec.phase)[2]} · ab ${fmtDate(rec.start)}`, 'wg-grow', 'exp');
+  };
+  const setPhase=k=>{
+    if(!cy||cy.phase===k) return;
+    const prev={phase:cy.phase,pAt:cy.pAt};
+    patchCy({phase:k,pAt:todayISO()});
+    undo(`Phase: ${PHASE_OF(k)[2]}`, ()=>setFn('gz', cur=>cur.map(c=>c.id===cy.id?{...c,...prev}:c)));
+    notifyOthers(`${PHASE_OF(k)[1]} Neue Phase: ${PHASE_OF(k)[2]}`, `Tag ${ci.dayTot} des Zyklus`, 'wg-grow', 'exp');
+  };
+  const water=()=>{
+    if(!cy) return;
+    const prev={lastW:cy.lastW||null,lastWBy:cy.lastWBy||null,wn:cy.wn||0};
+    patchCy({lastW:todayISO(),lastWBy:me,wn:(parseInt(cy.wn)||0)+1});
+    undo('Gießen eingetragen', ()=>setFn('gz', cur=>cur.map(c=>c.id===cy.id?{...c,...prev}:c)));
+  };
+  const endCycle=()=>{
+    if(!cy) return;
+    patchCy({end:todayISO()});
+    undo('Zyklus beendet', ()=>setFn('gz', cur=>cur.map(c=>c.id===cy.id?{...c,end:null}:c)));
+  };
+  const cycSteps=[
+    {label:'Wann gestartet?',ok:()=>true,render:({data:d,setData:sd})=><DateField value={d.start} onChange={v=>sd({...d,start:v})}/>},
+    {label:'In welcher Phase?',ok:d=>!!d.phase,render:({data:d,setData:sd})=>(
+      <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+        {GROW_PHASES.map(([k,em,label,len])=>(
+          <button key={k} type="button" onClick={()=>sd({...d,phase:k})}
+            style={{flex:'1 1 44%',textAlign:'left',fontSize:13,borderRadius:14,padding:'11px 12px',border:'none',fontWeight:d.phase===k?800:600,
+              background:d.phase===k?'var(--lime)':'var(--bg3)',color:d.phase===k?'#0a120c':'var(--label2)'}}>
+            {em} {label}<br/><span style={{fontSize:11,fontWeight:600,opacity:.7}}>meist ~{len} Tage</span>
+          </button>
+        ))}
+      </div>
+    )},
+    {label:'Gießen alle wie viel Tage?',ok:d=>(parseInt(d.wiv)||0)>0,render:({data:d,setData:sd})=>(
+      <div style={{display:'flex',flexDirection:'column',gap:10,alignItems:'center'}}>
+        <div className="stepper" style={{alignSelf:'stretch',justifyContent:'space-between'}}>
+          <button type="button" onClick={()=>sd({...d,wiv:Math.max(1,(parseInt(d.wiv)||WATER_IV_DEF)-1)})}>−</button>
+          <span className="st-val" style={{color:'var(--lime)'}}>{parseInt(d.wiv)||WATER_IV_DEF}</span>
+          <button type="button" onClick={()=>sd({...d,wiv:Math.min(14,(parseInt(d.wiv)||WATER_IV_DEF)+1)})}>+</button>
+        </div>
+        <span style={{fontSize:12.5,color:'var(--label3)'}}>Erinnerung kommt, sobald so viele Tage seit dem letzten Gießen um sind.</span>
+      </div>
+    )},
+  ];
+
   /* Ernte-Log: Zyklus-Kosten = alle gi-Ausgaben (inkl. abgerechnet + Archiv) zwischen Vor-Ernte und Ernte */
   const ghList=D.gh||[];
   const [harvWiz,setHarvWiz]=useState(false);
@@ -2039,7 +2147,14 @@ function Grow() {
   const harv=[...cycles].reverse();
   const totG=cycles.reduce((s,h)=>s+(Number(h.grams)||0),0);
   const avgGpg=totG>0?cycles.reduce((s,h)=>s+h.cost,0)/totG:null;
-  const addHarv=d=>{ const g=parseNum(d.grams)||0; const note=(d.note||'').trim(); set('gh',[{id:uid(),date:d.date||todayISO(),grams:g,...(note?{note}:{})},...ghList]); notifyOthers(`🌾 ${meName} hat eine Ernte eingetragen`, `${fmt(g)} g`, 'wg-exp', 'exp'); };
+  const addHarv=d=>{
+    const g=parseNum(d.grams)||0; const note=(d.note||'').trim(); const date=d.date||todayISO();
+    const rec={id:uid(),date,grams:g,...(note?{note}:{})};
+    set('gh',[rec,...ghList]);
+    // Geerntet heißt: die Runde ist durch. Sonst mahnt der Cron weiter zum Gießen.
+    if(cy) set('gz',gzList.map(c=>c.id===cy.id?{...c,end:date,ghId:rec.id}:c));
+    notifyOthers(`🌾 ${meName} hat eine Ernte eingetragen`, `${fmt(g)} g`, 'wg-exp', 'exp');
+  };
   const delHarv=id=>{ const it=ghList.find(x=>x.id===id); set('gh',ghList.filter(x=>x.id!==id)); undo('Ernte gelöscht', ()=>setFn('gh', cur => cur.some(x=>x.id===id)?cur:[it,...cur])); };
   const harvSteps=[
     {label:'Wann geerntet?',ok:()=>true,render:({data:d,setData:sd})=><DateField value={d.date} onChange={v=>sd({...d,date:v})}/>},
@@ -2142,6 +2257,70 @@ function Grow() {
             </div>
           )}
         </div>
+
+        {/* Zyklus + Gießen: die tägliche Interaktion, deshalb direkt unter dem Hero */}
+        {cy ? (
+          <div className="rise" style={{animationDelay:'40ms'}}>
+            <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span>{ci.ph[1]} Zyklus · Tag {ci.dayTot}</span>
+              {/* Padding + gegenläufiger Margin: 44px Tap-Ziel, optisch bleibt es eine Kopfzeilen-Aktion */}
+              <button style={{background:'none',border:'none',padding:'13px 6px',margin:'-13px -6px -7px',minHeight:44,font:'inherit',fontSize:11,letterSpacing:'.2em',color:'var(--lime)',fontFamily:'var(--mono)',textTransform:'uppercase'}}
+                onClick={endCycle}>Beenden</button>
+            </div>
+            <div className="group">
+              <div className="cell" style={{flexDirection:'column',alignItems:'stretch',gap:12}}>
+                <div style={{display:'flex',gap:6}}>
+                  {GROW_PHASES.map(([k,em,label])=>(
+                    <button key={k} className={`phase-chip${cy.phase===k?' on':''}`} aria-pressed={cy.phase===k}
+                      title={`Phase auf ${label} setzen`} onClick={()=>setPhase(k)}>
+                      <span className="em">{em}</span>{label}
+                    </button>
+                  ))}
+                </div>
+                <div>
+                  <div className="bar-track">
+                    <div className="bar-fill" style={{width:`${Math.min(ci.dayPh/ci.ph[3]*100,100)}%`,
+                      background:ci.over>0?'var(--amber)':'var(--lime)',color:ci.over>0?'var(--amber)':'var(--lime)'}}/>
+                  </div>
+                  <div style={{fontSize:12,color:'var(--label3)',fontWeight:500,marginTop:7}}>
+                    Tag <span className="num">{ci.dayPh}</span> in der {ci.ph[2]} · typisch ~{ci.ph[3]} Tage
+                    {ci.over>0&&<span style={{color:'var(--amber)',fontWeight:700}}> · {ci.over} drüber{PHASE_NEXT(cy.phase)?` — ${PHASE_NEXT(cy.phase)[2]}?`:' — ernten?'}</span>}
+                  </div>
+                </div>
+              </div>
+              {ci.waterIn!==null ? (
+                <div className="cell">
+                  <div className="cell-icon" style={{background:'rgba(56,189,248,.12)',fontSize:15}}>💧</div>
+                  <div className="cell-content">
+                    {/* Ohne eingetragenes Gießen wäre „116 Tage überfällig" zwar korrekt gerechnet,
+                        aber unsinnig zu lesen — dann lieber sagen, dass schlicht nichts erfasst ist. */}
+                    <span className="cell-title" style={{color:ci.waterIn<0?'var(--red)':ci.waterIn===0?'var(--amber)':'var(--label)'}}>
+                      {!ci.watered&&ci.waterIn<=0?'Noch nichts eingetragen'
+                        :ci.waterIn<0?`${-ci.waterIn} Tag${-ci.waterIn===1?'':'e'} überfällig`
+                        :ci.waterIn===0?'Heute gießen'
+                        :`Gießen in ${ci.waterIn} Tag${ci.waterIn===1?'':'en'}`}
+                    </span>
+                    <span className="cell-sub">
+                      {!ci.watered?`Noch nicht gegossen seit dem Start · alle ${ci.iv} Tage`
+                        :`${ci.sinceW===0?'Zuletzt heute':ci.sinceW===1?'Zuletzt gestern':`Zuletzt vor ${ci.sinceW} Tagen`}${cy.lastWBy?` · ${users.find(u=>u.id===cy.lastWBy)?.name||'?'}`:''} · alle ${ci.iv} Tage${cy.wn>0?` · ${cy.wn}× im Zyklus`:''}`}
+                    </span>
+                  </div>
+                  <button className="mini-btn" onClick={water}>Gegossen</button>
+                </div>
+              ) : (
+                <div className="cell">
+                  <div className="cell-icon" style={{background:'rgba(163,230,53,.12)',fontSize:15}}>🍂</div>
+                  <div className="cell-content">
+                    <span className="cell-title">Trocknung läuft</span>
+                    <span className="cell-sub">In dieser Phase wird nicht gegossen — keine Erinnerungen</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <button className="btn btn-sec rise" style={{animationDelay:'40ms'}} onClick={()=>setCycWiz(true)}>🌱 Zyklus starten</button>
+        )}
 
         {/* Offene Bilanz */}
         {open.length>0&&(
@@ -2254,6 +2433,7 @@ function Grow() {
           <button className="btn btn-sec" style={{fontSize:14}} onClick={()=>setHarvWiz(true)}>+ Ernte erfassen</button>
         </div>
       </div></div>
+      <Wiz open={cycWiz} onClose={()=>setCycWiz(false)} title="Neuer Zyklus" color="var(--lime)" steps={cycSteps} onFinish={startCycle} initial={{start:todayISO(),phase:'keim',wiv:WATER_IV_DEF}}/>
       <Wiz open={harvWiz} onClose={()=>setHarvWiz(false)} title="Ernte" color="var(--lime)" steps={harvSteps} onFinish={addHarv} initial={{date:todayISO()}}/>
       <Wiz open={wiz} onClose={()=>setWiz(false)} title="Grow-Ausgabe" color="var(--lime)" steps={steps} onFinish={add} initial={addInit} quickOk={d=>d.name?.trim()&&parseNum(d.price)>0&&d.paidBy}/>
       <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title="Bearbeiten" color="var(--lime)" steps={steps} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,cat:editItem.cat||null,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>

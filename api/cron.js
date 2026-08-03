@@ -7,6 +7,7 @@
 //  - am 1.: Monats-Digest über den Vormonat (inkl. Δ zum Monat davor)
 //  - Kategorie-Budgets (wg/<code>/bud): Warnung bei 80 %/100 % — je Monat/Kategorie/Stufe
 //    genau einmal, Marker in wg/<code>/budSent
+//  - Grow-Zyklus (wg/<code>/gz): Gießen fällig/überfällig + „Phase durch?"-Hinweis
 // Vercel-Prozesse laufen in UTC — "heute" wird deshalb explizit für
 // Europe/Berlin bestimmt (siehe CLAUDE.md-Gotcha zu UTC-Off-by-one).
 
@@ -62,6 +63,60 @@ function toArray(v) {
   if (Array.isArray(v)) return v;
   if (v && typeof v === 'object') return Object.values(v);
   return [];
+}
+
+// Grow-Zyklus (wg/<code>/gz). Spiegelt GROW_PHASES aus wgapp.html — beide zusammen ändern.
+const GROW_PHASES = {
+  keim:  { label: 'Keimung',   len: 10, water: true,  next: 'Vegetativ' },
+  veg:   { label: 'Vegetativ', len: 28, water: true,  next: 'Blüte' },
+  blu:   { label: 'Blüte',     len: 63, water: true,  next: 'Trocknung' },
+  trock: { label: 'Trocknung', len: 10, water: false, next: null },
+};
+
+// Offener Zyklus = der ohne `end`; bei mehreren gewinnt der zuletzt gestartete (wie openCycle() in der App).
+function openCycle(wg) {
+  return toArray(wg.gz).filter((c) => c && !c.end)
+    .sort((a, b) => String(b.start || '').localeCompare(String(a.start || '')))[0] || null;
+}
+
+// Erinnerungen zum laufenden Zyklus:
+//  - Gießen: ab Fälligkeit täglich (wie der Putzplan — eine trockene Pflanze bleibt trocken).
+//  - Phase durch: genau am Tag NACH der typischen Dauer, deshalb ohne Marker in der DB.
+//    Fällt der Cron ausgerechnet an dem Tag aus, entfällt der Push — die App zeigt den
+//    Hinweis dauerhaft am Fortschrittsbalken, es geht also nichts verloren.
+function growCycleMessages(wg, todayMid) {
+  const cy = openCycle(wg);
+  if (!cy || !cy.start) return [];
+  const ph = GROW_PHASES[cy.phase] || GROW_PHASES.keim;
+  const out = [];
+
+  if (ph.water) {
+    const iv = Math.max(1, Number(cy.wiv) || 3);
+    const since = daysSince(cy.lastW || cy.start, todayMid);
+    const over = since - iv;
+    if (over >= 0) {
+      // Ohne einen einzigen Gieß-Eintrag ist die Tages-Differenz zum Zyklus-Start als
+      // „X Tage überfällig" irreführend — dann nur sagen, dass nichts erfasst ist.
+      const body = !cy.lastW
+        ? '💧 Im laufenden Zyklus ist noch kein Gießen eingetragen'
+        : over === 0
+          ? `💧 Gießen ist fällig — zuletzt ${since === 1 ? 'gestern' : `vor ${since} Tagen`}`
+          : `💧 Gießen ist ${over} Tag${over === 1 ? '' : 'e'} überfällig — zuletzt vor ${since} Tagen`;
+      out.push({ title: 'Growbox', body, tag: `water-${cy.id}` });
+    }
+  }
+
+  const dayPh = daysSince(cy.pAt || cy.start, todayMid) + 1;
+  if (dayPh === ph.len + 1) {
+    out.push({
+      title: 'Growbox',
+      body: ph.next
+        ? `${ph.label} läuft seit ${ph.len} Tagen — Zeit für ${ph.next}?`
+        : `🍂 ${ph.label} läuft seit ${ph.len} Tagen — Zeit zu ernten?`,
+      tag: `phase-${cy.id}-${cy.phase}`,
+    });
+  }
+  return out;
 }
 
 function pad2(n) { return String(n).padStart(2, '0'); }
@@ -216,6 +271,10 @@ module.exports = async (req, res) => {
     }
   }
 
+  // Growbox: Gießen fällig + Phase rechnerisch durch
+  const growMsgs = growCycleMessages(wg, todayMid);
+  messages.push(...growMsgs);
+
   let sent = 0;
   if (messages.length) {
     const subs = await loadSubs(code);
@@ -225,5 +284,9 @@ module.exports = async (req, res) => {
     }
   }
 
-  res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, budWarns, sent });
+  res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, budWarns, grow: growMsgs.length, sent });
 };
+
+// Für test/cron_grow.mjs — der Handler selbst bleibt der Default-Export (Vercel).
+module.exports.growCycleMessages = growCycleMessages;
+module.exports.GROW_PHASES = GROW_PHASES;

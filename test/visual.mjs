@@ -15,7 +15,9 @@ const url = 'http://localhost:8099/wgapp.html';
 const OUT = 'test/shots';
 mkdirSync(OUT, { recursive: true });
 
-const today = (() => { const d = new Date(), z = n => String(n).padStart(2,'0'); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; })();
+const z2 = n => String(n).padStart(2,'0');
+const ago = (n) => { const d = new Date(); d.setDate(d.getDate()-n); return `${d.getFullYear()}-${z2(d.getMonth()+1)}-${z2(d.getDate())}`; };
+const today = ago(0);
 
 // Demo-Daten: gemischter Split, Einkaufsliste, Pflanzen, me=Tom (zeigt personalisierten Hero)
 const DEMO = {
@@ -39,6 +41,8 @@ const DEMO = {
     { id:'g2', name:'LED-Panel', price:60, paidBy:'u1', date:today, settled:false, cat:'equip' },
   ],
   gh: [ { id:'e1', date:today, grams:42.5, note:'Northern Lights' } ],
+  // Laufender Zyklus im Warnzustand: Gießen 1 Tag überfällig (zeigt die auffällige Variante der Karte)
+  gz: [ { id:'c1', start:ago(44), phase:'blu', pAt:ago(11), wiv:3, lastW:ago(4), lastWBy:'u1', wn:11 } ],
   bud: [ { id:'home', limit:30 } ],
   slh: [ { id:'hafermilch', name:'Hafermilch', n:5 }, { id:'tofu', name:'Tofu', n:3 } ],
 };

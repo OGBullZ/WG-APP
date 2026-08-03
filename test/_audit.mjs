@@ -12,6 +12,8 @@ const DEMO = {
   sl: [ { id:'s1', name:'Milch', addedBy:'u2', date:today, done:false } ],
   gp: { u1:7, u2:2 },
   gi: [ { id:'g1', name:'Dünger', price:15, paidBy:'u2', date:today, settled:false, cat:'duenger' } ],
+  // Laufender Zyklus, damit Phasen-Chips, „Gegossen" und „Beenden" mitgemessen werden
+  gz: [ { id:'c1', start:'2026-01-02', phase:'blu', pAt:'2026-01-20', wiv:3, lastW:'2026-01-25', lastWBy:'u1', wn:9 } ],
 };
 
 const browser = await chromium.launch();
