@@ -1102,7 +1102,13 @@ function DataProvider({ children }) {
             // App vor dem Reconnect geschlossen, wären diese Edits sonst endgültig weg.
             // Diff-Basis ist wg_confirmed (letzter bestätigter Server-Stand): nur was sich
             // lokal GEGENÜBER DIESEM geändert hat, gewinnt — Fremd-Änderungen bleiben.
-            const pending = joinMode ? [] : prevPending.current;   // explizites „WG übernehmen" = bewusst verwerfen
+            // Geschützt gehören NICHT nur die Keys der Vor-Session (prevPending), sondern auch
+            // alles, was seit dem Verbindungsaufbau geändert wurde (dirty ∪ inflight): Der Server
+            // beantwortet den Erst-Read mit dem Stand von DAVOR, und genau in dieses Fenster fällt
+            // der Kernfall der App — unterwegs aufmachen und sofort eine Ausgabe eintippen. Ohne
+            // sie hier war der Eintrag danach spurlos weg (lokal überschrieben, und der Flush
+            // schickte anschließend den überschriebenen Stand — verifiziert in test/sync.mjs).
+            const pending = joinMode ? [] : [...new Set([...prevPending.current, ...dirty.current, ...inflight.current])];  // explizites „WG übernehmen" = bewusst verwerfen
             prevPending.current = [];
             const conf = ls('wg_confirmed', {}) || {};
             const merged = { ...INIT, ...actual };
