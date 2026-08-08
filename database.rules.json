@@ -32,6 +32,7 @@
         "gh":  { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
         "bud": { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
         "gz":  { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
+        "bo":  { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
         "budSent": { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
 
         "push": {
@@ -47,6 +48,7 @@
             "putz":     { ".validate": "newData.isBoolean()" },
             "settle":   { ".validate": "newData.isBoolean()" },
             "remind":   { ".validate": "newData.isBoolean()" },
+            "board":    { ".validate": "newData.isBoolean()" },
             "quiet":    { ".validate": "newData.isBoolean()" },
             "qs":       { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 23" },
             "qe":       { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 23" },

@@ -765,8 +765,17 @@ const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
    arc = Archiv (alte abgerechnete hs/gi/stl-Einträge, s. archiveCutoff in Einstellungen).
    slh = Einkaufslisten-Historie (id=Slug, n=Kaufzähler), gh = Ernte-Log, bud = Kategorie-Budgets (id=Cat-Key),
    gz = Grow-Zyklen {start, phase, pAt, wiv, lastW, lastWBy, wn, end} — offen ist der ohne `end`. */
-const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz'];
+const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz','bo'];
 const isListKey = k => LIST_KEYS.includes(k);
+/* WG-Board (Key `bo`): kurze Ankündigungen zwischen den zwei Bewohnern — reine Info + Sofort-Push,
+   keine Kostenrelevanz. Einträge mit Datum, laufen nach dem Tag automatisch aus der Anzeige. */
+const BOARD_KINDS = {
+  besuch: { emoji:'🛋️', label:'Besuch',            short:'Besuch',       ph:'wer kommt? (optional)' },
+  gast:   { emoji:'🌙', label:'Übernachtungsgast',  short:'Übernachtung', ph:'wer bleibt? (optional)' },
+  wecker: { emoji:'⏰', label:'Stehe früh auf',      short:'Früh auf',     ph:'z. B. 6:00 (optional)' },
+};
+const shiftISO = (iso, days) => { const [y,m,d]=String(iso).split('-').map(Number); const dt=new Date(y,m-1,d+days,12); const z=n=>String(n).padStart(2,'0'); return `${dt.getFullYear()}-${z(dt.getMonth()+1)}-${z(dt.getDate())}`; };
+const boardWhen = iso => { const t=todayISO(); if(iso===t) return 'heute'; if(iso===shiftISO(t,1)) return 'morgen'; const [y,m,d]=String(iso).split('-').map(Number); const wd=['So','Mo','Di','Mi','Do','Fr','Sa'][new Date(y,m-1,d,12).getDay()]; return `${wd}, ${d}.${m}.`; };
 
 /* Monotone Sequenz für stabile, geräteübergreifend deterministische Sortierung. */
 let _seq = 0;
@@ -1619,6 +1628,9 @@ function Haushalt({goGrow}) {
   const [stamp,setStamp] = useState(false);    // grüner Ausgleich-Stempel
   const [bringOpen,setBringOpen] = useState(false); // „Bitte mitbringen"-Schnellfenster
   const [bringName,setBringName] = useState('');
+  const [boardKind,setBoardKind] = useState(null); // 'besuch'|'gast'|'wecker' → offenes Ankündigungs-Sheet
+  const [boardText,setBoardText] = useState('');
+  const [boardDate,setBoardDate] = useState('');
 
   const addRec = d => {
     const tp={ id:uid(), name:d.name||'Posten', price:parseNum(d.price)||0, paidBy:d.paidBy||users[0].id, owedBy:d.owedBy||null, cat:d.cat||null, since:todayISO().slice(0,7) };
@@ -1638,6 +1650,20 @@ function Haushalt({goGrow}) {
     undo(`🛒 „${n}" gesendet`, ()=>setFn('sl', cur=>cur.filter(i=>i.id!==it.id)));
     setBringName(''); setBringOpen(false);
   };
+  // WG-Board: Ankündigungen (Besuch / Übernachtungsgast / früh auf) — reine Info + Sofort-Push, laufen nach dem Tag aus.
+  const board = D.bo || [];
+  const activeBoard = board.filter(b=>b && b.date && b.date>=todayISO()).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const openBoard = kind => { setBoardKind(kind); setBoardText(''); setBoardDate(kind==='wecker'?shiftISO(todayISO(),1):todayISO()); };
+  const sendBoard = () => {
+    const kind=boardKind; if(!kind) return; const m=BOARD_KINDS[kind];
+    const text=boardText.trim(); const date=boardDate||todayISO();
+    const it={ id:uid(), kind, text, date, by:me||null, ts:Date.now() };
+    set('bo',[it,...board]);
+    notifyOthers(`${m.emoji} ${meName}: ${m.label}${text?` – ${text}`:''}`, boardWhen(date), 'wg-board', 'board');
+    undo(`${m.emoji} „${m.label}" gesendet`, ()=>setFn('bo', cur=>cur.filter(i=>i.id!==it.id)));
+    setBoardKind(null); setBoardText(''); setBoardDate('');
+  };
+  const delBoard = id => { const it=board.find(b=>b.id===id); set('bo',board.filter(b=>b.id!==id)); undo('Ankündigung entfernt', ()=>setFn('bo', cur=>cur.some(b=>b.id===id)?cur:[it,...cur])); };
   const save   = d => set('hs',items.map(i=>i.id===editItem.id?{...i,name:d.name||i.name,price:parseNum(d.price)||i.price,paidBy:d.paidBy||i.paidBy,date:d.date||i.date,owedBy:d.owedBy||null,cat:d.cat||null}:i));
   const toggle = id => set('hs',items.map(i=>i.id===id?{...i,settled:!i.settled,settledAt:!i.settled?todayISO():null}:i));
   const del    = id => { const it=items.find(i=>i.id===id); set('hs',items.filter(i=>i.id!==id)); undo(`„${it?.name||'Ausgabe'}" gelöscht`, ()=>setFn('hs', cur => cur.some(i=>i.id===id)?cur:[it,...cur])); };
@@ -1856,6 +1882,32 @@ function Haushalt({goGrow}) {
             style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,padding:'9px 14px',marginTop:-2,borderRadius:12,border:'none',background:'var(--bg3)',color:'var(--label2)',fontWeight:600,fontSize:13,fontFamily:'inherit',cursor:'pointer',animationDelay:'70ms'}}>
             🛒 Vergessen? Mitbringen lassen
           </button>
+          <div className="rise" style={{animationDelay:'75ms'}}>
+            <div className="section-hdr">🗓️ Ankündigungen</div>
+            <div className="group" style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:11}}>
+              {activeBoard.map(b=>{
+                const who=users.find(u=>u.id===b.by); const m=BOARD_KINDS[b.kind]||{emoji:'📌',label:b.kind};
+                return (
+                  <div key={b.id} style={{display:'flex',alignItems:'center',gap:11}}>
+                    <span style={{fontSize:19,lineHeight:1,flexShrink:0}}>{m.emoji}</span>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:14,fontWeight:700,color:'var(--label)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{m.label}{b.text?` · ${b.text}`:''}</div>
+                      <div style={{fontSize:11.5,color:'var(--label3)',fontWeight:500}}>{boardWhen(b.date)}{who?` · ${who.name}`:''}</div>
+                    </div>
+                    <button className="del-btn" aria-label="Ankündigung entfernen" onClick={()=>delBoard(b.id)}>×</button>
+                  </div>
+                );
+              })}
+              <div style={{display:'flex',gap:8}}>
+                {Object.entries(BOARD_KINDS).map(([k,m])=>(
+                  <button key={k} onClick={()=>openBoard(k)}
+                    style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3,padding:'9px 4px',borderRadius:12,border:'none',background:'var(--bg3)',color:'var(--label2)',fontWeight:700,fontSize:11.5,fontFamily:'inherit',cursor:'pointer',lineHeight:1.2}}>
+                    <span style={{fontSize:19}}>{m.emoji}</span>{m.short}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
           {open.length>0&&(
             <button className="btn btn-sec rise" style={{animationDelay:'80ms'}} onClick={settleAll}>✓ Alles abrechnen ({open.length})</button>
           )}
@@ -2027,6 +2079,27 @@ function Haushalt({goGrow}) {
             <div className="sheet-acts">
               <button className="btn btn-sec" style={{flex:1}} onClick={()=>{ setBringName(''); setBringOpen(false); }}>Abbrechen</button>
               <button className="btn" disabled={!bringName.trim()} style={{background:'var(--mint)',color:'#0a120c',flex:1,whiteSpace:'nowrap',opacity:bringName.trim()?1:.45,cursor:bringName.trim()?'pointer':'default'}} onClick={sendBring}>🔔 Senden</button>
+            </div>
+          </div>
+        </div>, document.body)}
+      {boardKind && ReactDOM.createPortal(
+        <div className="overlay" onClick={()=>setBoardKind(null)}>
+          <div className="sheet" onClick={e=>e.stopPropagation()}>
+            <div className="sheet-handle"/>
+            <div className="sheet-body" style={{gap:12,paddingTop:6}}>
+              <div style={{textAlign:'center',fontSize:40,lineHeight:1}}>{BOARD_KINDS[boardKind].emoji}</div>
+              <div className="hero-lbl" style={{textAlign:'center'}}>{BOARD_KINDS[boardKind].label}</div>
+              <div style={{fontSize:13.5,color:'var(--label2)',lineHeight:1.5,textAlign:'center'}}>
+                {users.find(u=>u.id!==me)?.name || 'Dein Mitbewohner'} bekommt sofort eine Push.
+              </div>
+              <DateField value={boardDate} onChange={setBoardDate}/>
+              <input className="field" autoFocus maxLength={80} placeholder={BOARD_KINDS[boardKind].ph}
+                value={boardText} onChange={e=>setBoardText(e.target.value)}
+                onKeyDown={e=>{ if(e.key==='Enter') sendBoard(); }}/>
+            </div>
+            <div className="sheet-acts">
+              <button className="btn btn-sec" style={{flex:1}} onClick={()=>setBoardKind(null)}>Abbrechen</button>
+              <button className="btn" style={{background:'var(--mint)',color:'#0a120c',flex:1,whiteSpace:'nowrap'}} onClick={sendBoard}>🔔 Senden</button>
             </div>
           </div>
         </div>, document.body)}
@@ -3066,7 +3139,7 @@ function Einstellungen() {
   const flashPush = (m) => { setPushMsg(m); setTimeout(()=>setPushMsg(''), 4000); };
   /* Push-Feinschliff: konfigurierbare Typen pro Gerät + Ruhezeiten. Quelle der Wahrheit für die UI
      ist localStorage; bei aktivem Push zusätzlich in die RTDB-Subscription gespiegelt. */
-  const PUSH_PREFS_DEF = { exp:true, shop:true, putz:true, settle:true, remind:true, quiet:false, qs:22, qe:8 };
+  const PUSH_PREFS_DEF = { exp:true, shop:true, putz:true, settle:true, remind:true, board:true, quiet:false, qs:22, qe:8 };
   const [pushPrefs, setPushPrefs] = useState(() => ({ ...PUSH_PREFS_DEF, ...(ls('wg_push_prefs', {}) || {}) }));
   const setPref = (patch) => {
     setPushPrefs(prev => {
@@ -3522,6 +3595,7 @@ function Einstellungen() {
               ['putz','✅','Putzplan'],
               ['settle','🤝','Abrechnung'],
               ['remind','⏰','Morgen-Erinnerungen'],
+              ['board','🗓️','WG-Board (Besuch, Wecker)'],
             ].map(([key,em,label]) => (
               <div key={key} className="cell" style={{minHeight:44,padding:'8px 16px'}}>
                 <div className="cell-content">
