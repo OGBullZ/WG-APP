@@ -770,9 +770,8 @@ const isListKey = k => LIST_KEYS.includes(k);
 /* WG-Board (Key `bo`): kurze Ankündigungen zwischen den zwei Bewohnern — reine Info + Sofort-Push,
    keine Kostenrelevanz. Einträge mit Datum, laufen nach dem Tag automatisch aus der Anzeige. */
 const BOARD_KINDS = {
-  besuch: { emoji:'🛋️', label:'Besuch',            short:'Besuch',       ph:'wer kommt? (optional)' },
-  gast:   { emoji:'🌙', label:'Übernachtungsgast',  short:'Übernachtung', ph:'wer bleibt? (optional)' },
-  wecker: { emoji:'⏰', label:'Stehe früh auf',      short:'Früh auf',     ph:'z. B. 6:00 (optional)' },
+  besuch: { emoji:'🛋️', label:'Besuch',        short:'Besuch',   ph:'wer kommt? (optional)' },
+  wecker: { emoji:'⏰', label:'Stehe früh auf', short:'Früh aufstehen', ph:'z. B. 6:00 (optional)' },
 };
 const shiftISO = (iso, days) => { const [y,m,d]=String(iso).split('-').map(Number); const dt=new Date(y,m-1,d+days,12); const z=n=>String(n).padStart(2,'0'); return `${dt.getFullYear()}-${z(dt.getMonth()+1)}-${z(dt.getDate())}`; };
 const boardWhen = iso => { const t=todayISO(); if(iso===t) return 'heute'; if(iso===shiftISO(t,1)) return 'morgen'; const [y,m,d]=String(iso).split('-').map(Number); const wd=['So','Mo','Di','Mi','Do','Fr','Sa'][new Date(y,m-1,d,12).getDay()]; return `${wd}, ${d}.${m}.`; };
