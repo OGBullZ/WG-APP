@@ -775,6 +775,27 @@ const BOARD_KINDS = {
 };
 const shiftISO = (iso, days) => { const [y,m,d]=String(iso).split('-').map(Number); const dt=new Date(y,m-1,d+days,12); const z=n=>String(n).padStart(2,'0'); return `${dt.getFullYear()}-${z(dt.getMonth()+1)}-${z(dt.getDate())}`; };
 const boardWhen = iso => { const t=todayISO(); if(iso===t) return 'heute'; if(iso===shiftISO(t,1)) return 'morgen'; const [y,m,d]=String(iso).split('-').map(Number); const wd=['So','Mo','Di','Mi','Do','Fr','Sa'][new Date(y,m-1,d,12).getDay()]; return `${wd}, ${d}.${m}.`; };
+/* Ankündigung als Kalender-Termin (.ics, ganztägig). Tap öffnet auf iOS den Apple-Kalender.
+   DTEND = Folgetag über shiftISO (lokale Komponenten → DST-fest, kein UTC-Parse-Off-by-one). */
+const icsEsc = s => String(s||'').replace(/\\/g,'\\\\').replace(/[,;]/g,m=>'\\'+m).replace(/\n/g,'\\n');
+const boardToICS = b => {
+  const m = BOARD_KINDS[b.kind] || { emoji:'📌', label:b.kind };
+  const d = String(b.date).replace(/-/g,''), end = shiftISO(b.date,1).replace(/-/g,'');
+  const stamp = new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');
+  const summary = icsEsc(`${m.emoji} ${m.label}${b.text?` – ${b.text}`:''}`);
+  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//WG-App//DE','CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',`UID:${b.id}@wgapp`,`DTSTAMP:${stamp}`,
+    `DTSTART;VALUE=DATE:${d}`,`DTEND;VALUE=DATE:${end}`,`SUMMARY:${summary}`,
+    'END:VEVENT','END:VCALENDAR'].join('\r\n');
+};
+const addToCalendar = b => {
+  try {
+    const url = URL.createObjectURL(new Blob([boardToICS(b)], { type:'text/calendar;charset=utf-8' }));
+    const a = document.createElement('a'); a.href=url; a.download='wg-termin.ics';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+  } catch {}
+};
 
 /* Monotone Sequenz für stabile, geräteübergreifend deterministische Sortierung. */
 let _seq = 0;
@@ -1893,6 +1914,8 @@ function Haushalt({goGrow}) {
                       <div style={{fontSize:14,fontWeight:700,color:'var(--label)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{m.label}{b.text?` · ${b.text}`:''}</div>
                       <div style={{fontSize:11.5,color:'var(--label3)',fontWeight:500}}>{boardWhen(b.date)}{who?` · ${who.name}`:''}</div>
                     </div>
+                    <button aria-label="Zum Kalender hinzufügen" title="Zum Kalender hinzufügen" onClick={()=>addToCalendar(b)}
+                      style={{background:'none',border:'none',cursor:'pointer',fontSize:17,padding:'2px 4px',lineHeight:1,flexShrink:0}}>📅</button>
                     <button className="del-btn" aria-label="Ankündigung entfernen" onClick={()=>delBoard(b.id)}>×</button>
                   </div>
                 );
