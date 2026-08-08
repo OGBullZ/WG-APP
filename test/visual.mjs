@@ -79,8 +79,13 @@ async function run(prefix, ctxOpts, mode) {
   await page.locator('.tabbar').waitFor({ timeout: 30000 });   // siehe archive.mjs
   await page.waitForTimeout(1700);
 
-  // Start-Flow (me=Tom, kein PayPal-Handle + Schulden): erst PayPal-Einrichtung, dann Schulden-Pop-up —
-  // dokumentieren + jeweils „Später" klicken, damit die Kern-Screenshots frei sind.
+  // Start-Flow (me=Tom, keine Push-Berechtigung + kein PayPal-Handle + Schulden):
+  // erst Push-Aufforderung, dann PayPal-Einrichtung, dann Schulden-Pop-up — jeweils „Später", damit die Kern-Screenshots frei sind.
+  if (await page.getByText('Benachrichtigungen', { exact:true }).isVisible().catch(()=>false)) {
+    if (mode==='mobile') await shot('start-popup-push');
+    await page.getByRole('button', { name:'Später' }).click();
+    await page.waitForTimeout(400);
+  }
   if (await page.getByText('PayPal einrichten').isVisible().catch(()=>false)) {
     if (mode==='mobile') await shot('start-popup-paypal');
     await page.getByRole('button', { name:'Später' }).click();

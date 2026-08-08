@@ -729,6 +729,8 @@ const FB_DEFAULT = {
    Toggle im „Mehr"-Tab deaktiviert). */
 const PUSH_API = 'https://wg-app-bull-z.vercel.app';
 const VAPID_PUBLIC_KEY = 'BHklI3ymp8Q9tQ-lEXPcIRexRFS-hkfs6DdTN0LRrHVUZOCwfcNktI025qKqIAbdLTYO7_62IZlf9lKZ9-n-ryQ';
+/* Push-Typ-/Ruhezeit-Defaults — global, damit sowohl Einstellungen als auch das Start-Push-Fenster sie nutzen. */
+const PUSH_PREFS_DEF = { exp:true, shop:true, putz:true, settle:true, remind:true, board:true, quiet:false, qs:22, qe:8 };
 /* VAPID-Public-Key (URL-safe base64) → Uint8Array für applicationServerKey */
 const urlBase64ToUint8Array = (base64String) => {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -3160,8 +3162,7 @@ function Einstellungen() {
   const [pushPerm, setPushPerm] = useState(pushCapable ? Notification.permission : 'default');
   const flashPush = (m) => { setPushMsg(m); setTimeout(()=>setPushMsg(''), 4000); };
   /* Push-Feinschliff: konfigurierbare Typen pro Gerät + Ruhezeiten. Quelle der Wahrheit für die UI
-     ist localStorage; bei aktivem Push zusätzlich in die RTDB-Subscription gespiegelt. */
-  const PUSH_PREFS_DEF = { exp:true, shop:true, putz:true, settle:true, remind:true, board:true, quiet:false, qs:22, qe:8 };
+     ist localStorage; bei aktivem Push zusätzlich in die RTDB-Subscription gespiegelt (PUSH_PREFS_DEF global). */
   const [pushPrefs, setPushPrefs] = useState(() => ({ ...PUSH_PREFS_DEF, ...(ls('wg_push_prefs', {}) || {}) }));
   const setPref = (patch) => {
     setPushPrefs(prev => {
@@ -4097,8 +4098,54 @@ function PayPalSetup({ onClose }){
   );
 }
 
+/* Start-Fenster: fordert zum Aktivieren der Push-Benachrichtigungen auf — ohne Push kommen keine
+   Ausgaben-/Einkaufs-/Board-Meldungen an. iOS-Safari ohne Installation kann kein Push → Install-Hinweis. */
+function PushPrompt({ onClose }){
+  const { D, me, pushSave } = useD();
+  const [busy,setBusy] = useState(false);
+  const [err,setErr] = useState('');
+  const iOS = (()=>{ try { return /iphone|ipad|ipod/i.test(navigator.userAgent||''); } catch { return false; } })();
+  const standalone = (()=>{ try { return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; } catch { return false; } })();
+  const capable = typeof window!=='undefined' && 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+  const needsInstall = iOS && !standalone && !capable;
+  const activate = async () => {
+    setBusy(true); setErr('');
+    try {
+      let perm = Notification.permission;
+      if (perm !== 'granted') perm = await Notification.requestPermission();
+      if (perm !== 'granted') { setErr('Nicht erlaubt. Du kannst es später unter „Mehr → Push an die WG" nachholen.'); setBusy(false); return; }
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
+      const j = sub.toJSON()||{};
+      const prefs = { ...PUSH_PREFS_DEF, ...(ls('wg_push_prefs',{})||{}) };
+      await pushSave({ endpoint:j.endpoint, p256dh:(j.keys&&j.keys.p256dh)||null, auth:(j.keys&&j.keys.auth)||null, name:(D.users?.find(u=>u.id===me)?.name)||'Gerät', t:Date.now(), ...prefs });
+      onClose();
+    } catch { setErr('Konnte nicht aktivieren — bist du online und mit der WG verbunden?'); setBusy(false); }
+  };
+  return ReactDOM.createPortal(
+    <div className="overlay" onClick={busy?undefined:onClose}>
+      <div className="sheet" onClick={e=>e.stopPropagation()}>
+        <div className="sheet-handle"/>
+        <div className="sheet-body" style={{gap:12,paddingTop:6,textAlign:'center',alignItems:'center'}}>
+          <div style={{fontSize:44,lineHeight:1}}>🔔</div>
+          <div className="hero-lbl">Benachrichtigungen</div>
+          <div style={{fontSize:14,color:'var(--label2)',lineHeight:1.55}}>
+            {needsInstall
+              ? <>Damit die App vollständig funktioniert, füge sie erst zum Home-Bildschirm hinzu: in Safari unten auf <b>Teilen</b> → <b>Zum Home-Bildschirm</b>. Danach kannst du Push aktivieren.</>
+              : <>Erlaube Benachrichtigungen, sonst verpasst du neue Ausgaben, Einkäufe, Besuch und Erinnerungen. <b>Ohne Push funktioniert die App nicht vollständig.</b></>}
+          </div>
+          {err && <div style={{fontSize:12.5,color:'var(--amber)',fontWeight:600,lineHeight:1.5}}>{err}</div>}
+        </div>
+        <div className="sheet-acts">
+          <button className="btn btn-sec" style={{flex:1}} disabled={busy} onClick={onClose}>Später</button>
+          {!needsInstall && <button className="btn" style={{background:'var(--sky)',color:'#0a120c',flex:1,whiteSpace:'nowrap',opacity:busy?.6:1}} disabled={busy} onClick={activate}>{busy?'…':'🔔 Erlauben'}</button>}
+        </div>
+      </div>
+    </div>, document.body);
+}
+
 function AppInner() {
-  const { mods, remotePulse, D, me } = useD();
+  const { mods, remotePulse, D, me, pushSave } = useD();
   const visibleTabs = TABS.filter(t => t.id==='set' || mods[t.id] !== false);
   const [tab,setTab_] = useState(() => {
     const saved = ls('wg_tab', null); // letzten Tab merken
@@ -4111,7 +4158,8 @@ function AppInner() {
   // Start-Flow (max. 1× pro Woche, nicht bei jedem Öffnen): erst PayPal einrichten (falls kein Handle),
   // danach der offene Schuldbetrag groß (idiotensicher) — beide mit „Später"-Option.
   const [debtInfo,setDebtInfo] = useState(null);
-  const [startStep,setStartStep] = useState(null); // 'pp' | 'debt' | null
+  const [startStep,setStartStep] = useState(null); // 'push' | 'pp' | 'debt' | null
+  const [startNeedsPP,setStartNeedsPP] = useState(false); // merkt sich für die Weiterschaltung push → pp
   const startShownRef = useRef(false);
   useEffect(() => {
     if (startShownRef.current) return;
@@ -4122,14 +4170,20 @@ function AppInner() {
       startShownRef.current = true;
       const last = ls('wg_start_shown', null);
       if (last && daysSince(last) < 7) return;            // diese Woche schon dran → nichts
+      // Push: fehlt die Berechtigung (oder iOS ohne Installation), ist die App nicht vollständig → zuerst auffordern
+      const capable = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+      const iOS = /iphone|ipad|ipod/i.test(navigator.userAgent||'');
+      const standalone = (()=>{ try { return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; } catch { return false; } })();
+      const needsPush = !!PUSH_API && ((capable && Notification.permission!=='granted') || (iOS && !standalone));
       const meUser = (D.users||[]).find(u=>u.id===me);
-      const needsPP = meUser && !ppHandle(meUser.pp);
+      const needsPP = !!(meUser && !ppHandle(meUser.pp));
       const bal = myBalance(D, me, mods);
       const hasDebt = bal.total < -0.01;
-      if (!needsPP && !hasDebt) return;                    // nichts zu zeigen → Marker NICHT setzen
+      if (!needsPush && !needsPP && !hasDebt) return;      // nichts zu zeigen → Marker NICHT setzen
       ss('wg_start_shown', todayISO());                    // Wochen-Sperre erst ab dem Moment, wo etwas gezeigt wurde
       if (hasDebt) setDebtInfo(bal);
-      setStartStep(needsPP ? 'pp' : 'debt');
+      setStartNeedsPP(needsPP);
+      setStartStep(needsPush ? 'push' : needsPP ? 'pp' : 'debt');
     }, 700);
     return () => clearTimeout(t);
   }, [me, D, mods]);
@@ -4185,6 +4239,7 @@ function AppInner() {
         </div>
       )}
       <GlobalUI/>
+      {startStep==='push' && <PushPrompt onClose={()=>setStartStep(startNeedsPP ? 'pp' : (debtInfo ? 'debt' : null))}/>}
       {startStep==='pp' && <PayPalSetup onClose={()=>setStartStep(debtInfo ? 'debt' : null)}/>}
       {startStep==='debt' && debtInfo && <DebtAlert info={debtInfo} onClose={()=>setStartStep(null)}/>}
       <div className="tabbar">

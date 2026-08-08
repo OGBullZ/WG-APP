@@ -3,7 +3,7 @@
    App-Shell + CDN-Bibliotheken (React/Babel/Firebase/Fonts) werden gecacht.
    Der Firebase-Realtime-Sync läuft weiter übers Netz (nie gecacht).
    Cache-Name bei jedem Deploy mit relevanter Änderung hochzählen. */
-const CACHE = 'wg-v50';
+const CACHE = 'wg-v51';
 /* CDN-Bibliotheken (React/Babel/Firebase/Fonts) sind versioniert und ändern sich nie —
    eigener Cache OHNE Versions-Suffix, der Deploys überlebt. Vorher wurden sie beim
    activate-Cleanup jedes Deploys mitgelöscht: bis zum nächsten vollen Online-Load war
