@@ -4089,8 +4089,8 @@ function PayPalSetup({ onClose }){
           </div>
         </div>
         <div className="sheet-acts">
-          <button className="btn btn-sec" onClick={onClose}>Später</button>
-          <button className="btn" disabled={!handle} style={{background:'#0070ba',color:'#fff',flex:1,opacity:handle?1:.45,cursor:handle?'pointer':'default'}} onClick={save}>Speichern</button>
+          <button className="btn btn-sec" style={{flex:1}} onClick={onClose}>Später</button>
+          <button className="btn" disabled={!handle} style={{background:'#0070ba',color:'#fff',flex:1,whiteSpace:'nowrap',opacity:handle?1:.45,cursor:handle?'pointer':'default'}} onClick={save}>Speichern</button>
         </div>
       </div>
     </div>,
