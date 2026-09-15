@@ -9,6 +9,8 @@
       "database.rules.json",
       "vercel.json",
       "README.md",
+      "CLAUDE.md",
+      "scripts/**",
       "**/.*",
       "**/node_modules/**",
       "test/**",
