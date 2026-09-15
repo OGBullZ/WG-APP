@@ -34,7 +34,7 @@ async function open({ localData = {}, joinMode = null, code = 'TEST-LOKAL-SYNC00
     const u = r.request().url();
     return /firebasedatabase\.app|firebaseio\.com|googleapis\.com/.test(u) ? r.abort() : r.continue();
   });
-  await page.route(/firebase-(app|database)-compat\.js/, r => r.fulfill({
+  await page.route(/firebase-(app|database)-compat[-\d.]*\.js/, r => r.fulfill({
     status: 200, contentType: 'application/javascript',
     body: /firebase-app-compat/.test(r.request().url()) ? STUB : '/* steckt im app-Stub */',
   }));
@@ -43,6 +43,9 @@ async function open({ localData = {}, joinMode = null, code = 'TEST-LOKAL-SYNC00
     localStorage.setItem('wg_code', JSON.stringify(c));
     localStorage.setItem('wg_me', JSON.stringify('u1'));
     localStorage.setItem('wg_data', JSON.stringify({ users: u, ...d }));
+    // Wöchentlichen Start-Ablauf (Push/PayPal/Schulden) abschalten: er kam unter Last NACH der Wegklick-Schleife
+    // und legte sich über den Ausgabe-Assistenten → Klick-Timeout (Wackler 15.09.). Dieser Test prüft den Sync.
+    localStorage.setItem('wg_start_shown', JSON.stringify(new Date().toISOString().slice(0, 10)));
     if (jm) sessionStorage.setItem('wg_join_mode', jm);
   }, [localData, joinMode, code, USERS]);
 
@@ -56,16 +59,31 @@ async function open({ localData = {}, joinMode = null, code = 'TEST-LOKAL-SYNC00
   return page;
 }
 
+/* Klick mit Diagnose: schlägt er fehl, Screenshot + Seitenzustand festhalten und laut abbrechen.
+   Grund: seltener Wackler (15.09.), nur wenn parallel ein zweiter Browser-Test lief — Knopf 30 s „nicht stabil". */
+async function clickDiag(page, loc, name) {
+  try { await loc.click({ timeout: 15000 }); }
+  catch (e) {
+    await page.screenshot({ path: `test/shots/sync-fehler-${name}.png` }).catch(() => {});
+    const box = await loc.boundingBox().catch(() => null);
+    console.log('DIAG', name, JSON.stringify({ box, sichtbar: await loc.isVisible().catch(() => '?'), ...(await page.evaluate(() => ({
+      overlays: [...document.querySelectorAll('.overlay')].map(o => o.innerText.slice(0, 50)),
+      anims: document.getAnimations().map(a => a.animationName || a.constructor.name).slice(0, 12),
+      sichtbarkeit: document.visibilityState,
+    })).catch(() => ({}))) }));
+    throw e;
+  }
+}
 const addExpense = async (page, name, amount) => {
-  await page.locator('.btn', { hasText: 'Ausgabe hinzufügen' }).first().click();
+  await clickDiag(page, page.locator('.btn', { hasText: 'Ausgabe hinzufügen' }).first(), 'ausgabe-knopf');
   await page.waitForTimeout(300);
   await page.locator('.sheet .field').first().fill(name);
-  await page.locator('.sheet-acts .btn', { hasText: 'Weiter' }).click();
+  await clickDiag(page, page.locator('.sheet-acts .btn', { hasText: 'Weiter' }), 'weiter-1');
   await page.waitForTimeout(250);
   await page.locator('.sheet .f-euro .field').fill(amount);
-  await page.locator('.sheet-acts .btn', { hasText: 'Weiter' }).click();
+  await clickDiag(page, page.locator('.sheet-acts .btn', { hasText: 'Weiter' }), 'weiter-2');
   await page.waitForTimeout(250);
-  await page.locator('.sheet-acts .btn', { hasText: 'Fertig' }).click();
+  await clickDiag(page, page.locator('.sheet-acts .btn', { hasText: 'Fertig' }), 'fertig');
 };
 const hsOf = page => page.evaluate(() => (JSON.parse(localStorage.getItem('wg_data')).hs || []).map(i => i.name));
 const remoteHs = page => page.evaluate(() => Object.values(window.__wg.remote.hs || {}).map(i => i && i.name));
@@ -156,7 +174,7 @@ const remoteHs = page => page.evaluate(() => Object.values(window.__wg.remote.hs
 
   // Ab jetzt bleiben Writes unterwegs: der Server bestätigt sie nicht und kennt sie nicht.
   await page.evaluate(() => { window.__wg.holdWrites = true; });
-  await page.locator('.del-btn[aria-label="Ausgabe löschen"]').first().click();
+  await clickDiag(page, page.locator('.del-btn[aria-label="Ausgabe löschen"]').first(), 'E-loeschen');
   await page.waitForTimeout(900);   // Flush ist raus (dirty leer), Bestätigung steht aus
 
   const afterDelete = await hsOf(page);

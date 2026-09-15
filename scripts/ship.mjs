@@ -20,7 +20,7 @@ const server = spawn('python', ['-m', 'http.server', '8099'], { stdio: 'ignore' 
 let gateOk = false;
 try {
   await sleep(1600);
-  for (const t of ['test/split.mjs', 'test/persist.mjs', 'test/paybtn.mjs', 'test/archive.mjs', 'test/privat.mjs', 'test/grow.mjs', 'test/cron_grow.mjs', 'test/privquota.mjs', 'test/sync.mjs', 'test/logins.mjs', 'test/selfhost.mjs']) {
+  for (const t of ['test/split.mjs', 'test/persist.mjs', 'test/paybtn.mjs', 'test/archive.mjs', 'test/privat.mjs', 'test/grow.mjs', 'test/cron_grow.mjs', 'test/privquota.mjs', 'test/sync.mjs', 'test/logins.mjs', 'test/selfhost.mjs', 'test/startflow.mjs']) {
     console.log('   • ' + t);
     sh(`node ${t}`);
   }

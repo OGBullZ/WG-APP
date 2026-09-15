@@ -33,13 +33,15 @@ async function device({ me, seed = null, code = 'TEST-LOKAL-LOGIN01' }) {
     if (u.includes('/api/notify')) { pushes.push(JSON.parse(r.request().postData() || '{}')); return r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }); }
     return /firebasedatabase\.app|firebaseio\.com|googleapis\.com/.test(u) ? r.abort() : r.continue();
   });
-  await page.route(/firebase-(app|database)-compat\.js/, r => r.fulfill({
+  await page.route(/firebase-(app|database)-compat[-\d.]*\.js/, r => r.fulfill({
     status: 200, contentType: 'application/javascript',
     body: /firebase-app-compat/.test(r.request().url()) ? STUB : '/* steckt im app-Stub */',
   }));
   await page.addInitScript(([c, m, u, s]) => {
     localStorage.setItem('wg_code', JSON.stringify(c));
     localStorage.setItem('wg_me', JSON.stringify(m));
+    // Start-Ablauf (Push/PayPal/Schulden) aus — sonst kann er sich unter Last über ein offenes Sheet legen
+    localStorage.setItem('wg_start_shown', JSON.stringify(new Date().toISOString().slice(0, 10)));
     if (!localStorage.getItem('wg_data')) localStorage.setItem('wg_data', JSON.stringify({ users: u }));
     const keep = sessionStorage.getItem('__seed');          // Server-Stand über einen Reload retten
     const seedNow = keep ? JSON.parse(keep) : s;

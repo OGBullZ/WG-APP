@@ -11,7 +11,7 @@ const url = 'http://localhost:8099/wgapp.html';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 420, height: 880 } });
 await ctx.routeWebSocket(/./, () => {});
-// Firebase-Sync blocken (echte WG unberührt); das SDK selbst (www.gstatic.com) darf laden wie im Alltag
+// Firebase-Sync blocken (echte WG unberührt); das SDK kommt seit wg-v56 aus vendor/
 await ctx.route('**/*', r => /firebasedatabase\.app|firebaseio\.com/.test(r.request().url()) ? r.abort() : r.continue());
 await ctx.addInitScript(() => {
   if (!localStorage.getItem('wg_code')) localStorage.setItem('wg_code', JSON.stringify('TEST-LOKAL-SELFHOST'));
@@ -21,9 +21,9 @@ const page = await ctx.newPage();
 const errors = [], external = [];
 page.on('pageerror', e => errors.push('PAGEERROR: ' + e.message));
 page.on('console', m => { if (m.type() === 'error' && !/ERR_FAILED|ERR_INTERNET_DISCONNECTED/.test(m.text())) errors.push(m.text()); });
-page.on('request', r => { if (/unpkg\.com|fonts\.googleapis\.com|fonts\.gstatic\.com/.test(r.url())) external.push(r.url()); });
+page.on('request', r => { if (/unpkg\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|www\.gstatic\.com/.test(r.url())) external.push(r.url()); });
 // Auch Anfragen des Service Workers mitzählen (laufen nicht über page.on)
-ctx.on('request', r => { if (/unpkg\.com|fonts\.googleapis\.com|fonts\.gstatic\.com/.test(r.url())) external.push('SW: ' + r.url()); });
+ctx.on('request', r => { if (/unpkg\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|www\.gstatic\.com/.test(r.url())) external.push('SW: ' + r.url()); });
 
 const pass = [], fail = [];
 const check = (n, c, extra = '') => (c ? pass : fail).push(n + (extra ? ` — ${extra}` : ''));
@@ -45,6 +45,7 @@ let keys = [];
 for (let i = 0; i < 30; i++) { keys = await cdnKeys(); if (keys.some(k => /vendor\/babel/.test(k)) && keys.filter(k => /\/fonts\//.test(k)).length >= 6) break; await page.waitForTimeout(500); }
 check('2 Babel liegt im SW-Cache', keys.some(k => /vendor\/babel-standalone-[\d.]+\.min\.js$/.test(k)));
 check('2 React + ReactDOM liegen im SW-Cache', keys.some(k => /vendor\/react-[\d.]+/.test(k)) && keys.some(k => /vendor\/react-dom-[\d.]+/.test(k)));
+check('2 Firebase-SDK (app + database) liegt im SW-Cache', keys.some(k => /vendor\/firebase-app-compat-[\d.]+\.js$/.test(k)) && keys.some(k => /vendor\/firebase-database-compat-[\d.]+\.js$/.test(k)));
 check('2 alle 6 Font-Dateien liegen im SW-Cache', keys.filter(k => /\/fonts\/.+\.woff2$/.test(k)).length === 6, String(keys.filter(k => /woff2/.test(k)).length));
 
 // ── 3) Zweiter Start online (SW kontrolliert jetzt die Seite, Firebase-SDK landet im Cache) ──
@@ -71,7 +72,7 @@ await page.waitForTimeout(4000);
 check('5 Gegenprobe: ohne Babel im Cache startet sie offline NICHT (Test merkt es)', !(await page.locator('.tabbar').count()) && /konnte nicht geladen werden/.test(await page.locator('#root').innerText().catch(() => '')));
 await ctx.setOffline(false);
 
-check('6 keine Anfrage an unpkg / Google Fonts', external.length === 0, external.slice(0, 3).join(' | '));
+check('6 keine Anfrage an unpkg / Google Fonts / gstatic', external.length === 0, external.slice(0, 3).join(' | '));
 check('7 keine Seiten-/Konsolenfehler', errors.length === 0, errors.slice(0, 3).join(' | '));
 
 console.log(pass.map(p => '  OK  ' + p).join('\n'));

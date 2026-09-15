@@ -1,12 +1,11 @@
 /* WG-App Service Worker
    Macht die App nach dem ersten Online-Besuch vollständig offline-lauffähig:
-   App-Shell + Bibliotheken (React/Babel selbst gehostet unter vendor/, Firebase-SDK) + Schriften (fonts/)
+   App-Shell + Bibliotheken (React/Babel/Firebase-SDK, selbst gehostet unter vendor/) + Schriften (fonts/)
    werden gecacht. Der Firebase-Realtime-Sync läuft weiter übers Netz (nie gecacht).
    Cache-Name bei jedem Deploy mit relevanter Änderung hochzählen. */
-const CACHE = 'wg-v55';
+const CACHE = 'wg-v56';
 /* Stabiler Cache OHNE Versions-Suffix, überlebt Deploys. Hier liegen nur Dateien, deren Name sich bei jeder
-   inhaltlichen Änderung mitändert (Firebase-SDK mit Versionspfad, vendor/ mit Version, fonts/ mit
-   Inhalts-Hash). Vorher wurden solche Dateien beim activate-Cleanup jedes Deploys mitgelöscht: bis zum
+   inhaltlichen Änderung mitändert (vendor/ mit Version, fonts/ mit Inhalts-Hash). Vorher wurden solche Dateien beim activate-Cleanup jedes Deploys mitgelöscht: bis zum
    nächsten vollen Online-Load war die App offline ein weißer Screen (HTML da, Skripte weg). */
 const CDN_CACHE = 'wg-cdn';
 const SHELL = ['./', './wgapp.html', './manifest.json', './icon.svg'];
@@ -17,6 +16,8 @@ const IMMUTABLE = [
   './vendor/react-18.3.1.production.min.js',
   './vendor/react-dom-18.3.1.production.min.js',
   './vendor/babel-standalone-7.25.6.min.js',
+  './vendor/firebase-app-compat-9.23.0.js',
+  './vendor/firebase-database-compat-9.23.0.js',
   './fonts/hanken-grotesk-latin-e9201edd.woff2',
   './fonts/hanken-grotesk-latin-ext-768af292.woff2',
   './fonts/unbounded-latin-22f9b928.woff2',
@@ -26,8 +27,6 @@ const IMMUTABLE = [
 ];
 const IMMUTABLE_ABS = IMMUTABLE.map(u => new URL(u, self.location).href);
 
-/* Versionierte Firebase-Bibliothek — ändert sich nie, daher cache-first */
-const isCDN = url => /^https:\/\/www\.gstatic\.com\/firebasejs\//.test(url);
 /* Selbst gehostete, versionierte Dateien unter vendor/ und fonts/ */
 const isImmutable = url => url.startsWith(self.location.origin) && /\/(vendor|fonts)\/[^/]+$/.test(new URL(url).pathname);
 
@@ -51,24 +50,24 @@ self.addEventListener('install', e => {
 });
 
 /* Aufräumen: alte Versions-Caches weg; im stabilen Cache alles, was nicht mehr gebraucht wird —
-   die früheren CDN-Kopien (unpkg, Google Fonts, ~3 MB) und abgelöste vendor/fonts-Versionen. */
+   die früheren CDN-Kopien (unpkg, Google Fonts, gstatic-Firebase, ~3,2 MB) und abgelöste vendor/fonts-Versionen. */
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
       .then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== CDN_CACHE).map(k => caches.delete(k))))
       .then(() => caches.open(CDN_CACHE))
       .then(c => c.keys().then(rs => Promise.all(rs
-        .filter(r => /unpkg\.com|fonts\.(googleapis|gstatic)\.com/.test(r.url) || (isImmutable(r.url) && !IMMUTABLE_ABS.includes(r.url)))
+        .filter(r => /unpkg\.com|fonts\.(googleapis|gstatic)\.com|www\.gstatic\.com\/firebasejs/.test(r.url) || (isImmutable(r.url) && !IMMUTABLE_ABS.includes(r.url)))
         .map(r => c.delete(r)))))
       .then(() => self.clients.claim())
   );
 });
 
-/* Cache-first. Nur brauchbare Antworten ablegen: ok (200er) oder opaque (Firebase-SDK per <script>
-   ohne crossorigin). Vorher landete auch ein 404 im Cache — im stabilen Cache wäre das für immer. */
+/* Cache-first, nur für eigene Dateien. Nur ok-Antworten (200er) ablegen — vorher landete auch ein 404 im
+   Cache, im stabilen Cache wäre das für immer. (Fremde, opaque Antworten gibt es seit dem Selbst-Hosting nicht mehr.) */
 const cacheFirst = (req, cacheName = CACHE) =>
   caches.match(req).then(hit => hit || fetch(req).then(res => {
-    if (res.ok || res.type === 'opaque') {
+    if (res.ok) {
       const copy = res.clone();
       caches.open(cacheName).then(c => c.put(req, copy)).catch(() => {});
     }
@@ -108,7 +107,7 @@ self.addEventListener('fetch', e => {
   const url = req.url;
 
   if (isLiveData(url)) return;                 // durchlassen, nie cachen
-  if (isCDN(url) || isImmutable(url)) { e.respondWith(cacheFirst(req, CDN_CACHE)); return; }
+  if (isImmutable(url)) { e.respondWith(cacheFirst(req, CDN_CACHE)); return; }
 
   // Navigationen: network-first (frische App), Offline-Fallback aus Cache
   if (req.mode === 'navigate') {

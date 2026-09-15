@@ -32,6 +32,7 @@ jobs:
           node test/sync.mjs
           node test/logins.mjs
           node test/selfhost.mjs
+          node test/startflow.mjs
           node test/visual.mjs
           kill $SRV 2>/dev/null || true
       - name: Upload Screenshots
