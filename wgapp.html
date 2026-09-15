@@ -8,9 +8,14 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WG">
 <meta name="theme-color" content="#060a08">
+<!-- Private App: nicht indexieren (dazu robots.txt + X-Robots-Tag-Header in firebase.json) -->
+<meta name="robots" content="noindex, nofollow">
 <title>WG</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<!-- iOS nimmt für den Home-Bildschirm nur PNG, kein SVG — ohne das zeigt es einen Screenshot -->
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://www.gstatic.com">

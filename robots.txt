@@ -1,0 +1,3 @@
+# Private WG-App für zwei Personen — nichts davon gehört in eine Suchmaschine.
+User-agent: *
+Disallow: /

@@ -61,3 +61,8 @@ const live = await fetch('https://wgapp-65484.web.app/sw.js').then(r => r.text()
 const liveV = (live.match(/wg-v(\d+)/) || [])[1];
 if (Number(liveV) === next) console.log(`✓ Live: wg-v${liveV} (${shOut('git rev-parse --short HEAD')})`);
 else { console.error(`✗ Live zeigt wg-v${liveV}, erwartet wg-v${next} (CDN-Verzögerung? gleich nochmal prüfen)`); process.exit(1); }
+// Header der Startseite: ohne no-cache kommt ein Deploy bis zu 1 Std zu spät an, ohne CSP fehlt der Schutz
+const root = await fetch('https://wgapp-65484.web.app/');
+const cc = root.headers.get('cache-control') || '', csp = root.headers.get('content-security-policy') || '';
+if (/no-cache/.test(cc) && csp) console.log('✓ Header: / no-cache + CSP');
+else { console.error(`✗ Header fehlen: cache-control="${cc}", CSP ${csp ? 'da' : 'FEHLT'} (firebase.json prüfen)`); process.exit(1); }
