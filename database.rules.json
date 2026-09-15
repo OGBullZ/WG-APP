@@ -5,7 +5,11 @@
     "wg": {
       "$code": {
         ".read":  "$code.length >= 6 && $code.length <= 64",
-        ".write": "$code.length >= 6 && $code.length <= 64",
+        ".write": "$code.length >= 6 && $code.length <= 64 && !data.child('_moved').exists()",
+
+        "_moved": { ".validate": "newData.isBoolean() && newData.val() === true" },
+        "_mt":    { ".validate": "newData.isNumber()" },
+        "err": { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
 
         "users": {
           "$i": {
@@ -61,6 +65,23 @@
         },
 
         "$other": { ".validate": false }
+      }
+    },
+
+    "sv": {
+      "$k": {
+        ".read": "$k.length >= 40",
+        "cfg": {
+          ".write": "$k.length >= 40",
+          "code":   { ".validate": "newData.isString() && newData.val().length >= 6 && newData.val().length <= 64" },
+          "$other": { ".validate": false }
+        },
+        "bk": {
+          "$snap": {
+            ".write": "$k.length >= 40 && ((!data.exists() && newData.exists()) || (!newData.exists() && data.child('t').val() < now - 1209600000))",
+            ".validate": "newData.hasChildren(['t', 'data']) && newData.child('t').isNumber() && newData.child('t').val() <= now + 60000"
+          }
+        }
       }
     }
   }

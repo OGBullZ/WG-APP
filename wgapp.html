@@ -23,6 +23,37 @@
 <link rel="preload" href="fonts/hanken-grotesk-latin-e9201edd.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/unbounded-latin-22f9b928.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/spline-sans-mono-latin-46b7dcaf.woff2" as="font" type="font/woff2" crossorigin>
+<script>
+/* Fehlerprotokoll, Teil 1: SO FRÜH wie möglich registrieren, damit auch Fehler beim Laden der Bibliotheken
+   oder beim Übersetzen ankommen. Schreibt nur in eine lokale Warteschlange (wg_err_q, max. 20); die App
+   übernimmt sie, sobald sie synchronisiert, in den gesyncten Key `err` (Anzeige unter „Mehr").
+   Gefiltert: Browser-Erweiterungen und fremde Skripte, „Script error." (keine Details), ResizeObserver-Rauschen,
+   Wiederholungen derselben Meldung innerhalb einer Minute. */
+(function () {
+  // Wiederholungssperre im Speicher, NICHT über die Warteschlange: die wird beim Übertragen geleert,
+  // danach kam dieselbe Meldung sonst doppelt an (per Test gefunden).
+  var seen = {};
+  function note(msg, src, line) {
+    try {
+      var m = String(msg || '');
+      if (!m || /ResizeObserver loop|^Script error\.?$/.test(m)) return;
+      var s = String(src || '');
+      if (/^(chrome|moz|safari)(-web)?-extension:/.test(s)) return;
+      if (/^https?:/.test(s) && s.indexOf(location.origin) !== 0) return;
+      var k = m.slice(0, 300);
+      if (seen[k] && Date.now() - seen[k] < 60000) return;
+      seen[k] = Date.now();
+      var q = JSON.parse(localStorage.getItem('wg_err_q') || '[]');
+      q.push({ t: Date.now(), m: m.slice(0, 300), s: s.split('/').pop().slice(0, 60), l: line || 0, b: window.__wgBuild || '' });
+      localStorage.setItem('wg_err_q', JSON.stringify(q.slice(-20)));
+      window.dispatchEvent(new Event('wg-err'));
+    } catch (e) { /* Protokoll darf selbst nie einen Fehler werfen */ }
+  }
+  window.__wgErr = note;
+  window.addEventListener('error', function (e) { note(e.message, e.filename, e.lineno); });
+  window.addEventListener('unhandledrejection', function (e) { var r = e.reason; note('Promise: ' + ((r && (r.message || r)) || '?'), '', 0); });
+})();
+</script>
 <!-- Firebase compat SDK 9.23.0 (npm-Paket firebase, byte-gleich mit den gstatic-Dateien). Nur der Code liegt hier —
      die Datenbank-Verbindung geht natürlich weiter zu *.firebasedatabase.app. -->
 <script src="vendor/firebase-app-compat-9.23.0.js"></script>
@@ -187,6 +218,15 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 }
 .tabitem:active { transform:scale(.92); }
 .tabitem span { font-size:10px; letter-spacing:.04em; font-weight:700; }
+/* Roter Punkt am Tab „Mehr": neue Einträge im Fehlerprotokoll */
+.tab-dot { position:absolute; top:7px; left:calc(50% + 9px); width:8px; height:8px; border-radius:50%; background:var(--red); box-shadow:0 0 0 2px var(--bg); }
+/* Hinweis „WG-Code wurde geändert" — über der Tabbar, bis mit dem neuen Code beigetreten wurde */
+.moved-banner { position:fixed; left:12px; right:12px; bottom:calc(var(--tb-h) + 10px); z-index:350; display:flex; flex-direction:column; gap:8px; padding:12px 14px; border-radius:16px; background:rgba(40,16,22,.92); border:1px solid rgba(251,113,133,.45); color:var(--label); font-size:13.5px; font-weight:600; line-height:1.45; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); }
+.moved-banner button { align-self:flex-start; min-height:40px; background:var(--red); color:#1a0a0d; border:none; border-radius:11px; padding:9px 13px; font-weight:800; font-size:13px; font-family:inherit; }
+@media (min-width:700px) { .moved-banner { left:50%; right:auto; transform:translateX(-50%); width:min(520px, calc(100% - 24px)); } }
+.err-row { align-items:flex-start; }
+/* Solange der Hinweis steht, unten Platz lassen — sonst verdeckt er am Seitenende Inhalte */
+.screen:has(~ .moved-banner) .content, body:has(.moved-banner) .content { padding-bottom:210px; }
 /* Nur für Screenreader (Überschriften-Struktur, ohne das Layout zu ändern) */
 .sr-only {
   position:absolute; width:1px; height:1px; padding:0; margin:-1px;
@@ -622,8 +662,11 @@ const NUNS  = ['GRAS','MOND','WALD','SEE','BERG','WIND','STEIN','LICHT','FUCHS',
 /* Verwechslungsfreies Alphabet (kein 0/O/1/I/L) für ein 6-stelliges Secret-Suffix.
    12·12·31^6 ≈ 1,3·10^11 Kombinationen — Raten über die offene DB praktisch chancenlos. */
 const SAFE = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const rnd  = n => Array.from({length:n},()=>SAFE[Math.floor(Math.random()*SAFE.length)]).join('');
-const pick = a => a[Math.floor(Math.random()*a.length)];
+// Kryptografischer Zufall statt Math.random (dessen Folge ist aus wenigen Ausgaben vorhersagbar) — der
+// WG-Code ist der einzige Schlüssel zur WG. Modulo-Verzerrung bei ≤31 Werten aus 2^32: vernachlässigbar.
+const rndInt = n => { try { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n; } catch { return Math.floor(Math.random()*n); } };
+const rnd  = n => Array.from({length:n},()=>SAFE[rndInt(SAFE.length)]).join('');
+const pick = a => a[rndInt(a.length)];
 const genCode = () => `${pick(ADJS)}-${pick(NUNS)}-${rnd(6)}`;
 
 /* ── Animations-Helfer (Paket A) ── */
@@ -779,6 +822,7 @@ const INIT = {
   // auf dem anderen Gerät nie an, Löschungen nie beim Server. Test: sync.mjs Szenario H.
   bo:     [],
   ls:     [],
+  err:    [],   // Fehlerprotokoll der Geräte (max. 30, s. Früh-Skript im <head> + drainErr)
 };
 const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
 
@@ -790,7 +834,7 @@ const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
    slh = Einkaufslisten-Historie (id=Slug, n=Kaufzähler), gh = Ernte-Log, bud = Kategorie-Budgets (id=Cat-Key),
    gz = Grow-Zyklen {start, phase, pAt, wiv, lastW, lastWBy, wn, end} — offen ist der ohne `end`.
    ls = Login-Freigaben {svc, by, ts, exp, view, s, iv, ct, it} — nur Chiffretext, s. LOGIN_*. */
-const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz','bo','ls'];
+const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz','bo','ls','err'];
 const isListKey = k => LIST_KEYS.includes(k);
 /* WG-Board (Key `bo`): kurze Ankündigungen zwischen den zwei Bewohnern — reine Info + Sofort-Push,
    keine Kostenrelevanz. Einträge mit Datum, laufen nach dem Tag automatisch aus der Anzeige. */
@@ -1023,6 +1067,7 @@ function DataProvider({ children }) {
   const pushed     = useRef({});        // non-list Key -> Set letzter Serialisierungen (Echo-Erkennung)
   const lastPushed = useRef({});        // list Key -> {id: serialized} = letzter bekannter Server-Stand (Diff-Basis)
   const flushTimer = useRef(null);
+  const rotatingRef = useRef(false);    // während „WG-Code wechseln": der EIGENE Umzugs-Marker ist kein „Code geändert"
   useEffect(() => { dataRef.current = D; }, [D]);
   // knownIds initial seeden — beim ersten Laden/Initial-Sync darf NICHTS flashen.
   useEffect(() => { LIST_KEYS.forEach(k => (dataRef.current[k]||[]).forEach(it => it && it.id!=null && knownIds.current.add(it.id))); }, []);
@@ -1188,6 +1233,9 @@ function DataProvider({ children }) {
         const remote = snap.val();
         const joinMode = sessionStorage.getItem('wg_join_mode');
         sessionStorage.removeItem('wg_join_mode');
+        // Umgezogen (WG-Code gewechselt)? Nichts übernehmen, nichts schreiben — sonst stünde die WG unter dem
+        // alten Code wieder, genau für den, der raus sollte. Lokale Daten bleiben; Beitritt mit dem neuen Code.
+        if (remote && remote._moved && !rotatingRef.current && dbRef.current === ref) { ref.off(); dbRef.current = null; setStatus('moved'); return; }
         if (remote) {
           const { _wid, ...raw } = remote;
           const actual = normalizeRemote(raw);                  // Listen → Arrays (egal ob Map- oder Alt-Array-Format)
@@ -1261,11 +1309,15 @@ function DataProvider({ children }) {
           pushAll(dataRef.current);
         }
         setStatus('synced');
+        healPush(remote);                                   // eigene Push-Registrierung unter diesem Code sicherstellen
 
         // Laufender Listener: pro Key/Item diffen; eigene Echos & in-flight Writes ignorieren
         let firstEvent = true;
         ref.on('value', snap2 => {
           const v = snap2.val();
+          // Während der Sitzung umgezogen (das andere Gerät hat den Code gewechselt): sofort aufhören zu schreiben
+          // (dbRef.current !== ref: Listener eines schon abgelösten Codes — der darf die neue Verbindung nicht kappen)
+          if (v && v._moved) { if (rotatingRef.current || dbRef.current !== ref) return; ref.off(); dbRef.current = null; setStatus('moved'); return; }
           if (!v) { firstEvent = false; return; }
           const { _wid, ...remote2 } = v;
           const adopt = {};
@@ -1328,6 +1380,80 @@ function DataProvider({ children }) {
 
   const setFbCfg = (cfg) => { setFbCfg_(cfg); ss('fb_cfg', cfg); };
   const setWgCode = (c) => { setWgCode_(c); ss('wg_code', c); };
+
+  /* Eigene Push-Registrierung fehlt unter diesem Code (neuer Code nach Wechsel/Beitritt, oder vom Server als tot
+     entfernt)? Still neu eintragen — sonst bekäme dieses Gerät nach einem Code-Wechsel nie wieder Pushes.
+     Nur wenn der Browser noch eine Subscription hat: wer Push ausgeschaltet hat, hat sie gekündigt (unsubscribe). */
+  const healPush = (remoteObj) => {
+    try {
+      if (!PUSH_API || !('Notification' in window) || Notification.permission !== 'granted' || !('serviceWorker' in navigator)) return;
+      if (remoteObj && remoteObj.push && remoteObj.push[deviceId]) return;
+      navigator.serviceWorker.ready.then(reg => reg.pushManager.getSubscription()).then(sub => {
+        if (!sub || !dbRef.current) return;
+        const j = sub.toJSON() || {};
+        const prefs = { ...PUSH_PREFS_DEF, ...(ls('wg_push_prefs', {}) || {}) };
+        const name = (dataRef.current.users || []).find(u => u.id === ls('wg_me', null))?.name || 'Gerät';
+        dbRef.current.child('push/' + deviceId).set({ endpoint: j.endpoint, p256dh: (j.keys && j.keys.p256dh) || null, auth: (j.keys && j.keys.auth) || null, name, t: Date.now(), ...prefs }).catch(() => {});
+      }).catch(() => {});
+    } catch {}
+  };
+
+  /* Fehlerprotokoll, Teil 2: Warteschlange aus dem Früh-Skript (<head>) in den gesyncten Key `err` übernehmen —
+     erst wenn eine Verbindung steht, sonst merkt queuePush die Änderung nicht vor und der Eintrag bliebe lokal. */
+  useEffect(() => {
+    const drain = () => {
+      if (!dbRef.current || status !== 'synced') return;
+      let q = []; try { q = JSON.parse(localStorage.getItem('wg_err_q') || '[]') || []; } catch {}
+      if (!q.length) return;
+      try { localStorage.removeItem('wg_err_q'); } catch {}
+      const ua = navigator.userAgent || '';
+      const plat = /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? 'Android' : /Windows/.test(ua) ? 'Windows' : /Mac/.test(ua) ? 'Mac' : 'Gerät';
+      const who = (dataRef.current.users || []).find(u => u.id === me)?.name;
+      const dev = who ? `${who} · ${plat}` : plat;
+      setFn('err', cur => [...q.map(e => ({ id: uid(), t: e.t, m: String(e.m || '').slice(0, 300), s: e.s || '', l: e.l || 0, b: e.b || '', dev })), ...(cur || [])]
+        .sort((a, b) => (b.t || 0) - (a.t || 0)).slice(0, 30));   // höchstens 30, neueste zuerst
+    };
+    drain();
+    window.addEventListener('wg-err', drain);
+    return () => window.removeEventListener('wg-err', drain);
+  }, [status, me, setFn]);
+
+  /* WG-Code wechseln (z. B. Ex-Mitbewohner raus). Reihenfolge ist Absicht:
+     1) Snapshot unter altem Code (Sicherheitsnetz)   2) Kopie unter neuen Code — nur die EIGENE Push-Registrierung,
+     keine Login-Freigaben   3) Server (Cron/Backups) auf neuen Code umstellen — scheitert das: Kopie weg, Abbruch
+     4) erst dann alten Pfad durch den Umzugs-Marker ersetzen (DB-Regel: dort danach nie wieder Writes).
+     Der neue Code geht NICHT über den alten Pfad oder per Push raus — sonst läse ihn genau der mit, der raus soll. */
+  const rotateWgCode = useCallback(async () => {
+    const ref = dbRef.current;
+    if (!ref || status !== 'synced') throw new Error('offline');
+    if (dirty.current.size || inflight.current.size) throw new Error('pending');
+    const oldCode = wgCode, newCode = genCode();
+    const post = (path, body) => fetch(PUSH_API + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const newRef = ref.root.child('wg/' + newCode);
+    let copied = false;
+    rotatingRef.current = true;
+    try {
+      if (PUSH_API) { try { await post('/api/backup', { code: oldCode, action: 'snapshot' }); } catch {} }
+      const cur = (await ref.once('value')).val() || {};
+      if (cur._moved) throw new Error('moved');
+      const { _wid, push, ls: _freigaben, ...rest } = cur;
+      const copy = { ...rest };
+      if (push && push[deviceId]) copy.push = { [deviceId]: push[deviceId] };
+      await newRef.set(copy); copied = true;
+      if (PUSH_API) {
+        const r = await post('/api/rotate', { old: oldCode, new: newCode }).catch(() => null);
+        if (!r || !r.ok) throw new Error('server');
+      }
+      await ref.set({ _moved: true, _mt: Date.now() });
+      setWgCode(newCode);
+      return newCode;
+    } catch (e) {
+      if (copied) await newRef.remove().catch(() => {});
+      throw e;
+    } finally {
+      rotatingRef.current = false;
+    }
+  }, [status, wgCode, deviceId]);
 
   /* Replace whole dataset (used by Import + Pair-Merge) */
   const replaceData = (next) => {
@@ -1398,7 +1524,7 @@ function DataProvider({ children }) {
   }, [wgCode, deviceId]);
 
   return (
-    <Ctx.Provider value={{ D, set, setFn, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, mergeRemote, remotePulse, me, setMe, undo, undoMsg, runUndo, askConfirm, confirmReq, closeConfirm, flashIds, deviceId, pushSave, pushRemove, pushPrefsUpdate, notifyOthers }}>
+    <Ctx.Provider value={{ D, set, setFn, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, mergeRemote, remotePulse, me, setMe, undo, undoMsg, runUndo, askConfirm, confirmReq, closeConfirm, flashIds, deviceId, pushSave, pushRemove, pushPrefsUpdate, notifyOthers, rotateWgCode }}>
       {children}
     </Ctx.Provider>
   );
@@ -1686,8 +1812,8 @@ function NBar({ title, color, status }) {
   const live = online && status==='synced';
   // 'privat' = privater Bereich: bewusst nicht gesynct, Online-Status daher irrelevant.
   // (NICHT 'local' — das ist der Startwert des Sync-Status und würde überall eine Pille zeigen.)
-  const pillColor = status==='privat' ? 'var(--violet)' : !online ? 'var(--amber)' : status==='synced' ? 'var(--lime)' : status==='connecting' ? 'var(--amber)' : status==='error' ? 'var(--red)' : null;
-  const pillText  = status==='privat' ? 'LOKAL'         : !online ? 'OFFLINE'     : status==='synced' ? 'LIVE'        : status==='connecting' ? 'SYNC…'        : status==='error' ? 'FEHLER'     : null;
+  const pillColor = status==='moved' ? 'var(--red)' : status==='privat' ? 'var(--violet)' : !online ? 'var(--amber)' : status==='synced' ? 'var(--lime)' : status==='connecting' ? 'var(--amber)' : status==='error' ? 'var(--red)' : null;
+  const pillText  = status==='moved' ? 'CODE ALT' : status==='privat' ? 'LOKAL'         : !online ? 'OFFLINE'     : status==='synced' ? 'LIVE'        : status==='connecting' ? 'SYNC…'        : status==='error' ? 'FEHLER'     : null;
   return (
     <div className="navbar">
       <span className="navbar-title" style={{color}}>{title}</span>
@@ -3477,7 +3603,7 @@ function Abos() {
    EINSTELLUNGEN
 ══════════════════════════ */
 function Einstellungen() {
-  const { D, set, setFn, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, me, setMe, undo, askConfirm, deviceId, pushSave, pushRemove, pushPrefsUpdate } = useD();
+  const { D, set, setFn, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, me, setMe, undo, askConfirm, deviceId, pushSave, pushRemove, pushPrefsUpdate, rotateWgCode } = useD();
   const users=D.users;
   const [cfgText,  setCfgText]  = useState(fbCfg ? JSON.stringify(fbCfg, null, 2) : '');
   const [codeInput,setCodeInput]= useState('');
@@ -3487,6 +3613,58 @@ function Einstellungen() {
   const [importErr,setImportErr]= useState('');
   const [pendingJoin,setPendingJoin] = useState(null); // WG-Code, der beigetreten werden soll (Merge/Überschreiben-Wahl)
   const [showArchive,setShowArchive] = useState(false);
+
+  /* WG-Code wechseln (Logik in DataProvider.rotateWgCode) */
+  const [rotBusy,setRotBusy] = useState(false);
+  const [rotErr,setRotErr]   = useState('');
+  const [newCodeShown,setNewCodeShown] = useState(null);   // nach dem Wechsel: neuer Code zum Weitergeben
+  const doRotate = async () => {
+    setRotErr('');
+    if (!online || status !== 'synced') { setRotErr('Geht nur online und synchronisiert.'); return; }
+    const ok = await askConfirm({ title:'WG-Code wechseln', danger:true, okLabel:'Code wechseln',
+      body:'Die WG bekommt einen neuen Code. Wer den alten Code kennt (z. B. ein Ex-Mitbewohner oder ein altes Handy), kommt danach nicht mehr an eure Daten. Dein Mitbewohner muss den neuen Code einmal eingeben. Vorher wird automatisch gesichert.' });
+    if (!ok) return;
+    setRotBusy(true);
+    try { setNewCodeShown(await rotateWgCode()); }
+    catch (e) {
+      const m = String(e && e.message);
+      setRotErr(m === 'pending' ? 'Erst synchronisieren lassen, dann nochmal.' : m === 'server' ? 'Server nicht erreichbar — nichts geändert.' : m === 'moved' ? 'Dieser Code wurde schon gewechselt.' : 'Hat nicht geklappt — nichts geändert.');
+    }
+    setRotBusy(false);
+  };
+
+  /* Automatische Backups (Server-Snapshots, s. api/backup.js). Einspielen = derselbe Weg wie der JSON-Import. */
+  const [bkOpen,setBkOpen] = useState(false);
+  const [bkDays,setBkDays] = useState(null);     // null = lädt · [] = keine · string = Fehlertext
+  const [bkMsg,setBkMsg]   = useState('');
+  const bkPost = body => fetch(`${PUSH_API}/api/backup`, { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body) });
+  const fmtBkDay = k => { const [d, t] = String(k).split('T'); const [y, m, dd] = d.split('-'); return `${dd}.${m}.${y}` + (t ? ` · ${t.replace('-', ':')} Uhr` : ' · täglich'); };
+  const fmtErrTime = t => { const d = new Date(t || 0), z = n => String(n).padStart(2, '0'); return `${z(d.getDate())}.${z(d.getMonth()+1)}. ${z(d.getHours())}:${z(d.getMinutes())}`; };
+  const loadBackups = async () => {
+    setBkDays(null); setBkMsg('');
+    try { const r = await fetch(`${PUSH_API}/api/backup?code=${encodeURIComponent(wgCode)}`); const j = await r.json(); if (!r.ok) throw new Error(j.error || r.status); setBkDays(j.days || []); }
+    catch (e) { setBkDays('Backups gerade nicht erreichbar (' + ((e && e.message) || '?') + ').'); }
+  };
+  const openBackups = () => { setBkOpen(true); loadBackups(); };
+  const snapshotNow = async () => {
+    setBkMsg('Sichere …');
+    try {
+      const j = await (await bkPost({ code: wgCode, action:'snapshot' })).json();
+      setBkMsg(j.result === 'ok' ? '✓ Gesichert' : j.result === 'exists' ? 'In den letzten 10 Min. schon gesichert' : j.result === 'leer' ? 'Nichts zu sichern' : 'Fehler: ' + (j.error || j.result));
+      loadBackups();
+    } catch { setBkMsg('Server nicht erreichbar'); }
+  };
+  const restoreBackup = async (day) => {
+    if (!await askConfirm({ title:'Backup einspielen', danger:true, okLabel:'Einspielen', body:`Stand vom ${fmtBkDay(day)} einspielen? Das ersetzt die aktuellen Daten auf allen Geräten. Der jetzige Stand wird vorher gesichert.` })) return;
+    setBkMsg('Lade …');
+    try {
+      await bkPost({ code: wgCode, action:'snapshot' }).catch(() => {});   // Sicherheitsnetz: jetzigen Stand vorher sichern
+      const r = await fetch(`${PUSH_API}/api/backup?code=${encodeURIComponent(wgCode)}&day=${encodeURIComponent(day)}`);
+      const j = await r.json(); if (!r.ok || !j.data) throw new Error(j.error || r.status);
+      // Snapshot kommt im DB-Format (Listen als {id:item}) — für replaceData in Arrays umwandeln, sonst wären alle Listen leer
+      replaceData(normalizeRemote(j.data)); setBkMsg('✓ Eingespielt'); setBkOpen(false);
+    } catch (e) { setBkMsg('Einspielen fehlgeschlagen (' + ((e && e.message) || '?') + ')'); }
+  };
   const notifySupported = typeof window!=='undefined' && 'Notification' in window;
   const [notifyOn,setNotifyOn] = useState(()=>ls('wg_notify','off')==='on' && notifySupported && Notification.permission==='granted');
   const toggleNotify = async () => {
@@ -3717,8 +3895,8 @@ function Einstellungen() {
     else    { setCopyFail(true);  setTimeout(()=>setCopyFail(false), 2500); }
   };
 
-  const statusColor  = !online?'var(--amber)':status==='synced'?'var(--lime)':status==='connecting'?'var(--amber)':status==='error'?'var(--red)':'var(--label3)';
-  const statusLabel  = !online ? 'Offline (lokal speichern, sync wenn online)' : {local:'Nur lokal',connecting:'Verbinde …',synced:'Live synchronisiert ✓',error:'Verbindungsfehler'}[status];
+  const statusColor  = status==='moved'?'var(--red)':!online?'var(--amber)':status==='synced'?'var(--lime)':status==='connecting'?'var(--amber)':status==='error'?'var(--red)':'var(--label3)';
+  const statusLabel  = !online ? 'Offline (lokal speichern, sync wenn online)' : {local:'Nur lokal',connecting:'Verbinde …',synced:'Live synchronisiert ✓',error:'Verbindungsfehler',moved:'WG-Code wurde geändert — neuen Code eingeben'}[status];
 
   return (
     <div className="screen">
@@ -3760,7 +3938,18 @@ function Einstellungen() {
                   Beitreten
                 </button>
               </div>
+              {status!=='moved' && (
+                <button className="cell" disabled={rotBusy} onClick={doRotate}
+                  style={{width:'100%',border:'none',background:'none',textAlign:'left',fontFamily:'inherit',cursor:rotBusy?'default':'pointer'}}>
+                  <div className="cell-icon" style={{background:'rgba(251,113,133,.12)',fontSize:15}}>🔄</div>
+                  <div className="cell-content">
+                    <span className="cell-title">{rotBusy?'Wechsle Code …':'WG-Code wechseln'}</span>
+                    <span className="cell-sub">Z. B. wenn jemand ausgezogen ist — der alte Code wird gesperrt</span>
+                  </div>
+                </button>
+              )}
             </div>
+            {rotErr&&<div className="section-ftr" style={{color:'var(--red)'}}>{rotErr}</div>}
             <div className="section-ftr">⚠️ Beim Beitreten kannst du wählen: mergen oder überschreiben.</div>
           </div>
         )}
@@ -3893,11 +4082,43 @@ function Einstellungen() {
                 <span className="cell-sub">Überschreibt aktuelle Daten</span>
               </div>
             </div>
+            {PUSH_API && fbCfg && status!=='moved' && (
+              <button className="cell" onClick={openBackups}
+                style={{width:'100%',border:'none',background:'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
+                <div className="cell-icon" style={{background:'rgba(129,140,248,.12)',fontSize:15}}>☁️</div>
+                <div className="cell-content">
+                  <span className="cell-title">Automatische Backups</span>
+                  <span className="cell-sub">Täglich auf dem Server, je 14 Tage — löschen kann sie in der Zeit niemand</span>
+                </div>
+                <span style={{color:'var(--label3)',fontSize:22,lineHeight:1,flexShrink:0}}>›</span>
+              </button>
+            )}
           </div>
           <input ref={fileInputRef} type="file" accept="application/json,.json" style={{display:'none'}}
             onChange={e=>{importFile(e.target.files?.[0]); e.target.value='';}}/>
           {importErr&&<div className="section-ftr" style={{color:'var(--red)'}}>{importErr}</div>}
         </div>
+
+        {/* Fehlerprotokoll — nur sichtbar, wenn es Einträge gibt (Einträge aller Geräte, max. 30) */}
+        {(D.err||[]).length>0 && (
+          <div className="rise" style={{animationDelay:'180ms'}}>
+            <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span>🐞 Fehlerprotokoll · {(D.err||[]).length}</span>
+              <button style={{background:'none',border:'none',padding:'7px 4px',color:'var(--mint)',fontSize:13,fontWeight:700,fontFamily:'inherit'}} onClick={()=>set('err',[])}>Protokoll leeren</button>
+            </div>
+            <div className="group">
+              {(D.err||[]).slice(0,30).map(e=>(
+                <div key={e.id} className="cell err-row">
+                  <div className="cell-content" style={{minWidth:0}}>
+                    <span className="cell-sub">{fmtErrTime(e.t)} · {e.dev||'?'}{e.b?` · Build ${e.b}`:''}</span>
+                    <span className="num" style={{fontSize:12.5,color:'var(--label)',wordBreak:'break-word',lineHeight:1.45}}>{e.m}{e.s?` (${e.s}${e.l?':'+e.l:''})`:''}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="section-ftr">Fehler von allen Geräten der WG. Wenn etwas komisch läuft: Screenshot dieser Liste weitergeben.</div>
+          </div>
+        )}
 
         {/* Persons */}
         <div className="rise" style={{animationDelay:'200ms'}}>
@@ -4069,6 +4290,52 @@ function Einstellungen() {
         </div>,
         document.body
       )}
+      {newCodeShown && ReactDOM.createPortal(
+        <div className="overlay" onClick={()=>setNewCodeShown(null)}>
+          <div className="sheet" onClick={e=>e.stopPropagation()} style={{maxWidth:440}}>
+            <div className="sheet-handle"/>
+            <div className="sheet-body" style={{gap:10,paddingTop:6,textAlign:'center',alignItems:'center'}}>
+              <div style={{fontSize:38,lineHeight:1}}>🔑</div>
+              <div className="hero-lbl">Neuer WG-Code</div>
+              <div className="num" data-testid="new-code" style={{fontSize:24,fontWeight:800,letterSpacing:'.06em',color:'var(--lime)',userSelect:'all',wordBreak:'break-all'}}>{newCodeShown}</div>
+              <div style={{fontSize:13.5,color:'var(--label2)',lineHeight:1.55}}>Gib ihn deinem Mitbewohner persönlich oder per Messenger. Auf seinem Handy steht jetzt „WG-Code wurde geändert" — dort unter „Mehr" eingeben und <b>Zusammenführen</b> wählen. Der alte Code ist gesperrt.</div>
+            </div>
+            <div className="sheet-acts" style={{flexDirection:'column'}}>
+              <button className="btn" style={{background:'var(--lime)',color:'#0a120c'}} onClick={copyCode}>{copied?'✓ Kopiert':'📋 Code kopieren'}</button>
+              <button className="btn btn-sec" onClick={()=>setNewCodeShown(null)}>Fertig</button>
+            </div>
+          </div>
+        </div>, document.body)}
+      {bkOpen && ReactDOM.createPortal(
+        <div className="overlay" onClick={()=>setBkOpen(false)}>
+          <div className="sheet" onClick={e=>e.stopPropagation()} style={{maxWidth:480}}>
+            <div className="sheet-handle"/>
+            <div className="sheet-hdr">
+              <span className="sheet-title">Automatische Backups</span>
+              <button className="cancel-btn" onClick={()=>setBkOpen(false)}>Schließen</button>
+            </div>
+            <div className="sheet-body">
+              <div style={{fontSize:13.5,color:'var(--label2)',lineHeight:1.55}}>Der Server sichert eure WG jeden Morgen. Jede Sicherung bleibt 14 Tage und kann in der Zeit von niemandem gelöscht werden — auch nicht mit dem WG-Code.</div>
+              {bkDays===null && <div style={{fontSize:13,color:'var(--label3)'}}>Lade …</div>}
+              {typeof bkDays==='string' && <div style={{fontSize:13,color:'var(--red)'}}>{bkDays}</div>}
+              {Array.isArray(bkDays) && !bkDays.length && <div style={{fontSize:13,color:'var(--label3)'}}>Noch keine Sicherung — die erste kommt morgen früh, oder jetzt über „Jetzt sichern".</div>}
+              {Array.isArray(bkDays) && bkDays.length>0 && (
+                <div className="group">
+                  {bkDays.map(d=>(
+                    <div key={d} className="cell">
+                      <div className="cell-content"><span className="cell-title" style={{fontSize:15}}>{fmtBkDay(d)}</span></div>
+                      <button className="mini-btn" style={{background:'var(--indigo)'}} onClick={()=>restoreBackup(d)}>Einspielen</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {bkMsg && <div role="status" style={{fontSize:13,color:'var(--label2)',fontWeight:600}}>{bkMsg}</div>}
+            </div>
+            <div className="sheet-acts">
+              <button className="btn" style={{background:'var(--indigo)',color:'#0a120c'}} onClick={snapshotNow}>☁️ Jetzt sichern</button>
+            </div>
+          </div>
+        </div>, document.body)}
       {pendingJoin && ReactDOM.createPortal(
         <div className="overlay" onClick={()=>setPendingJoin(null)}>
           <div className="sheet" onClick={e=>e.stopPropagation()} style={{maxWidth:440}}>
@@ -4494,7 +4761,7 @@ function PushPrompt({ onClose }){
 }
 
 function AppInner() {
-  const { mods, remotePulse, D, me, pushSave } = useD();
+  const { mods, remotePulse, D, me, pushSave, status } = useD();
   const visibleTabs = TABS.filter(t => t.id==='set' || mods[t.id] !== false);
   const [tab,setTab_] = useState(() => {
     const saved = ls('wg_tab', null); // letzten Tab merken
@@ -4504,6 +4771,10 @@ function AppInner() {
   const idxOf = (id) => TABS.findIndex(t => t.id===id);
   const setTab = (id) => { setDir(idxOf(id) >= idxOf(tab) ? 1 : -1); setTab_(id); ss('wg_tab', id); };
   const [toast,setToast] = useState(false);
+  // Fehlerprotokoll: roter Punkt am Tab „Mehr", bis dieses Gerät die Einträge gesehen hat (je Gerät gemerkt)
+  const [errSeen,setErrSeen] = useState(() => ls('wg_err_seen', 0) || 0);
+  const errNew = (D.err || []).some(e => (e.t || 0) > errSeen);
+  useEffect(() => { if (tab === 'set' && errNew) { const t = Date.now(); setErrSeen(t); ss('wg_err_seen', t); } }, [tab, errNew]);
   // Start-Flow (max. 1× pro Woche, nicht bei jedem Öffnen): erst PayPal einrichten (falls kein Handle),
   // danach der offene Schuldbetrag groß (idiotensicher) — beide mit „Später"-Option.
   const [debtInfo,setDebtInfo] = useState(null);
@@ -4597,11 +4868,18 @@ function AppInner() {
       {startStep==='push' && <PushPrompt onClose={()=>setStartStep(startNeedsPP ? 'pp' : (debtInfo ? 'debt' : null))}/>}
       {startStep==='pp' && <PayPalSetup onClose={()=>setStartStep(debtInfo ? 'debt' : null)}/>}
       {startStep==='debt' && debtInfo && <DebtAlert info={debtInfo} onClose={()=>setStartStep(null)}/>}
+      {status==='moved' && (
+        <div className="moved-banner" role="alert">
+          <span>🔑 Euer WG-Code wurde geändert. Frag deinen Mitbewohner nach dem neuen Code.</span>
+          <button onClick={()=>setTab('set')}>Neuen Code eingeben ›</button>
+        </div>
+      )}
       <div className="tabbar">
         {visibleTabs.map(t=>(
           <button key={t.id} className={`tabitem${tab===t.id?' on':''}`} aria-current={tab===t.id?'page':undefined}
             onClick={()=>setTab(t.id)} style={{color:tab===t.id?t.color:'var(--label3)'}}>
             {tab===t.id&&<div className="tab-glow"/>}
+            {t.id==='set' && errNew && tab!=='set' && <span className="tab-dot" aria-label="Neue Einträge im Fehlerprotokoll"/>}
             <Ic d={t.icon} color={tab===t.id?t.color:'var(--label3)'} size={23} sw={tab===t.id?2.1:1.6}/>
             <span>{t.label}</span>
           </button>
@@ -4611,10 +4889,35 @@ function AppInner() {
   );
 }
 
+/* Notbremse für Abstürze beim Rendern: statt einer weißen Seite eine Ansicht mit „Neu laden" — und der Fehler
+   landet im Fehlerprotokoll (Früh-Skript-Warteschlange → err). Klasse, weil nur Klassen Render-Fehler fangen können.
+   Liegt INNERHALB von DataProvider, damit das Nachtragen ins Protokoll (drain) weiterläuft. */
+class ErrorBoundary extends React.Component {
+  constructor(p) { super(p); this.state = { err: null }; }
+  static getDerivedStateFromError(err) { return { err }; }
+  componentDidCatch(err) {
+    try { window.__wgErr && window.__wgErr('Render: ' + ((err && err.message) || err), 'react', 0); } catch {}
+  }
+  render() {
+    if (!this.state.err) return this.props.children;
+    return (
+      <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:14,padding:'32px 24px',textAlign:'center',color:'var(--label)'}}>
+        <div style={{fontSize:44,lineHeight:1}}>😵</div>
+        <div style={{fontSize:18,fontWeight:800}}>Da ist etwas schiefgelaufen</div>
+        <div style={{fontSize:14,color:'var(--label2)',lineHeight:1.55,maxWidth:320}}>Eure Daten sind gespeichert. Der Fehler steht im Fehlerprotokoll unter „Mehr".</div>
+        <div className="num" style={{fontSize:11.5,color:'var(--label3)',maxWidth:320,wordBreak:'break-word'}}>{String((this.state.err && this.state.err.message) || this.state.err).slice(0,160)}</div>
+        <button className="btn" style={{background:'var(--mint)',color:'#0a120c',maxWidth:260}} onClick={()=>location.reload()}>Neu laden</button>
+      </div>
+    );
+  }
+}
+
 function App() {
   return (
     <DataProvider>
-      <AppInner/>
+      <ErrorBoundary>
+        <AppInner/>
+      </ErrorBoundary>
     </DataProvider>
   );
 }
@@ -4639,6 +4942,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
   var h = 2166136261;
   for (var i = 0; i < src.length; i++) { h ^= src.charCodeAt(i); h = Math.imul(h, 16777619); }
   var KEY = 'wg_jsx_' + (h >>> 0).toString(36) + '_' + src.length;
+  window.__wgBuild = (h >>> 0).toString(36);   // Build-Kennung fürs Fehlerprotokoll (ändert sich mit jedem Deploy)
 
   function run(code) {
     var s = document.createElement('script');
@@ -4682,7 +4986,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
         plugins: ['transform-class-properties', 'transform-object-rest-spread', 'transform-flow-strip-types'],
         sourceMaps: false
       }).code;
-    } catch (err) { console.error('JSX-Transform fehlgeschlagen', err); return; }
+    } catch (err) {
+      console.error('JSX-Transform fehlgeschlagen', err);
+      try { window.__wgErr && window.__wgErr('JSX-Transform: ' + (err && err.message), 'loader', 0); } catch (e) {}
+      return;
+    }
     try { localStorage.setItem(KEY, code); } catch (e) {}   // voller Speicher: läuft trotzdem, nur ohne Cache
     run(code);
   };

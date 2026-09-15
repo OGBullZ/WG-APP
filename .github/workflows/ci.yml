@@ -9,10 +9,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      # v7: laufen auf Node 24 — die v4-Actions liefen auf Node 20 und erzeugten bei jedem Lauf eine Deprecation-Warnung
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - name: Install deps
         run: npm ci
@@ -33,11 +34,14 @@ jobs:
           node test/logins.mjs
           node test/selfhost.mjs
           node test/startflow.mjs
+          node test/backup_api.mjs
+          node test/rotate.mjs
+          node test/errlog.mjs
           node test/visual.mjs
           kill $SRV 2>/dev/null || true
       - name: Upload Screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: visual-shots
           path: test/shots/

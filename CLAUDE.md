@@ -19,6 +19,15 @@ WG-Splitter für 2 Personen (Torben + Tom). Single-File-PWA, Live-Sync zwischen 
 - **`/` braucht eine eigene Cache-Regel:** die Rewrite-Wurzel bekam vorher `max-age=3600` (die Regel für `/wgapp.html` greift dort nicht) → ein Deploy kam bis zu 1 Std verspätet an.
 - **Icons:** `icon.svg` ist die Vorlage; `node scripts/icons.mjs` erzeugt `icon-192/512.png`, `apple-touch-icon.png` (iOS nimmt kein SVG) und `icon-maskable-512.png`. `robots.txt` sperrt alles, `404.html` ist statisch (kein Rewrite `**` → App, sonst zeigen relative Pfade unter `/a/b` ins Leere).
 
+## Backups, Code-Wechsel, Fehlerprotokoll (seit wg-v57)
+
+- **Server-Bereich `sv/<BACKUP_KEY>`** (Vercel-Env `BACKUP_KEY`, 43 Zeichen, nur auf Vercel): `cfg/code` = aktueller WG-Code (folgt einem Code-Wechsel; sonst gilt Env `WG_CODE`), `bk/<YYYY-MM-DD>` = täglicher Snapshot vom Cron, `bk/<…T HH-M0>` = „Jetzt sichern". **Regeln: Snapshots nur anlegen, löschen erst wenn `t` älter als 14 Tage — auch mit Schlüssel nicht vorher.** Wer den WG-Code hat, kommt nicht an die Backups. Inhalt ohne `push`/`ls`/`err`. Warum Geheim-Pfad statt Admin: die Functions haben keine Firebase-Admin-Rechte; Regeln schützen nur über Pfad-Wissen (256 Bit statt ~37 beim WG-Code).
+- **Endpunkte:** `/api/backup` (GET Liste/Snapshot, POST `snapshot` — Berechtigung = aktueller WG-Code), `/api/rotate` (POST `{old,new}` → `cfg/code`). Ohne `BACKUP_KEY` antworten beide 503 (laut). Cron meldet `backup: ok|exists|leer|no-key|error:…` und räumt Alte weg. `writeSnapshot` unterscheidet „gibt es schon" von „abgelehnt" per Nachsehen — eine 401 allein sagt beides.
+- **Wiederherstellen:** Mehr → Backup → „Automatische Backups" → Tag wählen → läuft über denselben Weg wie der JSON-Import (`replaceData`).
+- **WG-Code wechseln** (Mehr): vorher Snapshot, dann Kopie unter neuen Code (nur EIGENE Push-Registrierung, keine `ls`), `/api/rotate`, erst dann alter Pfad := `{_moved:true,_mt}`. Scheitert der Server, wird die Kopie entfernt und nichts geändert. **Regel: `wg/$code` ist nach `_moved` für immer schreibgesperrt** (auch kein Löschen) — sonst setzte ein Gerät mit altem Code die WG dort neu auf, genau für den, der raus sollte. Andere Geräte sehen „Code geändert", schreiben nichts mehr und treten mit dem neuen Code bei (Zusammenführen). Der neue Code geht bewusst NICHT über den alten Pfad oder Push raus. Eigene Push-Registrierung heilt sich nach dem Beitritt selbst (`healPush`). WG-Codes jetzt per `crypto.getRandomValues`.
+- **Fehlerprotokoll:** Früh-Skript im `<head>` fängt `error`/`unhandledrejection` (gefiltert: Erweiterungen, fremde Skripte, „Script error.", Wiederholung < 1 Min.) in `wg_err_q`; nach dem Sync in den Listen-Key `err` (max. 30, mit Gerät + Build). Anzeige: Mehr → Fehlerprotokoll, roter Punkt am Tab. `ErrorBoundary` um `AppInner`: Absturz beim Rendern → Notfall-Ansicht mit „Neu laden" statt weißer Seite.
+- **Regeln echt prüfen** (kein Emulator, Java fehlt): Skript gegen die echte DB auf Test-Pfaden `sv/TESTKEY-…` und `wg/TEST-MOVE-…`; Snapshots mit `t = jetzt − 14 Tage + 80 s` sind erst geschützt und nach 90 s löschbar (kein Rest). Der Umzugs-Marker einer Test-WG bleibt absichtlich dauerhaft (~50 Byte).
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -41,6 +50,9 @@ node test/sync.mjs      # Erst-Read gegen Firebase-STUB (nicht geblockt): Eingab
 node test/logins.mjs    # Abo-Logins teilen: kein Klartext in der DB, falscher Code, Grabstein, Ablauf (40 Checks)
 node test/selfhost.mjs  # vendor/ + fonts/: keine Fremd-Anfragen, Fonts geladen, Offline-Start mit leerem JSX-Cache (+ Gegenprobe)
 node test/startflow.mjs # Start-Ablauf (Push/PayPal/Schulden) wartet, solange ein anderes Fenster offen ist (kontrollierte Uhr)
+node test/backup_api.mjs # Server: Cron-Snapshot, Aufräumen, /api/backup, /api/rotate — RTDB im Speicher nachgebildet (kein Server nötig)
+node test/rotate.mjs    # WG-Code wechseln: Umzug, nur eigene Push-Registrierung, Rückbau bei Serverfehler, anderes Gerät + Beitritt
+node test/errlog.mjs    # Fehlerprotokoll: Nachreichen, Filter, Obergrenze, Tab-Punkt, Leeren, ErrorBoundary
 npm run visual    # Screenshot-Harness: Handy/Tablet/Desktop + Tastatur-offen
 
 CPU=4 node test/_perf.mjs   # Startzeit messen (CPU-Drosselung, Erst- vs. Zweitstart)

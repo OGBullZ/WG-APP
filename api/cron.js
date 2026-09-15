@@ -12,6 +12,7 @@
 // Europe/Berlin bestimmt (siehe CLAUDE.md-Gotcha zu UTC-Off-by-one).
 
 const { loadSubs, sendToSubs, DB_BASE } = require('./_push');
+const { hasKey, currentCode, writeSnapshot, listSnapshots, pruneSnapshots, berlinParts } = require('./_sv');
 
 function berlinTodayParts() {
   const fmt = new Intl.DateTimeFormat('en-CA', {
@@ -140,7 +141,8 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const code = process.env.WG_CODE;
+  // Aktueller Code: folgt einem „WG-Code wechseln" aus der App (sv/…/cfg/code), sonst die Env
+  const code = await currentCode();
   if (!code) {
     res.status(500).json({ error: 'WG_CODE nicht gesetzt' });
     return;
@@ -155,6 +157,16 @@ module.exports = async (req, res) => {
     res.status(502).json({ error: (err && err.message) || 'RTDB-Lesefehler' });
     return;
   }
+
+  // Tägliches Backup VOR den Erinnerungen — ein Fehler dort darf die Sicherung nicht verhindern.
+  // Leere WG (keine users) nicht sichern: ein leerer Snapshot sähe wie ein Datenverlust aus.
+  let backup = 'no-key', pruned = 0;
+  if (hasKey() && toArray(wg.users).length) {
+    try {
+      backup = await writeSnapshot(berlinParts().date, code, wg);
+      pruned = await pruneSnapshots(await listSnapshots());
+    } catch (err) { backup = 'error:' + ((err && err.message) || '?'); }
+  } else if (hasKey()) backup = 'leer';
 
   const users = toArray(wg.users);
   const tasks = toArray(wg.pt);
@@ -284,7 +296,7 @@ module.exports = async (req, res) => {
     }
   }
 
-  res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, budWarns, grow: growMsgs.length, sent });
+  res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, budWarns, grow: growMsgs.length, sent, backup, pruned });
 };
 
 // Für test/cron_grow.mjs — der Handler selbst bleibt der Default-Export (Vercel).
