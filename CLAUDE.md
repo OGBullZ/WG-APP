@@ -39,6 +39,7 @@ node test/cron_grow.mjs # Gieß-/Phasen-Push aus api/cron.js (pure Logik, kein B
 node test/privquota.mjs # Privater Bereich bei vollem Speicher: Warnung statt stillem Verlust
 node test/sync.mjs      # Erst-Read gegen Firebase-STUB (nicht geblockt): Eingabe während des Verbindens + LIST_KEYS ⊆ KEYS
 node test/logins.mjs    # Abo-Logins teilen: kein Klartext in der DB, falscher Code, Grabstein, Ablauf (40 Checks)
+node test/selfhost.mjs  # vendor/ + fonts/: keine Fremd-Anfragen, Fonts geladen, Offline-Start mit leerem JSX-Cache (+ Gegenprobe)
 npm run visual    # Screenshot-Harness: Handy/Tablet/Desktop + Tastatur-offen
 
 CPU=4 node test/_perf.mjs   # Startzeit messen (CPU-Drosselung, Erst- vs. Zweitstart)
@@ -48,6 +49,9 @@ node test/_audit.mjs        # a11y-Diagnose: Tap-Ziele, Kontraste, Labels, Fokus
 - Tests blocken Firebase (`page.route(... abort)`) → laufen isoliert lokal, **echte WG unberührt**. Seeden Demo-Daten via `addInitScript`.
 - **PFLICHT visuell (global, siehe Memory feedback-visual-harness):** bei JEDER UI-Änderung `npm run visual` und die Screenshots in `test/shots/` (gitignored) wirklich ansehen — alle 3 Breakpoints + Tastatur-offen — vor Deploy.
 - CountUp-Animation vor Werte-Asserts abwarten (`waitForTimeout`).
+- **Bis wg-v54 zeigten alle Screenshots Ersatz-Schriften:** die Tests blocken `googleapis.com` (gegen Firebase), und damit auch die Google-Fonts-CSS. Seit dem Selbst-Hosting laden die echten Schriften auch im Test.
+- **Testkopien der App nicht unter `/test/` ablegen ohne `<base href="../">`** — relative Pfade (`vendor/`, `fonts/`) laufen sonst ins 404 (`jsxcache.mjs`).
+- **SW-Upgrade lokal testen (alter Stand → neuer Stand, gleicher Origin):** alten Commit per `git worktree` auf 8099 servieren, im selben Browserprofil (`launchPersistentContext`) laden, dann neuen Stand servieren und neu laden; Versionsstatus per CDP `ServiceWorker.workerVersionUpdated` mitschreiben. **Falle:** Pythons `http.server` beantwortet `If-Modified-Since` per Datei-mtime — ist das alte `sw.js` jünger (frischer Worktree), kommt 304 und der Browser behält den alten SW. Vorher `sw.js` im neuen Stand „touchen". Firebase entscheidet per ETag, dort gibt es das nicht. Der Lauf v54 → v55 ist so geprüft (10/10: SW übernimmt, CDN-Kopien weg, vendor/fonts vorab da, offline nach Update startklar).
 
 ## Datenmodell (localStorage `wg_data` / RTDB `wg/<code>`)
 
