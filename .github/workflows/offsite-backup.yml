@@ -1,0 +1,36 @@
+# Wöchentliche Kopie der WG-Daten AUSSERHALB von Firebase (die täglichen Backups liegen im selben Projekt).
+# Holt den neuesten Server-Snapshot über /api/export (Token statt WG-Code, s. api/export.js) und legt ihn als
+# Artefakt ab — 90 Tage, nur für Repo-Berechtigte sichtbar (privates Repo). Schlägt der Lauf fehl (Server
+# weg, Token falsch, WG leer), schickt GitHub dem Repo-Besitzer eine Mail — damit fällt auch ein kaputter
+# Backup-Weg auf. Wiederherstellen: Artefakt laden, JSON in der App unter „Backup importieren".
+name: Offsite-Backup
+on:
+  schedule:
+    - cron: '30 7 * * 1'     # montags 07:30 UTC — nach dem täglichen Snapshot (06:00 UTC)
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Snapshot holen und prüfen
+        env:
+          TOKEN: ${{ secrets.EXPORT_TOKEN }}
+        run: |
+          set -euo pipefail
+          status=$(curl -sS -o wg-backup.json -w '%{http_code}' -H "Authorization: Bearer $TOKEN" https://wg-app-bull-z.vercel.app/api/export)
+          if [ "$status" != "200" ]; then echo "Export fehlgeschlagen: HTTP $status"; exit 1; fi
+          # Nicht nur „Datei da" — die WG muss drinstehen, sonst ist die Kopie wertlos
+          python3 - <<'PY'
+          import json
+          d = json.load(open('wg-backup.json'))
+          users = d.get('data', {}).get('users')
+          assert users, 'Export enthält keine WG-Daten'
+          print('ok', d.get('source'), d.get('day'), 'Schlüssel:', sorted(d['data'].keys()))
+          PY
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wg-backup-${{ github.run_number }}
+          path: wg-backup.json
+          retention-days: 90

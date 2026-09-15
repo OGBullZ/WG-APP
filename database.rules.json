@@ -5,7 +5,7 @@
     "wg": {
       "$code": {
         ".read":  "$code.length >= 6 && $code.length <= 64",
-        ".write": "$code.length >= 6 && $code.length <= 64 && !data.child('_moved').exists()",
+        ".write": "$code.length >= 6 && $code.length <= 64 && !data.child('_moved').exists() && (data.exists() || $code.matches(/^[A-ZÄÖÜ]{2,8}-[A-ZÄÖÜ]{2,8}-[A-HJKMNP-Z2-9]{6}$/))",
 
         "_moved": { ".validate": "newData.isBoolean() && newData.val() === true" },
         "_mt":    { ".validate": "newData.isNumber()" },
@@ -75,6 +75,12 @@
           ".write": "$k.length >= 40",
           "code":   { ".validate": "newData.isString() && newData.val().length >= 6 && newData.val().length <= 64" },
           "$other": { ".validate": false }
+        },
+        "rl": {
+          "$id": {
+            ".write": "$k.length >= 40",
+            ".validate": "newData.hasChildren(['w', 'n']) && newData.child('w').isNumber() && newData.child('n').isNumber()"
+          }
         },
         "bk": {
           "$snap": {

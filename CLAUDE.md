@@ -28,6 +28,18 @@ WG-Splitter für 2 Personen (Torben + Tom). Single-File-PWA, Live-Sync zwischen 
 - **Fehlerprotokoll:** Früh-Skript im `<head>` fängt `error`/`unhandledrejection` (gefiltert: Erweiterungen, fremde Skripte, „Script error.", Wiederholung < 1 Min.) in `wg_err_q`; nach dem Sync in den Listen-Key `err` (max. 30, mit Gerät + Build). Anzeige: Mehr → Fehlerprotokoll, roter Punkt am Tab. `ErrorBoundary` um `AppInner`: Absturz beim Rendern → Notfall-Ansicht mit „Neu laden" statt weißer Seite.
 - **Regeln echt prüfen** (kein Emulator, Java fehlt): Skript gegen die echte DB auf Test-Pfaden `sv/TESTKEY-…` und `wg/TEST-MOVE-…`; Snapshots mit `t = jetzt − 14 Tage + 80 s` sind erst geschützt und nach 90 s löschbar (kein Rest). Der Umzugs-Marker einer Test-WG bleibt absichtlich dauerhaft (~50 Byte).
 
+## Härtung (seit wg-v58, 2026-09-15)
+
+- **Repo liegt unter `%WGAPP%` = `~\projects\WG-APP`** — NICHT mehr im Proton-synchronisierten Desktop (Proton legte bei schnellen Schreibvorgängen „Name clash"-Kopien an und drehte Edits still zurück).
+- **CSP ohne `'unsafe-inline'` bei Skripten:** `script-src` enthält SHA-256-Hashes der 3 Inline-Skripte + des Kompilats, das der JSX-Cache einspielt. `scripts/csp-hashes.mjs --write` berechnet sie (Node übersetzt mit derselben `vendor/`-Babel-Datei byte-gleich wie der Browser — nur mit auf LF normalisierten Zeilenenden, der HTML-Parser macht aus CRLF ein LF). **Jede Änderung an `wgapp.html` braucht neue Hashes** — `ship.mjs` macht das vor dem Gate; `test/csp_hash.mjs` + CI prüfen es. **Nie `firebase deploy` ohne vorheriges `--write`**, sonst ist die App im Browser komplett blockiert. Babel-Optionen/Anhang liest das Skript aus dem Loader (keine zweite Kopie). `style-src` behält `'unsafe-inline'` (React-Inline-Styles).
+- **„Neue Version"-Erkennung:** Skript am Seitenende prüft beim Zurückkehren in die App (max. alle 15 Min.) per `reg.update()`; übernimmt ein neuer SW → Hinweis „Neue Version" (`.upd-banner`) und beim nächsten Zurückkehren automatisches Neuladen, **außer ein `.overlay` ist offen** (keine halbe Eingabe verlieren). Grund: iOS lädt eine PWA aus dem Hintergrund nicht neu.
+- **Backup-Wächter** (AppInner): max. alle 6 Std. `/api/backup`-Liste; neueste Sicherung > 2 Tage alt (oder 2 Tage nach dem ersten Blick keine) → roter Punkt am Tab „Mehr" + Warnung im Backup-Bereich. **Off-site:** `.github/workflows/offsite-backup.yml` holt montags per `/api/export` (Token `EXPORT_TOKEN`, Vercel-Env + GitHub-Secret) den neuesten Snapshot → Artefakt (90 Tage). Fehlschlag = GitHub-Mail an den Repo-Besitzer. Wiederherstellen: JSON in „Backup importieren" (Import nimmt jetzt beide Formate, `normalizeRemote`).
+- **Push-Endpunkt:** nur relative eigene Links (`./…`, `/…`, nicht `//…`), Tag max. 40 Zeichen, Bremse 30 Pushes/10 Min je WG (Zähler `sv/<key>/rl/<hash>`, ohne WG-Code), `board` als Push-Typ (Ruhezeit greift). `sw.js` öffnet aus Pushes nur eigene Seiten (doppelt). Code-Wechsel schickt allen Geräten des alten Codes einen Hinweis — ohne den neuen Code.
+- **DB-Regel:** neue WGs nur im `genCode`-Format (`WORT-WORT-XXXXXX`, Suffix ohne 0/O/1/I/L) — bestehende unberührt. Kein echter Schutz vor Kontingent-Missbrauch (Projekt vermutlich Spark: kostet dann kein Geld, kann aber sperren); echter Schutz nur mit App Check/Anmeldung.
+- **VAPID-Schlüssel getauscht** (stand im Klartext in einer Notiz): `healPush` registriert Geräte mit altem Schlüssel beim nächsten Start still neu (Vergleich `options.applicationServerKey`, sonst Marker `wg_push_key`). „Mehr → Push" zeigt, auf welchen Geräten Push ankommt.
+- **Tippflächen:** unsichtbare Vergrößerung per `::after` (`.cell > button`, `.del-btn`, `.chk-btn`, `.hit`, `.hit-v`, Chips, Segmente, Stepper) — `_audit.mjs` rechnet sie mit, Stand 0 Befunde. Privatbereich erinnert nach 30 Tagen ohne „⬇︎ Sichern" (`wg_priv_exported`).
+- **Firebase-SDK 12.19.0** (compat, aus npm, byte-gleich mit gstatic). React bleibt 18.3.1 (React 19 hat keine UMD-Dateien mehr → ginge nur mit Build-Schritt), Babel bleibt 7.25.6 (erzeugt die gehashten Kompilate; Tausch = neue Hashes + neuer Dateiname in wgapp.html/sw.js).
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -53,6 +65,10 @@ node test/startflow.mjs # Start-Ablauf (Push/PayPal/Schulden) wartet, solange ei
 node test/backup_api.mjs # Server: Cron-Snapshot, Aufräumen, /api/backup, /api/rotate — RTDB im Speicher nachgebildet (kein Server nötig)
 node test/rotate.mjs    # WG-Code wechseln: Umzug, nur eigene Push-Registrierung, Rückbau bei Serverfehler, anderes Gerät + Beitritt
 node test/errlog.mjs    # Fehlerprotokoll: Nachreichen, Filter, Obergrenze, Tab-Punkt, Leeren, ErrorBoundary
+node test/notify_api.mjs # Push-Endpunkt: Fremdlinks raus (auch „//…"), Bremse 30/10 Min → 429, Hinweis beim Code-Wechsel
+node test/bkwatch.mjs   # Backup-Wächter: alte Sicherung → Tab-Punkt + Warnung, frische → nichts, Drossel 6 Std.
+node test/update.mjs    # „Neue Version": Hinweis, kein Neuladen mit offenem Formular, sonst Neuladen (eigener Port 8098)
+node test/csp_hash.mjs  # CSP-Hashes passen zu wgapp.html (+ Gegenproben) — ohne passende Hashes wäre die App blockiert
 npm run visual    # Screenshot-Harness: Handy/Tablet/Desktop + Tastatur-offen
 
 CPU=4 node test/_perf.mjs   # Startzeit messen (CPU-Drosselung, Erst- vs. Zweitstart)

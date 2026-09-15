@@ -6,6 +6,7 @@
 // selbst wechseln — bemerkt würde das sofort, weil die App dann „Code geändert" meldet.
 
 const { hasKey, currentCode, setCode, CODE_FORMAT } = require('./_sv');
+const { loadSubs, sendToSubs } = require('./_push');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -27,6 +28,13 @@ module.exports = async (req, res) => {
 
   try {
     await setCode(newCode);
+    // Allen Geräten unter dem ALTEN Code Bescheid geben — ohne den neuen Code (der geht nur persönlich raus).
+    // Hat jemand Unbefugtes gewechselt, merkt ihr es so sofort. Ein Fehler hier darf den Wechsel nicht kippen.
+    try {
+      const subs = await loadSubs(oldCode);
+      await sendToSubs(subs, { title: '🔑 WG-Code geändert', body: 'Frag deinen Mitbewohner nach dem neuen Code und gib ihn unter „Mehr" ein.', tag: 'wg-rotate' },
+        { excludeDevice: typeof body.from === 'string' ? body.from : undefined });
+    } catch (_) {}
     res.status(200).json({ ok: true });
   } catch (err) {
     res.status(502).json({ error: (err && err.message) || 'cfg-Schreibfehler' });

@@ -54,10 +54,10 @@
   window.addEventListener('unhandledrejection', function (e) { var r = e.reason; note('Promise: ' + ((r && (r.message || r)) || '?'), '', 0); });
 })();
 </script>
-<!-- Firebase compat SDK 9.23.0 (npm-Paket firebase, byte-gleich mit den gstatic-Dateien). Nur der Code liegt hier —
+<!-- Firebase compat SDK 12.19.0 (npm-Paket firebase, byte-gleich mit den gstatic-Dateien). Nur der Code liegt hier —
      die Datenbank-Verbindung geht natürlich weiter zu *.firebasedatabase.app. -->
-<script src="vendor/firebase-app-compat-9.23.0.js"></script>
-<script src="vendor/firebase-database-compat-9.23.0.js"></script>
+<script src="vendor/firebase-app-compat-12.19.0.js"></script>
+<script src="vendor/firebase-database-compat-12.19.0.js"></script>
 <!-- React (production-min, aus dem npm-Paket react/react-dom 18.3.1, umd/).
      Babel-Standalone wird NICHT fest geladen — siehe JSX-Compile-Cache am Seitenende. -->
 <script src="vendor/react-18.3.1.production.min.js"></script>
@@ -225,6 +225,22 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 .moved-banner button { align-self:flex-start; min-height:40px; background:var(--red); color:#1a0a0d; border:none; border-radius:11px; padding:9px 13px; font-weight:800; font-size:13px; font-family:inherit; }
 @media (min-width:700px) { .moved-banner { left:50%; right:auto; transform:translateX(-50%); width:min(520px, calc(100% - 24px)); } }
 .err-row { align-items:flex-start; }
+/* Hinweis „Neue Version" — gleiche Stelle wie der Code-Hinweis, aber freundlich (mint) */
+.upd-banner { background:rgba(12,40,34,.94); border-color:rgba(94,234,212,.45); }
+.upd-banner button { background:var(--mint); color:#0a120c; }
+/* Größere Tippflächen ohne sichtbare Änderung: unsichtbarer Rand per ::after (Apple empfiehlt 44 px; viele kleine
+   Text- und Symbol-Knöpfe hatten 26–36 px). Nur vertikal, wo Knöpfe dicht nebeneinander stehen (Chips, Segmente). */
+.cell > button, .section-hdr button, .sheet-hdr button, .del-btn, .chk-btn, .hit { position:relative; }
+.cell > button::after, .section-hdr button::after, .sheet-hdr button::after { content:''; position:absolute; inset:-8px -4px; }
+/* Haken und × sind nur 26 px breit — seitlich mehr zugeben (Nachmessung ergab 34 px mit -4) */
+/* Spezifischer als „.cell > button::after", sonst gewinnt dort -4 px (per Nachmessung gefunden: blieb bei 34 px) */
+.del-btn::after, .chk-btn::after, .cell > .del-btn::after, .cell > .chk-btn::after { content:''; position:absolute; inset:-8px -7px; }
+/* Zellen, die selbst Knöpfe sind (Code wechseln, Backups): Textfarbe erben statt Browser-Schwarz */
+button.cell { color:var(--label); }
+.hit::after { content:''; position:absolute; inset:-12px -4px; }
+.seg-btn, .chip-scroll > button, .stepper button, .hit-v { position:relative; }
+.seg-btn::after, .chip-scroll > button::after, .hit-v::after { content:''; position:absolute; inset:-6px 0; }
+.stepper button::after { content:''; position:absolute; inset:-4px; }
 /* Solange der Hinweis steht, unten Platz lassen — sonst verdeckt er am Seitenende Inhalte */
 .screen:has(~ .moved-banner) .content, body:has(.moved-banner) .content { padding-bottom:210px; }
 /* Nur für Screenreader (Überschriften-Struktur, ohne das Layout zu ändern) */
@@ -788,7 +804,9 @@ const FB_DEFAULT = {
    Leerstring ⇒ alle Push-Features graceful aus (kein UI-Fehler, notifyOthers ist no-op,
    Toggle im „Mehr"-Tab deaktiviert). */
 const PUSH_API = 'https://wg-app-bull-z.vercel.app';
-const VAPID_PUBLIC_KEY = 'BHklI3ymp8Q9tQ-lEXPcIRexRFS-hkfs6DdTN0LRrHVUZOCwfcNktI025qKqIAbdLTYO7_62IZlf9lKZ9-n-ryQ';
+// Getauscht 2026-09-15 (der private Teil stand im Klartext in einer Notiz). Geräte registrieren sich beim
+// nächsten Start selbst neu (healPush) — der private Teil liegt nur in der Vercel-Env.
+const VAPID_PUBLIC_KEY = 'BFlztnmVhus9TTvtVJzqe7gN8PCYyD3qb6DnZblhE5-nes3JcaB_wkxMm85VClKmVoeHLJ-SFb0wti4A-tjL9RA';
 /* Push-Typ-/Ruhezeit-Defaults — global, damit sowohl Einstellungen als auch das Start-Push-Fenster sie nutzen. */
 const PUSH_PREFS_DEF = { exp:true, shop:true, putz:true, settle:true, remind:true, board:true, quiet:false, qs:22, qe:8 };
 /* VAPID-Public-Key (URL-safe base64) → Uint8Array für applicationServerKey */
@@ -916,6 +934,13 @@ const copyTxt = async t => {
 };
 // Restzeit: „4:59" unter einer Stunde, sonst „3 Std"
 const fmtLeft = ms => { const s=Math.max(0,Math.ceil(ms/1000)); return s>=3600 ? `${Math.ceil(s/3600)} Std` : `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; };
+// Alter der neuesten Server-Sicherung in Tagen (Schlüssel „YYYY-MM-DD…", neueste zuerst). Ohne Sicherung: Tage seit
+// dem ersten Nachsehen — so schlägt der Wächter auch an, wenn der tägliche Job von Anfang an nie lief.
+const backupAgeDays = days => {
+  if (days && days.length) { const [y, m, d] = String(days[0]).slice(0, 10).split('-').map(Number); return Math.max(0, Math.round((new Date().setHours(12, 0, 0, 0) - new Date(y, m - 1, d, 12)) / 864e5)); }
+  let first = ls('wg_bk_first', 0); if (!first) { first = Date.now(); ss('wg_bk_first', first); }
+  return Math.floor((Date.now() - first) / 864e5);
+};
 // Uhrzeit eines Zeitstempels, mit „morgen" davor, wenn nicht heute (Freigaben leben ≤ 24 Std)
 const fmtHM = t => { const d=new Date(t), z=n=>String(n).padStart(2,'0'); const hm=`${z(d.getHours())}:${z(d.getMinutes())}`; return d.toDateString()===new Date().toDateString() ? hm : `morgen ${hm}`; };
 
@@ -1387,13 +1412,24 @@ function DataProvider({ children }) {
   const healPush = (remoteObj) => {
     try {
       if (!PUSH_API || !('Notification' in window) || Notification.permission !== 'granted' || !('serviceWorker' in navigator)) return;
-      if (remoteObj && remoteObj.push && remoteObj.push[deviceId]) return;
-      navigator.serviceWorker.ready.then(reg => reg.pushManager.getSubscription()).then(sub => {
+      navigator.serviceWorker.ready.then(async reg => {
+        let sub = await reg.pushManager.getSubscription();
         if (!sub || !dbRef.current) return;
+        // Nach einem Tausch des VAPID-Schlüssels taugt die alte Registrierung nicht mehr (der Server signiert mit dem
+        // neuen) → still neu registrieren; die Berechtigung ist schon erteilt, es erscheint keine Abfrage.
+        // Schlüssel-Vergleich direkt, sonst über den Marker wg_push_key (Safari liefert options.applicationServerKey nicht immer).
+        const want = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+        const have = sub.options && sub.options.applicationServerKey ? new Uint8Array(sub.options.applicationServerKey) : null;
+        const sameKey = have ? (have.length === want.length && have.every((b, i) => b === want[i])) : ls('wg_push_key', null) === VAPID_PUBLIC_KEY;
+        if (!sameKey) {
+          try { await sub.unsubscribe(); } catch {}
+          sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: want });
+        } else if (remoteObj && remoteObj.push && remoteObj.push[deviceId]) { ss('wg_push_key', VAPID_PUBLIC_KEY); return; }   // alles aktuell
+        ss('wg_push_key', VAPID_PUBLIC_KEY);
         const j = sub.toJSON() || {};
         const prefs = { ...PUSH_PREFS_DEF, ...(ls('wg_push_prefs', {}) || {}) };
         const name = (dataRef.current.users || []).find(u => u.id === ls('wg_me', null))?.name || 'Gerät';
-        dbRef.current.child('push/' + deviceId).set({ endpoint: j.endpoint, p256dh: (j.keys && j.keys.p256dh) || null, auth: (j.keys && j.keys.auth) || null, name, t: Date.now(), ...prefs }).catch(() => {});
+        await dbRef.current.child('push/' + deviceId).set({ endpoint: j.endpoint, p256dh: (j.keys && j.keys.p256dh) || null, auth: (j.keys && j.keys.auth) || null, name, t: Date.now(), ...prefs });
       }).catch(() => {});
     } catch {}
   };
@@ -1441,7 +1477,7 @@ function DataProvider({ children }) {
       if (push && push[deviceId]) copy.push = { [deviceId]: push[deviceId] };
       await newRef.set(copy); copied = true;
       if (PUSH_API) {
-        const r = await post('/api/rotate', { old: oldCode, new: newCode }).catch(() => null);
+        const r = await post('/api/rotate', { old: oldCode, new: newCode, from: deviceId }).catch(() => null);
         if (!r || !r.ok) throw new Error('server');
       }
       await ref.set({ _moved: true, _mt: Date.now() });
@@ -1454,6 +1490,14 @@ function DataProvider({ children }) {
       rotatingRef.current = false;
     }
   }, [status, wgCode, deviceId]);
+
+  /* Welche Geräte haben unter diesem Code Push? (Name + Zeitpunkt) — für „Mehr", damit auffällt, wenn es beim
+     Mitbewohner fehlt. Liest nur die Push-Einträge, keine Schlüssel/Endpunkte nach außen. */
+  const listPushDevices = useCallback(async () => {
+    if (!dbRef.current) return null;
+    const v = (await dbRef.current.child('push').once('value')).val() || {};
+    return Object.entries(v).map(([id, s]) => ({ id, name: (s && s.name) || 'Gerät', t: (s && s.t) || 0, me: id === deviceId }));
+  }, [deviceId]);
 
   /* Replace whole dataset (used by Import + Pair-Merge) */
   const replaceData = (next) => {
@@ -1524,7 +1568,7 @@ function DataProvider({ children }) {
   }, [wgCode, deviceId]);
 
   return (
-    <Ctx.Provider value={{ D, set, setFn, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, mergeRemote, remotePulse, me, setMe, undo, undoMsg, runUndo, askConfirm, confirmReq, closeConfirm, flashIds, deviceId, pushSave, pushRemove, pushPrefsUpdate, notifyOthers, rotateWgCode }}>
+    <Ctx.Provider value={{ D, set, setFn, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, mergeRemote, remotePulse, me, setMe, undo, undoMsg, runUndo, askConfirm, confirmReq, closeConfirm, flashIds, deviceId, pushSave, pushRemove, pushPrefsUpdate, notifyOthers, rotateWgCode, listPushDevices }}>
       {children}
     </Ctx.Provider>
   );
@@ -2318,7 +2362,7 @@ function Haushalt({goGrow}) {
                   <span className="num" style={{fontSize:11.5,color:'var(--label2)',width:52,textAlign:'right'}}>€{fmt(hsShare)}</span>
                 </div>
                 {growOn&&(
-                  <button onClick={goGrow} style={{display:'flex',alignItems:'center',gap:9,background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit'}}>
+                  <button className="hit" onClick={goGrow} style={{display:'flex',alignItems:'center',gap:9,background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit'}}>
                     <div style={{width:9,height:9,borderRadius:'50%',background:'var(--lime)',boxShadow:'0 0 8px var(--lime)',flexShrink:0}}/>
                     <span style={{flex:1,fontSize:13.5,fontWeight:700,color:'var(--label2)',textAlign:'left'}}>Growbox</span>
                     <span className="num" style={{fontSize:17,fontWeight:800,color:'var(--label)'}}>{myCost>0?giPct:0}%</span>
@@ -2374,7 +2418,7 @@ function Haushalt({goGrow}) {
             </button>
           )}
           <button className="btn rise" style={{background:'var(--mint)',animationDelay:'60ms'}} onClick={()=>setWiz(true)}>+ Ausgabe hinzufügen</button>
-          <button className="rise" onClick={()=>setBringOpen(true)}
+          <button className="rise hit" onClick={()=>setBringOpen(true)}
             style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,padding:'9px 14px',marginTop:-2,borderRadius:12,border:'none',background:'var(--bg3)',color:'var(--label2)',fontWeight:600,fontSize:13,fontFamily:'inherit',cursor:'pointer',animationDelay:'70ms'}}>
             🛒 Vergessen? Mitbringen lassen
           </button>
@@ -2513,7 +2557,7 @@ function Haushalt({goGrow}) {
             return tipps.length>0 && (
               <div className="rise" style={{display:'flex',flexWrap:'wrap',gap:7,animationDelay:'55ms'}}>
                 {tipps.map(t=>(
-                  <button key={t} onClick={()=>quickAdd(t)} style={{background:'rgba(255,255,255,.05)',border:'1px solid var(--border)',borderRadius:999,padding:'8px 13px',fontSize:13,fontWeight:600,color:'var(--label2)'}}>+ {t}</button>
+                  <button key={t} className="hit-v" onClick={()=>quickAdd(t)} style={{background:'rgba(255,255,255,.05)',border:'1px solid var(--border)',borderRadius:999,padding:'8px 13px',fontSize:13,fontWeight:600,color:'var(--label2)'}}>+ {t}</button>
                 ))}
               </div>
             );
@@ -3347,6 +3391,7 @@ function Finanzen() {
       const blob=new Blob([JSON.stringify({v:1,exported:new Date().toISOString(),...priv},null,2)],{type:'application/json'});
       const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
       a.download=`privat-finanzen-${todayISO()}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+      ss('wg_priv_exported', Date.now()); setPriv_(p => ({ ...p }));   // Erinnerung zurücksetzen (neu zeichnen)
     } catch {}
   };
 
@@ -3489,6 +3534,12 @@ function Finanzen() {
             </>
           )}
 
+          {/* Der Privatbereich steckt in keinem automatischen Backup (bewusst nur auf diesem Gerät) — nach 30 Tagen erinnern */}
+          {(() => { const last = ls('wg_priv_exported', 0) || 0, days = last ? Math.floor((Date.now()-last)/864e5) : null;
+            return ((priv.tx||[]).length + (priv.fix||[]).length) > 0 && (days === null || days > 30) && (
+              <div role="status" data-testid="priv-reminder" style={{marginTop:16,padding:'11px 13px',borderRadius:13,background:'rgba(196,181,253,.1)',border:'1px solid rgba(196,181,253,.35)',fontSize:13,color:'var(--label)',lineHeight:1.5}}>
+                🔐 Dein privater Bereich liegt nur auf diesem Handy und steckt in keinem automatischen Backup. {days === null ? 'Noch nie gesichert' : `Zuletzt gesichert vor ${days} Tagen`} — „⬇︎ Sichern" legt eine Datei ab.
+              </div>); })()}
           <div style={{display:'flex',gap:9,marginTop:16}}>
             <button className="btn" style={{background:'var(--bg3)',color:'var(--label2)',flex:1,fontSize:13}} onClick={backup}>⬇︎ Sichern</button>
             <button className="btn" style={{background:'var(--bg3)',color:'var(--label2)',flex:1,fontSize:13}} onClick={()=>setLocked(true)}>🔒 Sperren</button>
@@ -3603,7 +3654,7 @@ function Abos() {
    EINSTELLUNGEN
 ══════════════════════════ */
 function Einstellungen() {
-  const { D, set, setFn, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, me, setMe, undo, askConfirm, deviceId, pushSave, pushRemove, pushPrefsUpdate, rotateWgCode } = useD();
+  const { D, set, setFn, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, me, setMe, undo, askConfirm, deviceId, pushSave, pushRemove, pushPrefsUpdate, rotateWgCode, listPushDevices } = useD();
   const users=D.users;
   const [cfgText,  setCfgText]  = useState(fbCfg ? JSON.stringify(fbCfg, null, 2) : '');
   const [codeInput,setCodeInput]= useState('');
@@ -3642,10 +3693,14 @@ function Einstellungen() {
   const fmtErrTime = t => { const d = new Date(t || 0), z = n => String(n).padStart(2, '0'); return `${z(d.getDate())}.${z(d.getMonth()+1)}. ${z(d.getHours())}:${z(d.getMinutes())}`; };
   const loadBackups = async () => {
     setBkDays(null); setBkMsg('');
-    try { const r = await fetch(`${PUSH_API}/api/backup?code=${encodeURIComponent(wgCode)}`); const j = await r.json(); if (!r.ok) throw new Error(j.error || r.status); setBkDays(j.days || []); }
+    try { const r = await fetch(`${PUSH_API}/api/backup?code=${encodeURIComponent(wgCode)}`); const j = await r.json(); if (!r.ok) throw new Error(j.error || r.status); setBkDays(j.days || []); ss('wg_bk_age', backupAgeDays(j.days || [])); }
     catch (e) { setBkDays('Backups gerade nicht erreichbar (' + ((e && e.message) || '?') + ').'); }
   };
   const openBackups = () => { setBkOpen(true); loadBackups(); };
+  const bkAgeS = ls('wg_bk_age', null);   // vom Backup-Wächter (AppInner): Tage seit der neuesten Server-Sicherung
+  // Wo kommt Push an? (Geräte unter diesem Code) — damit sichtbar wird, wenn es beim Mitbewohner fehlt
+  const [pushDevs,setPushDevs] = useState(null);
+  useEffect(() => { if (status === 'synced' && listPushDevices) listPushDevices().then(setPushDevs).catch(() => {}); }, [status]);
   const snapshotNow = async () => {
     setBkMsg('Sichere …');
     try {
@@ -3874,7 +3929,7 @@ function Einstellungen() {
         return;
       }
       if (await askConfirm({title:'Backup importieren',body:'Import überschreibt alle aktuellen Daten auf diesem Gerät (und im Sync). Fortfahren?',okLabel:'Importieren',danger:true}))
-        replaceData(payload);
+        replaceData(normalizeRemote(payload));   // nimmt beide Formen: App-Export (Listen als Arrays) und Server-/Off-site-Kopie (Listen als {id:item})
     };
     reader.readAsText(file);
   };
@@ -4060,6 +4115,11 @@ function Einstellungen() {
         {/* Backup / Restore */}
         <div className="rise" style={{animationDelay:'160ms'}}>
           <div className="section-hdr">Backup</div>
+          {typeof bkAgeS==='number' && bkAgeS>2 && (
+            <div role="alert" style={{margin:'0 0 10px',padding:'11px 13px',borderRadius:13,background:'rgba(251,191,36,.1)',border:'1px solid rgba(251,191,36,.35)',fontSize:13,color:'var(--label)',lineHeight:1.5}}>
+              ⚠️ Letzte automatische Sicherung vor {bkAgeS} Tagen — der tägliche Server-Job läuft offenbar nicht. „Automatische Backups → Jetzt sichern" hilft sofort; bitte Bescheid geben.
+            </div>
+          )}
           <div className="group">
             <div className="cell" style={{cursor:'pointer'}} onClick={exportData}>
               <div className="cell-icon" style={{background:'rgba(74,222,128,.12)',fontSize:15}}>⬇️</div>
@@ -4182,6 +4242,15 @@ function Einstellungen() {
                 {pushBusy?'…':pushOn?'An':'Aus'}
               </button>
             </div>
+            {Array.isArray(pushDevs) && (
+              <div className="cell">
+                <div className="cell-content">
+                  <span className="cell-sub">Push kommt an auf</span>
+                  <span className="cell-title" data-testid="push-devs" style={{fontSize:14}}>{pushDevs.length ? pushDevs.map(d=>d.name+(d.me?' (dieses Gerät)':'')).join(' · ') : 'noch keinem Gerät'}</span>
+                  {pushDevs.length < 2 && <span className="cell-sub" style={{color:'var(--amber)'}}>Bei deinem Mitbewohner fehlt Push noch — dort unter „Mehr" einschalten.</span>}
+                </div>
+              </div>
+            )}
             {pushOn && !pushDisabled && [
               ['exp','💸','Ausgaben'],
               ['shop','🛒','Einkaufsliste'],
@@ -4761,7 +4830,7 @@ function PushPrompt({ onClose }){
 }
 
 function AppInner() {
-  const { mods, remotePulse, D, me, pushSave, status } = useD();
+  const { mods, remotePulse, D, me, pushSave, status, wgCode } = useD();
   const visibleTabs = TABS.filter(t => t.id==='set' || mods[t.id] !== false);
   const [tab,setTab_] = useState(() => {
     const saved = ls('wg_tab', null); // letzten Tab merken
@@ -4775,6 +4844,23 @@ function AppInner() {
   const [errSeen,setErrSeen] = useState(() => ls('wg_err_seen', 0) || 0);
   const errNew = (D.err || []).some(e => (e.t || 0) > errSeen);
   useEffect(() => { if (tab === 'set' && errNew) { const t = Date.now(); setErrSeen(t); ss('wg_err_seen', t); } }, [tab, errNew]);
+  /* Backup-Wächter: höchstens alle 6 Std. die Liste der Server-Backups holen. Ist die neueste älter als 2 Tage (oder
+     gibt es 2 Tage nach dem ersten Blick noch keine), läuft der tägliche Server-Job offenbar nicht — das soll auffallen
+     (Punkt am Tab „Mehr" + Hinweis im Backup-Bereich) statt still wegzubrechen. */
+  const [bkAge,setBkAge] = useState(() => ls('wg_bk_age', null));
+  useEffect(() => {
+    if (!PUSH_API || status !== 'synced' || !navigator.onLine || !wgCode) return;
+    if (Date.now() - (ls('wg_bk_check', 0) || 0) < 6 * 3600e3) return;
+    ss('wg_bk_check', Date.now());
+    fetch(`${PUSH_API}/api/backup?code=${encodeURIComponent(wgCode)}`).then(r => r.ok ? r.json() : null).then(j => {
+      if (!j || !Array.isArray(j.days)) return;
+      const age = backupAgeDays(j.days); ss('wg_bk_age', age); setBkAge(age);
+    }).catch(() => {});
+  }, [status, wgCode]);
+  const bkStale = typeof bkAge === 'number' && bkAge > 2;
+  // „Neue Version": ein neuer Service Worker hat übernommen (s. Skript am Seitenende) — Hinweis mit Knopf
+  const [updReady,setUpdReady] = useState(() => !!window.__wgUpdReady);
+  useEffect(() => { const on = () => setUpdReady(true); window.addEventListener('wg-update', on); return () => window.removeEventListener('wg-update', on); }, []);
   // Start-Flow (max. 1× pro Woche, nicht bei jedem Öffnen): erst PayPal einrichten (falls kein Handle),
   // danach der offene Schuldbetrag groß (idiotensicher) — beide mit „Später"-Option.
   const [debtInfo,setDebtInfo] = useState(null);
@@ -4874,12 +4960,18 @@ function AppInner() {
           <button onClick={()=>setTab('set')}>Neuen Code eingeben ›</button>
         </div>
       )}
+      {status!=='moved' && updReady && (
+        <div className="moved-banner upd-banner" role="status">
+          <span>✨ Eine neue Version der App ist da.</span>
+          <button onClick={()=>location.reload()}>Jetzt neu laden</button>
+        </div>
+      )}
       <div className="tabbar">
         {visibleTabs.map(t=>(
           <button key={t.id} className={`tabitem${tab===t.id?' on':''}`} aria-current={tab===t.id?'page':undefined}
             onClick={()=>setTab(t.id)} style={{color:tab===t.id?t.color:'var(--label3)'}}>
             {tab===t.id&&<div className="tab-glow"/>}
-            {t.id==='set' && errNew && tab!=='set' && <span className="tab-dot" aria-label="Neue Einträge im Fehlerprotokoll"/>}
+            {t.id==='set' && (errNew || bkStale) && tab!=='set' && <span className="tab-dot" aria-label={bkStale ? 'Backup-Warnung' : 'Neue Einträge im Fehlerprotokoll'}/>}
             <Ic d={t.icon} color={tab===t.id?t.color:'var(--label3)'} size={23} sw={tab===t.id?2.1:1.6}/>
             <span>{t.label}</span>
           </button>
@@ -5004,11 +5096,27 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 })();
 </script>
 <script>
-/* Service Worker: App offline-fähig nach erstem Laden (Shell + CDN-Libs gecacht) */
+/* Service Worker: App offline-fähig nach erstem Laden — und Updates zeitnah holen.
+   iOS lädt eine installierte PWA beim Zurückholen aus dem Hintergrund NICHT neu: ohne eigenes Nachsehen lief dort
+   alter Code, bis die App ganz geschlossen wurde. Deshalb beim Zurückkehren (höchstens alle 15 Min.) nachsehen.
+   Übernimmt ein neuer Service Worker, meldet die App „Neue Version" — und lädt beim nächsten Zurückkehren selbst neu,
+   sofern gerade kein Fenster (Formular) offen ist, damit keine halbe Eingabe verloren geht. */
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  window.__wgUpdLast = Date.now();
+  var wgHadController = !!navigator.serviceWorker.controller;   // erster Besuch: die Übernahme ist kein Update
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (!wgHadController) { wgHadController = true; return; }
+    window.__wgUpdReady = true;
+    window.dispatchEvent(new Event('wg-update'));
   });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'visible') return;
+    if (window.__wgUpdReady && !document.querySelector('.overlay')) { location.reload(); return; }
+    if (Date.now() - window.__wgUpdLast < 15 * 60e3) return;
+    window.__wgUpdLast = Date.now();
+    navigator.serviceWorker.getRegistration().then(function (r) { if (r) r.update().catch(function () {}); });
+  });
+  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
 }
 </script>
 </body>

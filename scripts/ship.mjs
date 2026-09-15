@@ -14,13 +14,18 @@ if (!msg) { console.error('✗ Commit-Message fehlt.  Nutzung: npm run ship -- "
 const sh = (cmd, opts = {}) => execSync(cmd, { stdio: 'inherit', ...opts });
 const shOut = (cmd) => execSync(cmd, { encoding: 'utf8' }).trim();
 
+// 0) CSP-Hashes zur aktuellen wgapp.html in firebase.json schreiben — ohne passende Hashes wäre die App im Browser
+//    komplett blockiert (script-src ohne 'unsafe-inline', s. scripts/csp-hashes.mjs). Geht mit in den Commit.
+console.log('▶ 0/6 CSP-Hashes …');
+sh('node scripts/csp-hashes.mjs --write');
+
 // 1) Test-Gate gegen kurzlebigen lokalen Server
 console.log('▶ 1/6 Test-Gate …');
 const server = spawn('python', ['-m', 'http.server', '8099'], { stdio: 'ignore' });
 let gateOk = false;
 try {
   await sleep(1600);
-  for (const t of ['test/split.mjs', 'test/persist.mjs', 'test/paybtn.mjs', 'test/archive.mjs', 'test/privat.mjs', 'test/grow.mjs', 'test/cron_grow.mjs', 'test/privquota.mjs', 'test/sync.mjs', 'test/logins.mjs', 'test/selfhost.mjs', 'test/startflow.mjs', 'test/backup_api.mjs', 'test/rotate.mjs', 'test/errlog.mjs']) {
+  for (const t of ['test/split.mjs', 'test/persist.mjs', 'test/paybtn.mjs', 'test/archive.mjs', 'test/privat.mjs', 'test/grow.mjs', 'test/cron_grow.mjs', 'test/privquota.mjs', 'test/sync.mjs', 'test/logins.mjs', 'test/selfhost.mjs', 'test/startflow.mjs', 'test/backup_api.mjs', 'test/rotate.mjs', 'test/errlog.mjs', 'test/notify_api.mjs', 'test/bkwatch.mjs', 'test/update.mjs', 'test/csp_hash.mjs']) {
     console.log('   • ' + t);
     sh(`node ${t}`);
   }

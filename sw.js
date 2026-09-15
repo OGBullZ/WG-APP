@@ -3,7 +3,7 @@
    App-Shell + Bibliotheken (React/Babel/Firebase-SDK, selbst gehostet unter vendor/) + Schriften (fonts/)
    werden gecacht. Der Firebase-Realtime-Sync läuft weiter übers Netz (nie gecacht).
    Cache-Name bei jedem Deploy mit relevanter Änderung hochzählen. */
-const CACHE = 'wg-v57';
+const CACHE = 'wg-v58';
 /* Stabiler Cache OHNE Versions-Suffix, überlebt Deploys. Hier liegen nur Dateien, deren Name sich bei jeder
    inhaltlichen Änderung mitändert (vendor/ mit Version, fonts/ mit Inhalts-Hash). Vorher wurden solche Dateien beim activate-Cleanup jedes Deploys mitgelöscht: bis zum
    nächsten vollen Online-Load war die App offline ein weißer Screen (HTML da, Skripte weg). */
@@ -16,8 +16,8 @@ const IMMUTABLE = [
   './vendor/react-18.3.1.production.min.js',
   './vendor/react-dom-18.3.1.production.min.js',
   './vendor/babel-standalone-7.25.6.min.js',
-  './vendor/firebase-app-compat-9.23.0.js',
-  './vendor/firebase-database-compat-9.23.0.js',
+  './vendor/firebase-app-compat-12.19.0.js',
+  './vendor/firebase-database-compat-12.19.0.js',
   './fonts/hanken-grotesk-latin-e9201edd.woff2',
   './fonts/hanken-grotesk-latin-ext-768af292.woff2',
   './fonts/unbounded-latin-22f9b928.woff2',
@@ -92,7 +92,9 @@ self.addEventListener('push', e => {
 
 self.addEventListener('notificationclick', e => {
   e.notification.close();
-  const url = (e.notification.data && e.notification.data.url) || './';
+  // Nur eigene Seiten öffnen — auch falls der Server einmal einen fremden Link durchließe (Phishing-Schutz, doppelt)
+  let url = (e.notification.data && e.notification.data.url) || './';
+  try { if (new URL(url, self.location).origin !== self.location.origin) url = './'; } catch (_) { url = './'; }
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       for (const c of list) if ('focus' in c) return c.focus();

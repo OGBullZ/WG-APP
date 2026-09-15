@@ -107,7 +107,15 @@ function auditFn() {
     if (r.width === 0) return;
     const name = (el.getAttribute('aria-label') || el.textContent || el.title || '').trim();
     if (!name) out.noName.push(el.className + ' | ' + el.outerHTML.slice(0,80));
-    if (r.width < 40 || r.height < 40) out.smallTap.push(`${Math.round(r.width)}x${Math.round(r.height)} "${name.slice(0,22)}" .${el.className}`);
+    // Unsichtbar vergrößerte Tippfläche (::after mit negativem inset, s. CSS „Größere Tippflächen") mitzählen —
+    // sonst meldet das Werkzeug Knöpfe als zu klein, die sich in Wahrheit gut treffen lassen.
+    let w = r.width, h = r.height;
+    const af = getComputedStyle(el, '::after');
+    if (af.content && af.content !== 'none' && af.position === 'absolute') {
+      const px = v => parseFloat(v) || 0;
+      h = Math.max(h, h - px(af.top) - px(af.bottom)); w = Math.max(w, w - px(af.left) - px(af.right));
+    }
+    if (w < 40 || h < 40) out.smallTap.push(`${Math.round(w)}x${Math.round(h)} "${name.slice(0,22)}" .${el.className}`);
   });
   document.querySelectorAll('input, textarea, select').forEach(el => {
     const r = el.getBoundingClientRect(); if (r.width===0) return;

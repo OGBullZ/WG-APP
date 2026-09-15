@@ -35,7 +35,8 @@ async function device({ me, dev, seedTree, localData, rotateStatus = 200 }) {
   await page.route('**/*', r => {
     const u = r.request().url();
     if (u.includes('/api/rotate')) { calls.push({ api: 'rotate', body: JSON.parse(r.request().postData() || '{}') }); return r.fulfill({ status: rotateStatus, contentType: 'application/json', body: rotateStatus === 200 ? '{"ok":true}' : '{"error":"x"}' }); }
-    if (u.includes('/api/backup')) { calls.push({ api: 'backup', body: JSON.parse(r.request().postData() || '{}') }); return r.fulfill({ status: 200, contentType: 'application/json', body: '{"result":"ok"}' }); }
+    // GET = Backup-Wächter (Liste), POST = „Jetzt sichern" vor dem Wechsel — beide auseinanderhalten
+    if (u.includes('/api/backup')) { calls.push({ api: 'backup', method: r.request().method(), body: JSON.parse(r.request().postData() || '{}') }); return r.fulfill({ status: 200, contentType: 'application/json', body: r.request().method() === 'GET' ? '{"days":[]}' : '{"result":"ok"}' }); }
     if (u.includes('/api/notify')) return r.fulfill({ status: 200, body: '{}' });
     return /firebasedatabase\.app|firebaseio\.com/.test(u) ? r.abort() : r.continue();
   });
@@ -79,7 +80,7 @@ const openMehr = async page => { await page.locator('.tabbar .tabitem', { hasTex
   check('A4 Daten stehen unter dem neuen Code', newNode.hs?.h1?.name === 'Klopapier' && Array.isArray(newNode.users) || !!newNode.users);
   check('A5 nur die EIGENE Push-Registrierung zieht mit (Ex-Gerät nicht)', !!newNode.push?.devA && !newNode.push?.devX, JSON.stringify(Object.keys(newNode.push || {})));
   check('A6 Login-Freigaben ziehen nicht mit', !newNode.ls);
-  const iBackup = calls.findIndex(c => c.api === 'backup'), iRotate = calls.findIndex(c => c.api === 'rotate');
+  const iBackup = calls.findIndex(c => c.api === 'backup' && c.method === 'POST'), iRotate = calls.findIndex(c => c.api === 'rotate');
   check('A7 vorher gesichert (Snapshot mit altem Code)', iBackup >= 0 && calls[iBackup].body.code === OLD && calls[iBackup].body.action === 'snapshot');
   check('A8 Server erfährt {old, new}', iRotate > iBackup && calls[iRotate].body.old === OLD && calls[iRotate].body.new === NEW, JSON.stringify(calls[iRotate]?.body));
   // Code-Sheet schließen, dann schreibt eine neue Ausgabe unter den NEUEN Code

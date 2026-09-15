@@ -32,6 +32,8 @@ async function open({ localData = {}, joinMode = null, code = 'TEST-LOKAL-SYNC00
   // spezifische Stub-Route muss deshalb nach der allgemeinen kommen.
   await page.route('**/*', r => {
     const u = r.request().url();
+    // Push-Server (Backup-Wächter, Pushes) abfangen: Test-Codes gehören nicht an die echte API
+    if (u.includes('wg-app-bull-z.vercel.app')) return r.fulfill({ status: 200, contentType: 'application/json', body: '{"days":[]}' });
     return /firebasedatabase\.app|firebaseio\.com|googleapis\.com/.test(u) ? r.abort() : r.continue();
   });
   await page.route(/firebase-(app|database)-compat[-\d.]*\.js/, r => r.fulfill({

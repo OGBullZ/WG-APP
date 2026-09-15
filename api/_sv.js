@@ -91,4 +91,19 @@ async function pruneSnapshots(keys, now = Date.now()) {
   return pruned;
 }
 
-module.exports = { hasKey, currentCode, setCode, stripForBackup, writeSnapshot, listSnapshots, readSnapshot, pruneSnapshots, berlinParts, CODE_FORMAT, SNAP_KEY, KEEP_DAYS };
+// Bremse je WG: höchstens `max` Aufrufe je Zeitfenster. Zähler in sv/<key>/rl/<hash> — der WG-Code selbst
+// taucht dort nicht auf (Hash). Ohne Schlüssel oder bei Netzfehler: durchlassen (lieber zustellen als still
+// verschlucken). Kein exakter Zähler (zwei gleichzeitige Aufrufe können beide durchgehen) — reicht als Bremse.
+async function rateLimit(code, max = 30, windowMs = 10 * 60e3) {
+  if (!hasKey()) return true;
+  const id = require('crypto').createHash('sha256').update('rl:' + code).digest('hex').slice(0, 32);
+  const win = Math.floor(Date.now() / windowMs);
+  let cur = null;
+  try { const r = await fetch(svUrl(`/rl/${id}`)); if (r.ok) cur = await r.json(); } catch (_) { return true; }
+  const n = cur && cur.w === win ? (cur.n || 0) + 1 : 1;
+  if (n > max) return false;
+  try { await fetch(svUrl(`/rl/${id}`), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ w: win, n }) }); } catch (_) {}
+  return true;
+}
+
+module.exports = { hasKey, currentCode, setCode, stripForBackup, writeSnapshot, listSnapshots, readSnapshot, pruneSnapshots, berlinParts, rateLimit, CODE_FORMAT, SNAP_KEY, KEEP_DAYS };

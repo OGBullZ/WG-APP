@@ -31,6 +31,8 @@ async function device({ me, seed = null, code = 'TEST-LOKAL-LOGIN01' }) {
   await page.route('**/*', r => {
     const u = r.request().url();
     if (u.includes('/api/notify')) { pushes.push(JSON.parse(r.request().postData() || '{}')); return r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }); }
+    // übrige Push-Server-Aufrufe (Backup-Wächter) abfangen — Test-Codes gehören nicht an die echte API
+    if (u.includes('wg-app-bull-z.vercel.app')) return r.fulfill({ status: 200, contentType: 'application/json', body: '{"days":[]}' });
     return /firebasedatabase\.app|firebaseio\.com|googleapis\.com/.test(u) ? r.abort() : r.continue();
   });
   await page.route(/firebase-(app|database)-compat[-\d.]*\.js/, r => r.fulfill({
