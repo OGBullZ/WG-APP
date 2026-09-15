@@ -10,73 +10,9 @@
    überschrieben, und der nachlaufende Flush schickte den überschriebenen Stand, sodass
    er auch nie ankam. Gegenprobe „WG übernehmen" muss weiterhin verwerfen. */
 import { chromium } from 'playwright';
+import { STUB } from './_fbstub.mjs'; // Firebase-Ersatz, geteilt mit logins.mjs
 
 const url = 'http://localhost:8099/wgapp.html';
-
-// Firebase-Ersatz: nur das, was DataProvider benutzt. Der Test löst die Antwort selbst aus.
-const STUB = `
-window.__wg = { updates: [], onceAt: 0, listeners: [], holdWrites: false, held: [],
-  remote: { users:[{id:'u1',name:'Torben',color:'#38bdf8'},{id:'u2',name:'Tom',color:'#fbbf24'}],
-            hs:{ serverItem:{id:'serverItem',name:'VomServer',price:9,paidBy:'u2',date:'2026-08-01',settled:false,seq:1} } } };
-(function(){
-  function snap(){ var v = JSON.parse(JSON.stringify(window.__wg.remote)); return { val: function(){ return v; } }; }
-  function notify(){ window.__wg.listeners.forEach(function(cb){ cb(snap()); }); }
-  function applyUpdate(u){
-    for (var path in u) {
-      var parts = path.split('/');
-      if (parts.length === 2) {
-        var k = parts[0], id = parts[1];
-        if (!window.__wg.remote[k]) window.__wg.remote[k] = {};
-        if (u[path] === null) delete window.__wg.remote[k][id]; else window.__wg.remote[k][id] = u[path];
-      } else if (u[path] !== null) { window.__wg.remote[path] = u[path]; }
-    }
-  }
-  // Fremd-Aenderung vom anderen Geraet simulieren (loest ein Listener-Event aus)
-  window.__wg.pushRemote = function(){ notify(); };
-  // Alle zurueckgehaltenen Writes zustellen und bestaetigen
-  window.__wg.releaseWrites = function(){
-    var h = window.__wg.held; window.__wg.held = [];
-    h.forEach(function(x){ applyUpdate(x.u); x.res(); });
-    setTimeout(notify, 20);
-    return h.length;
-  };
-  function Ref(){
-    this.once = function(_ev, cb){
-      // Der Server antwortet mit dem Stand, den er beim ABSCHICKEN hatte — ein Write,
-      // der erst danach ankommt, ist nicht enthalten.
-      var atSend = snap();
-      window.__wg.fire = function(){ window.__wg.onceAt = Date.now(); cb(atSend); };
-      return { then: function(){ return { catch: function(){} }; } };
-    };
-    // Live-Listener wie die echte RTDB: feuert direkt beim Registrieren mit dem AKTUELLEN
-    // Stand und danach bei jeder Änderung. Ohne das testet der Stub eine Welt, in der
-    // der Server nie etwas nachliefert — und meldet Fehler, die es real nicht gibt.
-    this.on = function(_ev, cb){ window.__wg.listeners.push(cb); setTimeout(function(){ cb(snap()); }, 40); };
-    this.off = function(){ window.__wg.listeners.length = 0; };
-    this.child = function(){ return new Ref(); };
-    this.update = function(u){
-      window.__wg.updates.push(u);
-      // holdWrites: der Write ist unterwegs — der Server hat ihn noch nicht verarbeitet
-      // und bestaetigt ihn nicht. So laesst sich das inflight-Fenster gezielt testen.
-      if (window.__wg.holdWrites) {
-        // Warteschlange, kein einzelner Resolver: gehen mehrere Writes raus, darf der
-        // zweite den ersten nicht verdraengen (sonst wird ein Write nie angewendet und
-        // der Test schlaegt sporadisch fehl).
-        return new Promise(function(res){ window.__wg.held.push({ u: u, res: res }); });
-      }
-      applyUpdate(u);
-      setTimeout(notify, 20);
-      return Promise.resolve();
-    };
-    this.set = this.update;
-  }
-  window.firebase = {
-    initializeApp: function(){ return {}; },
-    app: function(){ throw new Error('no app'); },
-    database: function(){ return { ref: function(){ return new Ref(); }, goOnline:function(){}, goOffline:function(){} }; },
-  };
-})();
-`;
 
 const USERS = [{ id: 'u1', name: 'Torben', color: '#38bdf8' }, { id: 'u2', name: 'Tom', color: '#fbbf24' }];
 const browser = await chromium.launch();
@@ -274,6 +210,44 @@ const remoteHs = page => page.evaluate(() => Object.values(window.__wg.remote.hs
   check('G3 Fremd-Änderung kommt nach der Bestätigung an', finalHs.includes('VomAnderenGeraet'));
   check('G4 eigene Eingabe ist weiterhin da', finalHs.includes('MeineAusgabe'));
   check('G5 Server hat beides', (await remoteHs(page)).includes('MeineAusgabe') && (await remoteHs(page)).includes('VomAnderenGeraet'));
+  await page.context().close();
+}
+
+// ── H) Jeder Listen-Key muss im Sync-Satz stehen (LIST_KEYS ⊆ KEYS) ─────────────
+// Bis wg-v52 fehlte `bo` (Ankündigungen) in INIT und damit in KEYS: der Live-Listener
+// übernahm Fremd-Einträge nie (erst nach Neustart), und eine Löschung in einer frischen
+// Sitzung ging nie zum Server (Diff-Basis fehlte) → Eintrag kam beim nächsten Start zurück.
+{
+  const z2 = n => String(n).padStart(2, '0');
+  const d = new Date(), today = `${d.getFullYear()}-${z2(d.getMonth()+1)}-${z2(d.getDate())}`;
+  const page = await open({ code: 'TEST-LOKAL-SYNC007' });
+  check('H1 jeder LIST_KEY ist ein Sync-Key', await page.evaluate(() => LIST_KEYS.every(k => KEYS.includes(k))));
+  await page.evaluate(t => {
+    window.__wg.remote.bo = { b1: { id: 'b1', kind: 'besuch', text: 'ServerBesuch', date: t, by: 'u2', ts: 1, seq: 1 } };
+    window.__wg.fire();
+  }, today);
+  await page.waitForTimeout(1200);
+  const boOf = () => page.evaluate(() => (JSON.parse(localStorage.getItem('wg_data')).bo || []).map(b => b.text));
+  check('H2 Ankündigung vom Server kommt beim Start an', (await boOf()).includes('ServerBesuch'));
+
+  // Fremd-Eintrag während der Sitzung → muss live erscheinen, nicht erst nach Neustart
+  await page.evaluate(t => {
+    window.__wg.remote.bo.b2 = { id: 'b2', kind: 'wecker', text: 'LiveWecker', date: t, by: 'u2', ts: 2, seq: 2 };
+    window.__wg.pushRemote();
+  }, today);
+  await page.waitForTimeout(800);
+  check('H3 Fremd-Ankündigung wird live übernommen', (await boOf()).includes('LiveWecker'));
+
+  // Löschen in dieser (frischen) Sitzung muss beim Server ankommen
+  // Kein ×-Knopf = Ankündigung gar nicht sichtbar → laut rot statt Timeout-Absturz
+  const delBtn = page.locator('.del-btn[aria-label="Ankündigung entfernen"]');
+  check('H4a Ankündigung ist in der UI sichtbar (×-Knopf da)', await delBtn.count() > 0);
+  if (await delBtn.count()) {
+    await delBtn.first().click();
+    await page.waitForTimeout(1200);
+    const remoteBo = await page.evaluate(() => Object.keys(window.__wg.remote.bo || {}));
+    check('H4 gelöschte Ankündigung ist auch beim Server weg', remoteBo.length === 1);
+  }
   await page.context().close();
 }
 

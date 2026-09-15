@@ -757,6 +757,11 @@ const INIT = {
   gh:     [],
   bud:    [],
   gz:     [],
+  // Jeder LIST_KEY MUSS hier stehen — KEYS entsteht aus INIT, und nur KEYS liest der Sync
+  // (Erst-Read, Live-Listener, Diff-Basis). `bo` fehlte bis wg-v52: Ankündigungen kamen
+  // auf dem anderen Gerät nie an, Löschungen nie beim Server. Test: sync.mjs Szenario H.
+  bo:     [],
+  ls:     [],
 };
 const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
 
@@ -766,8 +771,9 @@ const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
    users (fix 2) und gp (Pflanzen-Map) bleiben key-level.
    arc = Archiv (alte abgerechnete hs/gi/stl-Einträge, s. archiveCutoff in Einstellungen).
    slh = Einkaufslisten-Historie (id=Slug, n=Kaufzähler), gh = Ernte-Log, bud = Kategorie-Budgets (id=Cat-Key),
-   gz = Grow-Zyklen {start, phase, pAt, wiv, lastW, lastWBy, wn, end} — offen ist der ohne `end`. */
-const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz','bo'];
+   gz = Grow-Zyklen {start, phase, pAt, wiv, lastW, lastWBy, wn, end} — offen ist der ohne `end`.
+   ls = Login-Freigaben {svc, by, ts, exp, view, s, iv, ct, it} — nur Chiffretext, s. LOGIN_*. */
+const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz','bo','ls'];
 const isListKey = k => LIST_KEYS.includes(k);
 /* WG-Board (Key `bo`): kurze Ankündigungen zwischen den zwei Bewohnern — reine Info + Sofort-Push,
    keine Kostenrelevanz. Einträge mit Datum, laufen nach dem Tag automatisch aus der Anzeige. */
@@ -798,6 +804,59 @@ const addToCalendar = b => {
     setTimeout(()=>URL.revokeObjectURL(url), 4000);
   } catch {}
 };
+
+/* ── Abo-Logins teilen (Key `ls`) ──
+   Ersteller verschlüsselt einen Login (Netflix, Apple TV …) im Browser mit einem zufälligen
+   Einmal-Code; in der RTDB liegt nur Chiffretext (AES-GCM, Schlüssel per PBKDF2 aus dem Code).
+   Warum: wer den WG-Code kennt, liest die ganze RTDB — Klartext-Passwörter haben dort nichts
+   verloren. Der Code geht getrennt raus (Push/Messenger) und wird nirgends gespeichert.
+   Beim Einlösen ersetzt der Empfänger den Chiffretext sofort durch einen Grabstein (einmalig),
+   sieht den Login `view` Minuten lang, danach wird er von seinem Gerät gelöscht.
+   Code = 8 Zeichen aus 31 (≈40 Bit): ein 6-stelliger Zahlencode wäre mit dem Chiffretext in
+   der Hand offline in Sekunden durchprobiert. */
+const LOGIN_ABC  = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';      // ohne 0/O/1/I/L — nichts zum Verwechseln
+const LOGIN_TTL  = 24*3600e3;                              // so lange ist ein Code einlösbar
+const LOGIN_VIEW = [[5,'5 Min'],[15,'15 Min'],[60,'1 Std']]; // Sichtdauer beim Empfänger
+const LOGIN_IT   = 250000;                                 // PBKDF2-Runden (bremst Durchprobieren)
+const LG_SAVED = 'wg_lg', LG_VIEW = 'wg_lg_view';          // lokal, nie gesynct: gemerkte Logins / gerade sichtbarer Login
+const b64e = u8 => { let s=''; u8.forEach(b=>{ s+=String.fromCharCode(b); }); return btoa(s); };
+const b64d = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
+const normLoginCode = s => String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+const fmtLoginCode  = c => c.length>4 ? c.slice(0,4)+'-'+c.slice(4) : c;
+// Zufallscode ohne Modulo-Verzerrung: Bytes ≥ 248 (= 8·31) verwerfen
+const genLoginCode = () => {
+  let out=''; const buf=new Uint8Array(32);
+  while (out.length<8) { crypto.getRandomValues(buf); for (const b of buf) if (b<248 && out.length<8) out+=LOGIN_ABC[b%31]; }
+  return out;
+};
+const loginKey = async (code, salt, it) => {
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(normLoginCode(code)), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations:it, hash:'SHA-256' }, base, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
+};
+// Verschlüsseln; die Share-ID geht als AAD mit → Chiffretext lässt sich nicht unter eine andere ID schieben
+const loginSeal = async (obj, code, id) => {
+  const salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await loginKey(code, salt, LOGIN_IT);
+  const ct=await crypto.subtle.encrypt({ name:'AES-GCM', iv, additionalData:new TextEncoder().encode(id) }, key, new TextEncoder().encode(JSON.stringify(obj)));
+  return { s:b64e(salt), iv:b64e(iv), ct:b64e(new Uint8Array(ct)), it:LOGIN_IT };
+};
+// Entschlüsseln; falscher Code → GCM-Prüfung schlägt fehl → null
+const loginOpen = async (sh, code) => {
+  try {
+    const key=await loginKey(code, b64d(sh.s), sh.it||LOGIN_IT);
+    const pt=await crypto.subtle.decrypt({ name:'AES-GCM', iv:b64d(sh.iv), additionalData:new TextEncoder().encode(sh.id) }, key, b64d(sh.ct));
+    return JSON.parse(new TextDecoder().decode(pt));
+  } catch { return null; }
+};
+// Zwischenablage; Fallback über verstecktes Textfeld (ältere iOS/WebViews ohne clipboard-API)
+const copyTxt = async t => {
+  try { if (navigator.clipboard) { await navigator.clipboard.writeText(t); return true; } } catch {}
+  try { const ta=document.createElement('textarea'); ta.value=t; ta.setAttribute('readonly',''); ta.style.cssText='position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); const ok=document.execCommand('copy'); ta.remove(); return ok; } catch { return false; }
+};
+// Restzeit: „4:59" unter einer Stunde, sonst „3 Std"
+const fmtLeft = ms => { const s=Math.max(0,Math.ceil(ms/1000)); return s>=3600 ? `${Math.ceil(s/3600)} Std` : `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; };
+// Uhrzeit eines Zeitstempels, mit „morgen" davor, wenn nicht heute (Freigaben leben ≤ 24 Std)
+const fmtHM = t => { const d=new Date(t), z=n=>String(n).padStart(2,'0'); const hm=`${z(d.getHours())}:${z(d.getMinutes())}`; return d.toDateString()===new Date().toDateString() ? hm : `morgen ${hm}`; };
 
 /* Monotone Sequenz für stabile, geräteübergreifend deterministische Sortierung. */
 let _seq = 0;
@@ -1632,6 +1691,278 @@ const dateStepRender = ({data:d,setData:sd}) => (
 /* ══════════════════════════
    HAUSHALT
 ══════════════════════════ */
+/* Abo-Logins teilen — Karte im Haushalt-Tab (unter „Ankündigungen").
+   Ersteller: „Login freigeben" → Dienst/Login/Passwort → Einmal-Code (nur jetzt sichtbar) → per
+   Push/Messenger schicken. Empfänger: „Code eingeben" → Login für `view` Minuten sehen + kopieren.
+   Klartext gibt es nur lokal: gemerkte Logins des Erstellers (wg_lg) und der gerade sichtbare
+   Login beim Empfänger (wg_lg_view, wird nach Ablauf gelöscht). Krypto s. LOGIN_*. */
+function LoginShare() {
+  const { D, setFn, me, notifyOthers, undo } = useD();
+  const users = D.users, shares = D.ls || [];
+  const meName = users.find(u=>u.id===me)?.name || 'Jemand';
+  const other  = users.find(u=>u.id!==me)?.name || 'Dein Mitbewohner';
+  const nameOf = id => users.find(u=>u.id===id)?.name || '?';
+  const canCrypto = !!(window.crypto && crypto.subtle);   // nur im sicheren Kontext (HTTPS/localhost)
+  const [now,setNow]       = useState(Date.now());
+  const [saved,setSaved]   = useState(()=>ls(LG_SAVED,[])||[]);
+  // Gerade sichtbarer Login (Empfänger) — abgelaufene Reste schon beim Start wegräumen
+  const [view,setView]     = useState(()=>{ const v=ls(LG_VIEW,null); if(v && v.until>Date.now()) return v; try{localStorage.removeItem(LG_VIEW);}catch{} return null; });
+  const [viewOpen,setViewOpen] = useState(false);
+  const [showPw,setShowPw] = useState(false);
+  const [copied,setCopied] = useState('');                // Button-Feedback „✓ Kopiert"
+  const [form,setForm]     = useState(null);              // offenes Freigabe-Sheet {svc,u,p,view,remember}
+  const [made,setMade]     = useState(null);              // gerade erzeugt {code,svc,view}
+  const [redeem,setRedeem] = useState(null);              // Freigabe, deren Code gerade eingegeben wird
+  const [code,setCode]     = useState('');
+  const [busy,setBusy]     = useState(false);
+  const [err,setErr]       = useState('');
+
+  const wipeView = () => { try{localStorage.removeItem(LG_VIEW);}catch{} setView(null); setViewOpen(false); setShowPw(false); };
+  const flash = k => { setCopied(k); setTimeout(()=>setCopied(c=>c===k?'':c),1600); };
+  const copy = async (k,t) => { if(await copyTxt(t)) flash(k); };
+
+  // Uhr: sekündlich solange ein Login sichtbar ist (Countdown), sonst alle 30 s für die Ablauf-Anzeige
+  useEffect(()=>{ const t=setInterval(()=>setNow(Date.now()), view?1000:30000); return ()=>clearInterval(t); },[!!view]);
+  // Sichtdauer vorbei → Klartext vom Gerät löschen
+  useEffect(()=>{ if(view && view.until<=now) wipeView(); },[now,view]);
+  // Abgelaufene Freigaben + Grabsteine aus der WG räumen — idempotent, jedes Gerät darf das
+  useEffect(()=>{ if(shares.some(s=>!(s.exp>now))) setFn('ls', cur=>(cur||[]).filter(s=>s.exp>Date.now())); },[shares,now]);
+
+  const incoming = shares.filter(s=>s.by!==me && !s.used && s.ct && s.exp>now);
+  const mine     = shares.filter(s=>s.by===me && s.exp>now);
+
+  /* ── Ersteller ── */
+  const openForm  = () => { setMade(null); setErr(''); setForm({ svc:'', u:'', p:'', view:15, remember:true }); };
+  const closeForm = () => { if(busy) return; setForm(null); setMade(null); setErr(''); };
+  const formOk = form && form.svc.trim() && (form.u.trim() || form.p);
+  const create = async () => {
+    if(!formOk || busy) return;
+    const svc=form.svc.trim(), u=form.u.trim(), p=form.p, mins=form.view;
+    setBusy(true); setErr('');
+    try {
+      const id=uid(), c=genLoginCode(), t=Date.now();
+      const sealed = await loginSeal({u,p}, c, id);
+      // setFn statt set: zwischen Klick und fertiger Verschlüsselung kann ein Fremd-Update gekommen sein
+      setFn('ls', cur=>[{ id, svc, by:me||null, ts:t, exp:t+LOGIN_TTL, view:mins, ...sealed }, ...(cur||[])]);
+      // Merken bzw. Vergessen auf diesem Gerät — ein Eintrag je Dienst
+      const rest = saved.filter(x=>x.svc.toLowerCase()!==svc.toLowerCase());
+      const next = form.remember ? [{ id:uid(), svc, u, p }, ...rest] : rest;
+      setSaved(next); ss(LG_SAVED, next);
+      setMade({ code:c, svc, view:mins });
+    } catch { setErr('Verschlüsseln hat nicht geklappt — nochmal versuchen.'); }
+    setBusy(false);
+  };
+  const codeMsg = m => `WG-App · ${m.svc}-Login · Code: ${fmtLoginCode(m.code)} (24 Std gültig, nur einmal)`;
+  const sendPush  = () => { notifyOthers(`🔑 ${meName} teilt den ${made.svc}-Login`, `Code: ${fmtLoginCode(made.code)} · in der WG-App unter Haushalt eingeben`, 'wg-login'); flash('push'); };
+  // Teilen-Menü (WhatsApp & Co.); Abbrechen wirft AbortError → dann einfach nichts tun
+  const shareCode = async () => { try { await navigator.share({ text:codeMsg(made) }); } catch {} };
+  const revoke = id => {
+    const it = shares.find(s=>s.id===id);
+    setFn('ls', cur=>(cur||[]).filter(s=>s.id!==id));
+    if(it && !it.used) undo(`🔑 Freigabe „${it.svc}" zurückgezogen`, ()=>setFn('ls', cur=>(cur||[]).some(s=>s.id===id)?cur:[it,...(cur||[])]));
+  };
+
+  /* ── Empfänger ── */
+  const openRedeem = s => { setRedeem(s); setCode(''); setErr(''); };
+  const doRedeem = async () => {
+    const c = normLoginCode(code);
+    if(!redeem || c.length!==8 || busy) return;
+    const cur = (D.ls||[]).find(x=>x.id===redeem.id);   // aktueller Stand: evtl. inzwischen zurückgezogen
+    if(!cur || cur.used || !cur.ct) { setErr('Diese Freigabe gibt es nicht mehr.'); return; }
+    setBusy(true); setErr('');
+    const obj = await loginOpen(cur, c);
+    setBusy(false);
+    if(!obj) { setErr('Code stimmt nicht.'); return; }
+    const mins = Math.min(60, Math.max(1, Number(cur.view)||15));
+    const v = { id:cur.id, svc:cur.svc, by:cur.by, u:obj.u||'', p:obj.p||'', from:Date.now(), until:Date.now()+mins*60e3 };
+    ss(LG_VIEW, v); setView(v);
+    // Einmalig: Chiffretext sofort durch einen Grabstein ersetzen — der Ersteller sieht „geöffnet"
+    setFn('ls', l=>(l||[]).map(x=>x.id===cur.id ? { id:x.id, svc:x.svc, by:x.by, ts:x.ts, exp:x.exp, seq:x.seq, used:Date.now(), usedBy:me||null } : x));
+    notifyOthers(`🔓 ${meName} hat den ${cur.svc}-Login geöffnet`, '', 'wg-login');
+    setRedeem(null); setCode(''); setShowPw(false); setViewOpen(true);
+  };
+
+  const rowTitle = { fontSize:14, fontWeight:700, color:'var(--label)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' };
+  const rowSub   = { fontSize:11.5, color:'var(--label3)', fontWeight:500 };
+  const quietBtn = { display:'flex', alignItems:'center', justifyContent:'center', gap:7, padding:'11px 14px', borderRadius:12, border:'none', background:'var(--bg3)', color:'var(--label2)', fontWeight:700, fontSize:13, fontFamily:'inherit', cursor:'pointer' };
+
+  return (
+    <>
+      <div className="rise" style={{animationDelay:'78ms'}}>
+        <div className="section-hdr">🔑 Abo-Logins</div>
+        <div className="group" style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:11}}>
+          {view && (
+            <button onClick={()=>setViewOpen(true)} style={{...quietBtn,justifyContent:'space-between',background:'rgba(129,140,248,.14)',color:'var(--indigo)'}}>
+              <span>🔓 {view.svc} · noch <span className="num">{fmtLeft(view.until-now)}</span> sichtbar</span><span style={{fontSize:18,lineHeight:1}}>›</span>
+            </button>
+          )}
+          {incoming.map(s=>(
+            <div key={s.id} style={{display:'flex',alignItems:'center',gap:11}}>
+              <span style={{fontSize:19,lineHeight:1,flexShrink:0}}>🔑</span>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={rowTitle}>{s.svc}</div>
+                <div style={rowSub}>von {nameOf(s.by)} · einlösbar bis {fmtHM(s.exp)}</div>
+              </div>
+              <button className="mini-btn" style={{background:'var(--indigo)'}} onClick={()=>openRedeem(s)}>Code eingeben</button>
+            </div>
+          ))}
+          {mine.map(s=>(
+            <div key={s.id} style={{display:'flex',alignItems:'center',gap:11}}>
+              <span style={{fontSize:19,lineHeight:1,flexShrink:0}}>{s.used?'✅':'⏳'}</span>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={rowTitle}>{s.svc}</div>
+                <div style={rowSub}>{s.used ? `${nameOf(s.usedBy)} hat ihn um ${fmtHM(s.used)} geöffnet` : `wartet auf ${other} · Code gültig bis ${fmtHM(s.exp)}`}</div>
+              </div>
+              <button className="del-btn" aria-label={s.used?'Hinweis entfernen':'Freigabe zurückziehen'} title={s.used?'Hinweis entfernen':'Freigabe zurückziehen'} onClick={()=>revoke(s.id)}>×</button>
+            </div>
+          ))}
+          <button style={{...quietBtn,opacity:canCrypto?1:.5}} disabled={!canCrypto} onClick={openForm}>
+            🔑 {canCrypto ? 'Login freigeben' : 'Login freigeben (nur über HTTPS)'}
+          </button>
+        </div>
+      </div>
+
+      {form && ReactDOM.createPortal(
+        <div className="overlay" onClick={closeForm}>
+          <div className="sheet" onClick={e=>e.stopPropagation()}>
+            <div className="sheet-handle"/>
+            {!made ? (<>
+              <div className="sheet-body" style={{gap:12,paddingTop:6}}>
+                <div style={{textAlign:'center',fontSize:38,lineHeight:1}}>🔑</div>
+                <div className="hero-lbl" style={{textAlign:'center'}}>Login freigeben</div>
+                <div style={{fontSize:13.5,color:'var(--label2)',lineHeight:1.5,textAlign:'center'}}>
+                  {other} bekommt einen Einmal-Code und sieht den Login danach nur kurz. In der WG-Datenbank liegt er nur verschlüsselt.
+                </div>
+                {saved.length>0 && (
+                  <div className="chip-scroll" style={{display:'flex',gap:7,overflowX:'auto'}}>
+                    {saved.map(x=>(
+                      <button key={x.id} onClick={()=>setForm(f=>({...f,svc:x.svc,u:x.u,p:x.p,remember:true}))}
+                        style={{flexShrink:0,whiteSpace:'nowrap',padding:'8px 13px',borderRadius:11,border:'none',fontFamily:'inherit',fontWeight:700,fontSize:12.5,cursor:'pointer',
+                          background:form.svc===x.svc?'var(--indigo)':'var(--bg3)',color:form.svc===x.svc?'#0a120c':'var(--label2)'}}>{x.svc}</button>
+                    ))}
+                  </div>
+                )}
+                <input className="field" autoFocus maxLength={60} list="lg-abos" aria-label="Dienst" placeholder="Dienst — Netflix, Apple TV …"
+                  value={form.svc} onChange={e=>setForm(f=>({...f,svc:e.target.value}))}/>
+                <datalist id="lg-abos">{(D.ab||[]).map(a=><option key={a.id} value={a.name}/>)}</datalist>
+                <input className="field" maxLength={200} aria-label="E-Mail oder Benutzername" placeholder="E-Mail / Benutzername"
+                  autoComplete="off" autoCapitalize="none" spellCheck={false}
+                  value={form.u} onChange={e=>setForm(f=>({...f,u:e.target.value}))}/>
+                <input className="field" type="password" maxLength={200} aria-label="Passwort" placeholder="Passwort" autoComplete="new-password"
+                  value={form.p} onChange={e=>setForm(f=>({...f,p:e.target.value}))}
+                  onKeyDown={e=>{ if(e.key==='Enter') create(); }}/>
+                <div>
+                  <div className="sheet-sublbl">Sichtbar für {other}</div>
+                  <div className="seg">
+                    {LOGIN_VIEW.map(([m,l])=>(
+                      <button key={m} className={`seg-btn${form.view===m?' on':''}`} onClick={()=>setForm(f=>({...f,view:m}))}>{l}</button>
+                    ))}
+                  </div>
+                </div>
+                <label style={{display:'flex',alignItems:'center',gap:9,fontSize:13.5,color:'var(--label2)',cursor:'pointer'}}>
+                  <input type="checkbox" checked={form.remember} onChange={e=>setForm(f=>({...f,remember:e.target.checked}))} style={{width:18,height:18,accentColor:'var(--indigo)'}}/>
+                  Auf diesem Gerät merken
+                </label>
+                {err && <div style={{color:'var(--red)',fontSize:13,fontWeight:600,textAlign:'center'}}>{err}</div>}
+              </div>
+              <div className="sheet-acts">
+                <button className="btn btn-sec" style={{flex:1}} onClick={closeForm}>Abbrechen</button>
+                <button className="btn" disabled={!formOk||busy} onClick={create}
+                  style={{background:'var(--indigo)',color:'#0a120c',flex:1,whiteSpace:'nowrap',opacity:formOk&&!busy?1:.45,cursor:formOk&&!busy?'pointer':'default'}}>
+                  {busy?'Verschlüssele …':'Code erzeugen'}
+                </button>
+              </div>
+            </>) : (<>
+              <div className="sheet-body" style={{gap:10,paddingTop:6,textAlign:'center',alignItems:'center'}}>
+                <div style={{fontSize:38,lineHeight:1}}>🔑</div>
+                <div className="hero-lbl">{made.svc} · Einmal-Code</div>
+                <div className="num" data-testid="lg-code" style={{fontSize:34,fontWeight:800,letterSpacing:'.1em',color:'var(--indigo)',userSelect:'all',margin:'4px 0'}}>{fmtLoginCode(made.code)}</div>
+                <div style={{fontSize:13.5,color:'var(--label2)',lineHeight:1.5}}>
+                  Gilt 24 Std und nur einmal. Danach sieht {other} den Login {LOGIN_VIEW.find(v=>v[0]===made.view)?.[1]||`${made.view} Min`} lang.
+                </div>
+                <div style={{fontSize:12,color:'var(--label3)'}}>Der Code wird nur jetzt angezeigt.</div>
+              </div>
+              <div className="sheet-acts" style={{flexDirection:'column'}}>
+                <button className="btn" style={{background:'var(--indigo)',color:'#0a120c'}} onClick={sendPush}>{copied==='push'?'✓ Push gesendet':`🔔 Per Push an ${other}`}</button>
+                <div style={{display:'flex',gap:10}}>
+                  <button className="btn btn-sec" style={{flex:1}} onClick={()=>copy('code', codeMsg(made))}>{copied==='code'?'✓ Kopiert':'📋 Kopieren'}</button>
+                  {typeof navigator.share==='function' && <button className="btn btn-sec" style={{flex:1}} onClick={shareCode}>📤 Teilen</button>}
+                </div>
+                <button className="btn btn-sec" onClick={closeForm}>Fertig</button>
+              </div>
+            </>)}
+          </div>
+        </div>, document.body)}
+
+      {redeem && ReactDOM.createPortal(
+        <div className="overlay" onClick={()=>!busy&&setRedeem(null)}>
+          <div className="sheet" onClick={e=>e.stopPropagation()}>
+            <div className="sheet-handle"/>
+            <div className="sheet-body" style={{gap:12,paddingTop:6}}>
+              <div style={{textAlign:'center',fontSize:38,lineHeight:1}}>🔑</div>
+              <div className="hero-lbl" style={{textAlign:'center'}}>{redeem.svc} · von {nameOf(redeem.by)}</div>
+              <div style={{fontSize:13.5,color:'var(--label2)',lineHeight:1.5,textAlign:'center'}}>
+                Gib den Einmal-Code ein. Danach siehst du den Login {Math.min(60,Math.max(1,Number(redeem.view)||15))} Min lang.
+              </div>
+              <input className="field num" autoFocus aria-label="Einmal-Code" placeholder="XXXX-XXXX" maxLength={9}
+                autoCapitalize="characters" autoComplete="one-time-code" spellCheck={false}
+                style={{textAlign:'center',fontSize:22,letterSpacing:'.12em',fontWeight:700}}
+                value={code} onChange={e=>{ setCode(fmtLoginCode(normLoginCode(e.target.value).slice(0,8))); setErr(''); }}
+                onKeyDown={e=>{ if(e.key==='Enter') doRedeem(); }}/>
+              {err && <div role="alert" style={{color:'var(--red)',fontSize:13,fontWeight:600,textAlign:'center'}}>{err}</div>}
+            </div>
+            <div className="sheet-acts">
+              <button className="btn btn-sec" style={{flex:1}} onClick={()=>!busy&&setRedeem(null)}>Abbrechen</button>
+              <button className="btn" disabled={normLoginCode(code).length!==8||busy} onClick={doRedeem}
+                style={{background:'var(--indigo)',color:'#0a120c',flex:1,whiteSpace:'nowrap',opacity:normLoginCode(code).length===8&&!busy?1:.45}}>
+                {busy?'Prüfe …':'🔓 Öffnen'}
+              </button>
+            </div>
+          </div>
+        </div>, document.body)}
+
+      {viewOpen && view && ReactDOM.createPortal(
+        <div className="overlay" onClick={()=>setViewOpen(false)}>
+          <div className="sheet" onClick={e=>e.stopPropagation()}>
+            <div className="sheet-handle"/>
+            <div className="sheet-body" style={{gap:12,paddingTop:6}}>
+              <div style={{textAlign:'center',fontSize:38,lineHeight:1}}>🔓</div>
+              <div className="hero-lbl" style={{textAlign:'center'}}>{view.svc} · von {nameOf(view.by)}</div>
+              <div style={{textAlign:'center',fontSize:13,color:'var(--label2)'}}>noch <span className="num" style={{fontWeight:700,color:'var(--indigo)'}}>{fmtLeft(view.until-now)}</span> sichtbar</div>
+              {/* Restzeit als Balken — schrumpft bis zum Löschen */}
+              <div style={{height:4,borderRadius:2,background:'var(--bg3)',overflow:'hidden'}}>
+                <div style={{height:'100%',background:'var(--indigo)',width:`${Math.max(0,Math.min(100,(view.until-now)/Math.max(1,view.until-(view.from||view.until-60e3))*100))}%`,transition:'width 1s linear'}}/>
+              </div>
+              <div className="group">
+                <div className="cell">
+                  <div className="cell-content" style={{minWidth:0}}>
+                    <span className="cell-sub">E-Mail / Benutzer</span>
+                    <span className="cell-title" data-testid="lg-user" style={{wordBreak:'break-all',fontSize:15}}>{view.u||'—'}</span>
+                  </div>
+                  {view.u && <button className="mini-btn" style={{background:'var(--indigo)'}} onClick={()=>copy('u',view.u)}>{copied==='u'?'✓ Kopiert':'Kopieren'}</button>}
+                </div>
+                <div className="cell">
+                  <div className="cell-content" style={{minWidth:0}}>
+                    <span className="cell-sub">Passwort</span>
+                    <span className="cell-title num" data-testid="lg-pw" style={{wordBreak:'break-all',fontSize:15}}>{view.p ? (showPw ? view.p : '•'.repeat(Math.min(12,view.p.length))) : '—'}</span>
+                  </div>
+                  {view.p && <button aria-label={showPw?'Passwort verbergen':'Passwort zeigen'} onClick={()=>setShowPw(s=>!s)}
+                    style={{background:'none',border:'none',cursor:'pointer',fontSize:18,padding:'10px 6px',lineHeight:1,flexShrink:0}}>{showPw?'🙈':'👁'}</button>}
+                  {view.p && <button className="mini-btn" style={{background:'var(--indigo)'}} onClick={()=>copy('p',view.p)}>{copied==='p'?'✓ Kopiert':'Kopieren'}</button>}
+                </div>
+              </div>
+              <div style={{fontSize:12,color:'var(--label3)',textAlign:'center',lineHeight:1.5}}>Danach wird der Login von diesem Gerät gelöscht.</div>
+            </div>
+            <div className="sheet-acts">
+              <button className="btn btn-sec" style={{flex:1}} onClick={()=>setViewOpen(false)}>Schließen</button>
+              <button className="btn" style={{background:'rgba(251,113,133,.14)',color:'var(--red)',flex:1,whiteSpace:'nowrap'}} onClick={wipeView}>Jetzt löschen</button>
+            </div>
+          </div>
+        </div>, document.body)}
+    </>
+  );
+}
+
 function Haushalt({goGrow}) {
   const { D, set, setFn, status, me, setMe, undo, askConfirm, flashIds, notifyOthers, mods } = useD();
   const users = D.users, items = D.hs || [], list = D.sl || [];
@@ -1932,6 +2263,7 @@ function Haushalt({goGrow}) {
               </div>
             </div>
           </div>
+          <LoginShare/>
           {open.length>0&&(
             <button className="btn btn-sec rise" style={{animationDelay:'80ms'}} onClick={settleAll}>✓ Alles abrechnen ({open.length})</button>
           )}

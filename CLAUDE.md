@@ -32,7 +32,8 @@ node test/jsxcache.mjs  # JSX-Compile-Cache: Trefferfall, Deploy-Wechsel, Selbst
 node test/grow.mjs      # Grow-Zyklus: Phasen, Gießen, Ernte beendet den Zyklus (Browser)
 node test/cron_grow.mjs # Gieß-/Phasen-Push aus api/cron.js (pure Logik, kein Browser)
 node test/privquota.mjs # Privater Bereich bei vollem Speicher: Warnung statt stillem Verlust
-node test/sync.mjs      # Erst-Read gegen Firebase-STUB (nicht geblockt): Eingabe während des Verbindens
+node test/sync.mjs      # Erst-Read gegen Firebase-STUB (nicht geblockt): Eingabe während des Verbindens + LIST_KEYS ⊆ KEYS
+node test/logins.mjs    # Abo-Logins teilen: kein Klartext in der DB, falscher Code, Grabstein, Ablauf (40 Checks)
 npm run visual    # Screenshot-Harness: Handy/Tablet/Desktop + Tastatur-offen
 
 CPU=4 node test/_perf.mjs   # Startzeit messen (CPU-Drosselung, Erst- vs. Zweitstart)
@@ -45,7 +46,21 @@ node test/_audit.mjs        # a11y-Diagnose: Tap-Ziele, Kontraste, Labels, Fokus
 
 ## Datenmodell (localStorage `wg_data` / RTDB `wg/<code>`)
 
-`users` (id/name/color/pp), Listen-Keys: `hs` Haushalt, `gi` Grow-Ausgaben, `gp` Pflanzen-Anteile, `sl` Einkaufsliste, `pt`/`pl` Putzplan, `ab` Abos, `stl` Abrechnungen, `rec` Wiederkehrend. Nicht gesynct: `wg_me` (Geräte-Identität), `wg_modules`, `wg_tab`.
+`users` (id/name/color/pp), Listen-Keys: `hs` Haushalt, `gi` Grow-Ausgaben, `gp` Pflanzen-Anteile, `sl` Einkaufsliste, `pt`/`pl` Putzplan, `ab` Abos, `stl` Abrechnungen, `rec` Wiederkehrend, `bo` Ankündigungen, `ls` Login-Freigaben. Nicht gesynct: `wg_me` (Geräte-Identität), `wg_modules`, `wg_tab`, `wg_lg`, `wg_lg_view`.
+
+- **Neuer Listen-Key = Eintrag in `LIST_KEYS` UND in `INIT`.** Der Sync liest nur `KEYS = Object.keys(INIT)`. `bo` stand bis wg-v52 nur in `LIST_KEYS`: Ankündigungen kamen auf dem anderen Gerät nie an (weder beim Start noch live), Löschungen nie beim Server — kein Test merkte es, weil keiner zwei Geräte hatte. `sync.mjs` Szenario H prüft jetzt `LIST_KEYS ⊆ KEYS` und das Verhalten.
+- Neue Keys brauchen außerdem eine Regel in `database.rules.json` (`$other` lehnt alles Unbekannte ab) → `npm run ship -- "…" --rules`.
+
+### Abo-Logins teilen (Key `ls`, Karte „🔑 Abo-Logins" im Haushalt-Tab)
+
+Ersteller legt Dienst + Login + Passwort an → App erzeugt einen **Einmal-Code** (8 Zeichen aus `23456789ABCDEFGHJKMNPQRSTUVWXYZ`, Format `XXXX-XXXX`) → schickt ihn per Push/Kopieren/Teilen. Empfänger gibt ihn ein und sieht den Login 5/15/60 Min lang (mit Kopieren-Knöpfen).
+
+- **In der RTDB liegt nur Chiffretext:** AES-GCM-256, Schlüssel per PBKDF2-SHA256 (250k Runden) aus dem Code, Share-ID als AAD. Grund: wer den WG-Code kennt, liest die ganze DB. Der Code selbst wird nirgends gespeichert (nur im Push-Text, wenn der Ersteller „Per Push" tippt).
+- **Warum 8 Zeichen statt 6 Ziffern:** mit dem Chiffretext in der Hand wären 10⁶ Codes offline in Sekunden durchprobiert; 31⁸ ≈ 8,5·10¹¹ × 250k Runden sind es nicht. Eine Versuchssperre gibt es clientseitig nicht — sie wäre wirkungslos.
+- **Einmalig:** Beim Einlösen ersetzt der Empfänger den Eintrag durch einen Grabstein `{id,svc,by,ts,exp,used,usedBy}` ohne `s/iv/ct`; der Ersteller sieht „Tom hat ihn um HH:MM geöffnet" + Push. Nach `exp` (24 Std) räumt jedes Gerät den Eintrag weg.
+- **Klartext nur lokal:** `wg_lg` = gemerkte Logins des Erstellers (optional, Häkchen), `wg_lg_view` = gerade sichtbarer Login beim Empfänger — überlebt einen App-Wechsel (Netflix-App → zurück), wird bei Ablauf vom Timer bzw. beim nächsten Start gelöscht.
+- DB-Regel: `exp` ≤ `now` + 25 Std, `ct` ≤ 4000 Zeichen.
+- Krypto braucht `crypto.subtle` (HTTPS oder localhost) — sonst ist der Knopf deaktiviert.
 
 ### Grow-Zyklus (Key `gz`)
 

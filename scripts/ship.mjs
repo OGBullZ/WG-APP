@@ -20,7 +20,7 @@ const server = spawn('python', ['-m', 'http.server', '8099'], { stdio: 'ignore' 
 let gateOk = false;
 try {
   await sleep(1600);
-  for (const t of ['test/split.mjs', 'test/persist.mjs', 'test/paybtn.mjs', 'test/archive.mjs', 'test/privat.mjs', 'test/grow.mjs', 'test/cron_grow.mjs', 'test/privquota.mjs', 'test/sync.mjs']) {
+  for (const t of ['test/split.mjs', 'test/persist.mjs', 'test/paybtn.mjs', 'test/archive.mjs', 'test/privat.mjs', 'test/grow.mjs', 'test/cron_grow.mjs', 'test/privquota.mjs', 'test/sync.mjs', 'test/logins.mjs']) {
     console.log('   • ' + t);
     sh(`node ${t}`);
   }
@@ -44,7 +44,9 @@ console.log(`   wg-v${m[1]} → wg-v${next}`);
 // 3) commit  4) push
 console.log('▶ 3/6 commit …');
 sh('git add -A');
-sh(`git commit -m ${JSON.stringify(msg)}`);
+// Message über stdin (-F -): mehrzeilig möglich (Body, Co-Authored-By) — über `-m "…"` landete ein
+// Zeilenumbruch unter cmd.exe als wörtliches „\n" im Commit.
+execSync('git commit -F -', { input: msg, stdio: ['pipe', 'inherit', 'inherit'] });
 console.log('▶ 4/6 push …');
 sh('git push origin main');
 

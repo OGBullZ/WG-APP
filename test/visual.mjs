@@ -45,18 +45,23 @@ const DEMO = {
   gz: [ { id:'c1', start:ago(44), phase:'blu', pAt:ago(11), wiv:3, lastW:ago(4), lastWBy:'u1', wn:11 } ],
   bud: [ { id:'home', limit:30 } ],
   slh: [ { id:'hafermilch', name:'Hafermilch', n:5 }, { id:'tofu', name:'Tofu', n:3 } ],
+  // Eingehende Login-Freigabe von Torben (Chiffretext ist Attrappe — wird hier nur angezeigt, nie eingelöst)
+  ls: [ { id:'l1', svc:'Netflix', by:'u1', ts:Date.now(), exp:Date.now()+20*3600e3, view:15, s:'AAAA', iv:'AAAA', ct:'AAAA', it:250000 } ],
 };
+// Gerade sichtbarer Login (bereits eingelöst) — zeigt die „noch … sichtbar"-Zeile und das Anzeige-Sheet
+const LG_VIEW_DEMO = { id:'l0', svc:'Apple TV', by:'u1', u:'tom.wg@example.org', p:'Demo-Passwort-123', from:Date.now(), until:Date.now()+9*60e3 };
 
 const browser = await chromium.launch();
 const errs = [];
 
 async function newCtx(opts) {
   const ctx = await browser.newContext(opts);
-  await ctx.addInitScript(([data, meId]) => {
+  await ctx.addInitScript(([data, meId, lgView]) => {
     localStorage.setItem('wg_data', JSON.stringify(data));
     localStorage.setItem('wg_me', JSON.stringify(meId));
     localStorage.setItem('wg_modules', JSON.stringify({ grow:true, putz:true })); // Rest aus MOD_DEF (inkl. stats:true → Übersicht-Tab)
-  }, [DEMO, 'u2']);
+    localStorage.setItem('wg_lg_view', JSON.stringify(lgView));
+  }, [DEMO, 'u2', LG_VIEW_DEMO]);
   await ctx.route('**/*', r => {
     const u = r.request().url();
     return (u.includes('firebasedatabase.app')||u.includes('firebaseio.com')||u.includes('googleapis.com')) ? r.abort() : r.continue();
@@ -118,6 +123,36 @@ async function run(prefix, ctxOpts, mode) {
   await page.getByRole('button', { name:'Weiter' }).click(); await page.waitForTimeout(300);
   await shot('wizard-3-zusammenfassung-split');
   await page.getByRole('button', { name:'Abbrechen' }).click(); await page.waitForTimeout(300);
+
+  // ── Abo-Logins: Karte → Code eingeben → sichtbarer Login → Freigabe anlegen → Code ──
+  // Auf den unteren Knopf der Karte zielen — die Überschrift allein landet hinter der Tabbar
+  await page.getByRole('button', { name:/Login freigeben/ }).scrollIntoViewIfNeeded(); await page.waitForTimeout(300);
+  await shot('logins-1-karte');
+  await page.getByRole('button', { name:'Code eingeben' }).click(); await page.waitForTimeout(350);
+  await page.getByLabel('Einmal-Code').fill('K7QF9XMP');
+  await shot('logins-2-code-eingeben');
+  await page.getByRole('button', { name:'Abbrechen' }).click(); await page.waitForTimeout(300);
+  await page.getByText(/Apple TV · noch/).click(); await page.waitForTimeout(350);
+  await shot('logins-3-sichtbar');
+  await page.getByRole('button', { name:'Schließen' }).click(); await page.waitForTimeout(300);
+  await page.getByRole('button', { name:/Login freigeben/ }).click(); await page.waitForTimeout(350);
+  await page.getByLabel('Dienst').fill('Disney+');
+  await page.getByLabel('E-Mail oder Benutzername').fill('wg@example.org');
+  await page.getByLabel('Passwort').fill('geheim');
+  await shot('logins-4-freigeben');
+  if (mode === 'mobile') {
+    await page.getByLabel('Passwort').focus();
+    await page.evaluate(() => document.documentElement.style.setProperty('--kb', '336px'));
+    // iOS scrollt das fokussierte Feld selbst ins Bild — headless nicht, also nachbilden
+    await page.getByLabel('Passwort').scrollIntoViewIfNeeded();
+    await shot('logins-4-freigeben-tastatur-offen');
+    await page.evaluate(() => document.documentElement.style.setProperty('--kb', '0px'));
+  }
+  await page.getByRole('button', { name:'Code erzeugen' }).click();
+  await page.locator('[data-testid="lg-code"]').waitFor({ timeout: 8000 });
+  await shot('logins-5-code');
+  await page.getByRole('button', { name:'Fertig' }).click(); await page.waitForTimeout(300);
+  await shot('logins-6-karte-danach');
 
   if (mode === 'mobile') {
     await tap('🛒 Einkaufsliste'); await shot('einkaufsliste');
