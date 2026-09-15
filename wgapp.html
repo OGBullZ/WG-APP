@@ -16,19 +16,31 @@
 <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
 <!-- iOS nimmt für den Home-Bildschirm nur PNG, kein SVG — ohne das zeigt es einen Screenshot -->
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://www.gstatic.com">
-<link rel="preconnect" href="https://unpkg.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<!-- Schriften + React/Babel liegen selbst gehostet unter fonts/ und vendor/: keine Anfrage an Google Fonts
+     oder unpkg mehr, und die App lädt auch, wenn ein CDN hängt. Dateinamen tragen Version bzw.
+     Inhalts-Hash → dürfen dauerhaft gecacht werden (firebase.json: immutable, sw.js: stabiler Cache).
+     Preload nur für latin — latin-ext lädt der Browser erst, wenn solche Zeichen vorkommen. -->
+<link rel="preload" href="fonts/hanken-grotesk-latin-e9201edd.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/unbounded-latin-22f9b928.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/spline-sans-mono-latin-46b7dcaf.woff2" as="font" type="font/woff2" crossorigin>
 <!-- Firebase compat SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<!-- React (production-min: kleiner & schneller).
-     Babel-Standalone wird NICHT mehr fest geladen — siehe JSX-Compile-Cache am Seitenende. -->
-<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<!-- React (production-min, aus dem npm-Paket react/react-dom 18.3.1, umd/).
+     Babel-Standalone wird NICHT fest geladen — siehe JSX-Compile-Cache am Seitenende. -->
+<script src="vendor/react-18.3.1.production.min.js"></script>
+<script src="vendor/react-dom-18.3.1.production.min.js"></script>
 <style>
+/* Selbst gehostete Schriften (Google Fonts, SIL OFL 1.1 → fonts/OFL.txt). Variable Fonts: eine Datei deckt
+   alle Gewichte ab. Neu erzeugen: Google-CSS laden, latin + latin-ext übernehmen, Inhalts-Hash in den Namen,
+   Namen hier UND in sw.js (IMMUTABLE) eintragen. */
+@font-face { font-family:'Hanken Grotesk'; font-style:normal; font-weight:400 800; font-display:swap; src:url(fonts/hanken-grotesk-latin-ext-768af292.woff2) format('woff2'); unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family:'Hanken Grotesk'; font-style:normal; font-weight:400 800; font-display:swap; src:url(fonts/hanken-grotesk-latin-e9201edd.woff2) format('woff2'); unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family:'Spline Sans Mono'; font-style:normal; font-weight:500 700; font-display:swap; src:url(fonts/spline-sans-mono-latin-ext-0ca9a398.woff2) format('woff2'); unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family:'Spline Sans Mono'; font-style:normal; font-weight:500 700; font-display:swap; src:url(fonts/spline-sans-mono-latin-46b7dcaf.woff2) format('woff2'); unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family:'Unbounded'; font-style:normal; font-weight:500 900; font-display:swap; src:url(fonts/unbounded-latin-ext-845e1c9f.woff2) format('woff2'); unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family:'Unbounded'; font-style:normal; font-weight:500 900; font-display:swap; src:url(fonts/unbounded-latin-22f9b928.woff2) format('woff2'); unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 :root {
   --bg:          #060a08;
   --bg2:         rgba(16,22,19,.92);
@@ -4652,7 +4664,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
   } catch (e) {}
 
   var b = document.createElement('script');
-  b.src = 'https://unpkg.com/@babel/standalone@7.25.6/babel.min.js';
+  b.src = 'vendor/babel-standalone-7.25.6.min.js';   // selbst gehostet (npm @babel/standalone), liegt im SW-Cache
   b.onload = function () {
     var code;
     try {

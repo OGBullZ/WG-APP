@@ -19,13 +19,18 @@ const DEMO = {
 };
 
 const SRC = readFileSync('wgapp.html', 'utf8');
-writeFileSync(COPY, SRC);
+// Die Kopie liegt unter /test/ — relative Pfade (vendor/, fonts/) müssen trotzdem auf die Wurzel zeigen.
+// Seit dem Selbst-Hosting (wg-v55) liefen sie sonst auf /test/vendor/… ins 404 und die App startete nie.
+const withBase = s => s.replace('<head>', '<head>\n<base href="../">');   // für JEDEN Schreibvorgang der Kopie
+writeFileSync(COPY, withBase(SRC));
 
 let pass = 0, fail = 0;
 const ok = (c, m) => { c ? (pass++, console.log('  ✓ ' + m)) : (fail++, console.log('  ✗ ' + m)); };
 
 const browser = await chromium.launch();
-const ctx = await browser.newContext({ ...devices['iPhone 13'] });
+// SW blocken: mit <base> würde er sich jetzt registrieren und Babel aus seinem Cache liefern — der Test
+// prüft den JSX-Cache, nicht den SW (das macht selfhost.mjs)
+const ctx = await browser.newContext({ ...devices['iPhone 13'], serviceWorkers: 'block' });
 await ctx.addInitScript(([data, meId]) => {
   if (!localStorage.getItem('wg_data')) {
     localStorage.setItem('wg_data', JSON.stringify(data));
@@ -81,7 +86,7 @@ try {
   console.log('3) Quelltext geändert (= Deploy) — Cache verfällt, wird neu übersetzt');
   const changed = SRC.replace('const uid  = ()', 'const uid  = /* deploy */ ()');
   if (changed === SRC) throw new Error('Testanker für die Quelltext-Änderung nicht gefunden');
-  writeFileSync(COPY, changed);
+  writeFileSync(COPY, withBase(changed));
   babelHits = 0;
   await load();
   const k3 = await keys();

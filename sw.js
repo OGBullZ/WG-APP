@@ -1,35 +1,35 @@
 /* WG-App Service Worker
    Macht die App nach dem ersten Online-Besuch vollständig offline-lauffähig:
-   App-Shell + CDN-Bibliotheken (React/Babel/Firebase/Fonts) werden gecacht.
-   Der Firebase-Realtime-Sync läuft weiter übers Netz (nie gecacht).
+   App-Shell + Bibliotheken (React/Babel selbst gehostet unter vendor/, Firebase-SDK) + Schriften (fonts/)
+   werden gecacht. Der Firebase-Realtime-Sync läuft weiter übers Netz (nie gecacht).
    Cache-Name bei jedem Deploy mit relevanter Änderung hochzählen. */
-const CACHE = 'wg-v54';
-/* CDN-Bibliotheken (React/Babel/Firebase/Fonts) sind versioniert und ändern sich nie —
-   eigener Cache OHNE Versions-Suffix, der Deploys überlebt. Vorher wurden sie beim
-   activate-Cleanup jedes Deploys mitgelöscht: bis zum nächsten vollen Online-Load war
-   die App offline ein weißer Screen (HTML da, Skripte weg). */
+const CACHE = 'wg-v55';
+/* Stabiler Cache OHNE Versions-Suffix, überlebt Deploys. Hier liegen nur Dateien, deren Name sich bei jeder
+   inhaltlichen Änderung mitändert (Firebase-SDK mit Versionspfad, vendor/ mit Version, fonts/ mit
+   Inhalts-Hash). Vorher wurden solche Dateien beim activate-Cleanup jedes Deploys mitgelöscht: bis zum
+   nächsten vollen Online-Load war die App offline ein weißer Screen (HTML da, Skripte weg). */
 const CDN_CACHE = 'wg-cdn';
 const SHELL = ['./', './wgapp.html', './manifest.json', './icon.svg'];
+/* Selbst gehostete Bibliotheken + Schriften: schon beim Installieren laden. Babel wird nach JEDEM Deploy
+   einmal gebraucht (der JSX-Cache ist dann ungültig) und muss auch offline da sein.
+   Datei getauscht? Neuen Namen hier eintragen — der alte fliegt beim activate raus. */
+const IMMUTABLE = [
+  './vendor/react-18.3.1.production.min.js',
+  './vendor/react-dom-18.3.1.production.min.js',
+  './vendor/babel-standalone-7.25.6.min.js',
+  './fonts/hanken-grotesk-latin-e9201edd.woff2',
+  './fonts/hanken-grotesk-latin-ext-768af292.woff2',
+  './fonts/unbounded-latin-22f9b928.woff2',
+  './fonts/unbounded-latin-ext-845e1c9f.woff2',
+  './fonts/spline-sans-mono-latin-46b7dcaf.woff2',
+  './fonts/spline-sans-mono-latin-ext-0ca9a398.woff2',
+];
+const IMMUTABLE_ABS = IMMUTABLE.map(u => new URL(u, self.location).href);
 
-self.addEventListener('install', e => {
-  self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL).catch(() => {})));
-});
-
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys()
-      .then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== CDN_CACHE).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
-});
-
-/* Versionierte Bibliotheken & Fonts — ändern sich nie, daher cache-first */
-const isCDN = url =>
-  /^https:\/\/unpkg\.com\//.test(url) ||
-  /^https:\/\/www\.gstatic\.com\/firebasejs\//.test(url) ||
-  /^https:\/\/fonts\.googleapis\.com\//.test(url) ||
-  /^https:\/\/fonts\.gstatic\.com\//.test(url);
+/* Versionierte Firebase-Bibliothek — ändert sich nie, daher cache-first */
+const isCDN = url => /^https:\/\/www\.gstatic\.com\/firebasejs\//.test(url);
+/* Selbst gehostete, versionierte Dateien unter vendor/ und fonts/ */
+const isImmutable = url => url.startsWith(self.location.origin) && /\/(vendor|fonts)\/[^/]+$/.test(new URL(url).pathname);
 
 /* Live-Sync & Auth dürfen NIE aus dem Cache kommen */
 const isLiveData = url =>
@@ -38,10 +38,40 @@ const isLiveData = url =>
   /firebaseinstallations\.googleapis\.com/.test(url) ||
   /identitytoolkit\.googleapis\.com/.test(url);
 
+// Nur Fehlendes holen — sonst lädt jedes Deploy die 2,9 MB Babel erneut herunter
+const precacheImmutable = () => caches.open(CDN_CACHE).then(c =>
+  Promise.all(IMMUTABLE_ABS.map(u => c.match(u).then(hit => hit || c.add(u).catch(() => {})))));
+
+self.addEventListener('install', e => {
+  self.skipWaiting();
+  e.waitUntil(Promise.all([
+    caches.open(CACHE).then(c => c.addAll(SHELL)).catch(() => {}),
+    precacheImmutable(),
+  ]));
+});
+
+/* Aufräumen: alte Versions-Caches weg; im stabilen Cache alles, was nicht mehr gebraucht wird —
+   die früheren CDN-Kopien (unpkg, Google Fonts, ~3 MB) und abgelöste vendor/fonts-Versionen. */
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys()
+      .then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== CDN_CACHE).map(k => caches.delete(k))))
+      .then(() => caches.open(CDN_CACHE))
+      .then(c => c.keys().then(rs => Promise.all(rs
+        .filter(r => /unpkg\.com|fonts\.(googleapis|gstatic)\.com/.test(r.url) || (isImmutable(r.url) && !IMMUTABLE_ABS.includes(r.url)))
+        .map(r => c.delete(r)))))
+      .then(() => self.clients.claim())
+  );
+});
+
+/* Cache-first. Nur brauchbare Antworten ablegen: ok (200er) oder opaque (Firebase-SDK per <script>
+   ohne crossorigin). Vorher landete auch ein 404 im Cache — im stabilen Cache wäre das für immer. */
 const cacheFirst = (req, cacheName = CACHE) =>
   caches.match(req).then(hit => hit || fetch(req).then(res => {
-    const copy = res.clone();
-    caches.open(cacheName).then(c => c.put(req, copy)).catch(() => {});
+    if (res.ok || res.type === 'opaque') {
+      const copy = res.clone();
+      caches.open(cacheName).then(c => c.put(req, copy)).catch(() => {});
+    }
     return res;
   }));
   // Kein .catch(()=>hit): hit ist hier zwingend undefined (sonst wären wir im hit-Zweig).
@@ -78,7 +108,7 @@ self.addEventListener('fetch', e => {
   const url = req.url;
 
   if (isLiveData(url)) return;                 // durchlassen, nie cachen
-  if (isCDN(url)) { e.respondWith(cacheFirst(req, CDN_CACHE)); return; }
+  if (isCDN(url) || isImmutable(url)) { e.respondWith(cacheFirst(req, CDN_CACHE)); return; }
 
   // Navigationen: network-first (frische App), Offline-Fallback aus Cache
   if (req.mode === 'navigate') {
