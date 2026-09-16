@@ -238,6 +238,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 /* Zellen, die selbst Knöpfe sind (Code wechseln, Backups): Textfarbe erben statt Browser-Schwarz */
 button.cell { color:var(--label); }
 .hit::after { content:''; position:absolute; inset:-12px -4px; }
+.section-hdr .hit::after { inset:-13px -6px; }   /* spezifischer als „.section-hdr button::after" (-8px → nur 31px) */
 .seg-btn, .chip-scroll > button, .stepper button, .hit-v { position:relative; }
 .seg-btn::after, .chip-scroll > button::after, .hit-v::after { content:''; position:absolute; inset:-6px 0; }
 .stepper button::after { content:''; position:absolute; inset:-4px; }
@@ -1778,7 +1779,7 @@ function Wiz({ open, onClose, title, color, steps, onFinish, initial, quickOk, q
 /* ── Schulden-Banner ── */
 const PP_LOGO = <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7.2 21.3l.5-3.1h3.6c3.8 0 6.4-1.9 7-5.5.5-3-.9-4.9-3.9-4.9H8.7c-.5 0-.9.4-1 .9L5.2 20.4c-.1.5.3.9.7.9h1.3zm2.4-9.9h2.1c1.2 0 1.9.6 1.7 1.8-.2 1.4-1.2 2.1-2.7 2.1H9l.6-3.9z"/></svg>;
 function Bal({ bals, noShare, mod = 'hs', onSettle }) {
-  const { me, D, setFn, notifyOthers } = useD();
+  const { me, D, setFn, notifyOthers, askConfirm } = useD();
   const [shared,setShared] = useState(false);
   const d=bals.find(b=>b.net<-.01), c=bals.find(b=>b.net>.01);
   if(!d||!c) return null;
@@ -1795,22 +1796,25 @@ function Bal({ bals, noShare, mod = 'hs', onSettle }) {
     setFn('pr', cur=>[p, ...(cur||[]).filter(x=>x && !(x.mod===mod && x.status==='open'))].slice(0,20));
     notifyOthers(`💶 ${d.name} hat €${fmt(amount)} bezahlt`, 'Bitte in der App bestätigen', 'wg-pay-'+mod, 'settle');
   };
-  const answer = ok => {
+  const answer = async ok => {
+    // Seit der Meldung kann sich der Saldo geändert haben — Abrechnen rechnet ALLES Offene ab
+    if (ok && Math.abs(req.amount - amount) > 0.01 && !(await askConfirm({ title:'Betrag hat sich geändert', body:`Gemeldet: €${fmt(req.amount)}, offen sind jetzt €${fmt(amount)}. Trotzdem alles abrechnen?`, okLabel:'Alles abrechnen' }))) return;
     setFn('pr', cur=>cur.map(x=>x.id===req.id?{...x,status:ok?'ok':'no',at:Date.now()}:x));
     if (ok) onSettle?.();   // Abrechnen schickt selbst „hat abgerechnet"
-    else notifyOthers(`⚠️ ${c.name}: Zahlung nicht angekommen`, `€${fmt(req.amount)} · bitte prüfen`, 'wg-pay-'+mod, 'settle');
+    else notifyOthers(`⚠️ ${nameOfU(D.users, req.to)}: Zahlung nicht angekommen`, `€${fmt(req.amount)} · bitte prüfen`, 'wg-pay-'+mod, 'settle');
   };
   const payBox = req ? (
-    isCreditor ? (
+    me===req.to ? (
       <div className="group rise" data-testid="pay-confirm" style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:10,border:'1px solid rgba(94,234,212,.35)'}}>
-        <div style={{fontSize:14,fontWeight:700}}>💶 {d.name} hat €{fmt(req.amount)} bezahlt</div>
+        <div style={{fontSize:14,fontWeight:700}}>💶 {nameOfU(D.users, req.from)} hat €{fmt(req.amount)} bezahlt</div>
+        {Math.abs(req.amount - amount) > 0.01 && <div data-testid="pay-diff" style={{fontSize:12.5,color:'var(--amber)',fontWeight:600}}>Offen sind inzwischen €{fmt(amount)}.</div>}
         <div style={{display:'flex',gap:8}}>
           <button className="btn" style={{background:'var(--green)',flex:1}} onClick={()=>answer(true)}>Angekommen ✓</button>
           <button className="btn btn-sec" style={{flex:1}} onClick={()=>answer(false)}>Nicht angekommen</button>
         </div>
       </div>
-    ) : me===d.id ? (
-      <div className="rise" data-testid="pay-wait" style={{fontSize:12.5,color:'var(--label2)',textAlign:'center'}}>⏳ Wartet auf Bestätigung von {c.name}</div>
+    ) : me===req.from ? (
+      <div className="rise" data-testid="pay-wait" style={{fontSize:12.5,color:'var(--label2)',textAlign:'center'}}>⏳ Wartet auf Bestätigung von {nameOfU(D.users, req.to)}</div>
     ) : null
   ) : me===d.id ? (
     <>
@@ -2208,7 +2212,7 @@ function MiniSheet({ open, onClose, title, color, children }) {
   );
 }
 const hdrBtn = { background:'none', border:'none', fontWeight:700, fontSize:12, fontFamily:'inherit', cursor:'pointer', padding:0, textTransform:'none', letterSpacing:0 };
-const chipSt = on => ({ fontSize:13, borderRadius:12, padding:'9px 12px', border:'none', fontWeight:on?800:600, fontFamily:'inherit', cursor:'pointer',
+const chipSt = on => ({ fontSize:13, borderRadius:12, padding:'9px 12px', minHeight:40, border:'none', fontWeight:on?800:600, fontFamily:'inherit', cursor:'pointer',
   background:on?'var(--mint)':'var(--bg3)', color:on?'#0a120c':'var(--label2)' });
 const nameOfU = (users, id) => (users||[]).find(u=>u.id===id)?.name || 'Jemand';
 const fmtDM = iso => { const [,m,d]=String(iso||'').split('-').map(Number); return d ? `${d}.${m}.` : ''; };
@@ -2373,7 +2377,7 @@ function AwayCard({ compact }) {
   const save = () => {
     if (!me || !f.from || !f.to || f.to < f.from) return;
     const it = { id:uid(), userId:me, from:f.from, to:f.to, note:f.note.trim().slice(0,80) };
-    setFn('aw', cur=>[it, ...(cur||[]).filter(a=>a && a.to>=today)]);
+    setFn('aw', cur=>[it, ...(cur||[]).filter(a=>a && a.to>=shiftISO(today,-CHORE_WINDOW))]);   // Vergangene bleiben fürs Zeitfenster der Fairness
     notifyOthers(`✈️ ${nameOfU(users, me)} ist weg`, `${fmtDM(it.from)}–${fmtDM(it.to)}${it.note?` · ${it.note}`:''} · Putzplan übernimmt das`, 'wg-board', 'board');
     undo('✈️ Abwesenheit eingetragen', ()=>setFn('aw', cur=>cur.filter(a=>a.id!==it.id)));
     setOpen(false);
@@ -2430,9 +2434,10 @@ function WashCard() {
   useEffect(()=>{
     runs.forEach(r=>{
       if (r.end > now) return;
-      const k = 'wg_wt_noted_' + r.id;
-      if (ls(k, false)) return;
-      ss(k, true);
+      const noted = ls('wg_wt_noted', []) || [];
+      if (noted.includes(r.id)) return;
+      ss('wg_wt_noted', [...noted, r.id].slice(-30));
+      if (now - r.end > 2*3600e3) return;   // Stunden später öffnen → nur die Anzeige, keine veraltete Meldung
       const [em,label] = WASH_KINDS[r.kind] || ['🧺','Maschine'];
       showLocalNote(`${em} ${label} ist fertig`, 'Bitte ausräumen');
       if (r.by === me) notifyOthers(`${em} ${label} ist fertig`, 'Bitte ausräumen', 'wt-'+r.id, 'board');
@@ -2561,9 +2566,8 @@ function RepairCard() {
               : `erledigt am ${fmtDM(r.dd)}`}
           </span>
         </div>
-        {r.status!=='erledigt'
-          ? <button className="btn btn-sec" style={{width:'auto',padding:'8px 12px',fontSize:13,flexShrink:0}} onClick={()=>step(r)}>{r.status==='offen'?'Gemeldet ✓':'Erledigt ✓'}</button>
-          : <button className="del-btn" aria-label="Eintrag löschen" onClick={()=>del(r)}>×</button>}
+        {r.status!=='erledigt' && <button className="btn btn-sec" style={{width:'auto',padding:'8px 12px',fontSize:13,flexShrink:0}} onClick={()=>step(r)}>{r.status==='offen'?'Gemeldet ✓':'Erledigt ✓'}</button>}
+        <button className="del-btn" aria-label={`„${r.text}" löschen`} onClick={()=>del(r)}>×</button>
       </div>
     );
   };
@@ -2769,7 +2773,7 @@ function Haushalt({goGrow, goPutz}) {
   const openReceipt = () => { setWizInit({ receipt:true, name:('Einkauf: '+boughtItems.map(i=>i.name).join(', ')).slice(0,120), paidBy:me||undefined, cat:'food', date:todayISO() }); setWiz(true); };
   const addFromWiz = d => {
     add(d);
-    if (wizInit?.receipt) { const ids=boughtItems.map(i=>i.id); set('sl', list.filter(i=>!ids.includes(i.id))); const nb={t:0,ids:[]}; ss('wg_bought',nb); setBought(nb); }
+    if (wizInit?.receipt) { const ids=boughtItems.map(i=>i.id); setFn('sl', cur=>cur.filter(i=>!ids.includes(i.id))); const nb={t:0,ids:[]}; ss('wg_bought',nb); setBought(nb); }
   };
   // Schritt 3 (Bezahler + Aufteilung kombiniert) mit Review-Karte oben — geteilt von steps/recSteps
   const payerSplitStep = (payLabel) => ({label:'Prüfen & aufteilen',ok:d=>!!d.paidBy,render:({data:d,setData:sd})=>(

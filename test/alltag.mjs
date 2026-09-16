@@ -53,8 +53,10 @@ const SEED = {
   vr: map([{ id: 'v-kaffee', name: 'Kaffee', em: '☕', outs: [dayAgo(29), dayAgo(19), dayAgo(9)].join(',') }]),
   sl: map([{ id: 's1', name: 'Milch', done: false, date: T }]),
   rp: map([{ id: 'r1', text: 'Fenster klemmt', status: 'gemeldet', md: dayAgo(20), ts: 1 }]),
-  wt: map([{ id: 'w1', kind: 'wasch', by: 'u1', start: Date.now() - 95 * 60000, mins: 90, end: Date.now() - 5 * 60000 }]),
+  wt: map([{ id: 'w1', kind: 'wasch', by: 'u1', start: Date.now() - 95 * 60000, mins: 90, end: Date.now() - 5 * 60000 },
+    { id: 'w0', kind: 'spuel', by: 'u1', start: Date.now() - 6 * 3600e3, mins: 60, end: Date.now() - 5 * 3600e3 }]),
   hs: map([{ id: 'h1', name: 'Wocheneinkauf', price: 40, paidBy: 'u2', date: T, settled: false }]),
+  aw: map([{ id: 'old', userId: 'u2', from: dayAgo(30), to: dayAgo(25) }]),   // vergangen, muss beim Neuanlegen bleiben
   pt: map([
     { id: 't1', name: 'Papier raus', em: '📦', interval: 14, pts: 1, assignee: 'u1', lastDone: dayAgo(1) },
     { id: 't2', name: 'Müll rausbringen', em: '🗑️', interval: 3, pts: 1, assignee: 'u1', lastDone: dayAgo(4) },
@@ -106,8 +108,9 @@ check('C4 abgehakte Milch aus der Liste, Knopf weg', !d.sl.some(i => i.name === 
 await page.getByRole('button', { name: /Ausgaben/ }).first().click(); await page.waitForTimeout(400);
 check('D1 abgelaufener Lauf: „ist fertig" + Push an die anderen (Starter = ich)', /ist fertig/.test(await page.locator('[data-testid="wash-run"]').first().innerText())
   && pushes.some(p => p.tag === 'wt-w1' && /Waschmaschine ist fertig/.test(p.title)));
-check('D2 je Gerät nur einmal gemeldet (Marker)', await page.evaluate(() => localStorage.getItem('wg_wt_noted_w1')) === 'true');
-await page.getByRole('button', { name: 'Ausgeräumt ✓' }).click(); await page.waitForTimeout(400);
+check('D2 je Gerät nur einmal gemeldet (ein Merker-Schlüssel)', await page.evaluate(() => JSON.parse(localStorage.getItem('wg_wt_noted') || '[]').includes('w1')));
+check('D2b vor 5 Std. fertig → keine Push mehr, aber sichtbar', !pushes.some(p => p.tag === 'wt-w0') && /Spülmaschine ist fertig/.test(await page.locator('[data-testid="wash-card"]').innerText()));
+await page.locator('[data-testid="wash-run"]', { hasText: 'Waschmaschine' }).getByRole('button', { name: 'Ausgeräumt ✓' }).click(); await page.waitForTimeout(400);
 check('D3 „Ausgeräumt" entfernt den Lauf', !(await data()).wt.some(r => r.id === 'w1'));
 await page.locator('[data-testid="wash-open"]').click(); await page.waitForTimeout(300);
 await page.locator('.sheet button', { hasText: 'Trockner' }).click();
@@ -129,6 +132,9 @@ await page.getByLabel('Kaputtes eintragen').fill('Heizung Bad'); await page.getB
 const hz = page.locator('[data-testid="repair-row"]', { hasText: 'Heizung Bad' });
 check('F2 neu: „noch nicht gemeldet" + Push', /noch nicht gemeldet/.test(await hz.innerText()) && pushes.some(p => /Kaputt: Heizung Bad/.test(p.title)));
 await hz.getByRole('button', { name: 'Gemeldet ✓' }).click(); await page.waitForTimeout(400);
+await page.getByLabel('Kaputtes eintragen').fill('Vertipt'); await page.getByLabel('Kaputtes eintragen').press('Enter'); await page.waitForTimeout(300);
+await page.getByRole('button', { name: '„Vertipt" löschen' }).click(); await page.waitForTimeout(300);
+check('F2b offener Eintrag löschbar', !(await data()).rp.some(r => r.text === 'Vertipt'));
 check('F3 gemeldet mit Datum', (await data()).rp.some(r => r.text === 'Heizung Bad' && r.status === 'gemeldet' && r.md === T));
 
 // ── G: „Ich habe bezahlt" (Schuldner-Seite) ──
@@ -159,6 +165,7 @@ await page.getByRole('button', { name: 'Ich bin weg' }).click(); await page.wait
 await page.locator('.sheet button', { hasText: 'Eintragen' }).click(); await page.waitForTimeout(900);
 d = await data();
 check('I1 Abwesenheit gespeichert + Push', d.aw.some(a => a.userId === 'u1' && a.from === T) && pushes.some(p => /Torben ist weg/.test(p.title)));
+check('I1b vergangene Abwesenheit bleibt erhalten (Fairness-Fenster)', d.aw.some(a => a.id === 'old'));
 check('I2 meine Aufgaben gehen an Tom', d.pt.every(t => t.assignee === 'u2'), JSON.stringify(d.pt.map(t => t.assignee)));
 check('I3 Reihenfolge überspringt mich', await page.evaluate(() => choreNext('zz', [], [{ id: 'u1' }, { id: 'u2' }], 'u1')) === 'u2');
 check('I4 Einträge aus der Abwesenheit zählen nicht', await page.evaluate(d0 => JSON.stringify(choreTally('zz', [{ taskId: 'zz', userId: 'u2', date: d0 }], [{ id: 'u1' }, { id: 'u2' }])), T) === '{"u1":0,"u2":0}');
@@ -176,11 +183,22 @@ await M.ctx.close();
 {
   const S2 = { users: USERS, hs: SEED.hs, pr: map([{ id: 'p1', mod: 'hs', from: 'u1', to: 'u2', amount: 20, ts: Date.now(), status: 'open' }]) };
   const C = await open(S2, 'u2');
+  check('G2b gleicher Betrag → kein Abweichungs-Hinweis', await C.page.locator('[data-testid="pay-diff"]').count() === 0);
   check('G3 Gläubiger sieht „Torben hat €20,00 bezahlt"', /Torben hat €20,00 bezahlt/.test(await C.page.locator('[data-testid="pay-confirm"]').innerText().catch(() => '')));
   await C.page.getByRole('button', { name: 'Angekommen ✓' }).click(); await C.page.waitForTimeout(600);
   const cd = await C.data();
   check('G4 bestätigt → Posten abgerechnet, Meldung ok, Abrechnung erfasst', cd.hs.every(i => i.settled) && cd.pr[0].status === 'ok' && cd.stl.some(s => s.mod === 'hs' && s.amount === 20), JSON.stringify({ pr: cd.pr, stl: cd.stl }));
   await C.ctx.close();
+  // Nach der Meldung kam ein Posten dazu → Hinweis, Nachfrage, Abbrechen rechnet nichts ab
+  const S3 = { ...S2, hs: map([...Object.values(SEED.hs), { id: 'h9', name: 'Nachzügler', price: 10, paidBy: 'u2', date: T, settled: false }]) };
+  const X = await open(S3, 'u2');
+  check('G5a Betrag geändert → „Offen sind inzwischen €25,00"', /€25,00/.test(await X.page.locator('[data-testid="pay-diff"]').innerText().catch(() => '')));
+  await X.page.getByRole('button', { name: 'Angekommen ✓' }).click(); await X.page.waitForTimeout(400);
+  const asked = /Betrag hat sich geändert/i.test(await X.page.locator('body').innerText());
+  check('G5b Nachfrage erscheint', asked);
+  if (asked) { await X.page.getByRole('button', { name: 'Abbrechen' }).last().click(); await X.page.waitForTimeout(400); }
+  check('G5c Abbrechen → nichts abgerechnet, Meldung bleibt offen', (await X.data()).hs.every(i => !i.settled) && (await X.data()).pr[0].status === 'open');
+  await X.ctx.close();
   const R = await open({ ...S2 }, 'u2');
   await R.page.getByRole('button', { name: 'Nicht angekommen' }).click(); await R.page.waitForTimeout(500);
   check('G5 „Nicht angekommen" → Status no + Push, nichts abgerechnet', (await R.data()).pr[0].status === 'no' && R.pushes.some(p => /nicht angekommen/.test(p.title)) && (await R.data()).hs.every(i => !i.settled));

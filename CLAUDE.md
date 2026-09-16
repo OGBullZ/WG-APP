@@ -106,6 +106,14 @@ Neue Listen-Keys (INIT + LIST_KEYS + DB-Regel, **Regeln vor der App ausrollen**)
   - `api/evening.js` ist ein **zweiter Cron um 17:00 UTC**: morgen Abholung → Push `putz`, sonntags Wochenüberblick `remind`.
   - `cron.js` (morgens) nutzt `taskDueIn`/`taskWho`, dazu Reparaturen und den Jahresrückblick.
 - **Test-Falle:** Mit den neuen Eingabefeldern im Haushalt traf `locator('input.field').first()` in 5 älteren Suiten das Nachrichtenfeld statt des Formulars. Die Suiten suchen jetzt mit `.sheet input.field`. Außerdem liefert `innerText` Überschriften mit CSS-`uppercase` in Großbuchstaben, also Texte mit `/i` vergleichen. **`getByRole({name:'Fertig'})` findet auch Teiltreffer** (die Vorlage „Deine Wäsche ist fertig“). CI war deshalb rot (`visual.mjs`), und `logins.mjs` im Gate sowie die Live-Prüfung (`Senden`) sind daran gestolpert. Knopfnamen deshalb immer mit `exact: true` suchen oder auf `.sheet` eingrenzen.
+- **Fehlersuche 16.09. (wg-v63), 6 Funde, jeweils mit Test und Gegenprobe:**
+  1. **Waschtimer:** Meldete „fertig“ auch Stunden später beim Öffnen. Jetzt nur, wenn das Ende höchstens 2 Std. her ist. Der Merker liegt in einem einzigen Schlüssel `wg_wt_noted` statt je Lauf.
+  2. **„Angekommen“:** Rechnete auch Posten ab, die nach der Meldung dazukamen. Jetzt zeigt die App einen Hinweis, fragt nach, und die Rollen kommen aus `pr.from/to` statt aus dem aktuellen Saldo.
+  3. **Kassenzettel:** Leerte die Liste mit veraltetem Stand. Jetzt `setFn`.
+  4. **Abwesenheit:** Eine neue Abwesenheit löschte die vergangenen, und alte Einträge zählten wieder. Jetzt bleiben 90 Tage.
+  5. **Reparaturen:** Offene Einträge waren nicht löschbar.
+  6. **Abend-Push:** Kam, obwohl die Tonne schon draußen war.
+  - Dazu Tippflächen: `.section-hdr .hit` und die Chips sind jetzt 40 px hoch.
 - **Sackgasse:** Die Vorrat-Karte war geschrieben, aber nicht eingesetzt. Aufgefallen ist das erst im Test (0 Knöpfe), nicht beim Bauen.
 
 ## Live & Deploy

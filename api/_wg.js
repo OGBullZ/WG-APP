@@ -47,7 +47,9 @@ const ptsOf = (l, byId) => { const p = Number(l.pts || (byId[l.taskId] && byId[l
 // Abend: morgen ist Abholung → Push je Tonne (mit dem, der rausbringt)
 function pickupTomorrow(wg, todayIso) {
   const tomorrow = shiftIso(todayIso, 1);
-  return toArray(wg.mk).filter((p) => pickupNext(p, tomorrow) === tomorrow).map((p) => {
+  return toArray(wg.mk).filter((p) => pickupNext(p, tomorrow) === tomorrow)
+    .filter((p) => !toArray(wg.pt).some((x) => x.pk === p.kind && x.lastDone === todayIso))   // schon rausgebracht
+    .map((p) => {
     const [em, label] = PICK_KINDS[p.kind] || ['🗑️', p.kind];
     const t = toArray(wg.pt).find((x) => x.pk === p.kind);
     const who = t ? taskWho(t, wg, todayIso) : null;

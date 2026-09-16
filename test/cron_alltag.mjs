@@ -37,6 +37,8 @@ check('10 Tom ist weg → Torben bringt raus', W.taskWho(wg.pt.x, wg, '2026-09-1
 check('11 nach der Abwesenheit wieder Tom', W.taskWho(wg.pt.x, wg, '2026-09-19').name === 'Tom');
 const ev = W.eveningMessages(wg, '2026-09-16');
 check('12 Mi-Abend: Papier morgen, mit Name', ev.length === 1 && /Morgen früh: 🔵 Papier — Torben bringt raus/.test(ev[0].body), JSON.stringify(ev));
+const done = { ...wg, pt: { ...wg.pt, x: { ...wg.pt.x, lastDone: '2026-09-16' } } };
+check('12b schon rausgebracht → keine Abend-Push', W.eveningMessages(done, '2026-09-16').length === 0);
 check('13 Restmüll (Di) nicht am Mi-Abend', !ev.some(m => /Restmüll/.test(m.body)));
 const mo = W.eveningMessages(wg, '2026-09-21');
 check('14 Mo-Abend: Restmüll morgen, ohne gekoppelte Aufgabe „Tonne raus!"', mo.length === 1 && /⚫ Restmüll — Tonne raus!/.test(mo[0].body), JSON.stringify(mo));
