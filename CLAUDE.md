@@ -40,6 +40,20 @@ WG-Splitter für 2 Personen (Torben + Tom). Single-File-PWA, Live-Sync zwischen 
 - **Tippflächen:** unsichtbare Vergrößerung per `::after` (`.cell > button`, `.del-btn`, `.chk-btn`, `.hit`, `.hit-v`, Chips, Segmente, Stepper) — `_audit.mjs` rechnet sie mit, Stand 0 Befunde. Privatbereich erinnert nach 30 Tagen ohne „⬇︎ Sichern" (`wg_priv_exported`).
 - **Firebase-SDK 12.19.0** (compat, aus npm, byte-gleich mit gstatic). React bleibt 18.3.1 (React 19 hat keine UMD-Dateien mehr → ginge nur mit Build-Schritt), Babel bleibt 7.25.6 (erzeugt die gehashten Kompilate; Tausch = neue Hashes + neuer Dateiname in wgapp.html/sw.js).
 
+## Putzplan-Fairness (seit wg-v59, 2026-09-16)
+
+- **Anlass:** torbe brachte den Müll „zu oft" raus. **Ursache war ein Fehler, keine Gefühlssache:** `done()` schrieb den Eintrag dem *Eingeteilten* gut (`userId: t.assignee`) und wechselte danach stur ab. Wer fremden Müll rausbrachte, bekam nichts dafür, und der andere war gleich wieder raus. Alte `pl`-Einträge bleiben so falsch zugeordnet, wie sie sind; das Zeitfenster lässt sie nach 90 Tagen auslaufen.
+- **Regel (eine Herleitung, `choreNext`/`choreTally`/`choreMine`/`choreScore` über `Putzplan`):** gutgeschrieben wird, **wer den Haken setzt** (`wg_me`; ohne gewähltes Gerät wie früher der Eingeteilte). Als Nächstes dran ist, **wer diese Aufgabe in 90 Tagen seltener gemacht hat**. Bei Gleichstand ist es, wer sie länger nicht gemacht hat, und haben beide sie nie gemacht, bleibt die Einteilung. Wer im Rückstand ist, macht die Aufgabe so lange, bis er aufgeholt hat. Verworfen wurde „nach jedem Haken wechseln": Das belohnt Weglassen.
+- **Punkte** `pts` je Aufgabe (1 kurz · 2 mittel · 3 groß) zählen nur für „Einsatz · 30 Tage" und die Übersicht, nicht für die Reihenfolge einer Aufgabe. Alte Einträge ohne `pts` nehmen die Punkte ihrer Aufgabe.
+- **Einfach bedienen:**
+  - **Haushalt-Tab:** Die Karte „🧹 Du bist dran" (`ChoreQuick`) zeigt nur MEINE fälligen Aufgaben, ein Tipp hakt ab.
+  - **Tab:** Ein gelber Punkt am Tab Putzplan zeigt, dass für mich etwas fällig ist.
+  - **Neue Aufgabe:** 12 Vorlagen zum Antippen, danach „⚡ Sofort speichern · ich fange an".
+  - **Nach dem Abhaken:** 5 Sekunden lang Rückgängig (stellt `lastDone`/`assignee` wieder her und entfernt den Eintrag).
+  - **Push:** nennt den Stand („Tom, du bist dran! (Torben 6× · Tom 2×)").
+  - **Tägliche Erinnerung:** nur noch für eigene Aufgaben.
+- Der Haken läuft für beide Stellen (Putzplan und Haushalt-Karte) über `useChoreDone()`. Nie eine zweite Kopie bauen.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -68,6 +82,7 @@ node test/errlog.mjs    # Fehlerprotokoll: Nachreichen, Filter, Obergrenze, Tab-
 node test/notify_api.mjs # Push-Endpunkt: Fremdlinks raus (auch „//…"), Bremse 30/10 Min → 429, Hinweis beim Code-Wechsel
 node test/bkwatch.mjs   # Backup-Wächter: alte Sicherung → Tab-Punkt + Warnung, frische → nichts, Drossel 6 Std.
 node test/update.mjs    # „Neue Version": Hinweis, kein Neuladen mit offenem Formular, sonst Neuladen (eigener Port 8098)
+node test/putz.mjs     # Putz-Fairness: Gutschrift an den, der hakt; dran ist, wer seltener; Haushalt-Karte, Tab-Punkt, Vorlagen, Rückgängig
 node test/csp_hash.mjs  # CSP-Hashes passen zu wgapp.html (+ Gegenproben) — ohne passende Hashes wäre die App blockiert
 npm run visual    # Screenshot-Harness: Handy/Tablet/Desktop + Tastatur-offen
 

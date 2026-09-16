@@ -1724,7 +1724,7 @@ function WizSum({ name, price }) {
   return <div className="wiz-sum"><span className="nm">{name?.trim() || '—'}</span><span className="am">€{fmt(parseNum(price) || 0)}</span></div>;
 }
 
-function Wiz({ open, onClose, title, color, steps, onFinish, initial, quickOk }) {
+function Wiz({ open, onClose, title, color, steps, onFinish, initial, quickOk, quickLabel }) {
   const [step,setStep] = useState(0);
   const [data,setData] = useState({});
   // Nur beim ÖFFNEN zurücksetzen (deps bewusst ohne initial): Edit-Sheets bekommen initial
@@ -1758,7 +1758,7 @@ function Wiz({ open, onClose, title, color, steps, onFinish, initial, quickOk })
         {canQuick && (
           <button onClick={finishNow}
             style={{margin:'0 20px 2px',padding:'11px',borderRadius:14,border:`1px dashed ${color}`,background:'transparent',color,fontWeight:700,fontSize:13,fontFamily:'inherit',cursor:'pointer'}}>
-            ⚡ Sofort speichern · ich zahle, 50/50
+            {quickLabel || '⚡ Sofort speichern · ich zahle, 50/50'}
           </button>
         )}
         <div className="sheet-acts">
@@ -2150,7 +2150,7 @@ function LoginShare() {
   );
 }
 
-function Haushalt({goGrow}) {
+function Haushalt({goGrow, goPutz}) {
   const { D, set, setFn, status, me, setMe, undo, askConfirm, flashIds, notifyOthers, mods } = useD();
   const users = D.users, items = D.hs || [], list = D.sl || [];
   const meName = users.find(u=>u.id===me)?.name || 'Jemand';
@@ -2321,6 +2321,7 @@ function Haushalt({goGrow}) {
       <NBar title="Haushalt" color="var(--mint)" status={status}/>
       <div className="scroll">
         <div className="content">
+          <ChoreQuick goPutz={goPutz}/>
           <div className="seg rise">
             {[['aus','💶 Ausgaben'],['liste',`🛒 Einkaufsliste${openL>0?` (${openL})`:''}`]].map(([v,l])=>(
               <button key={v} className={`seg-btn${seg===v?' on':''}`} onClick={()=>setSeg(v)}>{l}</button>
@@ -3084,68 +3085,201 @@ function Grow() {
 
 /* ══════════════════════════
    PUTZPLAN
+   Fairness (eine Herleitung für Putzplan, Haushalt-Karte, Tab-Punkt, Erinnerung und Übersicht):
+   - Gutgeschrieben wird, WER DEN HAKEN SETZT (Gerät = Person). Bis wg-v58 bekam der Eingeteilte den Eintrag
+     und danach wechselte es stur ab — wer fremden Müll rausbrachte, bekam nichts dafür und war gleich wieder dran.
+   - Dran ist, wer DIESE Aufgabe in den letzten 90 Tagen seltener gemacht hat; Gleichstand → wer sie länger nicht gemacht hat.
+   - Punkte je Aufgabe (1 kurz · 2 mittel · 3 groß) nur für die Gesamtbilanz — Bad zählt mehr als Müll.
 ══════════════════════════ */
+const CHORE_WINDOW = 90;
+const CHORE_PTS = [[1,'⚡','Kurz','unter 5 Min.'],[2,'🧽','Mittel','~15 Min.'],[3,'💪','Groß','30 Min. +']];
+// Vorlagen zum Antippen: [Name, Emoji, Intervall in Tagen, Punkte]
+const CHORE_PRESETS = [
+  ['Müll rausbringen','🗑️',3,1], ['Altpapier','📦',14,1], ['Altglas & Pfand','♻️',14,1], ['Spülmaschine ausräumen','🍽️',2,1],
+  ['Küche putzen','🍳',7,2], ['Staubsaugen','🧹',7,2], ['Wischen','🪣',14,2], ['Bad putzen','🚿',7,3],
+  ['Kühlschrank auswischen','🧊',30,2], ['Handtücher waschen','🧺',7,1], ['Fenster putzen','🪟',30,3], ['Pflanzen gießen','🌿',3,1],
+];
+const chorePts = t => [1,2,3].includes(+t?.pts) ? +t.pts : 2;
+const isoMid = s => { const [y,m,d]=String(s||'').split('-').map(Number); return new Date(y||1970,(m||1)-1,d||1); };
+const choreCut = days => { const c=new Date(); c.setDate(c.getDate()-days); c.setHours(0,0,0,0); return c; };
+// Tage bis fällig (≤ 0 = heute/überfällig; nie gemacht = sofort fällig)
+const choreDueIn = t => {
+  if(!t?.lastDone) return 0;
+  const due=isoMid(t.lastDone); due.setDate(due.getDate()+(t.interval||7));
+  const n=new Date(); n.setHours(0,0,0,0);
+  return Math.round((due-n)/86400000);
+};
+// Wie oft hat jede Person diese Aufgabe im Fenster gemacht? → { userId: Anzahl }
+const choreTally = (taskId, log, users) => {
+  const cut=choreCut(CHORE_WINDOW), o={};
+  users.forEach(u=>{ o[u.id]=0; });
+  (log||[]).forEach(l=>{ if(l && l.taskId===taskId && l.userId in o && isoMid(l.date)>=cut) o[l.userId]++; });
+  return o;
+};
+// Wer ist als Nächstes dran? log: neuester Eintrag zuerst (so hängt done() an, so sortiert der Sync)
+const choreNext = (taskId, log, users, fallback) => {
+  if (users.length < 2) return users[0]?.id || fallback;
+  const tally = choreTally(taskId, log, users);
+  const lastIdx = id => { const i=(log||[]).findIndex(l=>l && l.taskId===taskId && l.userId===id); return i<0 ? Infinity : i; };
+  const min = Math.min(...users.map(u=>tally[u.id]));
+  const cand = users.filter(u=>tally[u.id]===min);
+  if (cand.length === 1) return cand[0].id;
+  // Gleichstand: wer am längsten nicht dran war (größter Index); beide nie → bisherige Einteilung behalten
+  const best = [...cand].sort((a,b)=>lastIdx(b.id)-lastIdx(a.id));
+  if (lastIdx(best[0].id) === lastIdx(best[1].id)) return cand.some(u=>u.id===fallback) ? fallback : best[0].id;
+  return best[0].id;
+};
+// Einsatz-Punkte je Person seit `days` Tagen (alte Einträge ohne pts → Punkte der Aufgabe, sonst 2)
+const choreScore = (log, tasks, users, days) => {
+  const cut=choreCut(days), byId={};
+  (tasks||[]).forEach(t=>{ byId[t.id]=t; });
+  return users.map(u=>({...u, n:(log||[]).filter(l=>l && l.userId===u.id && isoMid(l.date)>=cut)
+    .reduce((s,l)=>s+(l.pts||chorePts(byId[l.taskId])),0)}));
+};
+// Fällig und mir zugeteilt — Haushalt-Karte, Tab-Punkt und Erinnerung nutzen genau das
+const choreMine = (tasks, me) => (tasks||[]).filter(t=>t && t.assignee===me && choreDueIn(t)<=0)
+  .sort((a,b)=>choreDueIn(a)-choreDueIn(b));
+
+/* Haken setzen — von Putzplan UND Haushalt-Karte genutzt (eine Stelle für Gutschrift, Rotation, Undo, Push) */
+function useChoreDone() {
+  const { D, setFn, me, undo, notifyOthers } = useD();
+  return (t, btnEl) => {
+    const users = D.users || [];
+    const by = users.some(u=>u.id===me) ? me : t.assignee;   // kein Gerät gewählt → wie früher der Eingeteilte
+    const byU = users.find(u=>u.id===by);
+    celebrateTask(btnEl, t.em, byU?.color || '#fbbf24');
+    const iso = todayISO(); // lokal, nicht UTC — sonst zählt „erledigt" nachts vor 1/2 Uhr zum Vortag
+    const entry = { id:uid(), taskId:t.id, name:t.name, em:t.em, userId:by, date:iso, pts:chorePts(t) };
+    const log2 = [entry, ...(D.pl||[])];
+    const next = choreNext(t.id, log2, users, t.assignee);
+    const prev = { lastDone:t.lastDone||null, assignee:t.assignee };
+    setFn('pt', cur => cur.map(x=>x.id===t.id?{...x,lastDone:iso,assignee:next}:x));
+    setFn('pl', cur => [entry, ...cur].slice(0,300));
+    undo(`${t.em||'✅'} „${t.name}" erledigt`, () => {
+      setFn('pt', cur => cur.map(x=>x.id===t.id?{...x,...prev}:x));
+      setFn('pl', cur => cur.filter(l=>l.id!==entry.id));
+    });
+    const tally = choreTally(t.id, log2, users);
+    const stand = users.map(u=>`${u.name} ${tally[u.id]}×`).join(' · ');
+    const byName = byU?.name || 'Jemand', nextName = users.find(u=>u.id===next)?.name || 'Der andere';
+    notifyOthers(`✅ ${byName} hat „${t.name}" erledigt`,
+      next===by ? `${byName} holt noch auf (${stand})` : `${nextName}, du bist dran! (${stand})`, 'wg-putz', 'putz');
+  };
+}
+
+/* Stand je Aufgabe als farbige Zahlen („5 : 3") — gleiche Reihenfolge wie die Personenliste */
+function ChoreTally({ task, log, users }) {
+  const tally = choreTally(task.id, log, users);
+  return (
+    <span className="num" title={`Letzte ${CHORE_WINDOW} Tage: `+users.map(u=>`${u.name} ${tally[u.id]}×`).join(', ')}>
+      {users.map((u,i)=><React.Fragment key={u.id}>{i>0&&<span style={{color:'var(--label3)',margin:'0 1px'}}>:</span>}<span style={{color:u.color,fontWeight:800}}>{tally[u.id]}</span></React.Fragment>)}
+    </span>
+  );
+}
+
+/* Haushalt-Tab: „Du bist dran" — nur sichtbar, wenn mir etwas fällig ist. Ein Tipp = erledigt. */
+function ChoreQuick({ goPutz }) {
+  const { D, me, mods } = useD();
+  const done = useChoreDone();
+  if (mods.putz === false || !me) return null;
+  const mine = choreMine(D.pt, me);
+  if (!mine.length) return null;
+  const users = D.users || [], meU = users.find(u=>u.id===me);
+  return (
+    <div className="rise" data-testid="chore-quick" style={{animationDelay:'20ms'}}>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span>🧹 Du bist dran</span>
+        <button className="hit" onClick={goPutz} style={{background:'none',border:'none',color:'var(--amber)',fontWeight:700,fontSize:12,fontFamily:'inherit',cursor:'pointer',padding:0,textTransform:'none',letterSpacing:0}}>Putzplan ›</button>
+      </div>
+      <div className="group" style={{border:'1px solid rgba(251,191,36,.28)'}}>
+        {mine.map(t=>{
+          const d = choreDueIn(t);
+          return (
+            <div key={t.id} className="cell">
+              <button className="done-btn" style={{borderColor:(meU?.color||'#888')+'66'}} aria-label={`${t.name} erledigt`} title={`${t.name} erledigt`} onClick={e=>done(t,e.currentTarget)}>
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={meU?.color||'#888'} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"><path d={ICONS.check}/></svg>
+              </button>
+              <div className="cell-content">
+                <span className="cell-title">{t.em} {t.name}</span>
+                <span className="cell-sub">{d<0?<b style={{color:'var(--red)'}}>{-d} {-d===1?'Tag':'Tage'} überfällig</b>:'heute fällig'} · Stand <ChoreTally task={t} log={D.pl} users={users}/></span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function Putzplan() {
-  const { D, set, setFn, status, undo, me, notifyOthers } = useD();
+  const { D, set, setFn, status, undo, me } = useD();
   const users=D.users, tasks=D.pt||[], log=D.pl||[];
-  const meName = users.find(u=>u.id===me)?.name || 'Jemand';
+  const done = useChoreDone();
   const [wiz,setWiz] = useState(false);
   const [editTask,setEditTask] = useState(null);
 
-  const todayMid = () => { const d=new Date(); d.setHours(0,0,0,0); return d; };
-  const parseIso = s => { const [y,m,dd]=s.split('-').map(Number); return new Date(y,m-1,dd); };
-  const dueIn = t => {
-    if(!t.lastDone) return 0; // noch nie gemacht → sofort fällig
-    const due=parseIso(t.lastDone); due.setDate(due.getDate()+(t.interval||7));
-    return Math.round((due-todayMid())/86400000);
-  };
-  const other = id => users.find(u=>u.id!==id)?.id || id;
-
-  const done = (t, btnEl) => {
-    celebrateTask(btnEl, t.em, users.find(u=>u.id===t.assignee)?.color || '#fbbf24');
-    const iso=todayISO(); // lokal, nicht UTC — sonst zählt „erledigt" nachts vor 1/2 Uhr zum Vortag
-    set('pt', tasks.map(x=>x.id===t.id?{...x,lastDone:iso,assignee:other(x.assignee)}:x));
-    set('pl', [{id:uid(),taskId:t.id,name:t.name,em:t.em,userId:t.assignee,date:iso},...log].slice(0,200));
-    const nextName = users.find(u=>u.id===other(t.assignee))?.name || 'Der andere';
-    notifyOthers(`✅ ${meName} hat „${t.name}" erledigt`, `${nextName}, du bist dran!`, 'wg-putz', 'putz');
-  };
   const del = id => { const t=tasks.find(x=>x.id===id); set('pt',tasks.filter(x=>x.id!==id)); undo(`„${t?.name||'Aufgabe'}" gelöscht`, ()=>setFn('pt', cur => cur.some(x=>x.id===id)?cur:[t,...cur])); };
-  const add = d => set('pt',[...tasks,{id:uid(),name:d.name||'Aufgabe',em:d.em||'🧽',interval:parseInt(d.interval)||7,assignee:d.assignee||users[0].id,lastDone:null}]);
-  const save = d => set('pt',tasks.map(x=>x.id===editTask.id?{...x,name:d.name||x.name,em:d.em||x.em,interval:parseInt(d.interval)||x.interval,assignee:d.assignee||x.assignee}:x));
+  const ivOf = d => parseInt(d.interval)||7;
+  // Neue Aufgabe: ohne Auswahl fängt an, wer sie anlegt — wer sich meldet, macht's
+  const add = d => set('pt',[...tasks,{id:uid(),name:d.name?.trim()||'Aufgabe',em:d.em||'🧽',interval:ivOf(d),pts:chorePts(d),assignee:d.assignee||(users.some(u=>u.id===me)?me:users[0].id),lastDone:null}]);
+  const save = d => set('pt',tasks.map(x=>x.id===editTask.id?{...x,name:d.name?.trim()||x.name,em:d.em||x.em,interval:parseInt(d.interval)||x.interval,pts:chorePts(d),assignee:d.assignee||x.assignee}:x));
 
-  const loadDefaults = () => set('pt',[
-    {name:'Küche putzen',em:'🍳',interval:7},
-    {name:'Bad putzen',em:'🚿',interval:7},
-    {name:'Staubsaugen',em:'🧹',interval:7},
-    {name:'Müll rausbringen',em:'🗑️',interval:3},
-  ].map((t,i)=>({id:uid(),...t,assignee:users[i%users.length]?.id||users[0].id,lastDone:null})));
+  // Standard-Plan: die vier Klassiker + Altpapier/Altglas, abwechselnd eingeteilt
+  const loadDefaults = () => set('pt',
+    CHORE_PRESETS.filter(p=>['Müll rausbringen','Küche putzen','Bad putzen','Staubsaugen','Altpapier','Altglas & Pfand'].includes(p[0]))
+      .map(([name,em,interval,pts],i)=>({id:uid(),name,em,interval,pts,assignee:users[i%users.length]?.id||users[0].id,lastDone:null})));
 
-  /* Fairness: erledigte Aufgaben der letzten 30 Tage */
-  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-30); cutoff.setHours(0,0,0,0);
-  const counts=users.map(u=>({...u, n:log.filter(l=>l.userId===u.id&&parseIso(l.date)>=cutoff).length}));
+  /* Gesamtbilanz: Einsatz-Punkte der letzten 30 Tage */
+  const counts=choreScore(log, tasks, users, 30);
   const totN=counts.reduce((s,c)=>s+c.n,0);
 
-  const sorted=[...tasks].sort((a,b)=>dueIn(a)-dueIn(b));
-  const dueNow=sorted.filter(t=>dueIn(t)<=0);
+  const sorted=[...tasks].sort((a,b)=>choreDueIn(a)-choreDueIn(b));
+  const dueNow=sorted.filter(t=>choreDueIn(t)<=0);
+  // Meine fälligen zuerst
+  const dueSorted=[...dueNow].sort((a,b)=>(b.assignee===me)-(a.assignee===me));
 
   const chip = t => {
-    const d=dueIn(t);
+    const d=choreDueIn(t);
     if(d<0)  return <span className="due-chip overdue" style={{background:'rgba(251,113,133,.15)',color:'var(--red)'}}>{-d}d ÜBERFÄLLIG</span>;
     if(d===0)return <span className="due-chip" style={{background:'rgba(251,191,36,.16)',color:'var(--amber)'}}>HEUTE</span>;
     return <span className="due-chip" style={{background:'rgba(255,255,255,.06)',color:'var(--label3)'}}>IN {d}d</span>;
   };
+  const ivText = n => n===1?'täglich':n===7?'wöchentlich':n===14?'alle 2 Wochen':n===30?'monatlich':`alle ${n} Tage`;
 
-  const EMS=['🧽','🍳','🚿','🧹','🗑️','🧺','🪟','🌿','🛒','🧴'];
-  const IVS=[['3','Alle 3 Tage'],['7','Wöchentlich'],['14','Alle 2 Wochen'],['30','Monatlich']];
+  const EMS=['🗑️','♻️','📦','🍽️','🍳','🚿','🧹','🪣','🧽','🧺','🪟','🧊','🌿','🛒','🧴','🛏️'];
+  const IVS=[['1','Täglich'],['2','Alle 2 Tage'],['3','Alle 3 Tage'],['7','Wöchentlich'],['14','Alle 2 Wochen'],['30','Monatlich']];
   const steps=[
-    {label:'Was ist zu tun?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=><input autoFocus maxLength={200} className="field" placeholder="Küche putzen, Müll rausbringen …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>},
-    {label:'Symbol',render:({data:d,setData:sd})=><div className="emoji-grid">{EMS.map(e=><button key={e} className={`emoji-btn${d.em===e?' on':''}`} onClick={()=>sd({...d,em:e})}>{e}</button>)}</div>},
+    {label:'Was ist zu tun?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=>(
+      <>
+        <input autoFocus maxLength={200} className="field" placeholder="Müll rausbringen, Bad putzen …" value={d.name||''} onChange={e=>sd({...d,name:e.target.value})}/>
+        {/* Vorlage antippen = Name, Symbol, Rhythmus und Aufwand auf einmal (danach „Fertig" oder weiter anpassen) */}
+        <div data-testid="chore-presets" style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:10}}>
+          {CHORE_PRESETS.filter(p=>!tasks.some(t=>t.name===p[0])||d.name===p[0]).map(([name,em,iv,pts])=>(
+            <button key={name} type="button" className="hit" onClick={()=>sd({...d,name,em,interval:String(iv),pts})}
+              style={{fontSize:12.5,borderRadius:12,padding:'7px 10px',border:'none',fontWeight:d.name===name?800:600,fontFamily:'inherit',cursor:'pointer',
+                background:d.name===name?'var(--amber)':'var(--bg3)',color:d.name===name?'#0a120c':'var(--label2)'}}>
+              {em} {name}
+            </button>
+          ))}
+        </div>
+      </>
+    )},
     {label:'Wie oft?',ok:d=>!!d.interval,render:({data:d,setData:sd})=>(
       <div className="cat-grid">
         {IVS.map(([v,l])=><button key={v} className={`cat-btn${d.interval===v?' on':''}`} onClick={()=>sd({...d,interval:v})}>{l}</button>)}
       </div>
     )},
-    {label:'Wer startet?',ok:d=>!!d.assignee,render:({data:d,setData:sd})=>(
+    {label:'Wie aufwendig? (zählt für die Bilanz)',render:({data:d,setData:sd})=>(
+      <div className="cat-grid">
+        {CHORE_PTS.map(([v,em,l,sub])=>(
+          <button key={v} className={`cat-btn${chorePts(d)===v?' on':''}`} style={{height:'auto',padding:'9px 4px',display:'flex',flexDirection:'column',alignItems:'center',gap:2}} onClick={()=>sd({...d,pts:v})}>
+            <span style={{fontSize:18}}>{em}</span><span>{l}</span><span style={{fontSize:10.5,opacity:.7,fontWeight:500}}>{sub}</span>
+          </button>
+        ))}
+      </div>
+    )},
+    {label:'Symbol',render:({data:d,setData:sd})=><div className="emoji-grid">{EMS.map(e=><button key={e} className={`emoji-btn${d.em===e?' on':''}`} onClick={()=>sd({...d,em:e})}>{e}</button>)}</div>},
+    {label:'Wer fängt an?',render:({data:d,setData:sd})=>(
       <div className="pick">
         {users.map(u=><button key={u.id} className={`pick-btn${d.assignee===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,assignee:u.id})}>{u.name}</button>)}
       </div>
@@ -3165,44 +3299,47 @@ function Putzplan() {
               ?<div style={{fontSize:16,fontWeight:700,color:'var(--green)',margin:'8px 0 16px'}}>Alles sauber ✨ nichts fällig</div>
               :(
                 <div style={{display:'flex',flexDirection:'column',gap:9,margin:'10px 0 16px'}}>
-                  {dueNow.map(t=>{const u=users.find(x=>x.id===t.assignee);return(
+                  {dueSorted.map(t=>{const u=users.find(x=>x.id===t.assignee);return(
                     <div key={t.id} style={{display:'flex',alignItems:'center',gap:10}}>
                       <span style={{fontSize:20,lineHeight:1}}>{t.em}</span>
                       <span style={{flex:1,fontSize:15,fontWeight:700}}>{t.name}</span>
-                      <span style={{fontSize:14,fontWeight:800,color:u?.color}}>{u?.name}</span>
+                      <span style={{fontSize:14,fontWeight:800,color:u?.color}}>{u?.id===me?'Du':u?.name}</span>
                     </div>
                   );})}
                 </div>
               )
           }
-          <div className="hero-lbl" style={{marginBottom:8}}>Putz-Score · letzte 30 Tage</div>
+          <div className="hero-lbl" style={{marginBottom:8}}>Einsatz · letzte 30 Tage</div>
           <div className="fair-bar">
             {totN>0 && counts.map(c=>(<div key={c.id} className="fair-seg" style={{width:`${c.n/totN*100}%`,background:c.color}}/>))}
           </div>
           <div style={{display:'flex',justifyContent:'space-between',marginTop:8}}>
-            {counts.map(c=>(<span key={c.id} style={{fontSize:13,fontWeight:700,color:c.color}}>{c.name} <span className="num">{c.n}×</span></span>))}
+            {counts.map(c=>(<span key={c.id} style={{fontSize:13,fontWeight:700,color:c.color}}>{c.name} <span className="num">{c.n}</span> P.</span>))}
+          </div>
+          <div style={{fontSize:11.5,color:'var(--label3)',marginTop:10,lineHeight:1.45,fontWeight:500}}>
+            Wer den Haken setzt, bekommt die Aufgabe gutgeschrieben. Dran ist, wer sie seltener gemacht hat. Kurz zählt 1, mittel 2, groß 3 Punkte.
           </div>
         </div>
 
         <button className="btn rise" style={{background:'var(--amber)',animationDelay:'50ms'}} onClick={()=>setWiz(true)}>+ Aufgabe anlegen</button>
         {tasks.length===0&&(
-          <button className="btn btn-sec rise" style={{animationDelay:'80ms'}} onClick={loadDefaults}>Standard-Plan laden (Küche, Bad, Saugen, Müll)</button>
+          <button className="btn btn-sec rise" style={{animationDelay:'80ms'}} onClick={loadDefaults}>Standard-Plan laden (Müll, Papier, Glas, Küche, Bad, Saugen)</button>
         )}
 
         {tasks.length>0&&(
           <div className="rise" style={{animationDelay:'100ms'}}>
-            <div className="section-hdr">Aufgaben · Haken = erledigt, dann ist der andere dran</div>
+            <div className="section-hdr">Aufgaben · Haken = ich hab's gemacht</div>
             <div className="group">
               {sorted.map(t=>{
                 const u=users.find(x=>x.id===t.assignee);
                 return(
-                  <div key={t.id} className="cell">
-                    <button className="done-btn" style={{borderColor:(u?.color||'#888')+'66'}} title={`${t.name} erledigt`} onClick={e=>done(t,e.currentTarget)}>
+                  <div key={t.id} className="cell" data-testid="chore-row">
+                    <button className="done-btn" style={{borderColor:(u?.color||'#888')+'66'}} aria-label={`${t.name} erledigt`} title={`${t.name} erledigt`} onClick={e=>done(t,e.currentTarget)}>
                       <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={u?.color||'#888'} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"><path d={ICONS.check}/></svg>
                     </button>
                     <div className="cell-content" style={{cursor:'pointer'}} onClick={()=>setEditTask(t)}>
                       <span className="cell-title">{t.em} {t.name}</span>
-                      <span className="cell-sub"><span key={u?.id} className="assignee-swap" style={{color:u?.color,fontWeight:700}}>{u?.name}</span> ist dran · alle {t.interval} Tage</span>
+                      <span className="cell-sub"><span key={u?.id} className="assignee-swap" style={{color:u?.color,fontWeight:700}}>{u?.id===me?'Du bist':`${u?.name} ist`}</span> dran · <ChoreTally task={t} log={log} users={users}/> · {ivText(t.interval||7)}</span>
                     </div>
                     {chip(t)}
                     <button className="del-btn" aria-label="Aufgabe löschen" title="Aufgabe löschen" onClick={()=>del(t.id)}>×</button>
@@ -3224,7 +3361,7 @@ function Putzplan() {
                     <span style={{fontSize:16,lineHeight:1}}>{l.em||'🧽'}</span>
                     <div className="cell-content"><span className="cell-title" style={{fontSize:14.5}}>{l.name}</span></div>
                     <span style={{fontSize:12.5,fontWeight:700,color:u?.color}}>{u?.name}</span>
-                    <span className="num" style={{fontSize:11,color:'var(--label3)'}}>{parseIso(l.date).toLocaleDateString('de-DE')}</span>
+                    <span className="num" style={{fontSize:11,color:'var(--label3)'}}>{isoMid(l.date).toLocaleDateString('de-DE')}</span>
                   </div>
                 );
               })}
@@ -3233,8 +3370,8 @@ function Putzplan() {
         )}
 
       </div></div>
-      <Wiz open={wiz} onClose={()=>setWiz(false)} title="Putz-Aufgabe" color="var(--amber)" steps={steps} onFinish={add}/>
-      <Wiz open={!!editTask} onClose={()=>setEditTask(null)} title="Aufgabe bearbeiten" color="var(--amber)" steps={steps} onFinish={save} initial={editTask?{name:editTask.name,em:editTask.em,interval:String(editTask.interval),assignee:editTask.assignee}:null}/>
+      <Wiz open={wiz} onClose={()=>setWiz(false)} title="Putz-Aufgabe" color="var(--amber)" steps={steps} onFinish={add} quickOk={d=>!!(d.name?.trim()&&d.interval)} quickLabel="⚡ Sofort speichern · ich fange an"/>
+      <Wiz open={!!editTask} onClose={()=>setEditTask(null)} title="Aufgabe bearbeiten" color="var(--amber)" steps={steps} onFinish={save} quickOk={d=>!!d.name?.trim()} quickLabel="⚡ Änderung speichern" initial={editTask?{name:editTask.name,em:editTask.em,interval:String(editTask.interval),pts:chorePts(editTask),assignee:editTask.assignee}:null}/>
     </div>
   );
 }
@@ -4512,7 +4649,8 @@ function Statistik() {
   })();
 
   // Putzplan · 6 Monate: erledigte Aufgaben je User, gleiches 6-Monats-Raster wie `trend`.
-  const plCounts = trend.map(t => ({ m:t.m, counts: users.map(u => ({ id:u.id, color:u.color, n: pl.filter(e=>ymOf(e.date)===t.m && e.userId===u.id).length })) }));
+  const ptById = Object.fromEntries((D.pt||[]).map(t=>[t.id,t]));   // Punkte alter Einträge ohne pts
+  const plCounts = trend.map(t => ({ m:t.m, counts: users.map(u => ({ id:u.id, color:u.color, n: pl.filter(e=>ymOf(e.date)===t.m && e.userId===u.id).reduce((s2,e)=>s2+(e.pts||chorePts(ptById[e.taskId])),0) })) }));
   const plMax = Math.max(...plCounts.flatMap(t=>t.counts.map(c=>c.n)), 1);
 
   return (
@@ -4639,7 +4777,7 @@ function Statistik() {
         {pl.length>0&&(
           <div className="rise" style={{animationDelay:'115ms'}}>
             <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <span>Putzplan · 6 Monate</span>
+              <span>Putzplan · Punkte · 6 Monate</span>
               <span style={{display:'flex',gap:10}}>
                 {users.map(u=>(
                   <span key={u.id} style={{display:'flex',alignItems:'center',gap:4,color:u.color,textTransform:'none',letterSpacing:0}}>
@@ -4858,6 +4996,7 @@ function AppInner() {
     }).catch(() => {});
   }, [status, wgCode]);
   const bkStale = typeof bkAge === 'number' && bkAge > 2;
+  const myChores = me ? choreMine(D.pt, me).length : 0;   // Tab-Punkt Putzplan
   // „Neue Version": ein neuer Service Worker hat übernommen (s. Skript am Seitenende) — Hinweis mit Knopf
   const [updReady,setUpdReady] = useState(() => !!window.__wgUpdReady);
   useEffect(() => { const on = () => setUpdReady(true); window.addEventListener('wg-update', on); return () => window.removeEventListener('wg-update', on); }, []);
@@ -4911,18 +5050,15 @@ function AppInner() {
     if (ls('wg_notify_last', null) === today) return;
     const timer = setTimeout(() => {
       const tasks = D.pt || [], subs = D.ab || [];
-      const parseIso = s => { const [y,m,dd]=String(s).split('-').map(Number); return new Date(y,m-1,dd); };
-      const todayMid = new Date(); todayMid.setHours(0,0,0,0);
-      const dueIn = t => { if(!t.lastDone) return 0; const due=parseIso(t.lastDone); due.setDate(due.getDate()+(t.interval||7)); return Math.round((due-todayMid)/86400000); };
-      const due  = (mods.putz!==false) ? tasks.filter(t=>dueIn(t)<=0) : [];
+      const due  = (mods.putz!==false) ? (me ? choreMine(tasks, me) : tasks.filter(t=>choreDueIn(t)<=0)) : [];
       const soon = (mods.abos!==false) ? subs.filter(s=>{ const d=daysSince(s.sd),p=s.iv==='m'?30:365; return (p-(d%p))<=3; }) : [];
       const msgs = [];
-      if (due.length)  msgs.push(`🧹 ${due.length} Putzaufgabe${due.length>1?'n':''} fällig: ${due.slice(0,3).map(t=>t.name).join(', ')}`);
+      if (due.length)  msgs.push(`🧹 ${due.length} Putzaufgabe${due.length>1?'n':''} ${me?'für dich ':''}fällig: ${due.slice(0,3).map(t=>t.name).join(', ')}`);
       if (soon.length) msgs.push(`🔄 ${soon.length} Abo${soon.length>1?'s':''} bald fällig: ${soon.slice(0,3).map(s=>s.name).join(', ')}`);
       if (msgs.length) { ss('wg_notify_last', today); showLocalNote('WG — Erinnerung', msgs.join('\n')); }
     }, 4000);
     return () => clearTimeout(timer);
-  }, [D, mods]);
+  }, [D, mods, me]);
   // Live-Toast wenn Änderung vom anderen Gerät reinkommt
   useEffect(() => {
     if (remotePulse === 0) return;
@@ -4936,7 +5072,7 @@ function AppInner() {
         {/* Seitenüberschrift: das Dokument hatte bisher gar keine Überschrift —
             Screenreader konnten nicht sagen, welcher Bereich offen ist. */}
         <h1 className="sr-only">{(TABS.find(t=>t.id===tab)||{}).label || 'WG'}</h1>
-        {tab==='haus'&&<Haushalt goGrow={()=>setTab('grow')}/>}
+        {tab==='haus'&&<Haushalt goGrow={()=>setTab('grow')} goPutz={()=>setTab('putz')}/>}
         {tab==='grow'&&<Grow/>}
         {tab==='putz'&&<Putzplan/>}
         {tab==='fin' &&<Finanzen/>}
@@ -4971,6 +5107,7 @@ function AppInner() {
           <button key={t.id} className={`tabitem${tab===t.id?' on':''}`} aria-current={tab===t.id?'page':undefined}
             onClick={()=>setTab(t.id)} style={{color:tab===t.id?t.color:'var(--label3)'}}>
             {tab===t.id&&<div className="tab-glow"/>}
+            {t.id==='putz' && myChores>0 && tab!=='putz' && <span className="tab-dot" style={{background:'var(--amber)'}} aria-label={`${myChores} Putzaufgabe${myChores>1?'n':''} für dich fällig`}/>}
             {t.id==='set' && (errNew || bkStale) && tab!=='set' && <span className="tab-dot" aria-label={bkStale ? 'Backup-Warnung' : 'Neue Einträge im Fehlerprotokoll'}/>}
             <Ic d={t.icon} color={tab===t.id?t.color:'var(--label3)'} size={23} sw={tab===t.id?2.1:1.6}/>
             <span>{t.label}</span>
