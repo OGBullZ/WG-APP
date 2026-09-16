@@ -217,6 +217,7 @@ await pg.addInitScript(([s, d]) => {
   window.__wgSeed = s;
   if (localStorage.getItem('wg_code')) return;
   localStorage.setItem('wg_code', JSON.stringify('TEST-LOKAL-DUELL'));
+  localStorage.setItem('wg_modules', JSON.stringify({ game: true }));   // Spielelemente sind standardmäßig aus
   localStorage.setItem('wg_me', JSON.stringify('u1'));
   localStorage.setItem('wg_start_shown', JSON.stringify(d));
   localStorage.setItem('wg_tab', JSON.stringify('haus'));
@@ -275,7 +276,10 @@ await pm.goto(url, { waitUntil: 'domcontentloaded' });
 await pm.locator('.tabbar').waitFor({ timeout: 30000 });
 await pm.evaluate(() => window.__wg.fire()); await pm.waitForTimeout(1200);
 const tgl = pm.locator('[data-testid="game-toggle"]');
-check('M1 Schalter unter Mehr, Standard „An"', await tgl.innerText() === 'An');
+check('M1 Schalter unter Mehr, Standard „Aus"', await tgl.innerText() === 'Aus');
+await tgl.click(); await pm.waitForTimeout(300);
+const on1 = await pm.evaluate(() => ({ mods: JSON.parse(localStorage.getItem('wg_modules')), pp: JSON.parse(localStorage.getItem('wg_push_prefs') || '{}') }));
+check('M1b an → gespeichert (Gerät + Push-Einstellung game)', await tgl.innerText() === 'An' && on1.mods.game === true && on1.pp.game === true, JSON.stringify(on1));
 await tgl.click(); await pm.waitForTimeout(300);
 const st = await pm.evaluate(() => ({ mods: JSON.parse(localStorage.getItem('wg_modules')), pp: JSON.parse(localStorage.getItem('wg_push_prefs') || '{}') }));
 check('M2 aus → gespeichert (Gerät + Push-Einstellung game)', await tgl.innerText() === 'Aus' && st.mods.game === false && st.pp.game === false, JSON.stringify(st));

@@ -40,7 +40,7 @@ check('7 Mittwoch → ebenfalls Vorwoche 14.–20.09.', r7 && r7.tag === 'duel-2
 // Verdrahtung im Handler: nur montags, Push-Typ putz
 const src = readFileSync(new URL('../api/cron.js', import.meta.url), 'utf8');
 check('8 Handler ruft weekDuel nur montags auf', /getDay\(\) === 1 \? weekDuel\(wg, todayMid\)/.test(src));
-check('9 Push-Typ „game" (Schalter Spielelemente)', /sendToSubs\(subs, duel, \{ type: 'game' \}\)/.test(src));
+check('9 Push nur an Geräte mit game === true (Standard aus)', /sendToSubs\(subs\.filter\(\(s\) => s && s\.game === true\), duel\)/.test(src));
 
 console.log(pass.map(p => '  OK  ' + p).join('\n'));
 if (fail.length) console.log(fail.map(f => '  FAIL ' + f).join('\n'));
