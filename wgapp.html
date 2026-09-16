@@ -808,7 +808,7 @@ const PUSH_API = 'https://wg-app-bull-z.vercel.app';
 // nächsten Start selbst neu (healPush) — der private Teil liegt nur in der Vercel-Env.
 const VAPID_PUBLIC_KEY = 'BFlztnmVhus9TTvtVJzqe7gN8PCYyD3qb6DnZblhE5-nes3JcaB_wkxMm85VClKmVoeHLJ-SFb0wti4A-tjL9RA';
 /* Push-Typ-/Ruhezeit-Defaults — global, damit sowohl Einstellungen als auch das Start-Push-Fenster sie nutzen. */
-const PUSH_PREFS_DEF = { exp:true, shop:true, putz:true, settle:true, remind:true, board:true, quiet:false, qs:22, qe:8 };
+const PUSH_PREFS_DEF = { exp:true, shop:true, putz:true, settle:true, remind:true, board:true, game:true, quiet:false, qs:22, qe:8 };
 /* VAPID-Public-Key (URL-safe base64) → Uint8Array für applicationServerKey */
 const urlBase64ToUint8Array = (base64String) => {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -986,7 +986,7 @@ const canonSer = v => JSON.stringify(v, (key, val) =>
 ════════════════════════════ */
 const Ctx = createContext(null);
 
-const MOD_DEF = { haus:true, grow:true, putz:true, fin:true, abos:false, stats:true };
+const MOD_DEF = { haus:true, grow:true, putz:true, fin:true, abos:false, stats:true, game:true };   // game = 👑 Duell + 🔥 Serie (kein Tab)
 
 /* Einmalige Migration: `wg_modules` speichert bei jedem Toggle den VOLLEN Snapshot,
    auf Bestandsgeräten steht dort also fin:false und würde den neuen Default schlagen.
@@ -3140,22 +3140,59 @@ const choreScore = (log, tasks, users, days) => {
 const choreMine = (tasks, me) => (tasks||[]).filter(t=>t && t.assignee===me && choreDueIn(t)<=0)
   .sort((a,b)=>choreDueIn(a)-choreDueIn(b));
 
+/* Wochen-Duell: Einsatz-Punkte je Kalenderwoche (Mo–So, lokal). api/cron.js rechnet montags genauso — beide zusammen ändern. */
+const weekStart = (d = new Date()) => { const x=new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate()-((x.getDay()+6)%7)); return x; };
+// offset 0 = diese Woche, -1 = letzte Woche → [{...user, n}]
+const choreWeek = (log, tasks, users, offset = 0) => {
+  const from=weekStart(); from.setDate(from.getDate()+7*offset);
+  const to=new Date(from); to.setDate(to.getDate()+7);
+  const byId={}; (tasks||[]).forEach(t=>{ byId[t.id]=t; });
+  return users.map(u=>({...u, n:(log||[]).filter(l=>{ if(!l||l.userId!==u.id) return false; const d=isoMid(l.date); return d>=from && d<to; })
+    .reduce((s,l)=>s+(l.pts||chorePts(byId[l.taskId])),0)}));
+};
+// 👑 = Sieger der LETZTEN Woche (Gleichstand oder keine Punkte → niemand)
+const choreCrown = (log, tasks, users) => {
+  const w=choreWeek(log, tasks, users, -1).sort((a,b)=>b.n-a.n);
+  return w.length>1 && w[0].n>w[1].n ? w[0].id : null;
+};
+// 🔥 Pünktlich-Serie: eigene Einträge ohne Verspätung in Folge (neueste zuerst).
+// Bricht bei: eigener Verspätung (late>0), einer Aufgabe, die der andere für mich retten musste (miss),
+// einer eigenen gerade überfälligen Aufgabe, und bei Einträgen von vor wg-v60 (ohne late — unbekannt).
+const choreStreak = (log, tasks, userId) => {
+  if ((tasks||[]).some(t=>t && t.assignee===userId && choreDueIn(t)<0)) return 0;
+  let n=0;
+  for (const l of (log||[])) {
+    if (!l) continue;
+    if (l.miss===userId) break;
+    if (l.userId!==userId) continue;
+    if (typeof l.late!=='number' || l.late>0) break;
+    n++;
+  }
+  return n;
+};
+
 /* Haken setzen — von Putzplan UND Haushalt-Karte genutzt (eine Stelle für Gutschrift, Rotation, Undo, Push) */
 function useChoreDone() {
-  const { D, setFn, me, undo, notifyOthers } = useD();
+  const { D, setFn, me, undo, notifyOthers, mods } = useD();
+  const game = mods.game !== false;
   return (t, btnEl) => {
     const users = D.users || [];
     const by = users.some(u=>u.id===me) ? me : t.assignee;   // kein Gerät gewählt → wie früher der Eingeteilte
     const byU = users.find(u=>u.id===by);
     celebrateTask(btnEl, t.em, byU?.color || '#fbbf24');
     const iso = todayISO(); // lokal, nicht UTC — sonst zählt „erledigt" nachts vor 1/2 Uhr zum Vortag
-    const entry = { id:uid(), taskId:t.id, name:t.name, em:t.em, userId:by, date:iso, pts:chorePts(t) };
+    const late = Math.max(0, -choreDueIn(t));   // Tage über Fälligkeit (heute fällig = pünktlich)
+    const entry = { id:uid(), taskId:t.id, name:t.name, em:t.em, userId:by, date:iso, pts:chorePts(t),
+      late: by===t.assignee ? late : 0,          // wer fremde Aufgaben rettet, ist pünktlich …
+      ...(late>0 && by!==t.assignee ? { miss:t.assignee } : {}) };   // … und die Serie des Eingeteilten bricht
     const log2 = [entry, ...(D.pl||[])];
     const next = choreNext(t.id, log2, users, t.assignee);
     const prev = { lastDone:t.lastDone||null, assignee:t.assignee };
     setFn('pt', cur => cur.map(x=>x.id===t.id?{...x,lastDone:iso,assignee:next}:x));
     setFn('pl', cur => [entry, ...cur].slice(0,300));
-    undo(`${t.em||'✅'} „${t.name}" erledigt`, () => {
+    const streak = choreStreak(log2, D.pt, by);
+    const fire = game && streak>=2 ? ` · 🔥 ${streak}` : '';
+    undo(`${t.em||'✅'} „${t.name}" erledigt${fire}`, () => {
       setFn('pt', cur => cur.map(x=>x.id===t.id?{...x,...prev}:x));
       setFn('pl', cur => cur.filter(l=>l.id!==entry.id));
     });
@@ -3163,7 +3200,7 @@ function useChoreDone() {
     const stand = users.map(u=>`${u.name} ${tally[u.id]}×`).join(' · ');
     const byName = byU?.name || 'Jemand', nextName = users.find(u=>u.id===next)?.name || 'Der andere';
     notifyOthers(`✅ ${byName} hat „${t.name}" erledigt`,
-      next===by ? `${byName} holt noch auf (${stand})` : `${nextName}, du bist dran! (${stand})`, 'wg-putz', 'putz');
+      (next===by ? `${byName} holt noch auf (${stand})` : `${nextName}, du bist dran! (${stand})`) + (game && streak>=3 ? ` · 🔥 ${streak} pünktlich in Folge` : ''), 'wg-putz', 'putz');
   };
 }
 
@@ -3185,10 +3222,11 @@ function ChoreQuick({ goPutz }) {
   const mine = choreMine(D.pt, me);
   if (!mine.length) return null;
   const users = D.users || [], meU = users.find(u=>u.id===me);
+  const myStreak = mods.game !== false ? choreStreak(D.pl, D.pt, me) : 0;
   return (
     <div className="rise" data-testid="chore-quick" style={{animationDelay:'20ms'}}>
       <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span>🧹 Du bist dran</span>
+        <span>🧹 Du bist dran{myStreak>0?<span style={{color:'var(--amber)',marginLeft:6}} title="pünktlich in Folge">🔥 {myStreak}</span>:null}</span>
         <button className="hit" onClick={goPutz} style={{background:'none',border:'none',color:'var(--amber)',fontWeight:700,fontSize:12,fontFamily:'inherit',cursor:'pointer',padding:0,textTransform:'none',letterSpacing:0}}>Putzplan ›</button>
       </div>
       <div className="group" style={{border:'1px solid rgba(251,191,36,.28)'}}>
@@ -3211,8 +3249,46 @@ function ChoreQuick({ goPutz }) {
   );
 }
 
+/* Wochen-Duell im Putzplan: Punkte dieser Woche, 👑 für den Sieger der letzten, 🔥 Serie je Person */
+function ChoreDuel({ log, tasks, users, me }) {
+  if (users.length < 2) return null;
+  const week = choreWeek(log, tasks, users, 0), last = choreWeek(log, tasks, users, -1);
+  const crown = choreCrown(log, tasks, users);
+  const left = 7 - ((new Date().getDay()+6)%7);   // Tage inkl. heute bis Sonntag
+  const [a, b] = week;
+  const lead = a.n===b.n ? null : (a.n>b.n ? a : b);
+  const side = (u, align) => (
+    <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:align,gap:3,minWidth:0}}>
+      <span style={{fontSize:14,fontWeight:800,color:u.color,whiteSpace:'nowrap'}} data-testid={`duel-name-${u.id}`}>
+        {crown===u.id&&<span title="Sieger letzte Woche" style={{marginRight:4}}>👑</span>}{u.id===me?'Du':u.name}
+      </span>
+      <span style={{fontSize:11.5,fontWeight:700,color:choreStreak(log,tasks,u.id)>0?'var(--amber)':'var(--label3)'}} data-testid={`duel-streak-${u.id}`}>
+        🔥 {choreStreak(log,tasks,u.id)} pünktlich
+      </span>
+    </div>
+  );
+  const lastTxt = last[0].n+last[1].n>0 ? `Letzte Woche ${last[0].n} : ${last[1].n}${crown?` · 👑 ${users.find(u=>u.id===crown)?.name}`:' · unentschieden'}` : null;
+  return (
+    <div data-testid="chore-duel" style={{margin:'2px 0 16px'}}>
+      <div className="hero-lbl" style={{marginBottom:8,display:'flex',justifyContent:'space-between'}}>
+        <span>Wochen-Duell</span><span>{left===1?'letzter Tag':`noch ${left} Tage`}</span>
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:10}}>
+        {side(a,'flex-start')}
+        <span className="num" style={{fontSize:30,fontWeight:800,letterSpacing:'-.02em',whiteSpace:'nowrap'}}>
+          <span style={{color:a.color}}>{a.n}</span><span style={{color:'var(--label3)',margin:'0 6px'}}>:</span><span style={{color:b.color}}>{b.n}</span>
+        </span>
+        {side(b,'flex-end')}
+      </div>
+      <div style={{fontSize:11.5,color:'var(--label3)',marginTop:6,textAlign:'center',fontWeight:600}} data-testid="duel-sub">
+        {lead ? `${lead.id===me?'Du führst':`${lead.name} führt`} mit ${Math.abs(a.n-b.n)} P.` : 'Gleichstand'}{lastTxt?` · ${lastTxt}`:''}
+      </div>
+    </div>
+  );
+}
+
 function Putzplan() {
-  const { D, set, setFn, status, undo, me } = useD();
+  const { D, set, setFn, status, undo, me, mods } = useD();
   const users=D.users, tasks=D.pt||[], log=D.pl||[];
   const done = useChoreDone();
   const [wiz,setWiz] = useState(false);
@@ -3309,6 +3385,7 @@ function Putzplan() {
                 </div>
               )
           }
+          {mods.game!==false && <ChoreDuel log={log} tasks={tasks} users={users} me={me}/>}
           <div className="hero-lbl" style={{marginBottom:8}}>Einsatz · letzte 30 Tage</div>
           <div className="fair-bar">
             {totN>0 && counts.map(c=>(<div key={c.id} className="fair-seg" style={{width:`${c.n/totN*100}%`,background:c.color}}/>))}
@@ -3317,7 +3394,7 @@ function Putzplan() {
             {counts.map(c=>(<span key={c.id} style={{fontSize:13,fontWeight:700,color:c.color}}>{c.name} <span className="num">{c.n}</span> P.</span>))}
           </div>
           <div style={{fontSize:11.5,color:'var(--label3)',marginTop:10,lineHeight:1.45,fontWeight:500}}>
-            Wer den Haken setzt, bekommt die Aufgabe gutgeschrieben. Dran ist, wer sie seltener gemacht hat. Kurz zählt 1, mittel 2, groß 3 Punkte.
+            Wer den Haken setzt, bekommt die Aufgabe gutgeschrieben. Dran ist, wer sie seltener gemacht hat. Kurz zählt 1, mittel 2, groß 3 Punkte.{mods.game!==false && ' Wer die Woche gewinnt, trägt 👑. 🔥 zählt Aufgaben, die du nicht überfällig werden lässt.'}
           </div>
         </div>
 
@@ -4220,6 +4297,26 @@ function Einstellungen() {
             ))}
           </div>
           <div className="section-ftr">Mindestens ein Modul muss aktiv sein.</div>
+        </div>
+
+        {/* Spielelemente: nur dieses Gerät; die Push-Einstellung „game" zieht mit (Montags-Ergebnis vom Server) */}
+        <div className="rise" style={{animationDelay:'125ms'}}>
+          <div className="section-hdr">Spielelemente</div>
+          <div className="group">
+            <div className="cell">
+              <div className="cell-icon" style={{background:'rgba(251,191,36,.12)',fontSize:17}}>👑</div>
+              <div className="cell-content">
+                <span className="cell-title">Wochen-Duell &amp; Serie</span>
+                <span className="cell-sub">👑 Wochensieger, 🔥 pünktlich in Folge, Montags-Ergebnis per Push</span>
+              </div>
+              <button data-testid="game-toggle" aria-pressed={mods.game!==false}
+                onClick={()=>{ const on = mods.game===false; setMods({...mods, game:on}); setPref({game:on}); }}
+                style={{background:mods.game!==false?'var(--amber)':'var(--bg3)',color:mods.game!==false?'#0a120c':'var(--label)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800}}>
+                {mods.game!==false?'An':'Aus'}
+              </button>
+            </div>
+          </div>
+          <div className="section-ftr">Gilt nur für dieses Gerät. Punkte und Fairness zählen immer, du blendest nur Duell und Serie aus.</div>
         </div>
 
         {/* Archiv */}

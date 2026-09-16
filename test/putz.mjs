@@ -158,6 +158,146 @@ await page.reload({ waitUntil: 'domcontentloaded' }); await page.locator('.tabba
 await page.evaluate(() => window.__wg.fire()); await page.waitForTimeout(800);
 check('J1 Neustart ohne Fehler', errs.length === 0, errs.join(' | '));
 
+// ── K: Wochen-Duell + Pünktlich-Serie — Regeln direkt ──
+const lastWeek = (() => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7) - 3); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; })();
+const kr = await page.evaluate(([d0, lw, d9, d20]) => {
+  const U = [{ id: 'a' }, { id: 'b' }];
+  const L = (userId, date, pts, extra = {}) => ({ userId, date, pts, taskId: 'x', ...extra });
+  const log = [L('a', d0, 2), L('b', lw, 3), L('a', lw, 1), L('b', d20, 3)];   // 20 Tage: nie in dieser oder der letzten Woche
+  const due = { id: 'o', assignee: 'a', lastDone: d9, interval: 3 };   // seit 6 Tagen überfällig
+  return {
+    week: choreWeek(log, [], U, 0).map(u => u.n).join(':'),
+    last: choreWeek(log, [], U, -1).map(u => u.n).join(':'),
+    crown: choreCrown(log, [], U),
+    tie: choreCrown([L('a', lw, 2), L('b', lw, 2)], [], U),
+    none: choreCrown([], [], U),
+    s1: choreStreak([L('a', d0, 1, { late: 0 }), L('b', d0, 1, { late: 5 }), L('a', d0, 1, { late: 0 }), L('a', d0, 1, { late: 2 }), L('a', d0, 1, { late: 0 })], [], 'a'),
+    legacy: choreStreak([L('a', d0, 1, { late: 0 }), L('a', d0, 1)], [], 'a'),
+    miss: choreStreak([L('a', d0, 1, { late: 0 }), L('b', d0, 1, { late: 0, miss: 'a' }), L('a', d0, 1, { late: 0 })], [], 'a'),
+    overdue: choreStreak([L('a', d0, 1, { late: 0 })], [due], 'a'),
+    otherOverdue: choreStreak([L('a', d0, 1, { late: 0 })], [{ ...due, assignee: 'b' }], 'a'),
+  };
+}, [dayAgo(0), lastWeek, dayAgo(9), dayAgo(20)]);
+check('K1 Woche: nur Einträge ab Montag zählen', kr.week === '2:0', kr.week);
+check('K2 Vorwoche getrennt gezählt', kr.last === '1:3', kr.last);
+check('K3 👑 an den Sieger der Vorwoche', kr.crown === 'b', kr.crown);
+check('K4 Gleichstand / keine Punkte → keine Krone', kr.tie === null && kr.none === null);
+check('K5 Serie zählt eigene pünktliche in Folge, fremde Verspätung egal, eigene bricht', kr.s1 === 2, kr.s1);
+check('K6 alte Einträge ohne late brechen die Serie', kr.legacy === 1, kr.legacy);
+check('K7 vom anderen gerettet (miss) bricht die Serie', kr.miss === 1, kr.miss);
+check('K8 eigene überfällige Aufgabe → Serie 0, fremde egal', kr.overdue === 0 && kr.otherOverdue === 1, `${kr.overdue}/${kr.otherOverdue}`);
+await ctx.close();
+
+// ── L: Duell in der Oberfläche + Serie beim Abhaken ──
+const SEED2 = {
+  users: SEED.users,
+  pt: {
+    d: { id: 'd', name: 'Staubsaugen', em: '🧹', interval: 7, pts: 2, assignee: 'u1', lastDone: dayAgo(7), seq: 3 },   // heute fällig → pünktlich
+    o: { id: 'o', name: 'Altglas', em: '♻️', interval: 3, pts: 1, assignee: 'u2', lastDone: dayAgo(6), seq: 2 },      // Toms, 3 Tage überfällig
+  },
+  pl: Object.fromEntries([
+    ...[1, 2, 3].map(i => ({ id: 'w' + i, taskId: 'd', userId: 'u2', date: lastWeek, pts: 3, late: 0, seq: 10 + i })),
+    { id: 'w4', taskId: 'd', userId: 'u1', date: lastWeek, pts: 2, seq: 20 },   // ohne late (alt) → Serie endet hier
+    { id: 't1', taskId: 'd', userId: 'u1', date: dayAgo(0), pts: 2, late: 0, seq: 30 },
+    { id: 't2', taskId: 'd', userId: 'u1', date: dayAgo(0), pts: 2, late: 0, seq: 31 },
+  ].map(l => [l.id, l])),
+};
+const ctx2 = await browser.newContext({ viewport: { width: 420, height: 880 }, serviceWorkers: 'block' });
+await ctx2.routeWebSocket(/./, () => {});
+const pg = await ctx2.newPage();
+const push2 = [];
+await pg.route('**/*', r => {
+  const u = r.request().url();
+  if (u.includes('/api/notify')) { push2.push(JSON.parse(r.request().postData() || '{}')); return r.fulfill({ status: 200, body: '{}' }); }
+  if (u.includes('vercel.app')) return r.fulfill({ status: 200, contentType: 'application/json', body: '{"days":[]}' });
+  return /firebasedatabase\.app|firebaseio\.com/.test(u) ? r.abort() : r.continue();
+});
+await pg.route(/firebase-(app|database)-compat[-\d.]*\.js/, r => r.fulfill({ status: 200, contentType: 'application/javascript', body: /firebase-app-compat/.test(r.request().url()) ? STUB : '' }));
+await pg.addInitScript(([s, d]) => {
+  window.__wgSeed = s;
+  if (localStorage.getItem('wg_code')) return;
+  localStorage.setItem('wg_code', JSON.stringify('TEST-LOKAL-DUELL'));
+  localStorage.setItem('wg_me', JSON.stringify('u1'));
+  localStorage.setItem('wg_start_shown', JSON.stringify(d));
+  localStorage.setItem('wg_tab', JSON.stringify('haus'));
+}, [SEED2, dayAgo(0)]);
+await pg.goto(url, { waitUntil: 'domcontentloaded' });
+await pg.locator('.tabbar').waitFor({ timeout: 30000 });
+await pg.evaluate(() => window.__wg.fire()); await pg.waitForTimeout(1500);
+const hdr = await pg.locator('[data-testid="chore-quick"] .section-hdr').innerText();
+check('L1 Haushalt-Karte zeigt eigene Serie 🔥 2', /🔥\s*2/.test(hdr), hdr);
+await pg.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).click(); await pg.waitForTimeout(600);
+const duel = pg.locator('[data-testid="chore-duel"]');
+const duelTxt = async () => (await duel.innerText()).replace(/\n/g, ' ');
+check('L2 Duell diese Woche 4 : 0, „Du führst"', /4\s*:\s*0/.test(await duelTxt()) && /Du führst mit 4 P\./.test(await duelTxt()), await duelTxt());
+check('L3 👑 bei Tom (Vorwoche 2 : 9)', /👑/.test(await pg.locator('[data-testid="duel-name-u2"]').innerText()) && !/👑/.test(await pg.locator('[data-testid="duel-name-u1"]').innerText()));
+check('L4 Vorwoche im Untertitel', /Letzte Woche 2 : 9 · 👑 Tom/.test(await pg.locator('[data-testid="duel-sub"]').innerText()));
+check('L5 Serien: Du 🔥 2, Tom 🔥 0 (hat Überfälliges)', /2/.test(await pg.locator('[data-testid="duel-streak-u1"]').innerText()) && /🔥 0/.test(await pg.locator('[data-testid="duel-streak-u2"]').innerText()));
+
+// pünktlich abhaken → Serie 3, Rückmeldung + Push nennen sie
+await pg.locator('[data-testid="chore-row"]', { hasText: 'Staubsaugen' }).locator('.done-btn').click(); await pg.waitForTimeout(900);
+const undoTxt = await pg.getByRole('button', { name: 'Rückgängig' }).locator('xpath=..').innerText();
+check('L6 Rückmeldung „🔥 3"', /🔥 3/.test(undoTxt), undoTxt.replace(/\n/g, ' '));
+const pp = push2.filter(p => p.type === 'putz').pop();
+check('L7 Push nennt „🔥 3 pünktlich in Folge"', !!pp && /🔥 3 pünktlich in Folge/.test(pp.body), pp && pp.body);
+check('L8 Duell jetzt 6 : 0', /6\s*:\s*0/.test(await duelTxt()), await duelTxt());
+const ent = JSON.parse(await pg.evaluate(() => localStorage.getItem('wg_data'))).pl[0];
+check('L9 Eintrag: late 0, keine miss', ent.late === 0 && !('miss' in ent), JSON.stringify(ent));
+
+// Toms überfällige Aufgabe retten → meine Serie wächst, Toms Eintrag „miss"
+await pg.locator('[data-testid="chore-row"]', { hasText: 'Altglas' }).locator('.done-btn').click(); await pg.waitForTimeout(900);
+const ent2 = JSON.parse(await pg.evaluate(() => localStorage.getItem('wg_data'))).pl[0];
+check('L10 Retten: late 0 für mich, miss = Tom', ent2.userId === 'u1' && ent2.late === 0 && ent2.miss === 'u2', JSON.stringify(ent2));
+check('L11 meine Serie 🔥 4, Toms bleibt 0', /4/.test(await pg.locator('[data-testid="duel-streak-u1"]').innerText()) && /🔥 0/.test(await pg.locator('[data-testid="duel-streak-u2"]').innerText()));
+await ctx2.close();
+
+// ── M: Schalter „Spielelemente" (Mehr) blendet Duell + Serie aus, Fairness bleibt ──
+const ctx3 = await browser.newContext({ viewport: { width: 420, height: 880 }, serviceWorkers: 'block' });
+await ctx3.routeWebSocket(/./, () => {});
+const pm = await ctx3.newPage();
+const push3 = [];
+await pm.route('**/*', r => {
+  const u = r.request().url();
+  if (u.includes('/api/notify')) { push3.push(JSON.parse(r.request().postData() || '{}')); return r.fulfill({ status: 200, body: '{}' }); }
+  if (u.includes('vercel.app')) return r.fulfill({ status: 200, contentType: 'application/json', body: '{"days":[]}' });
+  return /firebasedatabase\.app|firebaseio\.com/.test(u) ? r.abort() : r.continue();
+});
+await pm.route(/firebase-(app|database)-compat[-\d.]*\.js/, r => r.fulfill({ status: 200, contentType: 'application/javascript', body: /firebase-app-compat/.test(r.request().url()) ? STUB : '' }));
+await pm.addInitScript(([s, d]) => {
+  window.__wgSeed = s;
+  if (localStorage.getItem('wg_code')) return;
+  localStorage.setItem('wg_code', JSON.stringify('TEST-LOKAL-GAME'));
+  localStorage.setItem('wg_me', JSON.stringify('u1'));
+  localStorage.setItem('wg_start_shown', JSON.stringify(d));
+  localStorage.setItem('wg_tab', JSON.stringify('set'));
+}, [SEED2, dayAgo(0)]);
+await pm.goto(url, { waitUntil: 'domcontentloaded' });
+await pm.locator('.tabbar').waitFor({ timeout: 30000 });
+await pm.evaluate(() => window.__wg.fire()); await pm.waitForTimeout(1200);
+const tgl = pm.locator('[data-testid="game-toggle"]');
+check('M1 Schalter unter Mehr, Standard „An"', await tgl.innerText() === 'An');
+await tgl.click(); await pm.waitForTimeout(300);
+const st = await pm.evaluate(() => ({ mods: JSON.parse(localStorage.getItem('wg_modules')), pp: JSON.parse(localStorage.getItem('wg_push_prefs') || '{}') }));
+check('M2 aus → gespeichert (Gerät + Push-Einstellung game)', await tgl.innerText() === 'Aus' && st.mods.game === false && st.pp.game === false, JSON.stringify(st));
+await pm.locator('.tabbar .tabitem', { hasText: 'Haushalt' }).click(); await pm.waitForTimeout(500);
+const hdr3 = await pm.locator('[data-testid="chore-quick"] .section-hdr').innerText();
+check('M3 Haushalt-Karte bleibt, aber ohne 🔥', /DU BIST DRAN/i.test(hdr3) && !/🔥/.test(hdr3), hdr3);
+await pm.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).click(); await pm.waitForTimeout(500);
+check('M4 kein Wochen-Duell, Einsatz + Stand bleiben', await pm.locator('[data-testid="chore-duel"]').count() === 0
+  && /Einsatz/i.test(await pm.locator('.hero').first().innerText()) && !/👑/.test(await pm.locator('.hero').first().innerText()));
+await pm.locator('[data-testid="chore-row"]', { hasText: 'Staubsaugen' }).locator('.done-btn').click(); await pm.waitForTimeout(800);
+const undo3 = await pm.getByRole('button', { name: 'Rückgängig' }).locator('xpath=..').innerText();
+const pp3 = push3.filter(p => p.type === 'putz').pop();
+check('M5 Abhaken ohne 🔥 in Rückmeldung und Push', !/🔥/.test(undo3) && !!pp3 && !/🔥/.test(pp3.body), `${undo3} | ${pp3 && pp3.body}`);
+const ent3 = JSON.parse(await pm.evaluate(() => localStorage.getItem('wg_data'))).pl[0];
+check('M6 Serien-Daten werden trotzdem geschrieben (late)', ent3.late === 0, JSON.stringify(ent3));
+await pm.locator('.tabbar .tabitem', { hasText: 'Mehr' }).click(); await pm.waitForTimeout(400);
+await tgl.click(); await pm.waitForTimeout(300);
+await pm.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).click(); await pm.waitForTimeout(500);
+check('M7 wieder an → Duell da, Serie zählt den Haken von eben (🔥 3)', await pm.locator('[data-testid="chore-duel"]').count() === 1
+  && /3/.test(await pm.locator('[data-testid="duel-streak-u1"]').innerText()));
+await ctx3.close();
+
 console.log(pass.map(p => '  OK  ' + p).join('\n'));
 if (fail.length) console.log(fail.map(f => '  FAIL ' + f).join('\n'));
 console.log(`\n${pass.length} ok, ${fail.length} fehlgeschlagen`);

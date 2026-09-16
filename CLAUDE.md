@@ -40,7 +40,7 @@ WG-Splitter für 2 Personen (Torben + Tom). Single-File-PWA, Live-Sync zwischen 
 - **Tippflächen:** unsichtbare Vergrößerung per `::after` (`.cell > button`, `.del-btn`, `.chk-btn`, `.hit`, `.hit-v`, Chips, Segmente, Stepper) — `_audit.mjs` rechnet sie mit, Stand 0 Befunde. Privatbereich erinnert nach 30 Tagen ohne „⬇︎ Sichern" (`wg_priv_exported`).
 - **Firebase-SDK 12.19.0** (compat, aus npm, byte-gleich mit gstatic). React bleibt 18.3.1 (React 19 hat keine UMD-Dateien mehr → ginge nur mit Build-Schritt), Babel bleibt 7.25.6 (erzeugt die gehashten Kompilate; Tausch = neue Hashes + neuer Dateiname in wgapp.html/sw.js).
 
-## Putzplan-Fairness (seit wg-v59, 2026-09-16)
+## Putzplan-Fairness (seit wg-v59) + Spielelemente (seit wg-v60, 2026-09-16)
 
 - **Anlass:** torbe brachte den Müll „zu oft" raus. **Ursache war ein Fehler, keine Gefühlssache:** `done()` schrieb den Eintrag dem *Eingeteilten* gut (`userId: t.assignee`) und wechselte danach stur ab. Wer fremden Müll rausbrachte, bekam nichts dafür, und der andere war gleich wieder raus. Alte `pl`-Einträge bleiben so falsch zugeordnet, wie sie sind; das Zeitfenster lässt sie nach 90 Tagen auslaufen.
 - **Regel (eine Herleitung, `choreNext`/`choreTally`/`choreMine`/`choreScore` über `Putzplan`):** gutgeschrieben wird, **wer den Haken setzt** (`wg_me`; ohne gewähltes Gerät wie früher der Eingeteilte). Als Nächstes dran ist, **wer diese Aufgabe in 90 Tagen seltener gemacht hat**. Bei Gleichstand ist es, wer sie länger nicht gemacht hat, und haben beide sie nie gemacht, bleibt die Einteilung. Wer im Rückstand ist, macht die Aufgabe so lange, bis er aufgeholt hat. Verworfen wurde „nach jedem Haken wechseln": Das belohnt Weglassen.
@@ -52,6 +52,22 @@ WG-Splitter für 2 Personen (Torben + Tom). Single-File-PWA, Live-Sync zwischen 
   - **Nach dem Abhaken:** 5 Sekunden lang Rückgängig (stellt `lastDone`/`assignee` wieder her und entfernt den Eintrag).
   - **Push:** nennt den Stand („Tom, du bist dran! (Torben 6× · Tom 2×)").
   - **Tägliche Erinnerung:** nur noch für eigene Aufgaben.
+- **Spielelemente (seit wg-v60, Schalter unter Mehr → „Spielelemente“, je Gerät, Standard an: `mods.game`):**
+  - **👑 Wochen-Duell:**
+    - Punkte: Einsatz-Punkte Mo–So (`choreWeek`).
+    - Krone: für den Sieger der Vorwoche (`choreCrown`), bei Gleichstand keine.
+    - Anzeige: Block im Putzplan-Hero (`ChoreDuel`).
+    - Push: **Montags** schickt `api/cron.js` das Ergebnis (`weekDuel`, spiegelt `choreWeek`, beide zusammen ändern) mit Push-Typ `game`.
+    - Die Push-Einstellung `game` (`PUSH_PREFS_DEF`, DB-Regel) zieht mit dem Schalter mit. Fehlt sie, gilt „an“.
+  - **🔥 Pünktlich-Serie** (`choreStreak`):
+    - Jeder `pl`-Eintrag bekommt `late` (Tage über Fälligkeit, nur für den Eingeteilten).
+    - Wer eine fremde überfällige Aufgabe rettet, schreibt `miss: <Eingeteilter>` dazu.
+    - Die Serie bricht bei eigener Verspätung, bei `miss`, bei einer gerade überfälligen eigenen Aufgabe und bei alten Einträgen ohne `late`.
+    - Anzeige in Haushalt-Karte, Duell, Rückmeldung (ab 2) und Push (ab 3).
+  - Schalter aus heißt nur ausblenden: `late`/`miss` werden trotzdem geschrieben, deshalb stimmt die Serie nach dem Einschalten sofort.
+  - **Reihenfolge beim Deploy:** Die DB-Regeln (Feld `game` im Push-Eintrag) MÜSSEN vor der App live sein. Sonst lehnen die alten Regeln die ganze Push-Registrierung ab, weil `push/<gerät>` die Regel `$other: false` hat.
+  - **Sackgasse beim Bauen:** Inline-`node -e "…"` mit Backticks in Bash hat zweimal Text als Befehle ausgeführt (sogar `api/cron.js` als Shell-Skript). Folge waren leere Stellen in `cron.js`/Doku, sonst keine Schäden. Mehrzeilige Änderungen nur noch als Skriptdatei oder mit dem Editor.
+  - Verworfen (torbe gefragt): Abzeichen, Tausch-Anfrage, Retter-Bonuspunkt.
 - Der Haken läuft für beide Stellen (Putzplan und Haushalt-Karte) über `useChoreDone()`. Nie eine zweite Kopie bauen.
 
 ## Live & Deploy
@@ -83,6 +99,7 @@ node test/notify_api.mjs # Push-Endpunkt: Fremdlinks raus (auch „//…"), Brem
 node test/bkwatch.mjs   # Backup-Wächter: alte Sicherung → Tab-Punkt + Warnung, frische → nichts, Drossel 6 Std.
 node test/update.mjs    # „Neue Version": Hinweis, kein Neuladen mit offenem Formular, sonst Neuladen (eigener Port 8098)
 node test/putz.mjs     # Putz-Fairness: Gutschrift an den, der hakt; dran ist, wer seltener; Haushalt-Karte, Tab-Punkt, Vorlagen, Rückgängig
+node test/cron_duel.mjs # Montags-Push Wochen-Duell: Vorwoche Mo–So, Punkte-Fallbacks wie in der App, Gleichstand, nur montags, Typ game
 node test/csp_hash.mjs  # CSP-Hashes passen zu wgapp.html (+ Gegenproben) — ohne passende Hashes wäre die App blockiert
 npm run visual    # Screenshot-Harness: Handy/Tablet/Desktop + Tastatur-offen
 

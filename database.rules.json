@@ -57,6 +57,7 @@
             "settle":   { ".validate": "newData.isBoolean()" },
             "remind":   { ".validate": "newData.isBoolean()" },
             "board":    { ".validate": "newData.isBoolean()" },
+            "game":     { ".validate": "newData.isBoolean()" },
             "quiet":    { ".validate": "newData.isBoolean()" },
             "qs":       { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 23" },
             "qe":       { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 23" },

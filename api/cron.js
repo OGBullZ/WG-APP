@@ -120,6 +120,30 @@ function growCycleMessages(wg, todayMid) {
   return out;
 }
 
+// Wochen-Duell (montags): Einsatz-Punkte der Vorwoche Mo–So je Person — spiegelt choreWeek()/chorePts()
+// aus wgapp.html (beide zusammen ändern). todayMid = Berliner Tagesmitte; liefert null, wenn niemand etwas getan hat.
+function weekDuel(wg, todayMid) {
+  const users = toArray(wg.users);
+  if (users.length < 2) return null;
+  const from = new Date(todayMid); from.setDate(from.getDate() - ((from.getDay() + 6) % 7) - 7);
+  const to = new Date(from); to.setDate(to.getDate() + 7);
+  const byId = {}; toArray(wg.pt).forEach((t) => { if (t && t.id) byId[t.id] = t; });
+  const ptsOf = (l) => { const p = Number(l.pts || (byId[l.taskId] && byId[l.taskId].pts)); return [1, 2, 3].includes(p) ? p : 2; };
+  const score = users.map((u) => ({ name: u.name, n: toArray(wg.pl)
+    .filter((l) => l && l.userId === u.id && parseIso(l.date) >= from && parseIso(l.date) < to)
+    .reduce((s, l) => s + ptsOf(l), 0) }));
+  const [a, b] = score;
+  if (a.n + b.n === 0) return null;
+  const head = `${a.name} ${a.n} : ${b.n} ${b.name}`;
+  const win = a.n === b.n ? null : (a.n > b.n ? a : b);
+  const kw = `${from.getFullYear()}-${pad2(from.getMonth() + 1)}-${pad2(from.getDate())}`;
+  return {
+    title: 'Wochen-Duell',
+    body: win ? `👑 ${win.name} gewinnt die Woche — ${head}. Neue Woche, neues Glück!` : `🤝 Unentschieden — ${head}. Neue Woche, neues Glück!`,
+    tag: `duel-${kw}`,
+  };
+}
+
 function pad2(n) { return String(n).padStart(2, '0'); }
 function monthKeyOf(y, m) { return `${y}-${pad2(m)}`; }
 function prevMonth(y, m) { return m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 }; }
@@ -287,6 +311,9 @@ module.exports = async (req, res) => {
   const growMsgs = growCycleMessages(wg, todayMid);
   messages.push(...growMsgs);
 
+  // Montag: Ergebnis des Wochen-Duells. Typ „game" = Schalter „Spielelemente" im Gerät (fehlt er → an)
+  const duel = todayMid.getDay() === 1 ? weekDuel(wg, todayMid) : null;
+
   let sent = 0;
   if (messages.length) {
     const subs = await loadSubs(code);
@@ -295,10 +322,15 @@ module.exports = async (req, res) => {
       sent += r.sent;
     }
   }
+  if (duel) {
+    const subs = await loadSubs(code);
+    sent += (await sendToSubs(subs, duel, { type: 'game' })).sent;
+  }
 
-  res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, budWarns, grow: growMsgs.length, sent, backup, pruned });
+  res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, budWarns, grow: growMsgs.length, duel: duel ? 1 : 0, sent, backup, pruned });
 };
 
 // Für test/cron_grow.mjs — der Handler selbst bleibt der Default-Export (Vercel).
 module.exports.growCycleMessages = growCycleMessages;
 module.exports.GROW_PHASES = GROW_PHASES;
+module.exports.weekDuel = weekDuel;

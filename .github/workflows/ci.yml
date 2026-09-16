@@ -41,6 +41,7 @@ jobs:
           node test/bkwatch.mjs
           node test/update.mjs
           node test/putz.mjs
+          node test/cron_duel.mjs
           node test/csp_hash.mjs
           node test/visual.mjs
           kill $SRV 2>/dev/null || true
