@@ -116,6 +116,34 @@ Neue Listen-Keys (INIT + LIST_KEYS + DB-Regel, **Regeln vor der App ausrollen**)
   - Dazu Tippflächen: `.section-hdr .hit` und die Chips sind jetzt 40 px hoch.
 - **Sackgasse:** Die Vorrat-Karte war geschrieben, aber nicht eingesetzt. Aufgefallen ist das erst im Test (0 Knöpfe), nicht beim Bauen.
 
+## Extra (seit wg-v64, 2026-09-16 — torbe: alle 10 Ideen)
+
+Die Komponenten stehen gesammelt vor dem ALLTAG-Block (Block „EXTRA“). Neuer Listen-Key `zs` (Zählerstände), Gesamtbudget als `bud` mit id `total`.
+- **Schnell-Eingabe** (`QuickExpense`, `parseQuick`): „12,50 Pizza“ oder „Döner 8 Euro allein“. Die **erste Zahl** ist der Betrag, „allein/nur ich/für mich“ setzt `owedBy`. Die Kategorie kommt vom letzten Posten gleichen Namens, sonst über Supermarkt-Wörter → `food`. Diktat funktioniert über das Mikrofon der Tastatur.
+- **Preis-Gedächtnis** (`PriceHint` im Betrag-Schritt, nur Haushalt): „↺ Wie zuletzt“ + ▲/▼ ab 15 % Abweichung (Haushalt inkl. Archiv).
+- **Gesamtbudget** (`TotalBudget`): Balken im Haushalt. Der Cron warnt bei 80/100 % wie bei den Kategorien (`b.id === 'total'` zählt alle Posten).
+- **Einkaufs-Reihenfolge** (`ShopTurn`): Lebensmittel-Posten aus 30 Tagen. Dran ist, wer seltener eingekauft hat, bei Gleichstand der, der nicht zuletzt war.
+- **Pflanzen/Tier:** 4 zusätzliche Putzplan-Vorlagen.
+- **Heute** (`Heute`, Modul `heute`, Standard aus, Mehr → Module): zeigt Aufgaben, Abholung, Maschinen, Zahlungen, Ankündigungen, Nachrichten, Einkauf, Saldo und die Schnell-Eingabe.
+- **Zählerstände** (`MeterCard` in der Übersicht):
+  - Ablesungen `{kind,date,value}`; der Tarif steht als `{id:'cfg-<kind>', cfg:true, price, abschlag}`.
+  - Hochrechnung: Ø/Tag zwischen erster und letzter Ablesung × 365 × Preis − 12 × Abschlag.
+  - Am 1. erinnert der Cron (`meterReminder`, nur wenn schon abgelesen wurde).
+  - Außerdem steht dort, wie viele Besuche je Person diesen Monat angekündigt wurden (Idee 5).
+- **Kalender-Abo** (`api/ics.js`, `_wg.buildIcs`):
+  - Die App holt per POST `{code}` einen **abgeleiteten Schlüssel**: sha256(BACKUP_KEY|ics|code). Der WG-Code landet so nie bei Google/Apple, und nach einem Code-Wechsel ist der Link tot.
+  - Inhalt: Abholungen 12 Wochen voraus (Erinnerung um 19 Uhr am Vorabend, `TRIGGER:-PT300M`), Abwesenheiten, Ankündigungen, nächste Fälligkeit je Aufgabe.
+  - Format: RFC 5545 (CRLF, Maskierung, Faltung nach 75 Oktetts, ohne Mehrbyte-Zeichen zu trennen). Bremse 60 Abrufe / 10 Min.
+- **Darstellung** (`LookCard`, je Gerät `wg_theme` dark/light/auto, `wg_zoom` n/g/xg):
+  - Das Früh-Skript im `<head>` setzt `data-theme` und `zoom` vor dem ersten Bild.
+  - Hellmodus = Variablen-Block `[data-theme="light"]` mit dunkleren Akzenten. `--ink` ist die Schrift auf Akzentfarbe (dunkel bzw. weiß); dafür wurden alle `#0a120c` ersetzt außer Personen-/Kategorie-Hintergründe.
+  - **Feste Personen-/Kategorie-Farben** als Schrift dunkelt ein Attributselektor ab (`[style^="color: rgb(…)"]`, `[style*=" color: rgb(…)"]`). So bleiben die gespeicherten Farben unverändert.
+  - Prüfen mit `WG_THEME=light node test/_audit.mjs`, Stand 0 Befunde.
+- **Sackgassen:**
+  - Zweimal Escaping-Pannen: Regex-Backslashes in einem per Node-Template eingesetzten Code-Stück; `
+` im Heredoc wurde zur echten Zeile. Lösung: Code-Stücke als eigene Datei schreiben und per Skript einsetzen.
+  - Der erste Test auf die Schriftfarbe im Tab „Mehr“ fand nichts, weil dort keine Personenfarbe als Schrift vorkommt.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -146,6 +174,7 @@ node test/bkwatch.mjs   # Backup-Wächter: alte Sicherung → Tab-Punkt + Warnun
 node test/update.mjs    # „Neue Version": Hinweis, kein Neuladen mit offenem Formular, sonst Neuladen (eigener Port 8098)
 node test/putz.mjs     # Putz-Fairness: Gutschrift an den, der hakt; dran ist, wer seltener; Haushalt-Karte, Tab-Punkt, Vorlagen, Rückgängig
 node test/alltag.mjs      # Alltag: Vorrat, Kassenzettel, Waschtimer, Nachrichten, Reparaturen, Zahlung bestätigen, Müllabfuhr, Abwesend, Jahr, App-Kürzel
+node test/extra.mjs       # Extra: Schnell-Eingabe, Preis-Gedächtnis, Gesamtbudget, Einkaufs-Reihenfolge, Heute, Zähler, Kalender-Abo, Hell/Dunkel + Schrift
 node test/cron_alltag.mjs # Server-Hälfte (api/_wg.js): Abholrhythmus, Vorabend-Fälligkeit, Abwesenheit, Abend-Push, Sonntags-Überblick, Reparaturen, Jahr
 node test/cron_duel.mjs # Montags-Push Wochen-Duell: Vorwoche Mo–So, Punkte-Fallbacks wie in der App, Gleichstand, nur montags, Typ game
 node test/csp_hash.mjs  # CSP-Hashes passen zu wgapp.html (+ Gegenproben) — ohne passende Hashes wäre die App blockiert

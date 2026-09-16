@@ -19,12 +19,14 @@ const DEMO = {
 const browser = await chromium.launch();
 async function newCtx(opts) {
   const ctx = await browser.newContext(opts);
-  await ctx.addInitScript(([data, meId]) => {
+  await ctx.addInitScript(([data, meId, theme]) => {
     localStorage.setItem('wg_data', JSON.stringify(data));
     localStorage.setItem('wg_me', JSON.stringify(meId));
     localStorage.setItem('wg_modules', JSON.stringify({ grow:true, putz:true }));
+    // WG_THEME=light prüft den Hellmodus (Mehr → Darstellung)
+    if (theme) localStorage.setItem('wg_theme', JSON.stringify(theme));
     localStorage.setItem('wg_start_shown', JSON.stringify(new Date().toISOString().slice(0,10))); // Start-Flow aus (ls() JSON.parse't!)
-  }, [DEMO, 'u2']);
+  }, [DEMO, 'u2', process.env.WG_THEME || null]);
   await ctx.route('**/*', r => {
     const u = r.request().url();
     return (u.includes('firebasedatabase.app')||u.includes('firebaseio.com')||u.includes('googleapis.com')) ? r.abort() : r.continue();

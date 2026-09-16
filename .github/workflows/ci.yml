@@ -44,6 +44,7 @@ jobs:
           node test/cron_duel.mjs
           node test/alltag.mjs
           node test/cron_alltag.mjs
+          node test/extra.mjs
           node test/csp_hash.mjs
           node test/visual.mjs
           kill $SRV 2>/dev/null || true

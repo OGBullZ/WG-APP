@@ -69,10 +69,59 @@ check('23 teuerster Monat März', yr && /teuerster Monat: März \(300,00 €\)/.
 check('24 Putz-Punkte (Aufgabe 3, Eintrag 1)', yr && /Torben 3 P\. · Tom 1 P\./.test(yr.body));
 check('25 leeres Jahr → keine Push', W.yearReview({ users }, 2024) === null);
 
+// Zähler-Erinnerung (1. des Monats)
+check('28 Zähler: Erinnerung nur mit Ablesungen, Tarif-Einträge zählen nicht',
+  W.meterReminder({ zs: { a: { id: 'a', kind: 'strom', value: 1 }, c: { id: 'cfg-wasser', kind: 'wasser', cfg: true } } })?.body.includes('⚡ Strom') &&
+  !W.meterReminder({ zs: { a: { id: 'a', kind: 'strom', value: 1 } } }).body.includes('Wasser') &&
+  W.meterReminder({ zs: { c: { id: 'cfg-gas', kind: 'gas', cfg: true } } }) === null);
+
+// Kalender (RFC 5545)
+const ics = W.buildIcs({ ...wg, bo: { b: { id: 'b', kind: 'besuch', text: 'Eltern, Oma; Opa', date: '2026-09-18', by: 'u1' } } }, '2026-09-16', new Date(Date.UTC(2026, 8, 16, 10, 0, 0)));
+const lines = ics.split('\r\n');
+check('29 CRLF, Rahmen, Name', ics.endsWith('END:VCALENDAR\r\n') && lines[0] === 'BEGIN:VCALENDAR' && lines.includes('X-WR-CALNAME:WG') && !/[^\r]\n/.test(ics));
+check('30 Papier: Abholungen 12 Wochen (6 × alle 2 Wochen), Restmüll wöchentlich (12)', (ics.match(/SUMMARY:🔵 Papier-Abholung/g) || []).length === 6 && (ics.match(/SUMMARY:⚫ Restmüll-Abholung/g) || []).length === 12, String((ics.match(/Papier-Abholung/g) || []).length));
+check('31 Abholung mit Erinnerung am Vorabend (−300 Min.) als Ganztag', /DTSTART;VALUE=DATE:20260917\r\nDTEND;VALUE=DATE:20260918\r\nSUMMARY:🔵 Papier-Abholung\r\nTRANSP:TRANSPARENT\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:🔵 Papier-Abholung\r\nTRIGGER:-PT300M/.test(ics));
+check('32 Abwesenheit mit Ende+1 und Name', /DTSTART;VALUE=DATE:20260915\r\nDTEND;VALUE=DATE:20260919\r\nSUMMARY:✈️ Tom ist weg/.test(ics));
+check('33 Ankündigung: Komma/Semikolon maskiert', ics.includes('SUMMARY:🛋️ Besuch: Eltern\\, Oma\\; Opa (Torben)'));
+check('34 Aufgabe mit Fälligkeit und Wer (Abwesenheit beachtet)', /DTSTART;VALUE=DATE:20260916\r\nDTEND;VALUE=DATE:20260917\r\nSUMMARY:🧹 Papier raus – Torben/.test(ics) && /SUMMARY:🧹 Bad – Torben/.test(ics));
+check('35 keine Zeile über 75 Oktetts', lines.every(l => Buffer.byteLength(l) <= 75));
+check('36 DTSTAMP UTC', ics.includes('DTSTAMP:20260916T100000Z'));
+const folded = W.icsFold('SUMMARY:' + 'ä'.repeat(60));
+check('37 Falten trennt keine Mehrbyte-Zeichen', folded.split('\r\n ').join('') === 'SUMMARY:' + 'ä'.repeat(60) && folded.split('\r\n').every(l => Buffer.byteLength(l) <= 75));
+
+// /api/ics mit nachgebautem Server (fetch + Umgebung)
+process.env.BACKUP_KEY = 'k'.repeat(43); process.env.WG_CODE = 'BLAU-MOND-ABC234';
+const realFetch = globalThis.fetch;
+globalThis.fetch = async (u, o = {}) => {
+  const s = String(u);
+  if (s.includes('/cfg/code')) return new Response('null', { status: 200 });
+  if (s.includes('/rl/')) return new Response(o.method === 'PUT' ? '{}' : 'null', { status: 200 });
+  if (s.includes('/wg/BLAU-MOND-ABC234.json')) return new Response(JSON.stringify(wg), { status: 200 });
+  return new Response('null', { status: 404 });
+};
+const handler = require('../api/ics.js');
+const call = (method, { body, query } = {}) => new Promise((resolve) => {
+  const res = { h: {}, code: 0, setHeader(k, v) { this.h[k.toLowerCase()] = v; }, status(c) { this.code = c; return this; },
+    json(b) { resolve({ code: this.code, body: b, h: this.h }); }, send(b) { resolve({ code: this.code, body: b, h: this.h }); }, end() { resolve({ code: this.code, h: this.h }); } };
+  handler({ method, body, query: query || {} }, res);
+});
+const tok = await call('POST', { body: { code: 'BLAU-MOND-ABC234' } });
+check('38 POST mit richtigem Code → Schlüssel (32 Zeichen, nicht der Code)', tok.code === 200 && /^[\w-]{32}$/.test(tok.body.token) && !tok.body.token.includes('BLAU'), JSON.stringify(tok.body));
+check('39 POST mit falschem Code → 403', (await call('POST', { body: { code: 'ROT-SONNE-XYZ789' } })).code === 403);
+const got = await call('GET', { query: { t: tok.body.token } });
+check('40 GET mit Schlüssel → Kalender', got.code === 200 && /text\/calendar/.test(got.h['content-type']) && got.body.includes('BEGIN:VCALENDAR'));
+check('41 GET mit falschem/fehlendem Schlüssel → 404', (await call('GET', { query: { t: 'x'.repeat(32) } })).code === 404 && (await call('GET')).code === 404);
+process.env.WG_CODE = 'NEU-CODE-QRS234';
+check('42 nach Code-Wechsel gilt der alte Schlüssel nicht mehr', (await call('GET', { query: { t: tok.body.token } })).code === 404);
+delete process.env.BACKUP_KEY;
+check('43 ohne BACKUP_KEY → 503 (laut)', (await call('GET', { query: { t: tok.body.token } })).code === 503);
+globalThis.fetch = realFetch;
+
 // Verdrahtung
 const cron = readFileSync(new URL('../api/cron.js', import.meta.url), 'utf8');
 const vj = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
 check('26 Morgen-Job nutzt taskDueIn/taskWho, Reparaturen, Jahr am 1.1.', /taskDueIn\(t, wg, todayIso\)/.test(cron) && /taskWho\(/.test(cron) && /repairReminders\(wg, todayIso\)/.test(cron) && /m === 1 && d === 1 \? yearReview\(wg, y - 1\)/.test(cron));
+check('26b Gesamtbudget zählt alle Posten, Zähler-Erinnerung am 1.', /b\.id === 'total' \|\| i\.cat === b\.id/.test(cron) && /d === 1 \? meterReminder\(wg\)/.test(cron));
 check('27 Abend-Job in vercel.json', vj.crons.some(c => c.path === '/api/evening'));
 
 console.log(pass.map(p => '  OK  ' + p).join('\n'));

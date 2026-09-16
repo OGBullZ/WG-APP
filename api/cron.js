@@ -13,7 +13,7 @@
 
 const { loadSubs, sendToSubs, DB_BASE } = require('./_push');
 const { hasKey, currentCode, writeSnapshot, listSnapshots, pruneSnapshots, berlinParts } = require('./_sv');
-const { taskDueIn, taskWho, repairReminders, yearReview, isoOf } = require('./_wg');
+const { taskDueIn, taskWho, repairReminders, yearReview, meterReminder, isoOf } = require('./_wg');
 
 function berlinTodayParts() {
   const fmt = new Intl.DateTimeFormat('en-CA', {
@@ -272,14 +272,14 @@ module.exports = async (req, res) => {
 
   // Kategorie-Budgets: 80/100 %-Warnung, einmal pro Monat+Kategorie+Stufe (Marker budSent).
   // Nur echte hs-Kategorie-Treffer zählen (Posten ohne cat laufen in kein Budget).
-  const CAT_LABELS = { food: 'Lebensmittel', home: 'Haushalt', fun: 'Freizeit', fix: 'Fixkosten', other: 'Sonstiges' };
+  const CAT_LABELS = { total: 'Haushalt gesamt', food: 'Lebensmittel', home: 'Haushalt', fun: 'Freizeit', fix: 'Fixkosten', other: 'Sonstiges' };
   let budWarns = 0;
   const buds = toArray(wg.bud).filter((b) => b && b.id && Number(b.limit) > 0);
   if (buds.length) {
     const ymKey = monthKeyOf(y, m);
     const sentMarks = wg.budSent || {};
     for (const b of buds) {
-      const spent = hs.filter((i) => String(i.date || '').startsWith(ymKey) && i.cat === b.id)
+      const spent = hs.filter((i) => String(i.date || '').startsWith(ymKey) && (b.id === 'total' || i.cat === b.id))   // total = alle Posten
         .reduce((s, i) => s + (Number(i.price) || 0), 0);
       const limit = Number(b.limit);
       const level = spent >= limit ? 100 : spent >= limit * 0.8 ? 80 : 0;
@@ -309,6 +309,9 @@ module.exports = async (req, res) => {
   // 1. Januar: Jahresrückblick aufs Vorjahr
   const yearMsg = m === 1 && d === 1 ? yearReview(wg, y - 1) : null;
   if (yearMsg) messages.push(yearMsg);
+  // 1. des Monats: Zähler ablesen (nur wenn schon einmal abgelesen wurde)
+  const meterMsg = d === 1 ? meterReminder(wg) : null;
+  if (meterMsg) messages.push(meterMsg);
 
   // Growbox: Gießen fällig + Phase rechnerisch durch
   const growMsgs = growCycleMessages(wg, todayMid);
@@ -331,7 +334,7 @@ module.exports = async (req, res) => {
     sent += (await sendToSubs(subs.filter((s) => s && s.game === true), duel)).sent;
   }
 
-  res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, budWarns, grow: growMsgs.length, duel: duel ? 1 : 0, repairs: repairMsgs.length, year: yearMsg ? 1 : 0, sent, backup, pruned });
+  res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, budWarns, grow: growMsgs.length, duel: duel ? 1 : 0, repairs: repairMsgs.length, year: yearMsg ? 1 : 0, meter: meterMsg ? 1 : 0, sent, backup, pruned });
 };
 
 // Für test/cron_grow.mjs — der Handler selbst bleibt der Default-Export (Vercel).

@@ -30,6 +30,16 @@
    Gefiltert: Browser-Erweiterungen und fremde Skripte, „Script error." (keine Details), ResizeObserver-Rauschen,
    Wiederholungen derselben Meldung innerhalb einer Minute. */
 (function () {
+  // Darstellung (Mehr → Darstellung) sofort anwenden — gleiche Logik wie applyLook() in der App
+  try {
+    var th = JSON.parse(localStorage.getItem('wg_theme') || '"dark"'), zm = JSON.parse(localStorage.getItem('wg_zoom') || '"n"');
+    var light = th === 'light' || (th === 'auto' && window.matchMedia('(prefers-color-scheme: light)').matches);
+    document.documentElement.setAttribute('data-theme', light ? 'light' : 'dark');
+    if (zm === 'g' || zm === 'xg') document.documentElement.style.zoom = zm === 'g' ? '1.12' : '1.25';
+    if (light) document.querySelector('meta[name="theme-color"]').setAttribute('content', '#f4f7f5');
+  } catch (e) {}
+})();
+(function () {
   // Wiederholungssperre im Speicher, NICHT über die Warteschlange: die wird beim Übertragen geleert,
   // danach kam dieselbe Meldung sonst doppelt an (per Test gefunden).
   var seen = {};
@@ -99,7 +109,42 @@
   --safe-bot:    env(safe-area-inset-bottom, 24px);
   --disp:        'Unbounded', sans-serif;
   --mono:        'Spline Sans Mono', monospace;
+  --ink:         #0a120c;   /* Schrift auf Akzentfarben — im Hellmodus weiß */
 }
+/* ── Hellmodus (Mehr → Darstellung): dunklere Akzente, damit Text auf Weiß UND weiße Schrift auf Akzent AA erreichen ── */
+[data-theme="light"] {
+  color-scheme: light;
+  --bg:#f4f7f5; --bg2:rgba(255,255,255,.96); --bg3:#e6ece8; --bg4:rgba(0,0,0,.05);
+  --card:linear-gradient(160deg, #ffffff, #f8faf9); --border:rgba(0,0,0,.10); --shadow:0 12px 32px rgba(0,0,0,.08);
+  --label:#0b1510; --label2:rgba(11,21,16,.76); --label3:rgba(11,21,16,.66); --label4:rgba(11,21,16,.64); --sep:rgba(0,0,0,.09);
+  --lime:#3f6212; --mint:#0f766e; --violet:#6d28d9; --indigo:#4338ca; --red:#be123c; --green:#166534; --amber:#9a4a06; --sky:#0369a1;
+  --ink:#ffffff;
+}
+[data-theme="light"] body::before { opacity:.35; }
+[data-theme="light"] body::after { opacity:.02; }
+[data-theme="light"] .navbar { background:rgba(244,247,245,.85); }
+[data-theme="light"] .tabbar { background:rgba(250,252,251,.9); border-top-color:rgba(0,0,0,.08); }
+[data-theme="light"] .sheet { background:rgba(252,253,252,.98); }
+[data-theme="light"] .toast, [data-theme="light"] .undo-toast { background:rgba(255,255,255,.96); box-shadow:0 8px 24px rgba(0,0,0,.12); }
+[data-theme="light"] .field { background:#fff; border-color:rgba(0,0,0,.14); }
+[data-theme="light"] .overlay { background:rgba(0,0,0,.35); }
+[data-theme="light"] .moved-banner { background:#fff1f2; }
+[data-theme="light"] .upd-banner { background:#ecfdf5; }
+[data-theme="light"] .btn-sec { background:#e6ece8; color:var(--label); }
+/* Feste Personen-/Kategorie-Farben (Daten, nicht Variablen) als SCHRIFT abdunkeln — nur die Eigenschaft `color`:
+   „^color" bzw. „ color" (mit Leerzeichen) trifft weder border-color noch background. Gespeicherte Farben bleiben unverändert. */
+[data-theme="light"] [style^="color: rgb(56, 189, 248)"], [data-theme="light"] [style*=" color: rgb(56, 189, 248)"] { color:#0369a1 !important; }
+[data-theme="light"] [style^="color: rgb(74, 222, 128)"], [data-theme="light"] [style*=" color: rgb(74, 222, 128)"] { color:#166534 !important; }
+[data-theme="light"] [style^="color: rgb(129, 140, 248)"], [data-theme="light"] [style*=" color: rgb(129, 140, 248)"] { color:#4338ca !important; }
+[data-theme="light"] [style^="color: rgb(251, 191, 36)"], [data-theme="light"] [style*=" color: rgb(251, 191, 36)"] { color:#92400e !important; }
+[data-theme="light"] [style^="color: rgb(251, 113, 133)"], [data-theme="light"] [style*=" color: rgb(251, 113, 133)"] { color:#be123c !important; }
+[data-theme="light"] [style^="color: rgb(236, 72, 153)"], [data-theme="light"] [style*=" color: rgb(236, 72, 153)"] { color:#9d174d !important; }
+[data-theme="light"] [style^="color: rgb(196, 181, 253)"], [data-theme="light"] [style*=" color: rgb(196, 181, 253)"] { color:#6d28d9 !important; }
+[data-theme="light"] [style^="color: rgb(94, 234, 212)"], [data-theme="light"] [style*=" color: rgb(94, 234, 212)"] { color:#0f766e !important; }
+[data-theme="light"] [style^="color: rgb(250, 204, 21)"], [data-theme="light"] [style*=" color: rgb(250, 204, 21)"] { color:#854d0e !important; }
+[data-theme="light"] [style^="color: rgb(163, 230, 53)"], [data-theme="light"] [style*=" color: rgb(163, 230, 53)"] { color:#3f6212 !important; }
+[data-theme="light"] [style^="color: rgb(167, 139, 250)"], [data-theme="light"] [style*=" color: rgb(167, 139, 250)"] { color:#6d28d9 !important; }
+[data-theme="light"] [style^="color: rgb(148, 163, 184)"], [data-theme="light"] [style*=" color: rgb(148, 163, 184)"] { color:#475569 !important; }
 *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
 html,body,#root { min-height:100%; height:100%; }
 body {
@@ -227,7 +272,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 .err-row { align-items:flex-start; }
 /* Hinweis „Neue Version" — gleiche Stelle wie der Code-Hinweis, aber freundlich (mint) */
 .upd-banner { background:rgba(12,40,34,.94); border-color:rgba(94,234,212,.45); }
-.upd-banner button { background:var(--mint); color:#0a120c; }
+.upd-banner button { background:var(--mint); color:var(--ink); }
 /* Größere Tippflächen ohne sichtbare Änderung: unsichtbarer Rand per ::after (Apple empfiehlt 44 px; viele kleine
    Text- und Symbol-Knöpfe hatten 26–36 px). Nur vertikal, wo Knöpfe dicht nebeneinander stehen (Chips, Segmente). */
 .cell > button, .section-hdr button, .sheet-hdr button, .del-btn, .chk-btn, .hit { position:relative; }
@@ -311,7 +356,7 @@ button.cell { color:var(--label); }
 .btn {
   width:100%; height:54px; border:none; border-radius:17px;
   font-size:16px; font-weight:800; letter-spacing:0;
-  color:#0a120c; transition:transform .15s ease, box-shadow .25s ease, filter .2s ease;
+  color:var(--ink); transition:transform .15s ease, box-shadow .25s ease, filter .2s ease;
 }
 .btn:active { transform:scale(.97); filter:brightness(1.1); }
 .btn-sec { background:rgba(255,255,255,.07); color:var(--label); font-weight:700; box-shadow:none; }
@@ -323,11 +368,11 @@ button.cell { color:var(--label); }
   font-size:11px; font-weight:700; font-family:inherit; letter-spacing:-.01em;
   background:var(--bg3); color:var(--label2); transition:background .2s ease, color .2s ease;
 }
-.phase-chip.on { background:var(--lime); color:#0a120c; font-weight:800; }
+.phase-chip.on { background:var(--lime); color:var(--ink); font-weight:800; }
 .phase-chip .em { font-size:15px; line-height:1; }
 .mini-btn {
   min-height:44px; padding:0 14px; border-radius:13px; border:none; flex-shrink:0;
-  font-size:13.5px; font-weight:800; font-family:inherit; color:#0a120c; background:var(--lime);
+  font-size:13.5px; font-weight:800; font-family:inherit; color:var(--ink); background:var(--lime);
   transition:transform .15s ease, filter .2s ease;
 }
 .mini-btn:active { transform:scale(.95); filter:brightness(1.1); }
@@ -842,7 +887,8 @@ const INIT = {
   bo:     [],
   ls:     [],
   err:    [],   // Fehlerprotokoll der Geräte (max. 30, s. Früh-Skript im <head> + drainErr)
-  vr: [], mk: [], aw: [], wt: [], pr: [], qm: [], rp: [],   // Alltag (wg-v62): Vorrat, Müllabfuhr, Abwesend, Waschtimer, Zahlung bestätigen, Nachrichten, Reparaturen
+  vr: [], mk: [], aw: [], wt: [], pr: [], qm: [], rp: [],
+  zs: [],   // Zählerstände (wg-v64): Ablesungen + Tarif je Zähler (cfg-<kind>)   // Alltag (wg-v62): Vorrat, Müllabfuhr, Abwesend, Waschtimer, Zahlung bestätigen, Nachrichten, Reparaturen
 };
 const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
 
@@ -854,7 +900,7 @@ const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
    slh = Einkaufslisten-Historie (id=Slug, n=Kaufzähler), gh = Ernte-Log, bud = Kategorie-Budgets (id=Cat-Key),
    gz = Grow-Zyklen {start, phase, pAt, wiv, lastW, lastWBy, wn, end} — offen ist der ohne `end`.
    ls = Login-Freigaben {svc, by, ts, exp, view, s, iv, ct, it} — nur Chiffretext, s. LOGIN_*. */
-const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz','bo','ls','err','vr','mk','aw','wt','pr','qm','rp'];
+const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz','bo','ls','err','vr','mk','aw','wt','pr','qm','rp','zs'];
 const isListKey = k => LIST_KEYS.includes(k);
 /* WG-Board (Key `bo`): kurze Ankündigungen zwischen den zwei Bewohnern — reine Info + Sofort-Push,
    keine Kostenrelevanz. Einträge mit Datum, laufen nach dem Tag automatisch aus der Anzeige. */
@@ -988,7 +1034,7 @@ const canonSer = v => JSON.stringify(v, (key, val) =>
 ════════════════════════════ */
 const Ctx = createContext(null);
 
-const MOD_DEF = { haus:true, grow:true, putz:true, fin:true, abos:false, stats:true, game:false };   // game = 👑 Duell + 🔥 Serie (kein Tab), Standard aus — nur wer will, spielt mit
+const MOD_DEF = { heute:false, haus:true, grow:true, putz:true, fin:true, abos:false, stats:true, game:false };   // game = 👑 Duell + 🔥 Serie (kein Tab), Standard aus — nur wer will, spielt mit
 
 /* Einmalige Migration: `wg_modules` speichert bei jedem Toggle den VOLLEN Snapshot,
    auf Bestandsgeräten steht dort also fin:false und würde den neuen Default schlagen.
@@ -1601,7 +1647,7 @@ function GlobalUI() {
             )}
             <div className="sheet-acts">
               <button className="btn btn-sec" onClick={()=>closeConfirm(false)}>{confirmReq.cancelLabel||'Abbrechen'}</button>
-              <button className="btn" style={{background:confirmReq.danger?'var(--red)':'var(--lime)',color:confirmReq.danger?'#fff':'#0a120c'}} onClick={()=>closeConfirm(true)}>
+              <button className="btn" style={{background:confirmReq.danger?'var(--red)':'var(--lime)',color:confirmReq.danger?'#fff':'var(--ink)'}} onClick={()=>closeConfirm(true)}>
                 {confirmReq.okLabel||'OK'}
               </button>
             </div>
@@ -1624,6 +1670,7 @@ const ICONS = {
   bolt:     'M13 2L3 14h7l-1 8 10-12h-7l1-8z',
   sparkle:  'M12 3l1.9 4.6 4.6 1.9-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3zM19 14.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8.8-1.9z',
   chart:    'M4 20h16M7 20v-6M12 20V8M17 20v-9',
+  sun:      'M12 17a5 5 0 100-10 5 5 0 000 10zM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4',
 };
 const Ic = ({d,color='currentColor',size=25,sw=1.7}) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
@@ -1766,7 +1813,7 @@ function Wiz({ open, onClose, title, color, steps, onFinish, initial, quickOk, q
         )}
         <div className="sheet-acts">
           {step>0&&<button className="btn btn-sec" onClick={()=>setStep(s=>s-1)}>Zurück</button>}
-          <button className="btn" style={{background:ok?color:'var(--bg3)',color:ok?'#0a120c':'var(--label3)',boxShadow:ok?`0 12px 32px ${'rgba(0,0,0,.3)'}`:'none'}} onClick={next}>
+          <button className="btn" style={{background:ok?color:'var(--bg3)',color:ok?'var(--ink)':'var(--label3)',boxShadow:ok?`0 12px 32px ${'rgba(0,0,0,.3)'}`:'none'}} onClick={next}>
             {last?'Fertig':'Weiter'}
           </button>
         </div>
@@ -2064,7 +2111,7 @@ function LoginShare() {
                     {saved.map(x=>(
                       <button key={x.id} onClick={()=>setForm(f=>({...f,svc:x.svc,u:x.u,p:x.p,remember:true}))}
                         style={{flexShrink:0,whiteSpace:'nowrap',padding:'8px 13px',borderRadius:11,border:'none',fontFamily:'inherit',fontWeight:700,fontSize:12.5,cursor:'pointer',
-                          background:form.svc===x.svc?'var(--indigo)':'var(--bg3)',color:form.svc===x.svc?'#0a120c':'var(--label2)'}}>{x.svc}</button>
+                          background:form.svc===x.svc?'var(--indigo)':'var(--bg3)',color:form.svc===x.svc?'var(--ink)':'var(--label2)'}}>{x.svc}</button>
                     ))}
                   </div>
                 )}
@@ -2094,7 +2141,7 @@ function LoginShare() {
               <div className="sheet-acts">
                 <button className="btn btn-sec" style={{flex:1}} onClick={closeForm}>Abbrechen</button>
                 <button className="btn" disabled={!formOk||busy} onClick={create}
-                  style={{background:'var(--indigo)',color:'#0a120c',flex:1,whiteSpace:'nowrap',opacity:formOk&&!busy?1:.45,cursor:formOk&&!busy?'pointer':'default'}}>
+                  style={{background:'var(--indigo)',color:'var(--ink)',flex:1,whiteSpace:'nowrap',opacity:formOk&&!busy?1:.45,cursor:formOk&&!busy?'pointer':'default'}}>
                   {busy?'Verschlüssele …':'Code erzeugen'}
                 </button>
               </div>
@@ -2109,7 +2156,7 @@ function LoginShare() {
                 <div style={{fontSize:12,color:'var(--label3)'}}>Der Code wird nur jetzt angezeigt.</div>
               </div>
               <div className="sheet-acts" style={{flexDirection:'column'}}>
-                <button className="btn" style={{background:'var(--indigo)',color:'#0a120c'}} onClick={sendPush}>{copied==='push'?'✓ Push gesendet':`🔔 Per Push an ${other}`}</button>
+                <button className="btn" style={{background:'var(--indigo)',color:'var(--ink)'}} onClick={sendPush}>{copied==='push'?'✓ Push gesendet':`🔔 Per Push an ${other}`}</button>
                 <div style={{display:'flex',gap:10}}>
                   <button className="btn btn-sec" style={{flex:1}} onClick={()=>copy('code', codeMsg(made))}>{copied==='code'?'✓ Kopiert':'📋 Kopieren'}</button>
                   {typeof navigator.share==='function' && <button className="btn btn-sec" style={{flex:1}} onClick={shareCode}>📤 Teilen</button>}
@@ -2140,7 +2187,7 @@ function LoginShare() {
             <div className="sheet-acts">
               <button className="btn btn-sec" style={{flex:1}} onClick={()=>!busy&&setRedeem(null)}>Abbrechen</button>
               <button className="btn" disabled={normLoginCode(code).length!==8||busy} onClick={doRedeem}
-                style={{background:'var(--indigo)',color:'#0a120c',flex:1,whiteSpace:'nowrap',opacity:normLoginCode(code).length===8&&!busy?1:.45}}>
+                style={{background:'var(--indigo)',color:'var(--ink)',flex:1,whiteSpace:'nowrap',opacity:normLoginCode(code).length===8&&!busy?1:.45}}>
                 {busy?'Prüfe …':'🔓 Öffnen'}
               </button>
             </div>
@@ -2190,6 +2237,350 @@ function LoginShare() {
 }
 
 /* ══════════════════════════
+   EXTRA (seit wg-v64): Preis-Gedächtnis, Gesamtbudget, Einkaufs-Reihenfolge, Schnell-Eingabe,
+   Kalender-Abo, Zählerstände (+ Besuch je Monat), Heute-Seite, Darstellung (Hell/Dunkel, Schriftgröße)
+══════════════════════════ */
+
+// Haushalt-Posten inkl. Archiv (für Preis-Gedächtnis, Budget, Einkaufs-Reihenfolge)
+const hsAll = D => [...(D.hs||[]), ...(D.arc||[]).filter(a=>a && a.src==='hs')].filter(Boolean);
+
+/* ── Preis-Gedächtnis: letzter Preis gleichen Namens + Hinweis bei ≥ 15 % Abweichung ── */
+const priceLast = (D, name) => {
+  const n = String(name||'').trim().toLowerCase(); if (!n) return null;
+  return hsAll(D).filter(i=>String(i.name||'').trim().toLowerCase()===n && i.price>0)
+    .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0] || null;
+};
+function PriceHint({ name, price, onPick }) {
+  const { D } = useD();
+  const last = priceLast(D, name);
+  if (!last) return null;
+  const p = parseNum(price), jump = p>0 ? (p - last.price)/last.price : 0;
+  return (
+    <div data-testid="price-hint" style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',fontSize:12.5,color:'var(--label2)'}}>
+      <button type="button" style={chipSt(false)} onClick={()=>onPick(String(last.price.toFixed(2)).replace('.',','))}>↺ Wie zuletzt: €{fmt(last.price)}</button>
+      <span>am {fmtDate(last.date)}</span>
+      {Math.abs(jump)>=0.15 && <b data-testid="price-jump" style={{color:jump>0?'var(--red)':'var(--green)'}}>{jump>0?'▲':'▼'} {Math.round(Math.abs(jump)*100)} % {jump>0?'teurer':'günstiger'} als zuletzt</b>}
+    </div>
+  );
+}
+
+/* ── Gesamtbudget je Monat (Key `bud`, id 'total') — Cron warnt bei 80/100 % wie bei den Kategorien ── */
+function TotalBudget() {
+  const { D, setFn } = useD();
+  const [open,setOpen] = useState(false);
+  const [val,setVal] = useState('');
+  const lim = Number((D.bud||[]).find(x=>x && x.id==='total')?.limit) || 0;
+  const ym = todayISO().slice(0,7);
+  const spent = hsAll(D).filter(i=>ymOf(i.date)===ym).reduce((s,i)=>s+(Number(i.price)||0),0);
+  const save = () => { const l = parseNum(val)||0; setFn('bud', cur=>{ const x=(cur||[]).filter(y=>y && y.id!=='total'); return l>0 ? [...x,{ id:'total', limit:l }] : x; }); setOpen(false); };
+  const pct = lim ? spent/lim : 0;
+  const now = new Date(), daysLeft = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate() - now.getDate();
+  const col = pct>=1 ? 'var(--red)' : pct>=0.8 ? 'var(--amber)' : 'var(--mint)';
+  return (
+    <>
+      {lim ? (
+        <button className="group rise" data-testid="total-budget" onClick={()=>{ setVal(String(lim).replace('.',',')); setOpen(true); }}
+          style={{padding:'12px 14px',textAlign:'left',width:'100%',cursor:'pointer',fontFamily:'inherit',color:'var(--label)',display:'flex',flexDirection:'column',gap:8}}>
+          <span style={{display:'flex',justifyContent:'space-between',gap:8,fontSize:13.5,fontWeight:700}}>
+            <span>🎯 Monatsbudget Haushalt</span><span className="num" style={{color:col}}>€{fmt(spent)} / €{fmt(lim)}</span>
+          </span>
+          <span style={{height:6,borderRadius:3,background:'var(--bg3)',overflow:'hidden'}}><span style={{display:'block',height:'100%',width:`${Math.min(100,pct*100)}%`,background:col}}/></span>
+          <span style={{fontSize:12,color:'var(--label2)'}}>{pct>=1 ? `€${fmt(spent-lim)} drüber` : `noch €${fmt(lim-spent)} für ${daysLeft} Tag${daysLeft===1?'':'e'}`}</span>
+        </button>
+      ) : (
+        <button className="hit rise" data-testid="total-budget-set" onClick={()=>{ setVal(''); setOpen(true); }}
+          style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,padding:'9px 14px',borderRadius:12,border:'none',background:'var(--bg3)',color:'var(--label2)',fontWeight:600,fontSize:13,fontFamily:'inherit',cursor:'pointer'}}>
+          🎯 Monatsbudget festlegen
+        </button>
+      )}
+      <MiniSheet open={open} onClose={()=>setOpen(false)} title="Monatsbudget" color="var(--mint)">
+        <div className="sheet-sublbl">Wie viel darf der Haushalt im Monat kosten (beide zusammen)?</div>
+        <div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" aria-label="Monatsbudget" value={val} onChange={e=>setVal(e.target.value)}/></div>
+        <button className="btn" style={{background:'var(--mint)'}} onClick={save}>{parseNum(val)>0 ? 'Speichern' : 'Budget entfernen'}</button>
+      </MiniSheet>
+    </>
+  );
+}
+
+/* ── Einkaufs-Reihenfolge: wer war zuletzt einkaufen (Lebensmittel-Posten, 30 Tage) ── */
+function ShopTurn() {
+  const { D, me } = useD();
+  const users = D.users || [];
+  if (users.length < 2) return null;
+  const cut = shiftISO(todayISO(), -30);
+  const buys = hsAll(D).filter(i=>i.cat==='food' && String(i.date||'')>=cut);
+  if (!buys.length) return null;
+  const cnt = users.map(u=>({ ...u, n:buys.filter(i=>i.paidBy===u.id).length }));
+  const last = [...buys].sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
+  const lu = users.find(u=>u.id===last.paidBy);
+  const next = cnt[0].n===cnt[1].n ? users.find(u=>u.id!==last.paidBy) : [...cnt].sort((a,b)=>a.n-b.n)[0];
+  const ago = daysSince(last.date);
+  return (
+    <div className="rise" data-testid="shop-turn" style={{fontSize:12.5,color:'var(--label2)',lineHeight:1.5,padding:'0 4px'}}>
+      🛒 Zuletzt eingekauft: <b style={{color:lu?.color}}>{lu?.id===me?'du':lu?.name}</b> ({ago===0?'heute':ago===1?'gestern':`vor ${ago} Tagen`}) · 30 Tage {cnt.map((c,i)=><React.Fragment key={c.id}>{i>0?' : ':''}<b style={{color:c.color}}>{c.n}</b></React.Fragment>)}
+      {next && <> → <b style={{color:next.color}}>{next.id===me?'du bist':`${next.name} ist`} dran</b></>}
+    </div>
+  );
+}
+
+/* ── Schnell-Eingabe: „12,50 Pizza", „Döner 8 Euro allein" → Ausgabe (ich zahle, 50/50 bzw. allein) ── */
+const parseQuick = txt => {
+  let s = ' ' + String(txt||'').replace(/€/g,' ').trim() + ' ';
+  const alone = /\s(allein|nur ich|für mich)\s/i.test(s);
+  s = s.replace(/\s(allein|nur ich|für mich)(?=\s)/ig, ' ');
+  const m = s.match(/\s(\d+(?:[.,]\d{1,2})?)(?=\s)/);
+  if (!m) return null;
+  const price = parseNum(m[1]);
+  const name = (s.slice(0, m.index) + ' ' + s.slice(m.index + m[0].length)).replace(/\s(euros?|eur)(?=\s)/ig, ' ').replace(/\s+/g,' ').trim();
+  return price > 0 ? { price, name: name || 'Einkauf', alone } : null;
+};
+const SHOP_RE = /einkauf|lidl|aldi|rewe|edeka|netto|penny|kaufland|supermarkt|lebensmittel/i;
+function QuickExpense() {
+  const { D, setFn, me, notifyOthers, undo } = useD();
+  const [txt,setTxt] = useState('');
+  const q = parseQuick(txt), users = D.users || [];
+  if (!me) return null;
+  const save = () => {
+    if (!q) return;
+    const cat = priceLast(D, q.name)?.cat || (SHOP_RE.test(q.name) ? 'food' : null);
+    const it = { id:uid(), name:q.name, price:q.price, paidBy:me, date:todayISO(), owedBy:q.alone?me:null, cat, settled:false };
+    setFn('hs', cur=>[it, ...(cur||[])]);
+    notifyOthers(`💸 ${nameOfU(users, me)} hat ${fmt(q.price)} € eingetragen`, q.name, 'wg-exp', 'exp');
+    undo(`💸 „${q.name}" €${fmt(q.price)} eingetragen`, ()=>setFn('hs', cur=>cur.filter(i=>i.id!==it.id)));
+    setTxt('');
+  };
+  return (
+    <form className="rise" data-testid="quick-expense" onSubmit={e=>{e.preventDefault();save();}} style={{display:'flex',flexDirection:'column',gap:6}}>
+      <div style={{display:'flex',gap:8}}>
+        <input className="field" maxLength={80} placeholder="⚡ Schnell: „12,50 Pizza“" aria-label="Ausgabe in einem Satz" value={txt} onChange={e=>setTxt(e.target.value)} style={{flex:1}}/>
+        <button type="submit" className="btn" style={{width:'auto',padding:'0 16px',flexShrink:0,background:q?'var(--mint)':'var(--bg3)',color:q?'var(--ink)':'var(--label2)'}}>Eintragen</button>
+      </div>
+      {txt.trim() && (
+        <div data-testid="quick-preview" style={{fontSize:12,color:q?'var(--label2)':'var(--red)',padding:'0 4px'}}>
+          {q ? `→ ${q.name} · €${fmt(q.price)} · du zahlst · ${q.alone?'nur für dich':'50/50'}` : 'Betrag fehlt – z. B. „12,50 Pizza“ (Mikrofon der Tastatur geht auch)'}
+        </div>
+      )}
+    </form>
+  );
+}
+
+/* ── Kalender-Abo: /api/ics liefert Müllabfuhr, Abwesenheiten, Ankündigungen und nächste Aufgaben als .ics.
+   Der Link enthält einen vom WG-Code abgeleiteten Schlüssel (nicht den Code) — nach „WG-Code wechseln" neu erzeugen. ── */
+function CalendarCard() {
+  const { wgCode } = useD();
+  const saved = ls('wg_ics', null);
+  const [tok,setTok] = useState(saved && saved.code===wgCode ? saved.token : null);
+  const [busy,setBusy] = useState(false);
+  const [msg,setMsg] = useState('');
+  const url = tok ? `${PUSH_API}/api/ics?t=${tok}` : '';
+  const make = async () => {
+    setBusy(true); setMsg('');
+    try {
+      const r = await fetch(PUSH_API + '/api/ics', { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ code:wgCode }) });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok || !j.token) throw new Error(j.error || `Fehler ${r.status}`);
+      ss('wg_ics', { code:wgCode, token:j.token }); setTok(j.token);
+    } catch (e) { setMsg(`Link konnte nicht erzeugt werden (${e.message}).`); }
+    setBusy(false);
+  };
+  const copy = async () => { setMsg(await copyTxt(url) ? 'Link kopiert ✓ – in Google Kalender unter „Per URL hinzufügen" einfügen.' : 'Kopieren ging nicht – Link bitte markieren.'); };
+  return (
+    <div className="rise" data-testid="calendar-card" style={{animationDelay:'128ms'}}>
+      <div className="section-hdr">📅 Kalender-Abo</div>
+      <div className="group" style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:10}}>
+        <span style={{fontSize:13,color:'var(--label2)',lineHeight:1.45}}>Müllabfuhr (mit Erinnerung am Vorabend), Abwesenheiten, Ankündigungen und die nächsten Putz-Aufgaben im Handy-Kalender – klappt auch, wenn die App zu ist.</span>
+        {!tok ? (
+          <button className="btn" data-testid="ics-make" style={{background:'var(--sky)'}} disabled={busy||!wgCode} onClick={make}>{busy?'…':'Kalender-Link erzeugen'}</button>
+        ) : (
+          <>
+            <a className="btn" data-testid="ics-open" href={url.replace(/^https:/,'webcal:')} style={{background:'var(--sky)',color:'var(--ink)',display:'flex',alignItems:'center',justifyContent:'center',textDecoration:'none'}}>Im Kalender abonnieren</a>
+            <button className="btn btn-sec" onClick={copy}>Link kopieren (Google Kalender)</button>
+            <code data-testid="ics-url" style={{fontSize:11,color:'var(--label2)',wordBreak:'break-all',userSelect:'all'}}>{url}</code>
+          </>
+        )}
+        {msg && <span style={{fontSize:12.5,color:'var(--label2)'}}>{msg}</span>}
+        <span style={{fontSize:11.5,color:'var(--label2)'}}>Wer den Link hat, sieht diese Termine. Nach „WG-Code wechseln“ gilt er nicht mehr.</span>
+      </div>
+    </div>
+  );
+}
+
+/* ── Zählerstände (Key `zs`): Ablesungen {kind,date,value}; Einstellung je Zähler {id:'cfg-<kind>', cfg:true, price, abschlag}.
+   Hochrechnung: Ø Verbrauch/Tag zwischen erster und letzter Ablesung × 365 × Preis − 12 × Abschlag. ── */
+const METER_KINDS = { strom:['⚡','Strom','kWh'], wasser:['💧','Wasser','m³'], gas:['🔥','Gas','m³'] };
+const meterStats = list => {
+  const r = [...list].sort((a,b)=>a.date.localeCompare(b.date));
+  if (r.length < 2) return null;
+  const days = Math.max(1, Math.round((isoMid(r[r.length-1].date) - isoMid(r[0].date))/864e5));
+  const perDay = (r[r.length-1].value - r[0].value) / days;
+  return perDay >= 0 ? { perDay, year: perDay*365 } : null;
+};
+const fmtN = (n, d=1) => Number(n||0).toLocaleString('de-DE', { maximumFractionDigits:d, minimumFractionDigits:0 });
+function MeterCard() {
+  const { D, setFn, undo, me } = useD();
+  const [add,setAdd] = useState(null);     // { kind, value, date }
+  const [cfgK,setCfgK] = useState(null);   // { kind, price, abschlag }
+  const all = (D.zs||[]).filter(Boolean);
+  const reads = all.filter(z=>!z.cfg), cfgOf = k => all.find(z=>z.cfg && z.kind===k);
+  const kinds = Object.keys(METER_KINDS).filter(k=>reads.some(z=>z.kind===k) || cfgOf(k));
+  const users = D.users || [], ym = todayISO().slice(0,7);
+  const visits = users.map(u=>({ ...u, n:(D.bo||[]).filter(b=>b && b.kind==='besuch' && b.by===u.id && String(b.date||'').startsWith(ym)).length }));
+  const saveRead = () => {
+    const v = parseNum(add.value); if (!(v>0)) return;
+    const it = { id:uid(), kind:add.kind, date:add.date||todayISO(), value:v, by:me||null };
+    setFn('zs', cur=>[it, ...(cur||[])]);
+    undo(`${METER_KINDS[add.kind][0]} Stand ${fmtN(v,2)} gespeichert`, ()=>setFn('zs', cur=>cur.filter(z=>z.id!==it.id)));
+    setAdd(null);
+  };
+  const saveCfg = () => {
+    const it = { id:'cfg-'+cfgK.kind, kind:cfgK.kind, cfg:true, price:parseNum(cfgK.price)||0, abschlag:parseNum(cfgK.abschlag)||0 };
+    setFn('zs', cur=>[...(cur||[]).filter(z=>z.id!==it.id), it]); setCfgK(null);
+  };
+  return (
+    <div className="rise" data-testid="meter-card" style={{animationDelay:'113ms'}}>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span>📟 Zählerstände</span>
+        <button className="hit" onClick={()=>setAdd({ kind:kinds[0]||'strom', value:'', date:todayISO() })} style={{...hdrBtn,color:'var(--sky)'}}>+ Ablesen</button>
+      </div>
+      <div className="group">
+        {!kinds.length && <div className="cell"><div className="cell-content"><span className="cell-sub">Strom, Wasser oder Gas ablesen → Verbrauch pro Tag und Hochrechnung der Nachzahlung. Am 1. kommt eine Erinnerung.</span></div></div>}
+        {kinds.map(k=>{
+          const [em,label,unit] = METER_KINDS[k];
+          const list = reads.filter(z=>z.kind===k), last = [...list].sort((a,b)=>b.date.localeCompare(a.date))[0];
+          const st = meterStats(list), c = cfgOf(k);
+          const diff = st && c && c.price>0 && c.abschlag>0 ? st.year*c.price - 12*c.abschlag : null;
+          return (
+            <button key={k} className="cell" data-testid="meter-row" onClick={()=>setCfgK({ kind:k, price:c?String(c.price).replace('.',','):'', abschlag:c?String(c.abschlag).replace('.',','):'' })}
+              style={{width:'100%',textAlign:'left',background:'none',fontFamily:'inherit',cursor:'pointer'}}>
+              <span style={{fontSize:20,lineHeight:1}}>{em}</span>
+              <div className="cell-content">
+                <span className="cell-title">{label}{last?` · ${fmtN(last.value,2)} ${unit}`:''} <span style={{fontSize:12,color:'var(--label2)',fontWeight:500}}>{last?`(${fmtDM(last.date)})`:''}</span></span>
+                <span className="cell-sub">
+                  {st ? `Ø ${fmtN(st.perDay,2)} ${unit}/Tag · ~${fmtN(st.year,0)} ${unit}/Jahr` : 'ab der 2. Ablesung gibt es eine Hochrechnung'}
+                  {diff!==null && <b data-testid="meter-diff" style={{color:diff>0?'var(--red)':'var(--green)'}}> · {diff>0?`~€${fmt(diff)} Nachzahlung`:`~€${fmt(-diff)} Guthaben`}</b>}
+                  {st && !(c && c.price>0 && c.abschlag>0) && ' · Preis + Abschlag antippen'}
+                </span>
+              </div>
+            </button>
+          );
+        })}
+        {visits.some(v=>v.n>0) && (
+          <div className="cell" data-testid="visits"><span style={{fontSize:18}}>🛋️</span><div className="cell-content">
+            <span className="cell-sub">Besuch diesen Monat (Ankündigungen): {visits.map(v=>`${v.name} ${v.n}×`).join(' · ')} – falls ihr Nebenkosten danach aufteilt.</span>
+          </div></div>
+        )}
+      </div>
+      <MiniSheet open={!!add} onClose={()=>setAdd(null)} title="Zähler ablesen" color="var(--sky)">
+        {add && <>
+          <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+            {Object.entries(METER_KINDS).map(([k,[em,l]])=><button key={k} type="button" style={chipSt(add.kind===k)} onClick={()=>setAdd({...add,kind:k})}>{em} {l}</button>)}
+          </div>
+          <input autoFocus type="text" inputMode="decimal" className="field" placeholder={`Stand in ${METER_KINDS[add.kind][2]}`} aria-label="Zählerstand" value={add.value} onChange={e=>setAdd({...add,value:e.target.value})}/>
+          <input type="date" className="field" aria-label="Ablesedatum" value={add.date} onChange={e=>setAdd({...add,date:e.target.value})}/>
+          <button className="btn" style={{background:parseNum(add.value)>0?'var(--sky)':'var(--bg3)'}} onClick={saveRead}>Speichern</button>
+        </>}
+      </MiniSheet>
+      <MiniSheet open={!!cfgK} onClose={()=>setCfgK(null)} title={cfgK?`${METER_KINDS[cfgK.kind][1]} · Tarif`:''} color="var(--sky)">
+        {cfgK && <>
+          <label className="sheet-sublbl" htmlFor="m-price">Preis pro {METER_KINDS[cfgK.kind][2]} (€)</label>
+          <input id="m-price" type="text" inputMode="decimal" className="field" placeholder="z. B. 0,35" value={cfgK.price} onChange={e=>setCfgK({...cfgK,price:e.target.value})}/>
+          <label className="sheet-sublbl" htmlFor="m-ab">Abschlag pro Monat (€)</label>
+          <input id="m-ab" type="text" inputMode="decimal" className="field" placeholder="z. B. 45" value={cfgK.abschlag} onChange={e=>setCfgK({...cfgK,abschlag:e.target.value})}/>
+          <button className="btn" style={{background:'var(--sky)'}} onClick={saveCfg}>Speichern</button>
+        </>}
+      </MiniSheet>
+    </div>
+  );
+}
+
+/* ── Mein Haushalt-Saldo (offene Posten; owedBy trägt allein, sonst 50/50) — für die Heute-Seite ── */
+const hsNetOf = (D, id) => {
+  const users = D.users || [];
+  return (D.hs||[]).filter(i=>i && !i.settled).reduce((s,i)=>s + (i.paidBy===id ? i.price : 0) - (i.owedBy ? (i.owedBy===id ? i.price : 0) : i.price/Math.max(1,users.length)), 0);
+};
+
+/* ── Heute-Seite (optionaler Tab, Mehr → Module): alles, was heute ansteht, an einem Ort ── */
+function Heute({ goTab }) {
+  const { D, me, status } = useD();
+  const users = D.users || [], today = todayISO(), tomorrow = shiftISO(today, 1);
+  const h = new Date().getHours();
+  const hello = h < 11 ? 'Guten Morgen' : h < 18 ? 'Hallo' : 'Guten Abend';
+  const meU = users.find(u=>u.id===me);
+  const picks = (D.mk||[]).filter(Boolean).map(p=>({ p, d:pickupNext(p, today) })).filter(x=>x.d===today || x.d===tomorrow);
+  const board = (D.bo||[]).filter(b=>b && b.date===today);
+  const msgs = (D.qm||[]).filter(m=>m && m.by!==me && m.ts > Date.now() - 12*3600e3);
+  const pays = (D.pr||[]).filter(p=>p && p.status==='open' && (p.to===me || p.from===me));
+  const openSl = (D.sl||[]).filter(i=>i && !i.done).length;
+  const soon = (D.vr||[]).filter(v=>v && !v.hidden && (stockLeft(v) ?? 99) <= 2);
+  const net = me ? hsNetOf(D, me) : 0, other = users.find(u=>u.id!==me);
+  const mine = me ? choreMine(D.pt, me) : [];
+  const row = (em, text, onClick, tid) => (
+    <button key={tid} className="cell" data-testid={tid} onClick={onClick} style={{width:'100%',textAlign:'left',background:'none',fontFamily:'inherit',cursor:'pointer',color:'var(--label)'}}>
+      <span style={{fontSize:19,lineHeight:1}}>{em}</span><div className="cell-content"><span className="cell-title" style={{fontSize:14.5}}>{text}</span></div>
+      <span style={{color:'var(--label2)',fontSize:20}}>›</span>
+    </button>
+  );
+  const goList = () => { SHORTCUT = 'liste'; goTab('haus'); };
+  const rows = [
+    ...picks.map(x=>{ const k = PICK_KINDS[x.p.kind] || ['🗑️', x.p.kind]; return row('🚛', `${k[0]} ${k[1]} ${x.d===today?'heute':'morgen früh'} – ${x.d===today?'Tonne draußen?':'heute Abend rausstellen'}`, ()=>goTab('putz'), 'today-pick-'+x.p.kind); }),
+    ...pays.map(p=>row('💶', p.to===me ? `${nameOfU(users, p.from)} hat €${fmt(p.amount)} bezahlt – bitte bestätigen` : `Zahlung €${fmt(p.amount)} wartet auf ${nameOfU(users, p.to)}`, ()=>goTab('haus'), 'today-pay-'+p.id)),
+    ...board.map(b=>row((BOARD_KINDS[b.kind]||{}).emoji||'📌', `${nameOfU(users, b.by)}: ${(BOARD_KINDS[b.kind]||{}).label||''}${b.text?` – ${b.text}`:''}`, ()=>goTab('haus'), 'today-bo-'+b.id)),
+    ...msgs.slice(0,3).map(m=>row('💬', `${nameOfU(users, m.by)}: ${m.text}`, ()=>goTab('haus'), 'today-qm-'+m.id)),
+    (openSl || soon.length) ? row('🛒', `${openSl} auf der Einkaufsliste${soon.length?` · bald leer: ${soon.map(s=>s.name).join(', ')}`:''}`, goList, 'today-shop') : null,
+    (me && other && Math.abs(net) > 0.01) ? row(net<0?'💸':'💰', net<0 ? `Du schuldest ${other.name} €${fmt(-net)}` : `${other.name} schuldet dir €${fmt(net)}`, ()=>goTab('haus'), 'today-bal') : null,
+  ].filter(Boolean);
+  return (
+    <div className="screen">
+      <NBar title="Heute" color="var(--mint)" status={status}/>
+      <div className="scroll"><div className="content">
+        <div className="rise" data-testid="today-hello" style={{padding:'4px 4px 0'}}>
+          <div style={{fontSize:22,fontWeight:800}}>{hello}{meU?`, ${meU.name}`:''}</div>
+          <div style={{fontSize:13,color:'var(--label2)'}}>{new Date().toLocaleDateString('de-DE',{ weekday:'long', day:'numeric', month:'long' })}</div>
+        </div>
+        <ChoreQuick goPutz={()=>goTab('putz')}/>
+        {me && !mine.length && <div className="rise" data-testid="today-free" style={{fontSize:14,fontWeight:700,color:'var(--green)',padding:'0 4px'}}>✨ Heute ist nichts im Putzplan für dich fällig</div>}
+        <AwayCard compact/>
+        <WashCard/>
+        {rows.length>0 && <div className="group rise" data-testid="today-rows">{rows}</div>}
+        <QuickExpense/>
+      </div></div>
+    </div>
+  );
+}
+
+/* ── Darstellung (je Gerät): Hell/Dunkel/Automatisch + Schriftgröße. Das Früh-Skript im <head> setzt beides vor dem
+   ersten Bild (kein Aufblitzen); applyLook() wiederholt das nach einer Änderung. ── */
+const LOOK_ZOOM = { n:1, g:1.12, xg:1.25 };
+const applyLook = () => {
+  try {
+    const t = ls('wg_theme', 'dark'), z = LOOK_ZOOM[ls('wg_zoom', 'n')] || 1;
+    const light = t==='light' || (t==='auto' && window.matchMedia('(prefers-color-scheme: light)').matches);
+    document.documentElement.dataset.theme = light ? 'light' : 'dark';
+    document.documentElement.style.zoom = z === 1 ? '' : String(z);
+    const mc = document.querySelector('meta[name="theme-color"]'); if (mc) mc.setAttribute('content', light ? '#f4f7f5' : '#060a08');
+  } catch {}
+};
+function LookCard() {
+  const [theme,setTheme] = useState(()=>ls('wg_theme','dark'));
+  const [zoom,setZoom] = useState(()=>ls('wg_zoom','n'));
+  const pick = (k, v) => { ss(k, v); if (k==='wg_theme') setTheme(v); else setZoom(v); applyLook(); };
+  return (
+    <div className="rise" data-testid="look-card" style={{animationDelay:'126ms'}}>
+      <div className="section-hdr">🎨 Darstellung</div>
+      <div className="group" style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:10}}>
+        <div style={{display:'flex',gap:6}}>
+          {[['dark','🌙 Dunkel'],['light','☀️ Hell'],['auto','🌓 Wie System']].map(([v,l])=><button key={v} type="button" data-testid={`theme-${v}`} aria-pressed={theme===v} style={{...chipSt(theme===v),flex:1}} onClick={()=>pick('wg_theme', v)}>{l}</button>)}
+        </div>
+        <div style={{display:'flex',gap:6}}>
+          {[['n','Aa Normal'],['g','Aa Groß'],['xg','Aa Sehr groß']].map(([v,l])=><button key={v} type="button" data-testid={`zoom-${v}`} aria-pressed={zoom===v} style={{...chipSt(zoom===v),flex:1,fontSize:v==='n'?13:v==='g'?14:15}} onClick={()=>pick('wg_zoom', v)}>{l}</button>)}
+        </div>
+        <span style={{fontSize:11.5,color:'var(--label2)'}}>Gilt nur für dieses Gerät.</span>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════
    ALLTAG (seit wg-v62): Vorrat, Müllabfuhr, Abwesenheit, Waschtimer, Schnell-Nachrichten, Reparaturen, Jahresrückblick
    Neue Listen-Keys: vr, mk, aw, wt, pr, qm, rp — Items nur mit einfachen Feldern (DB-Regel: Text ≤ 500, Zahl, Bool).
 ══════════════════════════ */
@@ -2213,7 +2604,7 @@ function MiniSheet({ open, onClose, title, color, children }) {
 }
 const hdrBtn = { background:'none', border:'none', fontWeight:700, fontSize:12, fontFamily:'inherit', cursor:'pointer', padding:0, textTransform:'none', letterSpacing:0 };
 const chipSt = on => ({ fontSize:13, borderRadius:12, padding:'9px 12px', minHeight:40, border:'none', fontWeight:on?800:600, fontFamily:'inherit', cursor:'pointer',
-  background:on?'var(--mint)':'var(--bg3)', color:on?'#0a120c':'var(--label2)' });
+  background:on?'var(--mint)':'var(--bg3)', color:on?'var(--ink)':'var(--label2)' });
 const nameOfU = (users, id) => (users||[]).find(u=>u.id===id)?.name || 'Jemand';
 const fmtDM = iso => { const [,m,d]=String(iso||'').split('-').map(Number); return d ? `${d}.${m}.` : ''; };
 
@@ -2817,6 +3208,7 @@ function Haushalt({goGrow, goPutz}) {
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
         <div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>
         <DateField value={d.date} onChange={v=>sd({...d,date:v})}/>
+        <PriceHint name={d.name} price={d.price} onPick={v=>sd({...d,price:v})}/>
       </div>
     )},
     payerSplitStep('Wer hat bezahlt?'),
@@ -2937,6 +3329,8 @@ function Haushalt({goGrow, goPutz}) {
               Growbox: noch <span className="num">€{fmt(-gNet)}</span> offen · im Grow-Tab ›
             </button>
           )}
+          <TotalBudget/>
+          <QuickExpense/>
           <button className="btn rise" style={{background:'var(--mint)',animationDelay:'60ms'}} onClick={()=>setWiz(true)}>+ Ausgabe hinzufügen</button>
           <button className="rise hit" onClick={()=>setBringOpen(true)}
             style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,padding:'9px 14px',marginTop:-2,borderRadius:12,border:'none',background:'var(--bg3)',color:'var(--label2)',fontWeight:600,fontSize:13,fontFamily:'inherit',cursor:'pointer',animationDelay:'70ms'}}>
@@ -3069,6 +3463,7 @@ function Haushalt({goGrow, goPutz}) {
           {boughtItems.length>0 && (
             <button className="btn rise" data-testid="receipt-btn" style={{background:'var(--mint)'}} onClick={openReceipt}>🧾 {boughtItems.length} abgehakt · Betrag vom Kassenzettel eintragen</button>
           )}
+          <ShopTurn/>
           <StockCard/>
           <form className="rise" style={{display:'flex',gap:8,animationDelay:'40ms'}} onSubmit={e=>{e.preventDefault();addL();}}>
             <input ref={listInput} maxLength={200} className="field" style={{flex:1}} placeholder="Milch, Klopapier, Müllbeutel …" value={newName} onChange={e=>setNewName(e.target.value)}/>
@@ -3147,7 +3542,7 @@ function Haushalt({goGrow, goPutz}) {
             </div>
             <div className="sheet-acts">
               <button className="btn btn-sec" style={{flex:1}} onClick={()=>{ setBringName(''); setBringOpen(false); }}>Abbrechen</button>
-              <button className="btn" disabled={!bringName.trim()} style={{background:'var(--mint)',color:'#0a120c',flex:1,whiteSpace:'nowrap',opacity:bringName.trim()?1:.45,cursor:bringName.trim()?'pointer':'default'}} onClick={sendBring}>🔔 Senden</button>
+              <button className="btn" disabled={!bringName.trim()} style={{background:'var(--mint)',color:'var(--ink)',flex:1,whiteSpace:'nowrap',opacity:bringName.trim()?1:.45,cursor:bringName.trim()?'pointer':'default'}} onClick={sendBring}>🔔 Senden</button>
             </div>
           </div>
         </div>, document.body)}
@@ -3168,7 +3563,7 @@ function Haushalt({goGrow, goPutz}) {
             </div>
             <div className="sheet-acts">
               <button className="btn btn-sec" style={{flex:1}} onClick={()=>setBoardKind(null)}>Abbrechen</button>
-              <button className="btn" style={{background:'var(--mint)',color:'#0a120c',flex:1,whiteSpace:'nowrap'}} onClick={sendBoard}>🔔 Senden</button>
+              <button className="btn" style={{background:'var(--mint)',color:'var(--ink)',flex:1,whiteSpace:'nowrap'}} onClick={sendBoard}>🔔 Senden</button>
             </div>
           </div>
         </div>, document.body)}
@@ -3271,7 +3666,7 @@ function Grow() {
         {GROW_PHASES.map(([k,em,label,len])=>(
           <button key={k} type="button" onClick={()=>sd({...d,phase:k})}
             style={{flex:'1 1 44%',textAlign:'left',fontSize:13,borderRadius:14,padding:'11px 12px',border:'none',fontWeight:d.phase===k?800:600,
-              background:d.phase===k?'var(--lime)':'var(--bg3)',color:d.phase===k?'#0a120c':'var(--label2)'}}>
+              background:d.phase===k?'var(--lime)':'var(--bg3)',color:d.phase===k?'var(--ink)':'var(--label2)'}}>
             {em} {label}<br/><span style={{fontSize:11,fontWeight:600,opacity:.7}}>meist ~{len} Tage</span>
           </button>
         ))}
@@ -3625,6 +4020,7 @@ const CHORE_PRESETS = [
   ['Müll rausbringen','🗑️',3,1], ['Altpapier','📦',14,1], ['Altglas & Pfand','♻️',14,1], ['Spülmaschine ausräumen','🍽️',2,1],
   ['Küche putzen','🍳',7,2], ['Staubsaugen','🧹',7,2], ['Wischen','🪣',14,2], ['Bad putzen','🚿',7,3],
   ['Kühlschrank auswischen','🧊',30,2], ['Handtücher waschen','🧺',7,1], ['Fenster putzen','🪟',30,3], ['Pflanzen gießen','🌿',3,1],
+  ['Tier füttern','🐾',1,1], ['Katzenklo','🐈',2,1], ['Blumen düngen','🪴',30,1], ['Aquarium','🐠',14,2],
 ];
 const chorePts = t => [1,2,3].includes(+t?.pts) ? +t.pts : 2;
 const isoMid = s => { const [y,m,d]=String(s||'').split('-').map(Number); return new Date(y||1970,(m||1)-1,d||1); };
@@ -3859,7 +4255,7 @@ function Putzplan() {
   const ivText = n => n===1?'täglich':n===7?'wöchentlich':n===14?'alle 2 Wochen':n===30?'monatlich':`alle ${n} Tage`;
 
   const PRESET_PK = { 'Müll rausbringen':'rest', 'Altpapier':'papier', 'Altglas & Pfand':'glas' };   // Vorlage → Tonne, falls eingetragen
-  const EMS=['🗑️','♻️','📦','🍽️','🍳','🚿','🧹','🪣','🧽','🧺','🪟','🧊','🌿','🛒','🧴','🛏️'];
+  const EMS=['🐾','🐈','🪴','🐠','🗑️','♻️','📦','🍽️','🍳','🚿','🧹','🪣','🧽','🧺','🪟','🧊','🌿','🛒','🧴','🛏️'];
   const IVS=[['1','Täglich'],['2','Alle 2 Tage'],['3','Alle 3 Tage'],['7','Wöchentlich'],['14','Alle 2 Wochen'],['30','Monatlich']];
   const steps=[
     {label:'Was ist zu tun?',ok:d=>d.name?.trim(),render:({data:d,setData:sd})=>(
@@ -3870,7 +4266,7 @@ function Putzplan() {
           {CHORE_PRESETS.filter(p=>!tasks.some(t=>t.name===p[0])||d.name===p[0]).map(([name,em,iv,pts])=>(
             <button key={name} type="button" className="hit" onClick={()=>sd({...d,name,em,interval:String(iv),pts,pk:(D.mk||[]).some(p=>p&&p.kind===PRESET_PK[name])?PRESET_PK[name]:null})}
               style={{fontSize:12.5,borderRadius:12,padding:'7px 10px',border:'none',fontWeight:d.name===name?800:600,fontFamily:'inherit',cursor:'pointer',
-                background:d.name===name?'var(--amber)':'var(--bg3)',color:d.name===name?'#0a120c':'var(--label2)'}}>
+                background:d.name===name?'var(--amber)':'var(--bg3)',color:d.name===name?'var(--ink)':'var(--label2)'}}>
               {em} {name}
             </button>
           ))}
@@ -4371,7 +4767,7 @@ function Abos() {
               <div style={{fontSize:12.5,color:'var(--label3)',fontWeight:500}}>€{fmt(moTotal*12)} pro Jahr · {subs.length} {subs.length===1?'Abo':'Abos'}</div>
             </div>
           )}
-          <button className="btn rise" style={{background:'var(--indigo)',color:'#0a120c',animationDelay:'50ms'}} onClick={()=>setWiz(true)}>+ Abo hinzufügen</button>
+          <button className="btn rise" style={{background:'var(--indigo)',color:'var(--ink)',animationDelay:'50ms'}} onClick={()=>setWiz(true)}>+ Abo hinzufügen</button>
           {subs.length===0
             ?<div className="empty"><div className="empty-ico">🔄</div><span style={{fontSize:14,color:'var(--label2)'}}>Noch keine Abos</span></div>
             :(
@@ -4754,7 +5150,7 @@ function Einstellungen() {
               <div className="cell" style={{gap:8}}>
                 <input className="field" style={{flex:1,padding:'10px 12px',fontSize:15}} placeholder="Anderen Code eingeben …"
                   value={codeInput} onChange={e=>setCodeInput(e.target.value.toUpperCase())}/>
-                <button onClick={joinCode} style={{background:'var(--mint)',border:'none',borderRadius:11,padding:'11px 14px',color:'#0a120c',fontSize:14,fontWeight:800,flexShrink:0}}>
+                <button onClick={joinCode} style={{background:'var(--mint)',border:'none',borderRadius:11,padding:'11px 14px',color:'var(--ink)',fontSize:14,fontWeight:800,flexShrink:0}}>
                   Beitreten
                 </button>
               </div>
@@ -4806,7 +5202,7 @@ function Einstellungen() {
                 value={cfgText} onChange={e=>setCfgText(e.target.value)}
               />
               {cfgErr&&<div style={{fontSize:12,color:'var(--red)'}}>{cfgErr}</div>}
-              <button className="btn" style={{background:cfgText.trim()?'var(--lime)':'var(--bg3)',color:cfgText.trim()?'#0a120c':'var(--label3)'}} onClick={saveCfg}>
+              <button className="btn" style={{background:cfgText.trim()?'var(--lime)':'var(--bg3)',color:cfgText.trim()?'var(--ink)':'var(--label3)'}} onClick={saveCfg}>
                 Verbinden
               </button>
               {fbCfg&&(
@@ -4834,14 +5230,14 @@ function Einstellungen() {
         <div className="rise" style={{animationDelay:'120ms'}}>
           <div className="section-hdr">Module anzeigen</div>
           <div className="group">
-            {[['haus','Haushalt','var(--mint)'],['grow','Growbox','var(--lime)'],['putz','Putzplan','var(--amber)'],['fin','Privat','var(--violet)'],['abos','Abos','var(--indigo)'],['stats','Übersicht','var(--sky)']].map(([k,label,c])=>(
+            {[['heute','Heute (Startseite)','var(--mint)'],['haus','Haushalt','var(--mint)'],['grow','Growbox','var(--lime)'],['putz','Putzplan','var(--amber)'],['fin','Privat','var(--violet)'],['abos','Abos','var(--indigo)'],['stats','Übersicht','var(--sky)']].map(([k,label,c])=>(
               <div key={k} className="cell">
                 <div style={{width:10,height:10,borderRadius:'50%',background:c,boxShadow:mods[k]?`0 0 8px ${c}`:'none',opacity:mods[k]?1:.35,flexShrink:0}}/>
                 <div className="cell-content">
                   <span className="cell-title">{label}</span>
                 </div>
                 <button onClick={()=>setMods({...mods,[k]:!mods[k]})}
-                  style={{background:mods[k]?c:'var(--bg3)',color:mods[k]?'#0a120c':'var(--label)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800}}>
+                  style={{background:mods[k]?c:'var(--bg3)',color:mods[k]?'var(--ink)':'var(--label)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800}}>
                   {mods[k]?'An':'Aus'}
                 </button>
               </div>
@@ -4862,13 +5258,15 @@ function Einstellungen() {
               </div>
               <button data-testid="game-toggle" aria-pressed={mods.game===true}
                 onClick={()=>{ const on = mods.game!==true; setMods({...mods, game:on}); setPref({game:on}); }}
-                style={{background:mods.game===true?'var(--amber)':'var(--bg3)',color:mods.game===true?'#0a120c':'var(--label)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800}}>
+                style={{background:mods.game===true?'var(--amber)':'var(--bg3)',color:mods.game===true?'var(--ink)':'var(--label)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800}}>
                 {mods.game===true?'An':'Aus'}
               </button>
             </div>
           </div>
           <div className="section-ftr">Gilt nur für dieses Gerät. Punkte und Fairness zählen immer, du blendest nur Duell und Serie aus.</div>
         </div>
+        <LookCard/>
+        <CalendarCard/>
 
         {/* Archiv */}
         <div className="rise" style={{animationDelay:'150ms'}}>
@@ -4881,7 +5279,7 @@ function Einstellungen() {
                 <span className="cell-sub">{archiveCount>0 ? `${archiveCount} Posten älter als 3 Monate` : 'Nichts zu archivieren'}</span>
               </div>
               <button onClick={doArchive} disabled={archiveCount===0}
-                style={{background:archiveCount>0?'var(--sky)':'var(--bg3)',color:archiveCount>0?'#0a120c':'var(--label2)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800,opacity:archiveCount===0?.5:1}}>
+                style={{background:archiveCount>0?'var(--sky)':'var(--bg3)',color:archiveCount>0?'var(--ink)':'var(--label2)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800,opacity:archiveCount===0?.5:1}}>
                 Archivieren
               </button>
             </div>
@@ -5002,7 +5400,7 @@ function Einstellungen() {
                 <span className="cell-sub">Beim Öffnen: fällige Putzaufgaben & Abos</span>
               </div>
               <button onClick={toggleNotify}
-                style={{background:notifyOn?'var(--amber)':'var(--bg3)',color:notifyOn?'#0a120c':'var(--label2)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800}}>
+                style={{background:notifyOn?'var(--amber)':'var(--bg3)',color:notifyOn?'var(--ink)':'var(--label2)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800}}>
                 {notifyOn?'An':'Aus'}
               </button>
             </div>
@@ -5023,7 +5421,7 @@ function Einstellungen() {
                 <span className="cell-sub">Neue Ausgaben, Putz & Einkäufe — auch bei geschlossener App</span>
               </div>
               <button onClick={togglePush} disabled={pushDisabled}
-                style={{background:(!pushDisabled&&pushOn)?'var(--sky)':'var(--bg3)',color:(!pushDisabled&&pushOn)?'#0a120c':'var(--label2)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800,opacity:pushDisabled?.5:1}}>
+                style={{background:(!pushDisabled&&pushOn)?'var(--sky)':'var(--bg3)',color:(!pushDisabled&&pushOn)?'var(--ink)':'var(--label2)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800,opacity:pushDisabled?.5:1}}>
                 {pushBusy?'…':pushOn?'An':'Aus'}
               </button>
             </div>
@@ -5049,7 +5447,7 @@ function Einstellungen() {
                   <span className="cell-title" style={{fontSize:14.5}}>{em} {label}</span>
                 </div>
                 <button onClick={()=>setPref({[key]: !pushPrefs[key]})}
-                  style={{background:pushPrefs[key]?'var(--sky)':'var(--bg3)',color:pushPrefs[key]?'#0a120c':'var(--label2)',border:'none',borderRadius:14,padding:'5px 12px',fontSize:12,fontWeight:800}}>
+                  style={{background:pushPrefs[key]?'var(--sky)':'var(--bg3)',color:pushPrefs[key]?'var(--ink)':'var(--label2)',border:'none',borderRadius:14,padding:'5px 12px',fontSize:12,fontWeight:800}}>
                   {pushPrefs[key]?'An':'Aus'}
                 </button>
               </div>
@@ -5060,7 +5458,7 @@ function Einstellungen() {
                   <span className="cell-title" style={{fontSize:14.5}}>🌙 Ruhezeiten</span>
                 </div>
                 <button onClick={()=>setPref({quiet: !pushPrefs.quiet})}
-                  style={{background:pushPrefs.quiet?'var(--sky)':'var(--bg3)',color:pushPrefs.quiet?'#0a120c':'var(--label2)',border:'none',borderRadius:14,padding:'5px 12px',fontSize:12,fontWeight:800}}>
+                  style={{background:pushPrefs.quiet?'var(--sky)':'var(--bg3)',color:pushPrefs.quiet?'var(--ink)':'var(--label2)',border:'none',borderRadius:14,padding:'5px 12px',fontSize:12,fontWeight:800}}>
                   {pushPrefs.quiet?'An':'Aus'}
                 </button>
               </div>
@@ -5155,7 +5553,7 @@ function Einstellungen() {
               <div style={{fontSize:13.5,color:'var(--label2)',lineHeight:1.55}}>Gib ihn deinem Mitbewohner persönlich oder per Messenger. Auf seinem Handy steht jetzt „WG-Code wurde geändert" — dort unter „Mehr" eingeben und <b>Zusammenführen</b> wählen. Der alte Code ist gesperrt.</div>
             </div>
             <div className="sheet-acts" style={{flexDirection:'column'}}>
-              <button className="btn" style={{background:'var(--lime)',color:'#0a120c'}} onClick={copyCode}>{copied?'✓ Kopiert':'📋 Code kopieren'}</button>
+              <button className="btn" style={{background:'var(--lime)',color:'var(--ink)'}} onClick={copyCode}>{copied?'✓ Kopiert':'📋 Code kopieren'}</button>
               <button className="btn btn-sec" onClick={()=>setNewCodeShown(null)}>Fertig</button>
             </div>
           </div>
@@ -5186,7 +5584,7 @@ function Einstellungen() {
               {bkMsg && <div role="status" style={{fontSize:13,color:'var(--label2)',fontWeight:600}}>{bkMsg}</div>}
             </div>
             <div className="sheet-acts">
-              <button className="btn" style={{background:'var(--indigo)',color:'#0a120c'}} onClick={snapshotNow}>☁️ Jetzt sichern</button>
+              <button className="btn" style={{background:'var(--indigo)',color:'var(--ink)'}} onClick={snapshotNow}>☁️ Jetzt sichern</button>
             </div>
           </div>
         </div>, document.body)}
@@ -5422,6 +5820,7 @@ function Statistik() {
           </div>
         </div>
 
+        <MeterCard/>
         <YearReview all={all} pl={pl} pt={D.pt||[]} users={users}/>
 
         {pl.length>0&&(
@@ -5483,13 +5882,14 @@ function Statistik() {
    APP ROOT
 ══════════════════════════ */
 const TABS=[
+  {id:'heute',label:'Heute',   color:'var(--mint)',  icon:ICONS.sun     },
   {id:'haus',label:'Haushalt',color:'var(--mint)',  icon:ICONS.house   },
   {id:'grow',label:'Growbox', color:'var(--lime)',  icon:ICONS.leaf    },
   {id:'putz',label:'Putzplan',color:'var(--amber)', icon:ICONS.sparkle },
   {id:'fin', label:'Privat',  color:'var(--violet)',icon:ICONS.wallet  },
   {id:'abos',label:'Abos',    color:'var(--indigo)',icon:ICONS.repeat  },
   {id:'stats',label:'Übersicht',color:'var(--sky)', icon:ICONS.chart   },
-  {id:'set', label:'Mehr',    color:'rgba(242,246,243,.82)', icon:ICONS.settings},
+  {id:'set', label:'Mehr',    color:'var(--label2)', icon:ICONS.settings},
 ];
 
 /* Persönliche Netto-Bilanz (Haushalt + Growbox) aus me-Sicht — fürs Start-Pop-up.
@@ -5529,7 +5929,7 @@ function DebtAlert({ info, onClose }){
           )}
         </div>
         <div className="sheet-acts">
-          <button className="btn" style={{background:'var(--mint)',color:'#0a120c',flex:1}} onClick={onClose}>Später</button>
+          <button className="btn" style={{background:'var(--mint)',color:'var(--ink)',flex:1}} onClick={onClose}>Später</button>
         </div>
       </div>
     </div>,
@@ -5611,7 +6011,7 @@ function PushPrompt({ onClose }){
         </div>
         <div className="sheet-acts">
           <button className="btn btn-sec" style={{flex:1}} disabled={busy} onClick={onClose}>Später</button>
-          {!needsInstall && <button className="btn" style={{background:'var(--sky)',color:'#0a120c',flex:1,whiteSpace:'nowrap',opacity:busy?.6:1}} disabled={busy} onClick={activate}>{busy?'…':'🔔 Erlauben'}</button>}
+          {!needsInstall && <button className="btn" style={{background:'var(--sky)',color:'var(--ink)',flex:1,whiteSpace:'nowrap',opacity:busy?.6:1}} disabled={busy} onClick={activate}>{busy?'…':'🔔 Erlauben'}</button>}
         </div>
       </div>
     </div>, document.body);
@@ -5735,6 +6135,7 @@ function AppInner() {
         {/* Seitenüberschrift: das Dokument hatte bisher gar keine Überschrift —
             Screenreader konnten nicht sagen, welcher Bereich offen ist. */}
         <h1 className="sr-only">{(TABS.find(t=>t.id===tab)||{}).label || 'WG'}</h1>
+        {tab==='heute'&&<Heute goTab={setTab}/>}
         {tab==='haus'&&<Haushalt goGrow={()=>setTab('grow')} goPutz={()=>setTab('putz')}/>}
         {tab==='grow'&&<Grow/>}
         {tab==='putz'&&<Putzplan/>}
@@ -5799,7 +6200,7 @@ class ErrorBoundary extends React.Component {
         <div style={{fontSize:18,fontWeight:800}}>Da ist etwas schiefgelaufen</div>
         <div style={{fontSize:14,color:'var(--label2)',lineHeight:1.55,maxWidth:320}}>Eure Daten sind gespeichert. Der Fehler steht im Fehlerprotokoll unter „Mehr".</div>
         <div className="num" style={{fontSize:11.5,color:'var(--label3)',maxWidth:320,wordBreak:'break-word'}}>{String((this.state.err && this.state.err.message) || this.state.err).slice(0,160)}</div>
-        <button className="btn" style={{background:'var(--mint)',color:'#0a120c',maxWidth:260}} onClick={()=>location.reload()}>Neu laden</button>
+        <button className="btn" style={{background:'var(--mint)',color:'var(--ink)',maxWidth:260}} onClick={()=>location.reload()}>Neu laden</button>
       </div>
     );
   }

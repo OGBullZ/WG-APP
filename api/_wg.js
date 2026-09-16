@@ -120,4 +120,68 @@ function yearReview(wg, year) {
   return { title: `Jahresrückblick ${ys}`, body: `🎆 ${ys}: ${parts.join(' · ')}`, tag: `year-${ys}` };
 }
 
-module.exports = { toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, PICK_KINDS };
+
+// 1. des Monats: Zähler ablesen — nur, wenn schon einmal abgelesen wurde
+function meterReminder(wg) {
+  const kinds = [...new Set(toArray(wg.zs).filter((z) => !z.cfg && z.kind).map((z) => z.kind))];
+  if (!kinds.length) return null;
+  const L = { strom: '⚡ Strom', wasser: '💧 Wasser', gas: '🔥 Gas' };
+  return { title: 'Zählerstände', body: `📟 Monatsanfang: ${kinds.map((k) => L[k] || k).join(', ')} ablesen und in der App eintragen`, tag: 'meter-month' };
+}
+
+// ── Kalender-Abo (RFC 5545) ──
+// Text maskieren (Backslash, Semikolon, Komma, Zeilenumbruch)
+const icsText = (t) => String(t || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+// Zeilen nach 75 Oktetts falten (Folgezeilen beginnen mit einem Leerzeichen, zählen also 74 + 1)
+function icsFold(line) {
+  const out = []; let cur = '';
+  for (const ch of line) {
+    if (Buffer.byteLength(cur + ch) > (out.length ? 74 : 75)) { out.push(cur); cur = ch; } else cur += ch;
+  }
+  out.push(cur);
+  return out.join('\r\n ');
+}
+const icsDate = (iso) => String(iso).replace(/-/g, '');
+// Ganztägiger Termin; alarmMin = Minuten vor Tagesbeginn (300 = 19 Uhr am Vorabend)
+function icsEvent(uid, fromIso, toIsoExcl, summary, stamp, alarmMin) {
+  const l = ['BEGIN:VEVENT', `UID:${uid}@wgapp`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${icsDate(fromIso)}`,
+    `DTEND;VALUE=DATE:${icsDate(toIsoExcl)}`, `SUMMARY:${icsText(summary)}`, 'TRANSP:TRANSPARENT'];
+  if (alarmMin) l.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${icsText(summary)}`, `TRIGGER:-PT${alarmMin}M`, 'END:VALARM');
+  l.push('END:VEVENT');
+  return l;
+}
+function buildIcs(wg, todayIso, now = new Date()) {
+  const stamp = now.toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+  const users = toArray(wg.users);
+  const nameOf = (id) => (users.find((u) => u.id === id) || {}).name || 'Jemand';
+  const ev = [];
+  // Müllabfuhr: bis 12 Wochen voraus, Erinnerung am Vorabend 19 Uhr
+  for (const p of toArray(wg.mk)) {
+    const [em, label] = PICK_KINDS[p.kind] || ['🗑️', p.kind];
+    let d = pickupNext(p, todayIso);
+    for (let i = 0; d && i < 12 && daysBetween(todayIso, d) <= 84; i++) {
+      ev.push(...icsEvent(`pick-${p.kind}-${d}`, d, shiftIso(d, 1), `${em} ${label}-Abholung`, stamp, 300));
+      d = pickupNext(p, shiftIso(d, 1));
+    }
+  }
+  // Abwesenheiten (laufende und kommende)
+  for (const a of toArray(wg.aw).filter((x) => x.to >= todayIso)) {
+    ev.push(...icsEvent(`aw-${a.id}`, a.from, shiftIso(a.to, 1), `✈️ ${nameOf(a.userId)} ist weg${a.note ? ` (${a.note})` : ''}`, stamp));
+  }
+  // Ankündigungen ab heute
+  const BK = { besuch: '🛋️ Besuch', wecker: '⏰ Steht früh auf' };
+  for (const b of toArray(wg.bo).filter((x) => x.date >= todayIso)) {
+    ev.push(...icsEvent(`bo-${b.id}`, b.date, shiftIso(b.date, 1), `${BK[b.kind] || '📌'}${b.text ? `: ${b.text}` : ''} (${nameOf(b.by)})`, stamp));
+  }
+  // Nächste Fälligkeit je Aufgabe (überfällig → heute)
+  for (const t of toArray(wg.pt)) {
+    const due = shiftIso(todayIso, Math.max(0, taskDueIn(t, wg, todayIso)));
+    const who = taskWho(t, wg, todayIso);
+    ev.push(...icsEvent(`task-${t.id}-${due}`, due, shiftIso(due, 1), `${t.em || '🧹'} ${t.name}${who ? ` – ${who.name}` : ''}`, stamp));
+  }
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//WG-App//Abo//DE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    'X-WR-CALNAME:WG', 'X-WR-TIMEZONE:Europe/Berlin', 'REFRESH-INTERVAL;VALUE=DURATION:PT6H', 'X-PUBLISHED-TTL:PT6H', ...ev, 'END:VCALENDAR'];
+  return lines.map(icsFold).join('\r\n') + '\r\n';
+}
+
+module.exports = { toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, meterReminder, buildIcs, icsText, icsFold, PICK_KINDS };
