@@ -106,7 +106,7 @@ await A.page.getByRole('button', { name: /Per Push an Tom/ }).click();
 await A.page.waitForTimeout(400);
 const codePush = A.pushes.find(p => /Netflix/.test(p.title || ''));
 check('A9 Push an Tom enthält den Code', !!codePush && (codePush.body || '').includes(code));
-await A.page.getByRole('button', { name: 'Fertig' }).click();
+await A.page.getByRole('button', { name: 'Fertig', exact: true }).click();
 await A.page.waitForTimeout(300);
 check('A10 Karte zeigt „wartet auf Tom"', /wartet auf Tom/.test(await card(A.page).innerText()));
 
@@ -173,7 +173,7 @@ await A.page.locator('.sheet').getByRole('button', { name: 'Netflix', exact: tru
 check('C2 Chip füllt gemerkten Login ein', (await A.page.getByLabel('Passwort').inputValue()) === SECRET_P);
 await A.page.getByRole('button', { name: 'Code erzeugen' }).click();
 await A.page.locator('[data-testid="lg-code"]').waitFor({ timeout: 8000 });
-await A.page.getByRole('button', { name: 'Fertig' }).click();
+await A.page.getByRole('button', { name: 'Fertig', exact: true }).click();
 await A.page.waitForTimeout(900);
 check('C3 zweite Freigabe beim Server', (await remoteLs(A.page)).filter(s => s.ct).length === 1);
 // .first() = die neueste (Liste ist absteigend sortiert); ohne Grabstein (Gegenprobe) stehen hier zwei

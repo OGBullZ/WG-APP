@@ -25,7 +25,7 @@ const server = spawn('python', ['-m', 'http.server', '8099'], { stdio: 'ignore' 
 let gateOk = false;
 try {
   await sleep(1600);
-  for (const t of ['test/split.mjs', 'test/persist.mjs', 'test/paybtn.mjs', 'test/archive.mjs', 'test/privat.mjs', 'test/grow.mjs', 'test/cron_grow.mjs', 'test/cron_duel.mjs', 'test/privquota.mjs', 'test/sync.mjs', 'test/logins.mjs', 'test/selfhost.mjs', 'test/startflow.mjs', 'test/backup_api.mjs', 'test/rotate.mjs', 'test/errlog.mjs', 'test/notify_api.mjs', 'test/bkwatch.mjs', 'test/update.mjs', 'test/putz.mjs', 'test/csp_hash.mjs']) {
+  for (const t of ['test/split.mjs', 'test/persist.mjs', 'test/paybtn.mjs', 'test/archive.mjs', 'test/privat.mjs', 'test/grow.mjs', 'test/cron_grow.mjs', 'test/cron_duel.mjs', 'test/privquota.mjs', 'test/sync.mjs', 'test/logins.mjs', 'test/selfhost.mjs', 'test/startflow.mjs', 'test/backup_api.mjs', 'test/rotate.mjs', 'test/errlog.mjs', 'test/notify_api.mjs', 'test/bkwatch.mjs', 'test/update.mjs', 'test/putz.mjs', 'test/alltag.mjs', 'test/cron_alltag.mjs', 'test/csp_hash.mjs']) {
     console.log('   • ' + t);
     sh(`node ${t}`);
   }

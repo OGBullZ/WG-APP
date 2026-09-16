@@ -28,7 +28,7 @@ await page.waitForTimeout(2000);
 // --- Wizard-Struktur: 3 Schritte, Datum eingeklappt, Zusammenfassung am Ende ---
 await page.getByText('+ Ausgabe hinzufügen').click();
 check('Wizard hat 3 Schritte (statt 4)', await page.locator('.step-seg').count() === 3);
-await page.locator('input.field').first().fill('Testkauf');
+await page.locator('.sheet input.field').first().fill('Testkauf');
 await page.getByRole('button', { name: 'Weiter' }).click();
 await page.locator('input[inputmode="decimal"]').fill('12,50');
 check('Datum ist eingeklappt (Heute-Toggle)', await page.locator('.date-toggle').count() === 1);
@@ -42,7 +42,7 @@ await page.waitForTimeout(300);
 async function addExpense({ name, price, paidBy, split }) {
   await page.getByText('+ Ausgabe hinzufügen').click();
   // Schritt 1: Name
-  await page.locator('input.field').first().fill(name);
+  await page.locator('.sheet input.field').first().fill(name);
   await page.getByRole('button', { name: 'Weiter' }).click();
   // Schritt 2: Preis (Datum eingeklappt → kein Pflicht-Tap)
   await page.locator('input[inputmode="decimal"]').fill(price);
@@ -50,7 +50,7 @@ async function addExpense({ name, price, paidBy, split }) {
   // Schritt 3 (NEU kombiniert): Bezahler + Aufteilung auf einem Screen mit Zusammenfassung
   await page.locator('.pick-btn', { hasText: new RegExp('^' + paidBy + '$') }).click();
   await page.locator('.pick-btn', { hasText: split }).click();
-  await page.getByRole('button', { name: 'Fertig' }).click();
+  await page.getByRole('button', { name: 'Fertig', exact: true }).click();
   await page.waitForTimeout(400);
 }
 

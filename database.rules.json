@@ -41,6 +41,13 @@
           ".validate": "newData.hasChildren(['id','exp']) && newData.child('exp').isNumber() && newData.child('exp').val() <= now + 90000000",
           "ct": { ".validate": "newData.isString() && newData.val().length <= 4000" },
           "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
+        "vr":   { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
+        "mk":   { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
+        "aw":   { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
+        "wt":   { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
+        "pr":   { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
+        "qm":   { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
+        "rp":   { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
         "budSent": { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
 
         "push": {

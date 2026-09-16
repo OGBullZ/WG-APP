@@ -13,6 +13,7 @@
 
 const { loadSubs, sendToSubs, DB_BASE } = require('./_push');
 const { hasKey, currentCode, writeSnapshot, listSnapshots, pruneSnapshots, berlinParts } = require('./_sv');
+const { taskDueIn, taskWho, repairReminders, yearReview, isoOf } = require('./_wg');
 
 function berlinTodayParts() {
   const fmt = new Intl.DateTimeFormat('en-CA', {
@@ -36,13 +37,6 @@ function parseIso(s) {
   return new Date(y, m - 1, d);
 }
 
-// Entspricht dueIn() aus wgapp.html (Putzplan-Fälligkeit).
-function dueIn(t, todayMid) {
-  if (!t.lastDone) return 0; // noch nie gemacht → sofort fällig
-  const due = parseIso(t.lastDone);
-  due.setDate(due.getDate() + (t.interval || 7));
-  return Math.round((due - todayMid) / 86400000);
-}
 
 // Entspricht daysSince() aus wgapp.html.
 function daysSince(sd, todayMid) {
@@ -197,7 +191,9 @@ module.exports = async (req, res) => {
   const subsAb = toArray(wg.ab);
   const todayMid = berlinTodayMid();
 
-  const dueTasks = tasks.filter((t) => dueIn(t, todayMid) <= 0);
+  const todayIso = isoOf(todayMid);
+  // Fälligkeit wie in der App: fester Rhythmus ODER an die Müllabfuhr gekoppelt (_wg.taskDueIn)
+  const dueTasks = tasks.filter((t) => taskDueIn(t, wg, todayIso) <= 0);
   const soonAbos = subsAb.filter((s) => {
     const until = daysUntilCharge(s, todayMid);
     return until === 0 || until === 1;
@@ -205,9 +201,9 @@ module.exports = async (req, res) => {
 
   const messages = [];
   for (const t of dueTasks) {
-    const u = users.find((x) => x.id === t.assignee);
+    const u = taskWho(t, wg, todayIso);   // Abwesende geben ab
     const name = u ? u.name : '?';
-    const d = dueIn(t, todayMid);
+    const d = taskDueIn(t, wg, todayIso);
     const status = d < 0 ? `ist seit ${-d} Tag${-d === 1 ? '' : 'en'} überfällig` : 'ist heute fällig';
     messages.push({
       title: 'Putzplan',
@@ -307,6 +303,13 @@ module.exports = async (req, res) => {
     }
   }
 
+  // Reparaturen: nach 14, 21, 28 … Tagen „gemeldet" nachhaken
+  const repairMsgs = repairReminders(wg, todayIso);
+  messages.push(...repairMsgs);
+  // 1. Januar: Jahresrückblick aufs Vorjahr
+  const yearMsg = m === 1 && d === 1 ? yearReview(wg, y - 1) : null;
+  if (yearMsg) messages.push(yearMsg);
+
   // Growbox: Gießen fällig + Phase rechnerisch durch
   const growMsgs = growCycleMessages(wg, todayMid);
   messages.push(...growMsgs);
@@ -328,7 +331,7 @@ module.exports = async (req, res) => {
     sent += (await sendToSubs(subs.filter((s) => s && s.game === true), duel)).sent;
   }
 
-  res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, budWarns, grow: growMsgs.length, duel: duel ? 1 : 0, sent, backup, pruned });
+  res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, budWarns, grow: growMsgs.length, duel: duel ? 1 : 0, repairs: repairMsgs.length, year: yearMsg ? 1 : 0, sent, backup, pruned });
 };
 
 // Für test/cron_grow.mjs — der Handler selbst bleibt der Default-Export (Vercel).

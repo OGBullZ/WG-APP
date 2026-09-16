@@ -1,8 +1,18 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/wgapp.html" }
+    {
+      "source": "/",
+      "destination": "/wgapp.html"
+    }
   ],
   "crons": [
-    { "path": "/api/cron", "schedule": "0 6 * * *" }
+    {
+      "path": "/api/cron",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/evening",
+      "schedule": "0 17 * * *"
+    }
   ]
 }

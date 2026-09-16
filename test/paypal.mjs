@@ -34,14 +34,14 @@ await page.waitForTimeout(300);
 await page.locator('.tabitem', { hasText: 'Haushalt' }).click();
 await page.waitForTimeout(500);
 await page.getByText('+ Ausgabe hinzufügen').click();
-await page.locator('input.field').first().fill('Pizza');
+await page.locator('.sheet input.field').first().fill('Pizza');
 await page.getByRole('button', { name: 'Weiter' }).click();
 await page.locator('input[inputmode="decimal"]').fill('20');
 await page.getByRole('button', { name: 'Weiter' }).click();
 await page.locator('.pick-btn', { hasText: /^Tom$/ }).click();
 await page.getByRole('button', { name: 'Weiter' }).click();
 await page.locator('.pick-btn', { hasText: 'Torben zahlt alles' }).click();
-await page.getByRole('button', { name: 'Fertig' }).click();
+await page.getByRole('button', { name: 'Fertig', exact: true }).click();
 await page.waitForTimeout(800);
 
 // 3) PayPal-Button prüfen

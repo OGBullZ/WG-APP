@@ -28,14 +28,14 @@ check('Torbens PayPal-Feld vorbelegt = TorbenSteen', torbenPp === 'TorbenSteen')
 await page.locator('.tabitem', { hasText: 'Haushalt' }).click();
 await page.waitForTimeout(400);
 await page.getByText('+ Ausgabe hinzufügen').click();
-await page.locator('input.field').first().fill('Großeinkauf');
+await page.locator('.sheet input.field').first().fill('Großeinkauf');
 await page.getByRole('button', { name: 'Weiter' }).click();
 await page.locator('input[inputmode="decimal"]').fill('30');
 await page.getByRole('button', { name: 'Weiter' }).click();
 await page.locator('.pick-btn', { hasText: /^Torben$/ }).click();
 await page.getByRole('button', { name: 'Weiter' }).click();
 await page.locator('.pick-btn', { hasText: 'Tom zahlt alles' }).click();
-await page.getByRole('button', { name: 'Fertig' }).click();
+await page.getByRole('button', { name: 'Fertig', exact: true }).click();
 await page.waitForTimeout(800);
 
 const ppBtn = page.locator('a', { hasText: 'per PayPal' });

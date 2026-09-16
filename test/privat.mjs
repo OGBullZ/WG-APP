@@ -81,7 +81,7 @@ await page.getByRole('button', { name: '📌 Fixkosten' }).click();
 await page.waitForTimeout(300);
 await page.getByRole('button', { name: '+ Fixkosten' }).click();
 await page.waitForTimeout(300);
-await page.locator('input.field').first().fill('Miete');
+await page.locator('.sheet input.field').first().fill('Miete');
 await page.getByRole('button', { name: 'Weiter' }).click();
 await page.locator('input[inputmode="decimal"]').fill('480,50');
 await page.getByRole('button', { name: 'Weiter' }).click();

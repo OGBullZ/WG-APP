@@ -841,6 +841,7 @@ const INIT = {
   bo:     [],
   ls:     [],
   err:    [],   // Fehlerprotokoll der Geräte (max. 30, s. Früh-Skript im <head> + drainErr)
+  vr: [], mk: [], aw: [], wt: [], pr: [], qm: [], rp: [],   // Alltag (wg-v62): Vorrat, Müllabfuhr, Abwesend, Waschtimer, Zahlung bestätigen, Nachrichten, Reparaturen
 };
 const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
 
@@ -852,7 +853,7 @@ const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
    slh = Einkaufslisten-Historie (id=Slug, n=Kaufzähler), gh = Ernte-Log, bud = Kategorie-Budgets (id=Cat-Key),
    gz = Grow-Zyklen {start, phase, pAt, wiv, lastW, lastWBy, wn, end} — offen ist der ohne `end`.
    ls = Login-Freigaben {svc, by, ts, exp, view, s, iv, ct, it} — nur Chiffretext, s. LOGIN_*. */
-const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz','bo','ls','err'];
+const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz','bo','ls','err','vr','mk','aw','wt','pr','qm','rp'];
 const isListKey = k => LIST_KEYS.includes(k);
 /* WG-Board (Key `bo`): kurze Ankündigungen zwischen den zwei Bewohnern — reine Info + Sofort-Push,
    keine Kostenrelevanz. Einträge mit Datum, laufen nach dem Tag automatisch aus der Anzeige. */
@@ -1567,6 +1568,7 @@ function DataProvider({ children }) {
     } catch {}
   }, [wgCode, deviceId]);
 
+  PICKUPS = D.mk || []; ABSENCES = D.aw || [];   // für die reinen Putzplan-Funktionen (choreDueIn/choreNext/choreTally)
   return (
     <Ctx.Provider value={{ D, set, setFn, status, online, fbCfg, setFbCfg, wgCode, setWgCode, mods, setMods, replaceData, mergeRemote, remotePulse, me, setMe, undo, undoMsg, runUndo, askConfirm, confirmReq, closeConfirm, flashIds, deviceId, pushSave, pushRemove, pushPrefsUpdate, notifyOthers, rotateWgCode, listPushDevices }}>
       {children}
@@ -1775,8 +1777,8 @@ function Wiz({ open, onClose, title, color, steps, onFinish, initial, quickOk, q
 
 /* ── Schulden-Banner ── */
 const PP_LOGO = <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7.2 21.3l.5-3.1h3.6c3.8 0 6.4-1.9 7-5.5.5-3-.9-4.9-3.9-4.9H8.7c-.5 0-.9.4-1 .9L5.2 20.4c-.1.5.3.9.7.9h1.3zm2.4-9.9h2.1c1.2 0 1.9.6 1.7 1.8-.2 1.4-1.2 2.1-2.7 2.1H9l.6-3.9z"/></svg>;
-function Bal({ bals, noShare }) {
-  const { me } = useD();
+function Bal({ bals, noShare, mod = 'hs', onSettle }) {
+  const { me, D, setFn, notifyOthers } = useD();
   const [shared,setShared] = useState(false);
   const d=bals.find(b=>b.net<-.01), c=bals.find(b=>b.net>.01);
   if(!d||!c) return null;
@@ -1784,6 +1786,38 @@ function Bal({ bals, noShare }) {
   // Schuldner d zahlt an Gläubiger c → dessen PayPal.me-Link.
   const link = ppLink(c.pp, amount);
   const isCreditor = me===c.id; // Betrachter = Gläubiger → kann sich nicht selbst bezahlen, also Link teilen
+  /* Zahlung bestätigen (Key `pr`): Schuldner meldet „bezahlt", Gläubiger bestätigt → Abrechnen (onSettle) */
+  const reqs = (D.pr||[]).filter(p=>p && p.mod===mod);
+  const req = reqs.find(p=>p.status==='open');
+  const rejected = reqs.find(p=>p.status==='no' && p.from===me && Date.now()-(p.at||0) < 24*3600e3);
+  const claim = () => {
+    const p = { id:uid(), mod, from:d.id, to:c.id, amount:Math.round(amount*100)/100, ts:Date.now(), status:'open' };
+    setFn('pr', cur=>[p, ...(cur||[]).filter(x=>x && !(x.mod===mod && x.status==='open'))].slice(0,20));
+    notifyOthers(`💶 ${d.name} hat €${fmt(amount)} bezahlt`, 'Bitte in der App bestätigen', 'wg-pay-'+mod, 'settle');
+  };
+  const answer = ok => {
+    setFn('pr', cur=>cur.map(x=>x.id===req.id?{...x,status:ok?'ok':'no',at:Date.now()}:x));
+    if (ok) onSettle?.();   // Abrechnen schickt selbst „hat abgerechnet"
+    else notifyOthers(`⚠️ ${c.name}: Zahlung nicht angekommen`, `€${fmt(req.amount)} · bitte prüfen`, 'wg-pay-'+mod, 'settle');
+  };
+  const payBox = req ? (
+    isCreditor ? (
+      <div className="group rise" data-testid="pay-confirm" style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:10,border:'1px solid rgba(94,234,212,.35)'}}>
+        <div style={{fontSize:14,fontWeight:700}}>💶 {d.name} hat €{fmt(req.amount)} bezahlt</div>
+        <div style={{display:'flex',gap:8}}>
+          <button className="btn" style={{background:'var(--green)',flex:1}} onClick={()=>answer(true)}>Angekommen ✓</button>
+          <button className="btn btn-sec" style={{flex:1}} onClick={()=>answer(false)}>Nicht angekommen</button>
+        </div>
+      </div>
+    ) : me===d.id ? (
+      <div className="rise" data-testid="pay-wait" style={{fontSize:12.5,color:'var(--label2)',textAlign:'center'}}>⏳ Wartet auf Bestätigung von {c.name}</div>
+    ) : null
+  ) : me===d.id ? (
+    <>
+      {rejected && <div className="rise" style={{fontSize:12.5,color:'var(--red)',textAlign:'center',fontWeight:700}}>⚠️ {c.name}: Zahlung nicht angekommen</div>}
+      <button className="btn btn-sec rise" data-testid="pay-claim" onClick={claim}>✓ Ich habe €{fmt(amount)} bezahlt</button>
+    </>
+  ) : null;
   // Gläubiger teilt seinen Zahlungslink (native Share-Sheet → WhatsApp etc.; sonst Clipboard).
   const shareLink = async () => {
     const txt = `Bitte €${fmt(amount)} an ${c.name}: ${link}`;
@@ -1816,6 +1850,7 @@ function Bal({ bals, noShare }) {
           {PP_LOGO}€{fmt(amount)} an {c.name} per PayPal
         </a>
       )}
+      {payBox}
     </>
   );
 }
@@ -2150,6 +2185,468 @@ function LoginShare() {
   );
 }
 
+/* ══════════════════════════
+   ALLTAG (seit wg-v62): Vorrat, Müllabfuhr, Abwesenheit, Waschtimer, Schnell-Nachrichten, Reparaturen, Jahresrückblick
+   Neue Listen-Keys: vr, mk, aw, wt, pr, qm, rp — Items nur mit einfachen Feldern (DB-Regel: Text ≤ 500, Zahl, Bool).
+══════════════════════════ */
+
+/* Kleines Bottom-Sheet für die Alltags-Karten (gleiche Klassen wie Wiz, ohne Schritte) */
+function MiniSheet({ open, onClose, title, color, children }) {
+  if (!open) return null;
+  return ReactDOM.createPortal(
+    <div className="overlay" onClick={onClose}>
+      <div className="sheet" onClick={e=>e.stopPropagation()}>
+        <div className="sheet-handle"/>
+        <div className="sheet-hdr">
+          <span className="sheet-title" style={{color}}>{title}</span>
+          <button className="cancel-btn" onClick={onClose}>Abbrechen</button>
+        </div>
+        <div className="sheet-body" style={{display:'flex',flexDirection:'column',gap:14}}>{children}</div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+const hdrBtn = { background:'none', border:'none', fontWeight:700, fontSize:12, fontFamily:'inherit', cursor:'pointer', padding:0, textTransform:'none', letterSpacing:0 };
+const chipSt = on => ({ fontSize:13, borderRadius:12, padding:'9px 12px', border:'none', fontWeight:on?800:600, fontFamily:'inherit', cursor:'pointer',
+  background:on?'var(--mint)':'var(--bg3)', color:on?'#0a120c':'var(--label2)' });
+const nameOfU = (users, id) => (users||[]).find(u=>u.id===id)?.name || 'Jemand';
+const fmtDM = iso => { const [,m,d]=String(iso||'').split('-').map(Number); return d ? `${d}.${m}.` : ''; };
+
+/* ── Vorrat (Key `vr`): ein Tipp = „fast leer" → Einkaufsliste + Push. outs = letzte 6 Meldungen „iso,iso,…" (alt → neu) ── */
+const STOCK_PRESETS = [['Klopapier','🧻'],['Müllbeutel','🗑️'],['Spülmittel','🧴'],['Waschmittel','🧺'],['Küchenrolle','🧽'],['Spültabs','🍽️'],['Handseife','🧼'],['Kaffee','☕']];
+const stockOuts = it => String(it?.outs||'').split(',').filter(Boolean);
+// Ø Tage zwischen zwei Meldungen (ab 2 Meldungen), sonst null
+const stockEvery = it => {
+  const o = stockOuts(it); if (o.length < 2) return null;
+  const gaps = o.slice(1).map((d,i)=>Math.round((isoMid(d)-isoMid(o[i]))/864e5)).filter(g=>g>0);
+  return gaps.length ? Math.round(gaps.reduce((a,b)=>a+b,0)/gaps.length) : null;
+};
+// Tage bis voraussichtlich leer (≤ 0 = jetzt), null ohne Erfahrung
+const stockLeft = it => { const e = stockEvery(it); return e===null ? null : e - daysSince(stockOuts(it).slice(-1)[0]); };
+const stockSlug = n => 'v-' + String(n).toLowerCase().replace(/[^a-z0-9äöüß]+/g,'-').slice(0,40);
+
+function StockCard() {
+  const { D, setFn, me, notifyOthers, undo } = useD();
+  const [edit,setEdit] = useState(false);
+  const [nn,setNn] = useState('');
+  const items = (D.vr||[]).filter(Boolean), list = D.sl || [];
+  const meName = nameOfU(D.users, me);
+  // Vorlagen erscheinen ohne Einrichtung; erst die erste Meldung legt den Eintrag an
+  const all = [...items, ...STOCK_PRESETS.filter(([n])=>!items.some(i=>i.id===stockSlug(n))).map(([name,em])=>({ id:stockSlug(name), name, em, preset:true }))]
+    .filter(it=>!it.hidden);
+  const onList = n => list.some(i=>i && !i.done && String(i.name).toLowerCase()===String(n).toLowerCase());
+  const out = it => {
+    if (onList(it.name)) return;
+    const iso = todayISO();
+    const outs = [...stockOuts(it).filter(d=>d!==iso), iso].slice(-6).join(',');
+    const { preset, ...base } = it;
+    const slIt = { id:uid(), name:it.name, addedBy:me||null, date:iso, done:false };
+    setFn('vr', cur=>{ const l=cur||[]; return l.some(x=>x.id===it.id) ? l.map(x=>x.id===it.id?{...x,outs}:x) : [...l,{...base,outs}]; });
+    setFn('sl', cur=>[slIt, ...(cur||[])]);
+    notifyOthers(`🛒 ${it.em} ${it.name} ist fast leer`, `${meName} hat es auf die Einkaufsliste gesetzt`, 'wg-shop', 'shop');
+    undo(`${it.em} ${it.name} auf die Liste`, ()=>{
+      setFn('sl', cur=>cur.filter(x=>x.id!==slIt.id));
+      setFn('vr', cur=>preset ? cur.filter(x=>x.id!==it.id) : cur.map(x=>x.id===it.id?{...x,outs:it.outs||''}:x));
+    });
+  };
+  // Ausblenden statt löschen: Vorlagen kämen sonst sofort wieder
+  const hide = it => { const { preset, ...base } = it; setFn('vr', cur=>{ const l=cur||[]; return l.some(x=>x.id===it.id) ? l.map(x=>x.id===it.id?{...x,hidden:true}:x) : [...l,{...base,outs:'',hidden:true}]; }); };
+  const addCustom = () => { const n=nn.trim(); if(!n) return; const id=stockSlug(n); setFn('vr', cur=>[...(cur||[]).filter(x=>x.id!==id), { id, name:n, em:'📦', outs:'' }]); setNn(''); };
+  const hiddenN = items.filter(i=>i.hidden).length;
+  const soon = all.filter(it=>!onList(it.name) && (stockLeft(it) ?? 99) <= 2);
+  return (
+    <div className="rise" data-testid="stock-card" style={{animationDelay:'30ms'}}>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span>🧻 Vorrat · was ist fast leer?</span>
+        <button className="hit" onClick={()=>setEdit(e=>!e)} style={{...hdrBtn,color:'var(--mint)'}}>{edit?'Fertig':'Bearbeiten'}</button>
+      </div>
+      <div className="group" style={{padding:12}}>
+        {soon.length>0 && !edit && <div data-testid="stock-soon" style={{fontSize:12.5,color:'var(--amber)',fontWeight:700,marginBottom:10}}>⏳ Bald leer: {soon.map(s=>s.name).join(', ')}</div>}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(96px,1fr))',gap:8}}>
+          {all.map(it=>{
+            const on = onList(it.name), left = stockLeft(it), warn = !on && left!==null && left<=2;
+            return (
+              <button key={it.id} data-testid="stock-btn" onClick={()=>edit?hide(it):out(it)} aria-label={edit?`${it.name} ausblenden`:`${it.name} ist fast leer`}
+                style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,padding:'10px 4px',borderRadius:12,border:`1px solid ${warn?'var(--amber)':'transparent'}`,
+                  background:on&&!edit?'rgba(94,234,212,.10)':'var(--bg3)',color:on&&!edit?'var(--mint)':'var(--label)',fontWeight:700,fontSize:12,fontFamily:'inherit',cursor:'pointer',lineHeight:1.2}}>
+                <span style={{fontSize:20}}>{it.em}</span>{it.name}
+                <span style={{fontSize:10.5,fontWeight:600,color:on&&!edit?'var(--mint)':warn?'var(--amber)':'var(--label2)'}}>
+                  {edit ? '× ausblenden' : on ? '✓ auf der Liste' : left===null ? 'fast leer?' : left<=0 ? 'jetzt leer?' : `~${left} Tag${left===1?'':'e'}`}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {edit && (
+          <>
+            <form onSubmit={e=>{e.preventDefault();addCustom();}} style={{display:'flex',gap:8,marginTop:10}}>
+              <input className="field" maxLength={40} placeholder="Eigenes, z. B. Zahnpasta" aria-label="Eigenen Vorrat hinzufügen" value={nn} onChange={e=>setNn(e.target.value)} style={{flex:1}}/>
+              <button type="submit" className="btn" style={{width:54,flexShrink:0,background:'var(--mint)'}}>+</button>
+            </form>
+            {hiddenN>0 && <button className="hit" onClick={()=>setFn('vr', cur=>cur.map(x=>x.hidden?{...x,hidden:false}:x))} style={{...hdrBtn,color:'var(--label2)',marginTop:10}}>{hiddenN} ausgeblendete zurückholen</button>}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Müllabfuhr (Key `mk`): je Tonne ein Rhythmus {kind, start, every (Wochen)} ──
+   Putzplan-Aufgaben mit `pk` werden am Vorabend der nächsten Abholung fällig (choreDueIn → pickupDueIn).
+   api/_wg.js rechnet genauso — beide zusammen ändern. */
+const PICK_KINDS = { rest:['⚫','Restmüll'], bio:['🟤','Biomüll'], papier:['🔵','Papier'], gelb:['🟡','Gelber Sack'], glas:['🟢','Glas'] };
+// nächste Abholung am oder nach fromIso
+const pickupNext = (p, fromIso) => {
+  if (!p || !p.start) return null;
+  const step = 7 * (Number(p.every) || 1);
+  const diff = Math.round((isoMid(fromIso) - isoMid(p.start)) / 864e5);
+  return diff > 0 ? shiftISO(p.start, Math.ceil(diff/step)*step) : p.start;
+};
+// fällig am Vorabend der ersten Abholung, deren Vorabend nach dem letzten Erledigen liegt (P−1 > lastDone ⇔ P ≥ lastDone+2)
+const pickupDueIn = (p, lastDone, today = todayISO()) => {
+  const P = lastDone ? pickupNext(p, shiftISO(lastDone, 2)) : pickupNext(p, today);
+  return Math.round((isoMid(shiftISO(P, -1)) - isoMid(today)) / 864e5);
+};
+const pickText = kind => { const k = PICK_KINDS[kind]; return k ? `vor jeder ${k[0]} ${k[1]}-Abholung` : 'vor der Abholung'; };
+
+function PickupCard() {
+  const { D, setFn, undo } = useD();
+  const [open,setOpen] = useState(false);
+  const [f,setF] = useState({ kind:'rest', start:todayISO(), every:2 });
+  const today = todayISO();
+  const next = (D.mk||[]).filter(Boolean).map(p=>({ ...p, d:pickupNext(p, today) })).filter(p=>p.d).sort((a,b)=>a.d.localeCompare(b.d));
+  const linked = kind => (D.pt||[]).filter(t=>t && t.pk===kind).length;
+  const save = () => { setFn('mk', cur=>[...(cur||[]).filter(x=>x.kind!==f.kind), { id:'mk-'+f.kind, kind:f.kind, start:f.start||today, every:+f.every||1 }]); setOpen(false); };
+  const del = p => { const { d, ...orig } = p; setFn('mk', cur=>cur.filter(x=>x.id!==p.id)); undo(`${PICK_KINDS[p.kind]?.[1]||'Abholung'} entfernt`, ()=>setFn('mk', cur=>[...cur.filter(x=>x.id!==p.id), orig])); };
+  return (
+    <div className="rise" data-testid="pickup-card" style={{animationDelay:'60ms'}}>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span>🚛 Müllabfuhr</span>
+        <button className="hit" onClick={()=>{ setF({ kind:Object.keys(PICK_KINDS).find(k=>!next.some(p=>p.kind===k))||'rest', start:today, every:2 }); setOpen(true); }} style={{...hdrBtn,color:'var(--amber)'}}>+ Tonne</button>
+      </div>
+      <div className="group">
+        {!next.length && <div className="cell"><div className="cell-content"><span className="cell-sub">Abholtage eintragen → Erinnerung am Vorabend, Müll-Aufgaben werden dann passend fällig.</span></div></div>}
+        {next.map(p=>{
+          const k = PICK_KINDS[p.kind] || ['🗑️', p.kind], n = linked(p.kind);
+          return (
+            <div key={p.id} className="cell" data-testid="pickup-row">
+              <span style={{fontSize:20,lineHeight:1}}>{k[0]}</span>
+              <div className="cell-content">
+                <span className="cell-title">{k[1]} · <b style={{color:p.d===shiftISO(today,1)?'var(--amber)':'inherit'}}>{boardWhen(p.d)}</b></span>
+                <span className="cell-sub">alle {p.every} Woche{+p.every===1?'':'n'}{n?` · ${n} Aufgabe${n===1?'':'n'} gekoppelt`:''}</span>
+              </div>
+              <button className="del-btn" aria-label={`${k[1]} entfernen`} onClick={()=>del(p)}>×</button>
+            </div>
+          );
+        })}
+      </div>
+      <MiniSheet open={open} onClose={()=>setOpen(false)} title="Abholtermin" color="var(--amber)">
+        <div className="sheet-sublbl">Welche Tonne?</div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+          {Object.entries(PICK_KINDS).map(([k,[em,l]])=><button key={k} type="button" style={chipSt(f.kind===k)} onClick={()=>setF({...f,kind:k})}>{em} {l}</button>)}
+        </div>
+        <label className="sheet-sublbl" htmlFor="pk-start">Nächste Abholung</label>
+        <input id="pk-start" type="date" className="field" value={f.start} onChange={e=>setF({...f,start:e.target.value})}/>
+        <div className="sheet-sublbl">Wie oft?</div>
+        <div style={{display:'flex',gap:6}}>
+          {[1,2,4].map(w=><button key={w} type="button" style={{...chipSt(+f.every===w),flex:1}} onClick={()=>setF({...f,every:w})}>{w===1?'Jede Woche':`Alle ${w} Wochen`}</button>)}
+        </div>
+        <button className="btn" style={{background:'var(--amber)'}} onClick={save}>Speichern</button>
+      </MiniSheet>
+    </div>
+  );
+}
+
+/* ── Abwesenheit (Key `aw`): {userId, from, to, note} — Putzplan teilt Abwesende nicht ein,
+   Einträge aus der Zeit zählen nicht für die Reihenfolge (choreTally). ── */
+const isAway = (userId, iso = todayISO()) => (ABSENCES||[]).some(a=>a && a.userId===userId && a.from<=iso && iso<=a.to);
+
+function AwayCard({ compact }) {
+  const { D, setFn, me, notifyOthers, undo } = useD();
+  const [open,setOpen] = useState(false);
+  const [f,setF] = useState({ from:todayISO(), to:shiftISO(todayISO(),3), note:'' });
+  const today = todayISO(), users = D.users || [];
+  const list = (D.aw||[]).filter(a=>a && a.to>=today).sort((a,b)=>a.from.localeCompare(b.from));
+  const shown = compact ? list.filter(a=>a.from<=today) : list;
+  if (compact && !shown.length) return null;
+  const save = () => {
+    if (!me || !f.from || !f.to || f.to < f.from) return;
+    const it = { id:uid(), userId:me, from:f.from, to:f.to, note:f.note.trim().slice(0,80) };
+    setFn('aw', cur=>[it, ...(cur||[]).filter(a=>a && a.to>=today)]);
+    notifyOthers(`✈️ ${nameOfU(users, me)} ist weg`, `${fmtDM(it.from)}–${fmtDM(it.to)}${it.note?` · ${it.note}`:''} · Putzplan übernimmt das`, 'wg-board', 'board');
+    undo('✈️ Abwesenheit eingetragen', ()=>setFn('aw', cur=>cur.filter(a=>a.id!==it.id)));
+    setOpen(false);
+  };
+  const del = a => { setFn('aw', cur=>cur.filter(x=>x.id!==a.id)); undo('Abwesenheit entfernt', ()=>setFn('aw', cur=>[a, ...cur])); };
+  const rows = shown.map(a=>{
+    const u = users.find(x=>x.id===a.userId), now = a.from<=today;
+    return (
+      <div key={a.id} className="cell" data-testid="away-row">
+        <span style={{fontSize:19,lineHeight:1}}>✈️</span>
+        <div className="cell-content">
+          <span className="cell-title"><b style={{color:u?.color}}>{a.userId===me?'Du bist':`${u?.name||'Jemand'} ist`}</b> {now?'weg':'bald weg'}</span>
+          <span className="cell-sub">{fmtDM(a.from)}–{fmtDM(a.to)}{a.note?` · ${a.note}`:''}{now?' · wird im Putzplan nicht eingeteilt':''}</span>
+        </div>
+        {!compact && <button className="del-btn" aria-label="Abwesenheit entfernen" onClick={()=>del(a)}>×</button>}
+      </div>
+    );
+  });
+  if (compact) return <div className="group rise" data-testid="away-banner">{rows}</div>;
+  return (
+    <div className="rise" data-testid="away-card" style={{animationDelay:'70ms'}}>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span>✈️ Abwesend</span>
+        {me && <button className="hit" onClick={()=>{ setF({ from:today, to:shiftISO(today,3), note:'' }); setOpen(true); }} style={{...hdrBtn,color:'var(--amber)'}}>Ich bin weg</button>}
+      </div>
+      {rows.length ? <div className="group">{rows}</div> : <div className="section-ftr" style={{marginTop:0}}>Urlaub oder krank? Dann teilt dich der Putzplan in der Zeit nicht ein.</div>}
+      <MiniSheet open={open} onClose={()=>setOpen(false)} title="Ich bin weg" color="var(--amber)">
+        <label className="sheet-sublbl" htmlFor="aw-from">Von</label>
+        <input id="aw-from" type="date" className="field" value={f.from} onChange={e=>setF({...f,from:e.target.value})}/>
+        <label className="sheet-sublbl" htmlFor="aw-to">Bis einschließlich</label>
+        <input id="aw-to" type="date" className="field" value={f.to} min={f.from} onChange={e=>setF({...f,to:e.target.value})}/>
+        <input className="field" maxLength={80} placeholder="Notiz (optional), z. B. Urlaub" aria-label="Notiz" value={f.note} onChange={e=>setF({...f,note:e.target.value})}/>
+        <button className="btn" style={{background:f.to>=f.from?'var(--amber)':'var(--bg3)'}} onClick={save}>Eintragen</button>
+      </MiniSheet>
+    </div>
+  );
+}
+
+/* ── Waschtimer (Key `wt`): {kind, by, start, mins, end}. Beide Geräte sehen den Countdown.
+   Grenze: der kostenlose Server kann nicht in 90 Min. etwas auslösen → Meldung kommt, sobald ein Gerät die App
+   offen hat (lokal) — das startende Gerät schickt dann zusätzlich eine Push an die anderen. ── */
+const WASH_KINDS = { wasch:['🧺','Waschmaschine'], trock:['🌀','Trockner'], spuel:['🍽️','Spülmaschine'] };
+function WashCard() {
+  const { D, setFn, me, notifyOthers } = useD();
+  const [open,setOpen] = useState(false);
+  const [kind,setKind] = useState('wasch');
+  const [mins,setMins] = useState(90);
+  const [now,setNow] = useState(Date.now());
+  const runs = (D.wt||[]).filter(r=>r && r.end > now - 12*3600e3);
+  const ids = runs.map(r=>r.id).join();
+  useEffect(()=>{ if (SHORTCUT==='waesche') { SHORTCUT=null; setOpen(true); } }, []);
+  useEffect(()=>{ if (!runs.length) return; const iv=setInterval(()=>setNow(Date.now()), 10000); return ()=>clearInterval(iv); }, [ids]);
+  // Ende erreicht → je Gerät genau einmal melden
+  useEffect(()=>{
+    runs.forEach(r=>{
+      if (r.end > now) return;
+      const k = 'wg_wt_noted_' + r.id;
+      if (ls(k, false)) return;
+      ss(k, true);
+      const [em,label] = WASH_KINDS[r.kind] || ['🧺','Maschine'];
+      showLocalNote(`${em} ${label} ist fertig`, 'Bitte ausräumen');
+      if (r.by === me) notifyOthers(`${em} ${label} ist fertig`, 'Bitte ausräumen', 'wt-'+r.id, 'board');
+    });
+  }, [now, ids]);
+  const start = () => {
+    const t = Date.now(), [em,label] = WASH_KINDS[kind];
+    const r = { id:uid(), kind, by:me||null, start:t, mins, end:t + mins*60000 };
+    setFn('wt', cur=>[r, ...(cur||[]).filter(x=>x && x.kind!==kind && x.end > t - 12*3600e3)]);
+    notifyOthers(`${em} ${nameOfU(D.users, me)} hat die ${label} gestartet`, `fertig um ${fmtHM(r.end)}`, 'wt-'+r.id, 'board');
+    setNow(t); setOpen(false);
+  };
+  const clear = r => setFn('wt', cur=>cur.filter(x=>x.id!==r.id));
+  return (
+    <div className="rise" data-testid="wash-card" style={{animationDelay:'25ms'}}>
+      {runs.length>0 && (
+        <div className="group" style={{marginBottom:8}}>
+          {runs.map(r=>{
+            const [em,label] = WASH_KINDS[r.kind] || ['🧺','Maschine'];
+            const left = Math.ceil((r.end - now)/60000), pct = Math.min(100, Math.max(0, (now - r.start)/(r.end - r.start)*100));
+            const done = left <= 0;
+            return (
+              <div key={r.id} className="cell" data-testid="wash-run" style={{flexWrap:'wrap'}}>
+                <span style={{fontSize:20,lineHeight:1}}>{em}</span>
+                <div className="cell-content">
+                  <span className="cell-title">{label} {done ? <b style={{color:'var(--green)'}}>ist fertig</b> : `· noch ${left} Min.`}</span>
+                  <span className="cell-sub">{nameOfU(D.users, r.by)} · {done ? `seit ${fmtHM(r.end)}` : `fertig um ${fmtHM(r.end)}`}</span>
+                </div>
+                <button className="btn btn-sec" style={{width:'auto',padding:'8px 12px',fontSize:13}} onClick={()=>clear(r)}>{done?'Ausgeräumt ✓':'Abbrechen'}</button>
+                <div style={{flexBasis:'100%',height:4,borderRadius:2,background:'var(--bg3)',overflow:'hidden'}}>
+                  <div style={{width:`${pct}%`,height:'100%',background:done?'var(--green)':'var(--mint)',transition:'width .6s'}}/>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <button className="hit" data-testid="wash-open" onClick={()=>setOpen(true)}
+        style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,width:'100%',padding:'9px 14px',borderRadius:12,border:'none',background:'var(--bg3)',color:'var(--label2)',fontWeight:600,fontSize:13,fontFamily:'inherit',cursor:'pointer'}}>
+        🧺 Maschine läuft · Timer starten
+      </button>
+      <MiniSheet open={open} onClose={()=>setOpen(false)} title="Timer starten" color="var(--mint)">
+        <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+          {Object.entries(WASH_KINDS).map(([k,[em,l]])=><button key={k} type="button" style={chipSt(kind===k)} onClick={()=>setKind(k)}>{em} {l}</button>)}
+        </div>
+        <div className="sheet-sublbl">Wie lange?</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6}}>
+          {[30,60,90,120,150,180].map(m=><button key={m} type="button" style={chipSt(mins===m)} onClick={()=>setMins(m)}>{m<60?`${m} Min.`:`${Math.floor(m/60)}${m%60?',5':''} Std.`}</button>)}
+        </div>
+        <button className="btn" style={{background:'var(--mint)'}} onClick={start}>Starten · fertig um {fmtHM(Date.now()+mins*60000)}</button>
+        <div style={{fontSize:11.5,color:'var(--label2)',lineHeight:1.45}}>Die Meldung „fertig" kommt, sobald eines eurer Handys die App offen hat oder sie wieder öffnet.</div>
+      </MiniSheet>
+    </div>
+  );
+}
+
+/* ── Schnell-Nachrichten (Key `qm`): ein Tipp = Push an den anderen, 12 Std. im Haushalt-Tab sichtbar ── */
+const QUICK_MSGS = ['🏃 Bin in 10 Min. da','📦 Paket für dich angenommen','🤫 Bitte leise, ich schlafe','🍕 Essen ist da','🔑 Tür ist nicht abgeschlossen','🧺 Deine Wäsche ist fertig'];
+function QuickMsgs() {
+  const { D, setFn, me, notifyOthers, undo } = useD();
+  const [txt,setTxt] = useState('');
+  const now = Date.now(), users = D.users || [];
+  const recent = (D.qm||[]).filter(m=>m && m.ts > now - 12*3600e3).sort((a,b)=>b.ts-a.ts).slice(0,4);
+  const send = text => {
+    const t = String(text).trim().slice(0,80); if (!t || !me) return;
+    const it = { id:uid(), by:me, text:t, ts:Date.now() };
+    setFn('qm', cur=>[it, ...(cur||[]).filter(m=>m && m.ts > Date.now() - 24*3600e3)].slice(0,20));
+    notifyOthers(`💬 ${nameOfU(users, me)}`, t, 'wg-qm', 'board');
+    undo('💬 Gesendet', ()=>setFn('qm', cur=>cur.filter(m=>m.id!==it.id)));
+    setTxt('');
+  };
+  return (
+    <div className="rise" data-testid="quick-msgs" style={{animationDelay:'78ms'}}>
+      <div className="section-hdr">💬 Kurz Bescheid</div>
+      <div className="group" style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:10}}>
+        {recent.map(m=>{ const u=users.find(x=>x.id===m.by); return (
+          <div key={m.id} data-testid="qm-row" style={{fontSize:13.5,lineHeight:1.35}}>
+            <b style={{color:u?.color}}>{m.by===me?'Du':u?.name||'Jemand'}</b> <span style={{color:'var(--label2)',fontSize:11.5}}>{fmtHM(m.ts).replace('morgen ','')}</span><br/>{m.text}
+          </div>); })}
+        {me ? (
+          <>
+            <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+              {QUICK_MSGS.map(q=><button key={q} type="button" data-testid="qm-preset" style={chipSt(false)} onClick={()=>send(q)}>{q}</button>)}
+            </div>
+            <form onSubmit={e=>{e.preventDefault();send(txt);}} style={{display:'flex',gap:8}}>
+              <input className="field" maxLength={80} placeholder="Eigene Nachricht …" aria-label="Eigene Nachricht" value={txt} onChange={e=>setTxt(e.target.value)} style={{flex:1}}/>
+              <button type="submit" className="btn" style={{width:'auto',padding:'0 16px',flexShrink:0,background:'var(--mint)'}}>Senden</button>
+            </form>
+          </>
+        ) : <span style={{fontSize:12.5,color:'var(--label2)'}}>Gerät unter Mehr → Personen wählen, dann kannst du Nachrichten schicken.</span>}
+      </div>
+    </div>
+  );
+}
+
+/* ── Reparaturen (Key `rp`): offen → gemeldet (md) → erledigt. Ab 14 Tagen „gemeldet" rot + Cron-Erinnerung (api/_wg.js) ── */
+function RepairCard() {
+  const { D, setFn, me, notifyOthers, undo } = useD();
+  const [txt,setTxt] = useState('');
+  const [showDone,setShowDone] = useState(false);
+  const users = D.users || [];
+  const all = (D.rp||[]).filter(Boolean).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const openL = all.filter(r=>r.status!=='erledigt'), doneL = all.filter(r=>r.status==='erledigt');
+  const add = () => {
+    const t = txt.trim().slice(0,120); if (!t) return;
+    const it = { id:uid(), text:t, by:me||null, ts:Date.now(), status:'offen' };
+    setFn('rp', cur=>[it, ...(cur||[])]);
+    notifyOthers(`🔧 Kaputt: ${t}`, `${nameOfU(users, me)} hat es notiert`, 'wg-board', 'board');
+    setTxt('');
+  };
+  const step = r => {
+    const next = r.status==='offen' ? { status:'gemeldet', md:todayISO() } : { status:'erledigt', dd:todayISO() };
+    setFn('rp', cur=>cur.map(x=>x.id===r.id?{...x,...next}:x));
+    undo(next.status==='gemeldet'?'🔧 Als gemeldet markiert':'🔧 Erledigt', ()=>setFn('rp', cur=>cur.map(x=>x.id===r.id?r:x)));
+  };
+  const del = r => { setFn('rp', cur=>cur.filter(x=>x.id!==r.id)); undo('🔧 Eintrag gelöscht', ()=>setFn('rp', cur=>[r, ...cur])); };
+  const row = r => {
+    const age = r.md ? daysSince(r.md) : null, late = r.status==='gemeldet' && age>=14;
+    return (
+      <div key={r.id} className="cell" data-testid="repair-row">
+        <div className="cell-content">
+          <span className="cell-title">{r.text}</span>
+          <span className="cell-sub" style={late?{color:'var(--red)',fontWeight:700}:null}>
+            {r.status==='offen' ? `noch nicht gemeldet · ${nameOfU(users, r.by)}`
+              : r.status==='gemeldet' ? (late ? `seit ${age} Tagen gemeldet – nachhaken!` : `gemeldet am ${fmtDM(r.md)}`)
+              : `erledigt am ${fmtDM(r.dd)}`}
+          </span>
+        </div>
+        {r.status!=='erledigt'
+          ? <button className="btn btn-sec" style={{width:'auto',padding:'8px 12px',fontSize:13,flexShrink:0}} onClick={()=>step(r)}>{r.status==='offen'?'Gemeldet ✓':'Erledigt ✓'}</button>
+          : <button className="del-btn" aria-label="Eintrag löschen" onClick={()=>del(r)}>×</button>}
+      </div>
+    );
+  };
+  return (
+    <div className="rise" data-testid="repair-card" style={{animationDelay:'85ms'}}>
+      <div className="section-hdr">🔧 Kaputt & Vermieter</div>
+      <div className="group">
+        {openL.map(row)}
+        {showDone && doneL.slice(0,10).map(row)}
+        <form className="cell" onSubmit={e=>{e.preventDefault();add();}} style={{gap:8}}>
+          <input className="field" maxLength={120} placeholder="Was ist kaputt? z. B. Heizung Bad" aria-label="Kaputtes eintragen" value={txt} onChange={e=>setTxt(e.target.value)} style={{flex:1}}/>
+          <button type="submit" className="btn" style={{width:54,flexShrink:0,background:'var(--mint)'}}>+</button>
+        </form>
+      </div>
+      {doneL.length>0 && <button className="hit" onClick={()=>setShowDone(s=>!s)} style={{...hdrBtn,color:'var(--label2)',margin:'8px 4px 0'}}>{showDone?'Erledigte ausblenden':`${doneL.length} erledigte anzeigen`}</button>}
+    </div>
+  );
+}
+
+/* ── Jahresrückblick (Übersicht): Ausgaben je Monat, teuerster Monat, Top-Kategorie, Putz-Punkte, häufigste Aufgabe ──
+   api/_wg.js → yearReview() schickt am 1.1. dieselben Zahlen als Push (beide zusammen ändern). */
+function YearReview({ all, pl, pt, users }) {
+  const cy = new Date().getFullYear();
+  const [y,setY] = useState(cy);
+  const ys = String(y);
+  const items = all.filter(i=>String(i.date||'').startsWith(ys));
+  if (!items.length && !pl.some(l=>String(l?.date||'').startsWith(ys)) && y===cy && !all.some(i=>String(i.date||'').startsWith(String(cy-1)))) return null;
+  const months = Array.from({length:12}, (_,m)=>({ m, t:items.filter(i=>+String(i.date).slice(5,7)===m+1).reduce((s,i)=>s+(i.price||0),0) }));
+  const total = months.reduce((s,x)=>s+x.t,0), max = Math.max(...months.map(x=>x.t), 1);
+  const top = [...months].sort((a,b)=>b.t-a.t)[0];
+  const catSum = {};
+  items.filter(i=>i.mod==='hs' && i.cat).forEach(i=>{ catSum[i.cat]=(catSum[i.cat]||0)+(i.price||0); });
+  const topCat = Object.entries(catSum).sort((a,b)=>b[1]-a[1])[0];
+  const catLabel = k => { const c = CATS.find(x=>x[0]===k); return c ? `${c[1]} ${c[2]}` : k; };
+  const plY = pl.filter(l=>l && String(l.date||'').startsWith(ys));
+  const byId = {}; pt.forEach(t=>{ if(t) byId[t.id]=t; });
+  const pts = users.map(u=>({ ...u, n:plY.filter(l=>l.userId===u.id).reduce((s,l)=>s+(l.pts||chorePts(byId[l.taskId])),0) }));
+  const cnt = {}; plY.forEach(l=>{ cnt[l.name]=(cnt[l.name]||0)+1; });
+  const topTask = Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0];
+  const line = (l, v) => <div style={{display:'flex',justifyContent:'space-between',gap:10,fontSize:13.5}}><span style={{color:'var(--label2)'}}>{l}</span><span style={{fontWeight:700,textAlign:'right'}}>{v}</span></div>;
+  return (
+    <div className="rise" data-testid="year-review" style={{animationDelay:'112ms'}}>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span>📅 Jahresrückblick</span>
+        <span style={{display:'flex',gap:6}}>
+          {[cy-1, cy].map(v=><button key={v} className="hit" onClick={()=>setY(v)} style={{...hdrBtn,color:y===v?'var(--sky)':'var(--label2)',fontWeight:y===v?800:600}}>{v}</button>)}
+        </span>
+      </div>
+      <div className="group" style={{padding:16,display:'flex',flexDirection:'column',gap:10}}>
+        <div><span className="num" style={{fontSize:26,fontWeight:800}}>€{fmt(total)}</span> <span style={{color:'var(--label2)',fontSize:13}}>ausgegeben in {y}</span></div>
+        <div style={{display:'flex',alignItems:'flex-end',gap:3,height:56}} aria-hidden="true">
+          {months.map(x=><div key={x.m} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3,height:'100%',justifyContent:'flex-end'}}>
+            <div style={{width:'100%',height:`${x.t>0?Math.max(x.t/max*100,4):0}%`,background:x.m===top.m&&x.t>0?'var(--amber)':'var(--sky)',borderRadius:'3px 3px 0 0'}}/>
+            <span style={{fontSize:8.5,color:'var(--label2)',fontWeight:700}}>{MONTHS[x.m].slice(0,1)}</span>
+          </div>)}
+        </div>
+        {top.t>0 && line('Teuerster Monat', `${MONTHS[top.m]} · €${fmt(top.t)}`)}
+        {topCat && line('Top-Kategorie Haushalt', `${catLabel(topCat[0])} · €${fmt(topCat[1])}`)}
+        {line('Putz-Punkte', pts.map(p=>`${p.name} ${p.n}`).join(' · '))}
+        {topTask && line('Häufigste Aufgabe', `${topTask[0]} · ${topTask[1]}×`)}
+      </div>
+    </div>
+  );
+}
+
+/* ── App-Kürzel (manifest.json → shortcuts, ?a=…): ausgabe | liste | muell | waesche.
+   AppInner liest den Parameter einmal, die Karten verbrauchen ihn (SHORTCUT → null). ── */
+let SHORTCUT = null;
+function ShortcutRunner({ goTab }) {
+  const { D, status, fbCfg, wgCode, undo } = useD();
+  const done = useChoreDone();
+  useEffect(()=>{
+    if (SHORTCUT !== 'muell') return;
+    if (fbCfg && wgCode && status !== 'synced') return;       // erst nach dem Sync, sonst hakt es auf altem Stand ab
+    SHORTCUT = null;
+    const ts = (D.pt||[]).filter(Boolean);
+    const t = ts.find(x=>x.pk==='rest') || ts.find(x=>/müll/i.test(x.name||'')) || ts.find(x=>x.em==='🗑️');
+    goTab('putz');
+    if (t) done(t, null); else undo('Keine Müll-Aufgabe im Putzplan', ()=>{});
+  }, [status, D.pt]);
+  return null;
+}
+
 function Haushalt({goGrow, goPutz}) {
   const { D, set, setFn, status, me, setMe, undo, askConfirm, flashIds, notifyOthers, mods } = useD();
   const users = D.users, items = D.hs || [], list = D.sl || [];
@@ -2164,6 +2661,8 @@ function Haushalt({goGrow, goPutz}) {
   const recs = D.rec || [];
   const listInput = useRef(null);
   const heroRef = useRef(null);          // Ziel für den Ausgabe-Flug
+  // App-Kürzel „Ausgabe eintragen" / „Einkaufsliste" (einmal verbrauchen)
+  useEffect(()=>{ if (SHORTCUT==='ausgabe') { SHORTCUT=null; setWiz(true); } else if (SHORTCUT==='liste') { SHORTCUT=null; setSeg('liste'); } }, []);
   const [leaving,setLeaving] = useState(null); // sl-Item, das gerade animiert abgehakt wird
   const [stamp,setStamp] = useState(false);    // grüner Ausgleich-Stempel
   const [bringOpen,setBringOpen] = useState(false); // „Bitte mitbringen"-Schnellfenster
@@ -2214,7 +2713,11 @@ function Haushalt({goGrow, goPutz}) {
   /* Kaufzähler für lernende Vorschläge: beim Abhaken (offen→erledigt) hochzählen.
      id = Slug (RTDB-Pfad-sicher), name behält die zuletzt getippte Schreibweise. */
   const bumpSlh   = name => { const n=String(name||'').trim(); if(!n) return; const sid=n.toLowerCase().replace(/[.#$/\[\]]/g,'_').slice(0,80); setFn('slh', cur => { const l=cur||[]; const ex=l.find(x=>x.id===sid); return ex ? l.map(x=>x.id===sid?{...x,n:(x.n||0)+1,name:n}:x) : [{id:sid,name:n,n:1},...l]; }); };
-  const toggleL   = id => { const it=list.find(i=>i.id===id); if(it&&!it.done) bumpSlh(it.name); set('sl',list.map(i=>i.id===id?{...i,done:!i.done}:i)); };
+  const toggleL   = id => {
+    const it=list.find(i=>i.id===id); if(it&&!it.done) bumpSlh(it.name);
+    if (it) setBought(b=>{ const nb = it.done ? {...b, ids:b.ids.filter(x=>x!==id)} : { t:Date.now(), ids:[...b.ids.filter(x=>x!==id), id] }; ss('wg_bought', nb); return nb; });
+    set('sl',list.map(i=>i.id===id?{...i,done:!i.done}:i));
+  };
   /* Abhaken mit Wisch-Strich + Kollaps, dann erst in den Wagen wandern. Uncheck (done→offen) sofort. */
   const checkL    = i => { if(leaving===i.id) return; /* Doppel-Tap während der Abhak-Animation würde sonst doppelt togglen */ if(i.done||REDUCE()){ toggleL(i.id); return; } setLeaving(i.id); setTimeout(()=>{ toggleL(i.id); setLeaving(l=>l===i.id?null:l); }, 600); };
   const delL      = id => { const it=list.find(i=>i.id===id); set('sl',list.filter(i=>i.id!==id)); undo(`„${it?.name||'Eintrag'}" gelöscht`, ()=>setFn('sl', cur => cur.some(i=>i.id===id)?cur:[it,...cur])); };
@@ -2251,6 +2754,7 @@ function Haushalt({goGrow, goPutz}) {
     const rec={ id:uid(), mod:'hs', date:todayISO(), total:tot, n:open.length, fromId:debtor?.id||null, toId:creditor?.id||null, amount:debtor?Math.abs(debtor.net):0 };
     set('stl',[rec,...oldStl]);
     set('hs',items.map(i=>i.settled?i:{...i,settled:true,settledAt:todayISO(),settlementId:rec.id}));
+    setFn('pr', cur=>(cur||[]).map(x=>x.mod==='hs'&&x.status==='open'?{...x,status:'ok',at:Date.now()}:x));   // offene „bezahlt"-Meldung erledigt
     undo('Alles abgerechnet', ()=>{ setFn('stl', cur=>cur.filter(s=>s.id!==rec.id)); setFn('hs', cur=>cur.map(i=>i.settlementId===rec.id?{...i,settled:false,settledAt:null,settlementId:null}:i)); });
     if(!REDUCE()){ setStamp(true); setTimeout(()=>setStamp(false),1100); }
     notifyOthers(`🤝 ${meName} hat abgerechnet`, `€${fmt(tot)}`, 'wg-settle', 'settle');
@@ -2258,6 +2762,15 @@ function Haushalt({goGrow, goPutz}) {
 
   // Bezahler standardmäßig auf das eigene Gerät (me) vorbelegen → ein Tap weniger im Normalfall
   const addInit = useMemo(()=>({ paidBy: me||undefined }), [me]);
+  /* Kassenzettel-Summe: wer abhakt, trägt danach nur noch den Betrag ein (Name + Kategorie vorbelegt) */
+  const [bought,setBought] = useState(()=>{ const b=ls('wg_bought',null); return b && Date.now()-(b.t||0) < 3*3600e3 && Array.isArray(b.ids) ? b : { t:0, ids:[] }; });
+  const boughtItems = list.filter(i=>i && i.done && bought.ids.includes(i.id));
+  const [wizInit,setWizInit] = useState(null);
+  const openReceipt = () => { setWizInit({ receipt:true, name:('Einkauf: '+boughtItems.map(i=>i.name).join(', ')).slice(0,120), paidBy:me||undefined, cat:'food', date:todayISO() }); setWiz(true); };
+  const addFromWiz = d => {
+    add(d);
+    if (wizInit?.receipt) { const ids=boughtItems.map(i=>i.id); set('sl', list.filter(i=>!ids.includes(i.id))); const nb={t:0,ids:[]}; ss('wg_bought',nb); setBought(nb); }
+  };
   // Schritt 3 (Bezahler + Aufteilung kombiniert) mit Review-Karte oben — geteilt von steps/recSteps
   const payerSplitStep = (payLabel) => ({label:'Prüfen & aufteilen',ok:d=>!!d.paidBy,render:({data:d,setData:sd})=>(
     <div style={{display:'flex',flexDirection:'column',gap:18}}>
@@ -2322,6 +2835,8 @@ function Haushalt({goGrow, goPutz}) {
       <div className="scroll">
         <div className="content">
           <ChoreQuick goPutz={goPutz}/>
+          <AwayCard compact/>
+          <WashCard/>
           <div className="seg rise">
             {[['aus','💶 Ausgaben'],['liste',`🛒 Einkaufsliste${openL>0?` (${openL})`:''}`]].map(([v,l])=>(
               <button key={v} className={`seg-btn${seg===v?' on':''}`} onClick={()=>setSeg(v)}>{l}</button>
@@ -2410,7 +2925,7 @@ function Haushalt({goGrow, goPutz}) {
           )}
           </>
           )}
-          <Bal bals={bals}/>
+          <Bal bals={bals} mod="hs" onSettle={settleAll}/>
           {growOn && gNet<-0.01 && (
             <button className="rise" onClick={goGrow}
               style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginTop:-4,padding:'11px 14px',borderRadius:14,border:'1px solid rgba(163,230,53,.28)',background:'rgba(163,230,53,.06)',color:'var(--lime)',fontWeight:700,fontSize:13.5,fontFamily:'inherit',cursor:'pointer',animationDelay:'55ms'}}>
@@ -2451,7 +2966,9 @@ function Haushalt({goGrow, goPutz}) {
               </div>
             </div>
           </div>
+          <QuickMsgs/>
           <LoginShare/>
+          <RepairCard/>
           {open.length>0&&(
             <button className="btn btn-sec rise" style={{animationDelay:'80ms'}} onClick={settleAll}>✓ Alles abrechnen ({open.length})</button>
           )}
@@ -2545,6 +3062,10 @@ function Haushalt({goGrow, goPutz}) {
               <div style={{fontSize:12,color:'var(--label3)',marginTop:10,lineHeight:1.5}}>Damit jeder sieht, wer was auf die Liste setzt. Später änderbar unter Mehr → Personen.</div>
             </div>
           )}
+          {boughtItems.length>0 && (
+            <button className="btn rise" data-testid="receipt-btn" style={{background:'var(--mint)'}} onClick={openReceipt}>🧾 {boughtItems.length} abgehakt · Betrag vom Kassenzettel eintragen</button>
+          )}
+          <StockCard/>
           <form className="rise" style={{display:'flex',gap:8,animationDelay:'40ms'}} onSubmit={e=>{e.preventDefault();addL();}}>
             <input ref={listInput} maxLength={200} className="field" style={{flex:1}} placeholder="Milch, Klopapier, Müllbeutel …" value={newName} onChange={e=>setNewName(e.target.value)}/>
             <button type="submit" className="btn" style={{width:54,flexShrink:0,background:'var(--mint)',fontSize:26,lineHeight:1}}>+</button>
@@ -2602,7 +3123,7 @@ function Haushalt({goGrow, goPutz}) {
           )}
         </div>
       </div>
-      <Wiz open={wiz} onClose={()=>setWiz(false)} title="Ausgabe" color="var(--mint)" steps={steps} onFinish={add} initial={addInit} quickOk={d=>d.name?.trim()&&parseNum(d.price)>0&&d.paidBy}/>
+      <Wiz open={wiz} onClose={()=>{ setWiz(false); setWizInit(null); }} title="Ausgabe" color="var(--mint)" steps={steps} onFinish={addFromWiz} initial={wizInit||addInit} quickOk={d=>d.name?.trim()&&parseNum(d.price)>0&&d.paidBy}/>
       <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title="Bearbeiten" color="var(--mint)" steps={steps} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,owedBy:editItem.owedBy||null,cat:editItem.cat||null,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>
       <Wiz open={!!convItem} onClose={()=>setConvItem(null)} title="Als Ausgabe übernehmen" color="var(--mint)" steps={steps} onFinish={convert} initial={convItem?{name:convItem.name,paidBy:me||undefined,date:todayISO()}:null}/>
       <Wiz open={recWiz} onClose={()=>setRecWiz(false)} title="Wiederkehrend (monatlich)" color="var(--mint)" steps={recSteps} onFinish={addRec} initial={addInit}/>
@@ -2811,6 +3332,7 @@ function Grow() {
     const rec={ id:uid(), mod:'gi', date:todayISO(), total:tCost, n:open.length, fromId:debtor?.id||null, toId:creditor?.id||null, amount:debtor?Math.abs(debtor.net):0 };
     set('stl',[rec,...oldStl]);
     set('gi',items.map(i=>i.settled?i:{...i,settled:true,settledAt:todayISO(),settlementId:rec.id}));
+    setFn('pr', cur=>(cur||[]).map(x=>x.mod==='gi'&&x.status==='open'?{...x,status:'ok',at:Date.now()}:x));
     undo('Alles abgerechnet', ()=>{ setFn('stl', cur=>cur.filter(s=>s.id!==rec.id)); setFn('gi', cur=>cur.map(i=>i.settlementId===rec.id?{...i,settled:false,settledAt:null,settlementId:null}:i)); });
     if(!REDUCE()){ setStamp(true); setTimeout(()=>setStamp(false),1100); }
     notifyOthers(`🤝 ${meName} hat abgerechnet`, `€${fmt(tCost)}`, 'wg-settle', 'settle');
@@ -2981,7 +3503,7 @@ function Grow() {
               ))}
             </div>
             <div style={{height:8}}/>
-            <Bal bals={bals} noShare/>
+            <Bal bals={bals} noShare mod="gi" onSettle={settleAll}/>
           </div>
         )}
 
@@ -3091,6 +3613,7 @@ function Grow() {
    - Dran ist, wer DIESE Aufgabe in den letzten 90 Tagen seltener gemacht hat; Gleichstand → wer sie länger nicht gemacht hat.
    - Punkte je Aufgabe (1 kurz · 2 mittel · 3 groß) nur für die Gesamtbilanz — Bad zählt mehr als Müll.
 ══════════════════════════ */
+let PICKUPS = [], ABSENCES = [];   // von DataProvider je Render gesetzt (D.mk / D.aw)
 const CHORE_WINDOW = 90;
 const CHORE_PTS = [[1,'⚡','Kurz','unter 5 Min.'],[2,'🧽','Mittel','~15 Min.'],[3,'💪','Groß','30 Min. +']];
 // Vorlagen zum Antippen: [Name, Emoji, Intervall in Tagen, Punkte]
@@ -3104,6 +3627,7 @@ const isoMid = s => { const [y,m,d]=String(s||'').split('-').map(Number); return
 const choreCut = days => { const c=new Date(); c.setDate(c.getDate()-days); c.setHours(0,0,0,0); return c; };
 // Tage bis fällig (≤ 0 = heute/überfällig; nie gemacht = sofort fällig)
 const choreDueIn = t => {
+  if (t?.pk) { const p = (PICKUPS||[]).find(x=>x && x.kind===t.pk); if (p) return pickupDueIn(p, t.lastDone); }   // an Müllabfuhr gekoppelt
   if(!t?.lastDone) return 0;
   const due=isoMid(t.lastDone); due.setDate(due.getDate()+(t.interval||7));
   const n=new Date(); n.setHours(0,0,0,0);
@@ -3113,11 +3637,12 @@ const choreDueIn = t => {
 const choreTally = (taskId, log, users) => {
   const cut=choreCut(CHORE_WINDOW), o={};
   users.forEach(u=>{ o[u.id]=0; });
-  (log||[]).forEach(l=>{ if(l && l.taskId===taskId && l.userId in o && isoMid(l.date)>=cut) o[l.userId]++; });
+  // Einträge aus Tagen, an denen der andere weg war, zählen nicht — sonst müsste er nach dem Urlaub „aufholen"
+  (log||[]).forEach(l=>{ if(l && l.taskId===taskId && l.userId in o && isoMid(l.date)>=cut && !users.some(u=>u.id!==l.userId && isAway(u.id, l.date))) o[l.userId]++; });
   return o;
 };
 // Wer ist als Nächstes dran? log: neuester Eintrag zuerst (so hängt done() an, so sortiert der Sync)
-const choreNext = (taskId, log, users, fallback) => {
+const choreNextRaw = (taskId, log, users, fallback) => {
   if (users.length < 2) return users[0]?.id || fallback;
   const tally = choreTally(taskId, log, users);
   const lastIdx = id => { const i=(log||[]).findIndex(l=>l && l.taskId===taskId && l.userId===id); return i<0 ? Infinity : i; };
@@ -3128,6 +3653,13 @@ const choreNext = (taskId, log, users, fallback) => {
   const best = [...cand].sort((a,b)=>lastIdx(b.id)-lastIdx(a.id));
   if (lastIdx(best[0].id) === lastIdx(best[1].id)) return cand.some(u=>u.id===fallback) ? fallback : best[0].id;
   return best[0].id;
+};
+// Wie choreNextRaw — wer heute abwesend ist, wird übersprungen (sofern der andere da ist)
+const choreNext = (taskId, log, users, fallback) => {
+  const r = choreNextRaw(taskId, log, users, fallback);
+  if (!isAway(r)) return r;
+  const o = users.find(u=>u.id!==r && !isAway(u.id));
+  return o ? o.id : r;
 };
 // Einsatz-Punkte je Person seit `days` Tagen (alte Einträge ohne pts → Punkte der Aufgabe, sonst 2)
 const choreScore = (log, tasks, users, days) => {
@@ -3297,8 +3829,8 @@ function Putzplan() {
   const del = id => { const t=tasks.find(x=>x.id===id); set('pt',tasks.filter(x=>x.id!==id)); undo(`„${t?.name||'Aufgabe'}" gelöscht`, ()=>setFn('pt', cur => cur.some(x=>x.id===id)?cur:[t,...cur])); };
   const ivOf = d => parseInt(d.interval)||7;
   // Neue Aufgabe: ohne Auswahl fängt an, wer sie anlegt — wer sich meldet, macht's
-  const add = d => set('pt',[...tasks,{id:uid(),name:d.name?.trim()||'Aufgabe',em:d.em||'🧽',interval:ivOf(d),pts:chorePts(d),assignee:d.assignee||(users.some(u=>u.id===me)?me:users[0].id),lastDone:null}]);
-  const save = d => set('pt',tasks.map(x=>x.id===editTask.id?{...x,name:d.name?.trim()||x.name,em:d.em||x.em,interval:parseInt(d.interval)||x.interval,pts:chorePts(d),assignee:d.assignee||x.assignee}:x));
+  const add = d => set('pt',[...tasks,{id:uid(),name:d.name?.trim()||'Aufgabe',em:d.em||'🧽',interval:ivOf(d),pts:chorePts(d),pk:d.pk||null,assignee:d.assignee||(users.some(u=>u.id===me)?me:users[0].id),lastDone:null}]);
+  const save = d => set('pt',tasks.map(x=>x.id===editTask.id?{...x,name:d.name?.trim()||x.name,em:d.em||x.em,interval:parseInt(d.interval)||x.interval,pts:chorePts(d),pk:d.pk||null,assignee:d.assignee||x.assignee}:x));
 
   // Standard-Plan: die vier Klassiker + Altpapier/Altglas, abwechselnd eingeteilt
   const loadDefaults = () => set('pt',
@@ -3322,6 +3854,7 @@ function Putzplan() {
   };
   const ivText = n => n===1?'täglich':n===7?'wöchentlich':n===14?'alle 2 Wochen':n===30?'monatlich':`alle ${n} Tage`;
 
+  const PRESET_PK = { 'Müll rausbringen':'rest', 'Altpapier':'papier', 'Altglas & Pfand':'glas' };   // Vorlage → Tonne, falls eingetragen
   const EMS=['🗑️','♻️','📦','🍽️','🍳','🚿','🧹','🪣','🧽','🧺','🪟','🧊','🌿','🛒','🧴','🛏️'];
   const IVS=[['1','Täglich'],['2','Alle 2 Tage'],['3','Alle 3 Tage'],['7','Wöchentlich'],['14','Alle 2 Wochen'],['30','Monatlich']];
   const steps=[
@@ -3331,7 +3864,7 @@ function Putzplan() {
         {/* Vorlage antippen = Name, Symbol, Rhythmus und Aufwand auf einmal (danach „Fertig" oder weiter anpassen) */}
         <div data-testid="chore-presets" style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:10}}>
           {CHORE_PRESETS.filter(p=>!tasks.some(t=>t.name===p[0])||d.name===p[0]).map(([name,em,iv,pts])=>(
-            <button key={name} type="button" className="hit" onClick={()=>sd({...d,name,em,interval:String(iv),pts})}
+            <button key={name} type="button" className="hit" onClick={()=>sd({...d,name,em,interval:String(iv),pts,pk:(D.mk||[]).some(p=>p&&p.kind===PRESET_PK[name])?PRESET_PK[name]:null})}
               style={{fontSize:12.5,borderRadius:12,padding:'7px 10px',border:'none',fontWeight:d.name===name?800:600,fontFamily:'inherit',cursor:'pointer',
                 background:d.name===name?'var(--amber)':'var(--bg3)',color:d.name===name?'#0a120c':'var(--label2)'}}>
               {em} {name}
@@ -3340,10 +3873,21 @@ function Putzplan() {
         </div>
       </>
     )},
-    {label:'Wie oft?',ok:d=>!!d.interval,render:({data:d,setData:sd})=>(
-      <div className="cat-grid">
-        {IVS.map(([v,l])=><button key={v} className={`cat-btn${d.interval===v?' on':''}`} onClick={()=>sd({...d,interval:v})}>{l}</button>)}
-      </div>
+    {label:'Wie oft?',ok:d=>!!(d.interval||d.pk),render:({data:d,setData:sd})=>(
+      <>
+        <div className="cat-grid">
+          {IVS.map(([v,l])=><button key={v} className={`cat-btn${!d.pk&&d.interval===v?' on':''}`} onClick={()=>sd({...d,interval:v,pk:null})}>{l}</button>)}
+        </div>
+        {/* An die Müllabfuhr koppeln: fällig am Vorabend der Abholung statt fester Rhythmus */}
+        {(D.mk||[]).filter(Boolean).length>0 && (
+          <>
+            <div className="sheet-sublbl" style={{marginTop:14}}>… oder immer am Vorabend der Abholung</div>
+            <div className="cat-grid">
+              {(D.mk||[]).filter(Boolean).map(p=>{ const k=PICK_KINDS[p.kind]||['🗑️',p.kind]; return <button key={p.kind} data-testid="pk-opt" className={`cat-btn${d.pk===p.kind?' on':''}`} onClick={()=>sd({...d,pk:p.kind,interval:d.interval||'7'})}>{k[0]} {k[1]}</button>; })}
+            </div>
+          </>
+        )}
+      </>
     )},
     {label:'Wie aufwendig? (zählt für die Bilanz)',render:({data:d,setData:sd})=>(
       <div className="cat-grid">
@@ -3416,7 +3960,7 @@ function Putzplan() {
                     </button>
                     <div className="cell-content" style={{cursor:'pointer'}} onClick={()=>setEditTask(t)}>
                       <span className="cell-title">{t.em} {t.name}</span>
-                      <span className="cell-sub"><span key={u?.id} className="assignee-swap" style={{color:u?.color,fontWeight:700}}>{u?.id===me?'Du bist':`${u?.name} ist`}</span> dran · <ChoreTally task={t} log={log} users={users}/> · {ivText(t.interval||7)}</span>
+                      <span className="cell-sub"><span key={u?.id} className="assignee-swap" style={{color:u?.color,fontWeight:700}}>{u?.id===me?'Du bist':`${u?.name} ist`}</span> dran · <ChoreTally task={t} log={log} users={users}/> · {t.pk?pickText(t.pk):ivText(t.interval||7)}</span>
                     </div>
                     {chip(t)}
                     <button className="del-btn" aria-label="Aufgabe löschen" title="Aufgabe löschen" onClick={()=>del(t.id)}>×</button>
@@ -3426,6 +3970,9 @@ function Putzplan() {
             </div>
           </div>
         )}
+
+        <PickupCard/>
+        <AwayCard/>
 
         {log.length>0&&(
           <div className="rise" style={{animationDelay:'140ms'}}>
@@ -3447,8 +3994,8 @@ function Putzplan() {
         )}
 
       </div></div>
-      <Wiz open={wiz} onClose={()=>setWiz(false)} title="Putz-Aufgabe" color="var(--amber)" steps={steps} onFinish={add} quickOk={d=>!!(d.name?.trim()&&d.interval)} quickLabel="⚡ Sofort speichern · ich fange an"/>
-      <Wiz open={!!editTask} onClose={()=>setEditTask(null)} title="Aufgabe bearbeiten" color="var(--amber)" steps={steps} onFinish={save} quickOk={d=>!!d.name?.trim()} quickLabel="⚡ Änderung speichern" initial={editTask?{name:editTask.name,em:editTask.em,interval:String(editTask.interval),pts:chorePts(editTask),assignee:editTask.assignee}:null}/>
+      <Wiz open={wiz} onClose={()=>setWiz(false)} title="Putz-Aufgabe" color="var(--amber)" steps={steps} onFinish={add} quickOk={d=>!!(d.name?.trim()&&(d.interval||d.pk))} quickLabel="⚡ Sofort speichern · ich fange an"/>
+      <Wiz open={!!editTask} onClose={()=>setEditTask(null)} title="Aufgabe bearbeiten" color="var(--amber)" steps={steps} onFinish={save} quickOk={d=>!!d.name?.trim()} quickLabel="⚡ Änderung speichern" initial={editTask?{name:editTask.name,em:editTask.em,interval:String(editTask.interval),pts:chorePts(editTask),pk:editTask.pk||null,assignee:editTask.assignee}:null}/>
     </div>
   );
 }
@@ -4871,6 +5418,8 @@ function Statistik() {
           </div>
         </div>
 
+        <YearReview all={all} pl={pl} pt={D.pt||[]} users={users}/>
+
         {pl.length>0&&(
           <div className="rise" style={{animationDelay:'115ms'}}>
             <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
@@ -5065,9 +5614,12 @@ function PushPrompt({ onClose }){
 }
 
 function AppInner() {
-  const { mods, remotePulse, D, me, pushSave, status, wgCode } = useD();
+  const { mods, remotePulse, D, me, pushSave, status, wgCode, setFn, fbCfg } = useD();
+  // App-Kürzel (?a=…) einmal lesen und aus der Adresse entfernen — sonst liefe es bei jedem Neuladen erneut
+  useState(() => { try { const a = new URLSearchParams(location.search).get('a'); if (a) { SHORTCUT = a; history.replaceState(null, '', location.pathname); } } catch {} return null; });
   const visibleTabs = TABS.filter(t => t.id==='set' || mods[t.id] !== false);
   const [tab,setTab_] = useState(() => {
+    if (SHORTCUT) return SHORTCUT==='muell' ? 'putz' : 'haus';
     const saved = ls('wg_tab', null); // letzten Tab merken
     return (saved && (saved==='set' || mods[saved] !== false)) ? saved : (visibleTabs[0]?.id || 'set');
   });
@@ -5094,6 +5646,16 @@ function AppInner() {
   }, [status, wgCode]);
   const bkStale = typeof bkAge === 'number' && bkAge > 2;
   const myChores = me ? choreMine(D.pt, me).length : 0;   // Tab-Punkt Putzplan
+  /* Abwesenheit: Aufgaben von Abwesenden gehen an den, der da ist (idempotent — beide Geräte schreiben dasselbe) */
+  useEffect(() => {
+    if (fbCfg && wgCode && status !== 'synced') return;
+    const users = D.users || []; if (users.length < 2) return;
+    const away = users.filter(u=>isAway(u.id)).map(u=>u.id);
+    if (!away.length || away.length === users.length) return;
+    if (!(D.pt||[]).some(t=>t && away.includes(t.assignee))) return;
+    const to = users.find(u=>!away.includes(u.id)).id;
+    setFn('pt', cur=>cur.map(t=>t && away.includes(t.assignee) ? {...t, assignee:to} : t));
+  }, [D.pt, D.aw, status]);
   // „Neue Version": ein neuer Service Worker hat übernommen (s. Skript am Seitenende) — Hinweis mit Knopf
   const [updReady,setUpdReady] = useState(() => !!window.__wgUpdReady);
   useEffect(() => { const on = () => setUpdReady(true); window.addEventListener('wg-update', on); return () => window.removeEventListener('wg-update', on); }, []);
@@ -5199,6 +5761,7 @@ function AppInner() {
           <button onClick={()=>location.reload()}>Jetzt neu laden</button>
         </div>
       )}
+      <ShortcutRunner goTab={setTab}/>
       <div className="tabbar">
         {visibleTabs.map(t=>(
           <button key={t.id} className={`tabitem${tab===t.id?' on':''}`} aria-current={tab===t.id?'page':undefined}

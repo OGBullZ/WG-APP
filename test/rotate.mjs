@@ -84,7 +84,7 @@ const openMehr = async page => { await page.locator('.tabbar .tabitem', { hasTex
   check('A7 vorher gesichert (Snapshot mit altem Code)', iBackup >= 0 && calls[iBackup].body.code === OLD && calls[iBackup].body.action === 'snapshot');
   check('A8 Server erfährt {old, new}', iRotate > iBackup && calls[iRotate].body.old === OLD && calls[iRotate].body.new === NEW, JSON.stringify(calls[iRotate]?.body));
   // Code-Sheet schließen, dann schreibt eine neue Ausgabe unter den NEUEN Code
-  await page.getByRole('button', { name: 'Fertig' }).click();
+  await page.getByRole('button', { name: 'Fertig', exact: true }).click();
   await page.locator('.tabbar .tabitem', { hasText: 'Haushalt' }).click(); await page.waitForTimeout(300);
   await page.locator('.btn', { hasText: 'Ausgabe hinzufügen' }).first().click(); await page.waitForTimeout(300);
   await page.locator('.sheet .field').first().fill('NachWechsel');

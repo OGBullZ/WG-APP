@@ -70,6 +70,44 @@ WG-Splitter für 2 Personen (Torben + Tom). Single-File-PWA, Live-Sync zwischen 
   - Verworfen (torbe gefragt): Abzeichen, Tausch-Anfrage, Retter-Bonuspunkt.
 - Der Haken läuft für beide Stellen (Putzplan und Haushalt-Karte) über `useChoreDone()`. Nie eine zweite Kopie bauen.
 
+## Alltag (seit wg-v62, 2026-09-16 — torbe: „alle umsetzen“)
+
+Neue Listen-Keys (INIT + LIST_KEYS + DB-Regel, **Regeln vor der App ausrollen**): `vr` Vorrat, `mk` Müllabfuhr, `aw` Abwesend, `wt` Waschtimer, `pr` Zahlung bestätigen, `qm` Schnell-Nachrichten, `rp` Reparaturen. Items dürfen nur einfache Felder haben (DB-Regel `$f`: Text ≤ 500, Zahl, Bool). Deshalb stehen die Vorrat-Meldungen als Text `outs: "iso,iso,…"` im Eintrag und nicht als Liste. Die Komponenten stehen gesammelt vor `function Haushalt` (Block „ALLTAG“).
+
+- **Vorrat** (`StockCard`, Einkaufsliste): 8 Vorlagen ohne Einrichtung. Ein Tipp setzt „fast leer“ auf die Einkaufsliste und schickt eine Push (Typ `shop`), steht es schon offen drauf, passiert nichts. Aus den letzten 6 Meldungen berechnet die App den Ø-Abstand, daraus „Bald leer“ (≤ 2 Tage). „Bearbeiten“ blendet Einträge aus (Vorlagen kämen nach einem Löschen sonst sofort wieder) und legt eigene an.
+- **Kassenzettel-Summe:** Abgehakte Einträge merkt sich die App 3 Std. je Gerät (`wg_bought`). Der Knopf „Betrag vom Kassenzettel eintragen“ öffnet das Ausgaben-Formular vorbelegt (Name, Lebensmittel, ich). Nach dem Speichern verschwinden die gekauften Einträge aus der Liste.
+- **Müllabfuhr** (`PickupCard` im Putzplan):
+  - Rhythmus je Tonne: `{kind, start, every}` in Wochen.
+  - Aufgaben mit `pk` (Formular „Wie oft?“ → „… oder am Vorabend der Abholung“, Vorlagen Müll/Papier/Glas koppeln automatisch) werden am **Vorabend** fällig: `pickupDueIn`, erste Abholung P mit P−1 > lastDone.
+  - `choreDueIn` liest dafür das Modul-Global `PICKUPS`, das `DataProvider` bei jedem Render setzt.
+  - **Server spiegelt das in `api/_wg.js`**. `test/alltag.mjs` A1 und `test/cron_alltag.mjs` 1–7 rechnen dieselben Fälle.
+- **Abwesenheit** (`AwayCard`, Banner im Haushalt): `isAway` über das Global `ABSENCES`.
+  - `choreNext` überspringt Abwesende (Hülle um `choreNextRaw`).
+  - `choreTally` zählt Einträge von Tagen nicht, an denen der andere weg war. So muss niemand nach dem Urlaub „aufholen“.
+  - Eine Wirkung in AppInner gibt Aufgaben Abwesender an den ab, der da ist. Beide Geräte schreiben dabei dasselbe Ergebnis, doppeltes Schreiben schadet also nicht.
+  - Der Server nennt über `taskWho` ebenfalls den Anwesenden.
+- **Waschtimer** (`WashCard`): beide Geräte sehen den Countdown.
+  - **Grenze:** Der kostenlose Tarif kann nicht in 90 Min. einen Push auslösen: Vercel Hobby hat nur tägliche Crons, Firebase Spark keine Functions, und für QStash o. ä. wäre ein Konto nötig.
+  - Stattdessen meldet jedes Gerät das Ende einmal lokal (Marker `wg_wt_noted_<id>`). Das startende Gerät schickt, wenn es offen ist, zusätzlich eine Push.
+  - Läufe fallen nach 12 Std. aus der Anzeige.
+- **Zahlung bestätigen** (`Bal`, Props `mod`/`onSettle`):
+  - Der Schuldner meldet „Ich habe €X bezahlt“, `pr` wird `open`, dazu eine Push `settle`.
+  - Der Gläubiger antwortet „Angekommen ✓“ (ruft `settleAll` auf) oder „Nicht angekommen“ (`no` plus Push; der Schuldner sieht das 24 Std.).
+  - Jedes `settleAll` (hs/gi) schließt offene `pr` seines Bereichs.
+- **Schnell-Nachrichten** (`QuickMsgs`): 6 Vorlagen plus eigener Text, jeweils als Push `board`. Im Haushalt 12 Std. sichtbar, gespeichert werden max. 20 aus den letzten 24 Std.
+- **Reparaturen** (`RepairCard`): Status `offen` → `gemeldet` (`md`) → `erledigt` (`dd`). Ab 14 Tagen „gemeldet“ wird der Eintrag rot, der Morgen-Cron erinnert an Tag 14, 21, 28 usw.
+- **Jahresrückblick** (`YearReview` in der Übersicht): Umschalter Vorjahr/dieses Jahr, Ausgaben inkl. Archiv, teuerster Monat, Top-Kategorie, Putz-Punkte, häufigste Aufgabe. Am **1.1.** schickt der Morgen-Cron `yearReview()` fürs Vorjahr.
+- **App-Kürzel:** `manifest.json` → `shortcuts` (`?a=ausgabe|muell|liste|waesche`, nur Android/Chrome, iOS kennt das nicht).
+  - AppInner liest den Parameter **einmal**, entfernt ihn per `replaceState` und legt ihn ins Modul-Global `SHORTCUT`.
+  - Die Karten verbrauchen ihn und setzen ihn danach auf `null`.
+  - „Müll“ (`ShortcutRunner`) wartet auf den Sync und hakt die Aufgabe mit `pk:'rest'` bzw. mit dem Namen „Müll“ ab.
+- **Server:**
+  - `api/_wg.js` enthält die reine Logik.
+  - `api/evening.js` ist ein **zweiter Cron um 17:00 UTC**: morgen Abholung → Push `putz`, sonntags Wochenüberblick `remind`.
+  - `cron.js` (morgens) nutzt `taskDueIn`/`taskWho`, dazu Reparaturen und den Jahresrückblick.
+- **Test-Falle:** Mit den neuen Eingabefeldern im Haushalt traf `locator('input.field').first()` in 5 älteren Suiten das Nachrichtenfeld statt des Formulars. Die Suiten suchen jetzt mit `.sheet input.field`. Außerdem liefert `innerText` Überschriften mit CSS-`uppercase` in Großbuchstaben, also Texte mit `/i` vergleichen.
+- **Sackgasse:** Die Vorrat-Karte war geschrieben, aber nicht eingesetzt. Aufgefallen ist das erst im Test (0 Knöpfe), nicht beim Bauen.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -99,6 +137,8 @@ node test/notify_api.mjs # Push-Endpunkt: Fremdlinks raus (auch „//…"), Brem
 node test/bkwatch.mjs   # Backup-Wächter: alte Sicherung → Tab-Punkt + Warnung, frische → nichts, Drossel 6 Std.
 node test/update.mjs    # „Neue Version": Hinweis, kein Neuladen mit offenem Formular, sonst Neuladen (eigener Port 8098)
 node test/putz.mjs     # Putz-Fairness: Gutschrift an den, der hakt; dran ist, wer seltener; Haushalt-Karte, Tab-Punkt, Vorlagen, Rückgängig
+node test/alltag.mjs      # Alltag: Vorrat, Kassenzettel, Waschtimer, Nachrichten, Reparaturen, Zahlung bestätigen, Müllabfuhr, Abwesend, Jahr, App-Kürzel
+node test/cron_alltag.mjs # Server-Hälfte (api/_wg.js): Abholrhythmus, Vorabend-Fälligkeit, Abwesenheit, Abend-Push, Sonntags-Überblick, Reparaturen, Jahr
 node test/cron_duel.mjs # Montags-Push Wochen-Duell: Vorwoche Mo–So, Punkte-Fallbacks wie in der App, Gleichstand, nur montags, Typ game
 node test/csp_hash.mjs  # CSP-Hashes passen zu wgapp.html (+ Gegenproben) — ohne passende Hashes wäre die App blockiert
 npm run visual    # Screenshot-Harness: Handy/Tablet/Desktop + Tastatur-offen

@@ -107,11 +107,11 @@ async function run(prefix, ctxOpts, mode) {
   // Wizard: auf Tablet/Desktop zentriertes Modal, auf Handy Bottom-Sheet
   await page.getByText('+ Ausgabe hinzufügen').click(); await page.waitForTimeout(400);
   await shot('wizard-1-name');
-  await page.locator('input.field').first().fill('Pizza');
+  await page.locator('.sheet input.field').first().fill('Pizza');
 
   if (mode === 'mobile') {
     // Tastatur-offen simulieren: --kb hochsetzen (headless hat keine echte Tastatur, die App hebt das Sheet via --kb)
-    await page.locator('input.field').first().focus();
+    await page.locator('.sheet input.field').first().focus();
     await page.evaluate(() => document.documentElement.style.setProperty('--kb', '336px'));
     await shot('wizard-1-tastatur-offen');
     await page.evaluate(() => document.documentElement.style.setProperty('--kb', '0px'));
@@ -178,9 +178,9 @@ async function run(prefix, ctxOpts, mode) {
   await page.getByRole('button', { name:'📌 Fixkosten' }).click(); await page.waitForTimeout(350);
   await shot('privat-3-fixkosten');
   await page.getByRole('button', { name:'+ Fixkosten' }).click(); await page.waitForTimeout(400);
-  await page.locator('input.field').first().fill('Miete');
+  await page.locator('.sheet input.field').first().fill('Miete');
   if (mode === 'mobile') {
-    await page.locator('input.field').first().focus();
+    await page.locator('.sheet input.field').first().focus();
     await page.evaluate(() => document.documentElement.style.setProperty('--kb', '336px'));
     await shot('privat-4-wizard-tastatur-offen');
     await page.evaluate(() => document.documentElement.style.setProperty('--kb', '0px'));
