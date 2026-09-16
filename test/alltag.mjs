@@ -120,7 +120,7 @@ check('D5 Anzeige „noch 30 Min." + Start-Push', /noch 30 Min\./.test(await pag
 // ── E: Schnell-Nachrichten ──
 await page.locator('[data-testid="qm-preset"]', { hasText: 'Paket für dich' }).click(); await page.waitForTimeout(400);
 check('E1 Preset → Push + Eintrag sichtbar', pushes.some(p => p.type === 'board' && /Paket für dich angenommen/.test(p.body)) && /Paket für dich/.test(await page.locator('[data-testid="qm-row"]').first().innerText()));
-await page.getByLabel('Eigene Nachricht').fill('Bringe Brötchen mit'); await page.getByRole('button', { name: 'Senden' }).click(); await page.waitForTimeout(400);
+await page.getByLabel('Eigene Nachricht').fill('Bringe Brötchen mit'); await page.getByRole('button', { name: 'Senden', exact: true }).click(); await page.waitForTimeout(400);
 check('E2 eigene Nachricht', (await data()).qm.some(m => m.text === 'Bringe Brötchen mit' && m.by === 'u1'));
 
 // ── F: Reparaturen ──

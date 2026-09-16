@@ -151,7 +151,7 @@ async function run(prefix, ctxOpts, mode) {
   await page.getByRole('button', { name:'Code erzeugen' }).click();
   await page.locator('[data-testid="lg-code"]').waitFor({ timeout: 8000 });
   await shot('logins-5-code');
-  await page.getByRole('button', { name:'Fertig' }).click(); await page.waitForTimeout(300);
+  await page.getByRole('button', { name:'Fertig', exact: true }).click(); await page.waitForTimeout(300);
   await shot('logins-6-karte-danach');
 
   if (mode === 'mobile') {
