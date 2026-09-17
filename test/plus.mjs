@@ -25,6 +25,9 @@ const SEED = {
     { id: 's1', name: 'Brot', done: false, date: T },
     { id: 's2', name: 'Bier', done: false, date: T },
     { id: 's3', name: 'Tomaten', done: false, date: T },
+    { id: 's4', name: 'Chips', done: false, date: T },
+    { id: 's5', name: 'Saft', done: false, date: T },
+    { id: 's6', name: 'Wasser', done: false, date: T },
   ]),
   ci: map([{ id: `${YM}-u2`, ym: YM, userId: 'u2', score: 3, wish: 'Mehr lüften', ts: 1 }]),
   kf: map([
@@ -43,7 +46,7 @@ const SEED = {
   rp: map([{ id: 'rp1', text: 'Heizung tropft', status: 'gemeldet', md: dayAgo(4), by: 'u1', ts: 1 }]),
 };
 
-async function open(seed, { tab = 'heute', query = '' } = {}) {
+async function open(seed, { tab = 'heute', query = '', me = 'u1' } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 420, height: 900 }, serviceWorkers: 'block' });
   await ctx.routeWebSocket(/./, () => {});
   const page = await ctx.newPage();
@@ -56,14 +59,14 @@ async function open(seed, { tab = 'heute', query = '' } = {}) {
     return /firebasedatabase\.app|firebaseio\.com/.test(u) ? r.abort() : r.continue();
   });
   await page.route(/firebase-(app|database)-compat[-\d.]*\.js/, r => r.fulfill({ status: 200, contentType: 'application/javascript', body: /firebase-app-compat/.test(r.request().url()) ? STUB : '' }));
-  await page.addInitScript(([s, d, tb]) => {
+  await page.addInitScript(([s, d, tb, m]) => {
     window.__wgSeed = s;
     if (localStorage.getItem('wg_code')) return;
     localStorage.setItem('wg_code', JSON.stringify('TEST-LOKAL-PLUS'));
-    localStorage.setItem('wg_me', JSON.stringify('u1'));
+    if (m) localStorage.setItem('wg_me', JSON.stringify(m));
     localStorage.setItem('wg_start_shown', JSON.stringify(d));
     localStorage.setItem('wg_tab', JSON.stringify(tb));
-  }, [seed, T, tab]);
+  }, [seed, T, tab, me]);
   await page.goto(url + query, { waitUntil: 'domcontentloaded' });
   await page.locator('.tabbar').waitFor({ timeout: 30000 });
   await page.evaluate(() => window.__wg.fire());
@@ -88,6 +91,7 @@ let d = await data();
 check('C3 Antwort gespeichert (id = Monat-Person)', d.ci.some(c => c.id === `${YM}-u1` && c.score === 4 && c.wish === 'Weiter so'), JSON.stringify(d.ci));
 const cres = await page.locator('[data-testid="checkin-result"]').innerText().catch(() => '');
 check('C4 danach beide Antworten sichtbar', /Mehr lüften/.test(cres) && /Weiter so/.test(cres), cres);
+check('C4b letzte Antwort → Push „Alle haben geantwortet"', pushes.some(p => p.title === '💬 Monats-Check-in' && /Alle haben geantwortet/.test(p.body)));
 
 // ── K: Kühlschrank ──
 const fr = await page.locator('[data-testid="fridge-row"]').allInnerTexts();
@@ -177,6 +181,28 @@ check('G3 gemeinsamer Teil 15 € (50/50)', !!shared && shared.price === 15 && !
 check('G4 eigener Teil 5 € trage ich selbst', !!mine && mine.price === 5 && mine.owedBy === 'u1' && mine.paidBy === 'u1', JSON.stringify(mine));
 check('G5 Tom schuldet nur 7,50 aus dem Einkauf', Math.abs(net([shared, mine].filter(Boolean), 'u2') + 7.5) < 0.001);
 check('G6 Abgehaktes aus der Liste', !d.sl.some(i => i.name === 'Brot' || i.name === 'Bier'));
+// Tom hat bezahlt: „nur für dich" bleibt bei mir (Fund: war dem Zahler zugeschrieben)
+const receipt = async (names, price, mineName, mineAmt, step3) => {
+  for (const n of names) { await page.getByRole('button', { name: n + ' abhaken' }).click(); await page.waitForTimeout(250); }
+  await page.waitForTimeout(900);
+  await page.locator('[data-testid="receipt-btn"]').click(); await page.waitForTimeout(400);
+  await sheet.getByRole('button', { name: 'Weiter' }).click(); await page.waitForTimeout(200);
+  await sheet.locator('input[inputmode="decimal"]').first().fill(price);
+  if (mineName) { await sheet.locator('[data-testid="receipt-mine"]').getByRole('button', { name: mineName }).click(); await sheet.getByLabel('Betrag nur für dich').fill(mineAmt); }
+  await sheet.getByRole('button', { name: 'Weiter', exact: true }).click(); await page.waitForTimeout(300);
+  await step3();
+  await sheet.getByRole('button', { name: 'Fertig', exact: true }).click(); await page.waitForTimeout(600);
+};
+await receipt(['Chips', 'Saft'], '10', 'Chips', '4', () => sheet.locator('.pick-btn', { hasText: /^Tom$/ }).click());
+d = await data();
+const tMine = d.hs.find(i => i.name === 'Einkauf nur Torben: Chips'), tShared = d.hs.find(i => i.name === 'Einkauf: Saft');
+check('G7 Tom zahlt: mein Teil 4 € trage ich, Rest 6 € 50/50', !!tMine && tMine.price === 4 && tMine.paidBy === 'u2' && tMine.owedBy === 'u1'
+  && !!tShared && tShared.price === 6 && tShared.paidBy === 'u2' && !tShared.owedBy, JSON.stringify([tMine, tShared]));
+check('G8 → ich schulde Tom 7 €', !!tMine && !!tShared && Math.abs(net([tMine, tShared], 'u1') + 7) < 0.001);
+await receipt(['Wasser'], '8', 'Wasser', '3', () => sheet.getByRole('button', { name: 'Tom zahlt alles' }).click());
+d = await data();
+const wa = d.hs.filter(i => /Wasser/.test(i.name));
+check('G9 „Tom zahlt alles" bleibt, wie gewählt (keine Aufteilung)', wa.length === 1 && wa[0].price === 8 && wa[0].owedBy === 'u2', JSON.stringify(wa));
 
 // ── N: Nebenkosten ──
 await tabTo('Übersicht');
@@ -245,12 +271,57 @@ await V.ctx.close();
 const W = await open(SEED, { query: '?a=ausgabe' });
 check('V7 ohne Text → Formular', await W.page.locator('.sheet:visible').count() === 1);
 await W.ctx.close();
+// Sprachtext ohne gewählte Person: Formular mit Name + Betrag
+const Y = await open(SEED, { me: null, query: '?a=ausgabe&t=' + encodeURIComponent('12,50 Pizza') });
+const ys = Y.page.locator('.sheet:visible');
+check('V8 ohne „Wer bist du" → Formular mit „Pizza" vorbelegt', await ys.count() === 1 && (await ys.locator('input.field').first().inputValue().catch(() => '')) === 'Pizza');
+check('V9 keine Seitenfehler', Y.errs.length === 0, Y.errs.join(' | '));
+await Y.ctx.close();
+// Nebenkosten: drei Personen (gleich, ohne Schieber) und Rundung (Summe = Betrag)
+const U3 = [...USERS, { id: 'u3', name: 'Kim', color: '#a78bfa' }];
+const Z = await open({ users: U3 }, { tab: 'stats' });
+const zs = Z.page.locator('.sheet:visible');
+await Z.page.locator('[data-testid="costs-card"]').getByRole('button', { name: '+ Abrechnung' }).click(); await Z.page.waitForTimeout(300);
+check('N6 drei Personen: kein Anteil-Schieber', await zs.locator('#nk-share').count() === 0);
+await zs.getByLabel('Betrag der Abrechnung').fill('100');
+const z3 = await zs.locator('[data-testid="nk-preview"]').innerText();
+check('N7 gleich verteilt, Cent-Rest an die Letzte', z3 === 'Torben €33,33 · Tom €33,33 · Kim €33,34', z3);
+await zs.getByRole('button', { name: 'Verteilen' }).click(); await Z.page.waitForTimeout(500);
+const z3i = (await Z.data()).hs.filter(i => i.nk);
+check('N8 drei Posten, Summe 100', z3i.length === 3 && Math.abs(z3i.reduce((a, i) => a + i.price, 0) - 100) < 0.001, JSON.stringify(z3i.map(i => i.price)));
+check('N9 keine Seitenfehler', Z.errs.length === 0, Z.errs.join(' | '));
+await Z.ctx.close();
+const Q = await open({ users: USERS }, { tab: 'stats' });
+const qs = Q.page.locator('.sheet:visible');
+await Q.page.locator('[data-testid="costs-card"]').getByRole('button', { name: '+ Abrechnung' }).click(); await Q.page.waitForTimeout(300);
+await qs.getByLabel('Betrag der Abrechnung').fill('100,01');
+const q2 = await qs.locator('[data-testid="nk-preview"]').innerText();
+check('N10 zwei Personen 100,01 → 50,01 + 50,00', q2 === 'Torben €50,01 · Tom €50,00', q2);
+await Q.ctx.close();
 
 // ── C: nur ich habe geantwortet → „wir warten", nichts von Tom ──
-const X = await open({ ...SEED, ci: map([{ id: `${YM}-u1`, ym: YM, userId: 'u1', score: 5, wish: 'Top', ts: Date.now() }]) });
+const X = await open({ ...SEED, ci: map([{ id: `${YM}-u1`, ym: YM, userId: 'u1', score: 5, wish: 'Top', ts: Date.now() }]),
+  rg: map([{ id: 'r9', text: 'Müll Montag', by: 'u1', ts: 9, ok_u1: true, ok_u2: true }]),
+  sg: map([{ id: 'g2', name: 'Grill', target: 80, holder: 'u1', c_u1: 10, c_u2: 30, ts: 1 }]),
+  inv: map([{ id: 'iv', name: 'Regal', owner: 'u9' }]) });
 const xw = await X.page.locator('[data-testid="checkin-wait"]').innerText().catch(() => '');
 check('C5 eigene Antwort da, Tom fehlt → „warten auf Tom", kein Ergebnis', /warten auf Tom/.test(xw) && await X.page.locator('[data-testid="checkin-result"]').count() === 0, xw);
 check('C6 keine Seitenfehler', X.errs.length === 0, X.errs.join(' | '));
+// eigene gültige Regel aufheben → der andere erfährt es
+await X.page.getByRole('button', { name: 'Regel „Müll Montag" aufheben' }).click(); await X.page.waitForTimeout(400);
+check('R6 gültige Regel aufgehoben → Push', X.pushes.some(p => /Regel aufgehoben: Müll Montag/.test(p.title)));
+// Sparziel auflösen: Toms Einzahlung zurück
+await X.tabTo('Haushalt');
+const xs = X.page.locator('.sheet:visible');
+await X.page.locator('[data-testid="savings-card"]').getByRole('button', { name: 'Gekauft' }).click(); await X.page.waitForTimeout(300);
+await xs.getByRole('button', { name: /Ziel auflösen/ }).click(); await X.page.waitForTimeout(500);
+const xd = await X.data();
+const back = xd.hs.filter(i => i.sg === 'g2');
+check('S9 Auflösen: Ziel weg, Toms 30 € als Schuld des Verwalters', !xd.sg.some(g => g.id === 'g2') && back.length === 1 && back[0].price === 30 && back[0].paidBy === 'u2' && back[0].owedBy === 'u1', JSON.stringify(back));
+// Inventar einer ehemaligen Person bleibt sichtbar
+await X.tabTo('Mehr');
+await X.page.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click())); await X.page.waitForTimeout(300);
+check('I3 Besitzer nicht mehr in der WG → Gruppe „Ehemalige"', /Ehemalige · 1/.test(await X.page.locator('[data-testid="inventory-card"]').innerText()));
 await X.ctx.close();
 
 // ── D: DB-Regeln kennen die neuen Listen ──

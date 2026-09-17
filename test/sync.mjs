@@ -77,7 +77,7 @@ async function clickDiag(page, loc, name) {
     throw e;
   }
 }
-const addExpense = async (page, name, amount) => {
+const addExpense = async (page, name, amount, { fireOnFinish = false } = {}) => {
   await clickDiag(page, page.locator('.btn', { hasText: 'Ausgabe hinzufügen' }).first(), 'ausgabe-knopf');
   await page.waitForTimeout(300);
   await page.locator('.sheet .field').first().fill(name);
@@ -86,7 +86,13 @@ const addExpense = async (page, name, amount) => {
   await page.locator('.sheet .f-euro .field').fill(amount);
   await clickDiag(page, page.locator('.sheet-acts .btn', { hasText: 'Weiter' }), 'weiter-2');
   await page.waitForTimeout(250);
-  await clickDiag(page, page.locator('.sheet-acts .btn', { hasText: 'Fertig' }), 'fertig');
+  if (!fireOnFinish) return clickDiag(page, page.locator('.sheet-acts .btn', { hasText: 'Fertig' }), 'fertig');
+  // „Fertig" und Server-Antwort im selben Tick: sicher vor der 400-ms-Schreibfrist.
+  // Vorher lagen Klick und fire() in getrennten Schritten — unter Last dauerte der Playwright-Klick
+  // (Stabilitätsprüfung) länger als die Frist, und A2 war in ~2 von 3 Läufen rot (17.09., auch auf v68).
+  await page.locator('.sheet-acts .btn', { hasText: 'Fertig' }).waitFor();
+  const ok = await page.evaluate(() => { const b = [...document.querySelectorAll('.sheet-acts .btn')].find(x => /Fertig/.test(x.textContent)); if (!b) return false; b.click(); window.__wg.fire(); return true; });
+  if (!ok) throw new Error('Fertig-Knopf nicht gefunden (Szenario A)');
 };
 const hsOf = page => page.evaluate(() => (JSON.parse(localStorage.getItem('wg_data')).hs || []).map(i => i.name));
 const remoteHs = page => page.evaluate(() => Object.values(window.__wg.remote.hs || {}).map(i => i && i.name));
@@ -96,8 +102,7 @@ const remoteHs = page => page.evaluate(() => Object.values(window.__wg.remote.hs
 {
   const page = await open({});
   check('A1 Erst-Read läuft noch (Aufbau stimmt)', await page.evaluate(() => window.__wg.onceAt === 0));
-  await addExpense(page, 'Sofort-Eingabe', '12,50');
-  await page.evaluate(() => window.__wg.fire());   // sofort antworten, innerhalb der 400-ms-Flush-Frist
+  await addExpense(page, 'Sofort-Eingabe', '12,50', { fireOnFinish: true });   // sofort antworten, innerhalb der 400-ms-Flush-Frist
   await page.waitForTimeout(300);
   check('A2 Server hatte den Eintrag beim Antworten nicht', !(await remoteHs(page)).includes('Sofort-Eingabe'));
   await page.waitForTimeout(2500);

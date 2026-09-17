@@ -231,6 +231,23 @@ Bausteine im Block `PLUS` in wgapp.html. Neue Listen-Keys: `sg ep kf inv rg ci`,
   - Ein `// Kommentar` mitten in eine einzeilige JSX-Zeile gesetzt, kommentierte den Rest aus. Babel meldete den Fehler weit entfernt (bei `growCalc`).
   - `.sheet` gibt es auch geschlossen im DOM, Tests prüfen deshalb `.sheet:visible`.
   - `.btn-sec` ist auf der hellen Druckseite im Dunkelmodus unsichtbar, dort gelten feste Farben.
+- **Fehlersuche 17.09. (wg-v69):** per Agenten-Workflow (3 Sonnet-Linsen: Geld, State, Randfälle), jeder Fund im Hauptloop am Code geprüft.
+  - **Gemischter Einkauf:** Hatte Tom bezahlt, wurden „nur für dich“-Artikel Tom angelastet. Jetzt gilt `owedBy = me`, also das Gerät.
+  - **Gemischter Einkauf:** „X zahlt alles“ wurde mit einer 50/50-Teilung überschrieben. Die Teilung greift jetzt nur bei 50/50, die Auswahl nur mit `me`.
+  - **Sparziel:** Der Kauf las den Stand beim Öffnen des Sheets. Er liest jetzt `D.sg` neu (`cur_`).
+  - **Sparziel:** Ein Ziel ließ sich nicht auflösen. „Doch nicht kaufen“ bucht jetzt die Einzahlungen der anderen als Schuld des Verwalters.
+  - **Nebenkosten:** Ab 3 Personen ging die dritte leer aus. Jetzt wird gleich verteilt und der Schieber nur bei 2 Personen gezeigt. Den Cent-Rest bekommt die letzte Person, die Summe entspricht damit dem Betrag.
+  - **Sprach-Kurzbefehl:** Der Text wurde bei jedem `a=` übernommen, jetzt nur bei `ausgabe`. Ohne gewählte Person ging er verloren, jetzt öffnet sich das Formular mit Name und Betrag (`parseQuick`).
+  - **Inventar:** Besitzer, die nicht mehr in der WG sind, waren unsichtbar. Dafür gibt es jetzt die Gruppe „Ehemalige“.
+  - **Push-Texte:** Nach der letzten Check-in-Antwort kam „du auch?“, jetzt „Alle haben geantwortet“. Wer eine eigene, gültige Regel aufhebt, informiert jetzt den anderen.
+  - **Doppelte Artikelnamen** im Kassenzettel sind jetzt eindeutig (React-Key).
+  - **Widerlegt:** „`toggleL` schreibt `!it.done` aus dem Ref statt `!i.done`“. Das ist gewollt: Man setzt den Stand, den man sieht. Umzukehren, was schon im Speicher steht, würde einen gleichzeitigen Haken des anderen wieder aufheben.
+  - **Nicht per Test abgedeckt:** der veraltete Stand im Sheet (braucht zwei Geräte).
+  - **Zweimal dieselbe Falle:** ein `//`-Kommentar in einer JSX-Einzeile. **Kommentare in Einzeilern immer als `/* */`.**
+  - **Workflow-Falle:** Der gespeicherte Workflow `bug-hunt` wurde wegen CRLF als „control characters“ abgelehnt, deshalb lief das Skript inline mit LF.
+  - Test plus 70/70, 8 neue Gegenproben rot.
+  - **Wackler im Gate: `sync.mjs` A2** war auch auf v68 in 2 von 3 Läufen rot. Der Playwright-Klick auf „Fertig“ dauerte unter Last länger als die 400-ms-Schreibfrist, dadurch stimmte die Vorbedingung „Antwort vor dem Flush“ nicht mehr.
+    - Jetzt laufen Klick und `fire()` im selben `evaluate` (`fireOnFinish`). Danach 5 von 5 Läufen grün.
 - **Gegenproben:** 11 Stück, alle rot:
   - Abhaken, Sprache, Warten, Koch, Zutaten, Zustimmung
   - Einzahlung, nur-ich, Anteil, Druck, abgelaufen (Server)
