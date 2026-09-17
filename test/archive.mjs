@@ -64,6 +64,7 @@ for (let i = 0; i < 2; i++) {
 
 // --- Zum Mehr-Tab wechseln und archivieren ---
 await page.locator('.tabbar .tabitem', { hasText: 'Mehr' }).click();
+await page.waitForTimeout(300); await page.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click()));   // Mehr-Gruppen aufklappen (seit wg-v66 zu)
 await page.waitForTimeout(300);
 
 const archiveBtn = page.locator('.cell', { hasText: 'Abgerechnetes archivieren' }).getByRole('button', { name: 'Archivieren' });

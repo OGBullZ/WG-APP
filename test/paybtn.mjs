@@ -22,6 +22,7 @@ async function render({ me, torbenPp }) {
   await page.addInitScript(([u, items, meId]) => {
     localStorage.setItem('wg_data', JSON.stringify({ users:u, hs:items }));
     if (meId) localStorage.setItem('wg_me', JSON.stringify(meId));
+    localStorage.setItem('wg_tab', JSON.stringify('haus'));   // seit wg-v66 startet die App auf „Heute“
   }, [users, [debtItem], me]);
   await page.goto(url, { waitUntil:'domcontentloaded' });
   await page.locator('.tabbar').waitFor({ timeout: 30000 });   // siehe archive.mjs

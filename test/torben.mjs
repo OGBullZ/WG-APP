@@ -20,6 +20,7 @@ await page.waitForTimeout(2000);
 
 // Settings: Torbens pp-Feld ist vorbelegt (kein manuelles Eintragen)
 await page.locator('.tabitem', { hasText: 'Mehr' }).click();
+await page.waitForTimeout(300); await page.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click()));   // Mehr-Gruppen aufklappen (seit wg-v66 zu)
 await page.waitForTimeout(400);
 const torbenPp = await page.locator('input[placeholder="dein-name"]').first().inputValue();
 check('Torbens PayPal-Feld vorbelegt = TorbenSteen', torbenPp === 'TorbenSteen');
@@ -32,9 +33,9 @@ await page.locator('.sheet input.field').first().fill('Großeinkauf');
 await page.getByRole('button', { name: 'Weiter' }).click();
 await page.locator('input[inputmode="decimal"]').fill('30');
 await page.getByRole('button', { name: 'Weiter' }).click();
-await page.locator('.pick-btn', { hasText: /^Torben$/ }).click();
-await page.getByRole('button', { name: 'Weiter' }).click();
-await page.locator('.pick-btn', { hasText: 'Tom zahlt alles' }).click();
+// Formular hat seit wg-v29 drei Schritte: Bezahler + Aufteilung stehen auf derselben Seite
+await page.locator('.sheet .pick-btn', { hasText: /^Torben$/ }).click();
+await page.locator('.sheet .pick-btn', { hasText: 'Tom zahlt alles' }).click();
 await page.getByRole('button', { name: 'Fertig', exact: true }).click();
 await page.waitForTimeout(800);
 

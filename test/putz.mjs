@@ -44,7 +44,7 @@ await page.addInitScript(([s, d]) => {
   localStorage.setItem('wg_code', JSON.stringify('TEST-LOKAL-PUTZ'));
   localStorage.setItem('wg_me', JSON.stringify('u1'));
   localStorage.setItem('wg_start_shown', JSON.stringify(d));
-  localStorage.setItem('wg_tab', JSON.stringify('haus'));
+  localStorage.setItem('wg_tab', JSON.stringify('heute'));
 }, [SEED, dayAgo(0)]);
 await page.goto(url, { waitUntil: 'domcontentloaded' });
 await page.locator('.tabbar').waitFor({ timeout: 30000 });
@@ -119,7 +119,7 @@ await page.waitForTimeout(300);
 check('E3 Rückgängig auch beim Server', !JSON.stringify(await page.evaluate(() => window.__wg.remote.pl || {})).includes(pl1[0].id));
 
 // ── F: Torben macht seine eigene Aufgabe (Bad 0:0 → 1:0) → Tom ist dran, Karte + Tab-Punkt verschwinden ──
-await page.locator('.tabbar .tabitem', { hasText: 'Haushalt' }).click(); await page.waitForTimeout(600);
+await page.locator('.tabbar .tabitem', { hasText: 'Heute' }).click(); await page.waitForTimeout(600);
 await quick.locator('.done-btn').first().click(); await page.waitForTimeout(900);
 const b1 = await task('b');
 check('F1 Bad über die Haushalt-Karte erledigt → Tom ist dran', b1.assignee === 'u2' && b1.lastDone === dayAgo(0), JSON.stringify(b1));
@@ -220,7 +220,7 @@ await pg.addInitScript(([s, d]) => {
   localStorage.setItem('wg_modules', JSON.stringify({ game: true }));   // Spielelemente sind standardmäßig aus
   localStorage.setItem('wg_me', JSON.stringify('u1'));
   localStorage.setItem('wg_start_shown', JSON.stringify(d));
-  localStorage.setItem('wg_tab', JSON.stringify('haus'));
+  localStorage.setItem('wg_tab', JSON.stringify('heute'));
 }, [SEED2, dayAgo(0)]);
 await pg.goto(url, { waitUntil: 'domcontentloaded' });
 await pg.locator('.tabbar').waitFor({ timeout: 30000 });
@@ -276,11 +276,12 @@ await pm.goto(url, { waitUntil: 'domcontentloaded' });
 await pm.locator('.tabbar').waitFor({ timeout: 30000 });
 await pm.evaluate(() => window.__wg.fire()); await pm.waitForTimeout(1200);
 const tgl = pm.locator('[data-testid="game-toggle"]');
+await pm.waitForTimeout(300); await pm.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click()));   // Mehr-Gruppen aufklappen (seit wg-v66 zu)
 check('M1 Schalter unter Mehr, Standard „An"', await tgl.innerText() === 'An');
 await tgl.click(); await pm.waitForTimeout(300);
 const st = await pm.evaluate(() => ({ mods: JSON.parse(localStorage.getItem('wg_modules')), pp: JSON.parse(localStorage.getItem('wg_push_prefs') || '{}') }));
 check('M2 aus → gespeichert (Gerät + Push-Einstellung game)', await tgl.innerText() === 'Aus' && st.mods.game === false && st.pp.game === false, JSON.stringify(st));
-await pm.locator('.tabbar .tabitem', { hasText: 'Haushalt' }).click(); await pm.waitForTimeout(500);
+await pm.locator('.tabbar .tabitem', { hasText: 'Heute' }).click(); await pm.waitForTimeout(500);
 const hdr3 = await pm.locator('[data-testid="chore-quick"] .section-hdr').innerText();
 check('M3 Haushalt-Karte bleibt, aber ohne 🔥', /DU BIST DRAN/i.test(hdr3) && !/🔥/.test(hdr3), hdr3);
 await pm.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).click(); await pm.waitForTimeout(500);

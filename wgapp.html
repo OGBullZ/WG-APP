@@ -92,7 +92,7 @@
   --shadow:      0 24px 56px rgba(0,0,0,.4);
   --label:       #f2f6f3;
   --label2:      rgba(242,246,243,.72);
-  --label3:      rgba(242,246,243,.56);   /* .45 war 4,21:1 → unter WCAG AA (4,5:1) */
+  --label3:      rgba(242,246,243,.62);   /* .45 war 4,21:1 → unter WCAG AA (4,5:1) */
   --label4:      rgba(242,246,243,.50);   /* .22 war 1,83:1; .38 ergab 3,30:1 — als Icon zulässig, aber knapp */
   --sep:         rgba(255,255,255,.08);
   --lime:        #a3e635;
@@ -262,7 +262,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
   transition:all .25s cubic-bezier(.22,1,.36,1);
 }
 .tabitem:active { transform:scale(.92); }
-.tabitem span { font-size:10px; letter-spacing:.04em; font-weight:700; }
+.tabitem span { font-size:11px; letter-spacing:.04em; font-weight:700; }
 /* Roter Punkt am Tab „Mehr": neue Einträge im Fehlerprotokoll */
 .tab-dot { position:absolute; top:7px; left:calc(50% + 9px); width:8px; height:8px; border-radius:50%; background:var(--red); box-shadow:0 0 0 2px var(--bg); }
 /* Hinweis „WG-Code wurde geändert" — über der Tabbar, bis mit dem neuen Code beigetreten wurde */
@@ -317,7 +317,7 @@ button.cell { color:var(--label); }
 .cell-icon { width:36px; height:36px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
 .cell-content { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
 .cell-title { font-size:16px; font-weight:600; letter-spacing:-.01em; color:var(--label); }
-.cell-sub { font-size:12px; color:var(--label3); font-weight:500; }
+.cell-sub { font-size:12.5px; color:var(--label3); font-weight:500; }
 .section-hdr {
   font-family:var(--mono); font-size:11px; color:var(--label3);
   text-transform:uppercase; letter-spacing:.2em; padding:0 2px 9px; font-weight:600;
@@ -814,7 +814,6 @@ const useInView = (threshold=0.2) => {
 };
 
 const U_DEF = [{id:'u1',name:'Torben',color:'#38bdf8',pp:'TorbenSteen'},{id:'u2',name:'Tom',color:'#fbbf24'}];
-const COMMON_ITEMS = ['Milch','Brot','Eier','Butter','Klopapier','Müllbeutel','Spülmittel','Kaffee','Nudeln','Käse','Zucker','Öl'];
 
 /* Optionale Kategorien für Haushalt-Ausgaben (Übersicht → „Kategorien · Haushalt"). */
 const CATS = [['food','🛒','Lebensmittel'],['home','🧴','Haushalt'],['fun','🎉','Freizeit'],['fix','📄','Fixkosten'],['other','📦','Sonstiges']];
@@ -854,7 +853,7 @@ const PUSH_API = 'https://wg-app-bull-z.vercel.app';
 // nächsten Start selbst neu (healPush) — der private Teil liegt nur in der Vercel-Env.
 const VAPID_PUBLIC_KEY = 'BFlztnmVhus9TTvtVJzqe7gN8PCYyD3qb6DnZblhE5-nes3JcaB_wkxMm85VClKmVoeHLJ-SFb0wti4A-tjL9RA';
 /* Push-Typ-/Ruhezeit-Defaults — global, damit sowohl Einstellungen als auch das Start-Push-Fenster sie nutzen. */
-const PUSH_PREFS_DEF = { exp:true, shop:true, putz:true, settle:true, remind:true, board:true, game:true, quiet:false, qs:22, qe:8 };
+const PUSH_PREFS_DEF = { exp:true, shop:true, putz:true, settle:true, remind:true, board:true, msg:true, wash:true, away:true, repair:true, game:true, quiet:false, qs:22, qe:8 };
 /* VAPID-Public-Key (URL-safe base64) → Uint8Array für applicationServerKey */
 const urlBase64ToUint8Array = (base64String) => {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -1034,7 +1033,7 @@ const canonSer = v => JSON.stringify(v, (key, val) =>
 ════════════════════════════ */
 const Ctx = createContext(null);
 
-const MOD_DEF = { heute:false, haus:true, grow:true, putz:true, fin:true, abos:false, stats:true, game:true };   // game = 👑 Duell + 🔥 Serie (kein Tab), Standard an (torbe 17.09.) — abschaltbar unter Mehr
+const MOD_DEF = { heute:true, haus:true, grow:true, putz:true, fin:true, abos:false, stats:true, game:true };   // game = 👑 Duell + 🔥 Serie (kein Tab), Standard an (torbe 17.09.) — abschaltbar unter Mehr
 
 /* Einmalige Migration: `wg_modules` speichert bei jedem Toggle den VOLLEN Snapshot,
    auf Bestandsgeräten steht dort also fin:false und würde den neuen Default schlagen.
@@ -2237,6 +2236,136 @@ function LoginShare() {
 }
 
 /* ══════════════════════════
+   ALLTAGSTAUGLICH (seit wg-v66): Ankündigungen als eigene Karte (lebt auf „Heute"), „Wer bist du?",
+   aufklappbare Gruppen unter „Mehr", Einkaufsliste nach Laden-Bereichen
+══════════════════════════ */
+
+/* Ankündigungen (Key `bo`): Besuch / früh auf — reine Info + Sofort-Push (Typ board), laufen nach dem Tag aus.
+   Bis wg-v65 direkt im Haushalt-Tab; jetzt auf „Heute" (bzw. im Haushalt, wenn „Heute" ausgeschaltet ist). */
+function BoardCard() {
+  const { D, setFn, me, notifyOthers, undo } = useD();
+  const [kind,setKind] = useState(null);
+  const [text,setText] = useState('');
+  const [date,setDate] = useState('');
+  const users = D.users || [], meName = nameOfU(users, me);
+  const board = (D.bo||[]).filter(Boolean);
+  const active = board.filter(b=>b.date && b.date>=todayISO()).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const openK = k => { setKind(k); setText(''); setDate(k==='wecker' ? shiftISO(todayISO(),1) : todayISO()); };
+  const send = () => {
+    if (!kind) return;
+    const m = BOARD_KINDS[kind], t = text.trim(), d = date || todayISO();
+    const it = { id:uid(), kind, text:t, date:d, by:me||null, ts:Date.now() };
+    setFn('bo', cur=>[it, ...(cur||[])]);
+    notifyOthers(`${m.emoji} ${meName}: ${m.label}${t?` – ${t}`:''}`, boardWhen(d), 'wg-board', 'board');
+    undo(`${m.emoji} „${m.label}" gesendet`, ()=>setFn('bo', cur=>cur.filter(i=>i.id!==it.id)));
+    setKind(null);
+  };
+  const del = b => { setFn('bo', cur=>cur.filter(x=>x.id!==b.id)); undo('Ankündigung entfernt', ()=>setFn('bo', cur=>cur.some(x=>x.id===b.id)?cur:[b, ...cur])); };
+  return (
+    <div className="rise" data-testid="board-card" style={{animationDelay:'75ms'}}>
+      <div className="section-hdr">🗓️ Ankündigungen</div>
+      <div className="group" style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:11}}>
+        {active.map(b=>{
+          const who = users.find(u=>u.id===b.by), m = BOARD_KINDS[b.kind] || { emoji:'📌', label:b.kind };
+          return (
+            <div key={b.id} style={{display:'flex',alignItems:'center',gap:11}}>
+              <span style={{fontSize:19,lineHeight:1,flexShrink:0}}>{m.emoji}</span>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:14,fontWeight:700,color:'var(--label)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{m.label}{b.text?` · ${b.text}`:''}</div>
+                <div style={{fontSize:12,color:'var(--label3)',fontWeight:500}}>{boardWhen(b.date)}{who?` · ${who.name}`:''}</div>
+              </div>
+              <button aria-label="Zum Kalender hinzufügen" title="Zum Kalender hinzufügen" onClick={()=>addToCalendar(b)}
+                style={{background:'none',border:'none',cursor:'pointer',fontSize:17,padding:'2px 4px',lineHeight:1,flexShrink:0}}>📅</button>
+              <button className="del-btn" aria-label="Ankündigung entfernen" onClick={()=>del(b)}>×</button>
+            </div>
+          );
+        })}
+        <div style={{display:'flex',gap:8}}>
+          {Object.entries(BOARD_KINDS).map(([k,m])=>(
+            <button key={k} onClick={()=>openK(k)}
+              style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3,padding:'9px 4px',borderRadius:12,border:'none',background:'var(--bg3)',color:'var(--label2)',fontWeight:700,fontSize:12,fontFamily:'inherit',cursor:'pointer',lineHeight:1.2}}>
+              <span style={{fontSize:19}}>{m.emoji}</span>{m.short}
+            </button>
+          ))}
+        </div>
+      </div>
+      {kind && ReactDOM.createPortal(
+        <div className="overlay" onClick={()=>setKind(null)}>
+          <div className="sheet" onClick={e=>e.stopPropagation()}>
+            <div className="sheet-handle"/>
+            <div className="sheet-body" style={{gap:12,paddingTop:6}}>
+              <div style={{textAlign:'center',fontSize:40,lineHeight:1}}>{BOARD_KINDS[kind].emoji}</div>
+              <div className="hero-lbl" style={{textAlign:'center'}}>{BOARD_KINDS[kind].label}</div>
+              <div style={{fontSize:13.5,color:'var(--label2)',lineHeight:1.5,textAlign:'center'}}>
+                {users.find(u=>u.id!==me)?.name || 'Dein Mitbewohner'} bekommt sofort eine Push.
+              </div>
+              <DateField value={date} onChange={setDate}/>
+              <input className="field" autoFocus maxLength={80} placeholder={BOARD_KINDS[kind].ph} aria-label="Text zur Ankündigung"
+                value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter') send(); }}/>
+            </div>
+            <div className="sheet-acts">
+              <button className="btn btn-sec" style={{flex:1}} onClick={()=>setKind(null)}>Abbrechen</button>
+              <button className="btn" style={{background:'var(--mint)',color:'var(--ink)',flex:1,whiteSpace:'nowrap'}} onClick={send}>🔔 Senden</button>
+            </div>
+          </div>
+        </div>, document.body)}
+    </div>
+  );
+}
+
+/* „Wer bist du?" — ohne gewählte Person rechnen Fairness, Serie, „Du bist dran" und Zahlungen falsch.
+   Nicht blockierend (kein Overlay), steht oben auf Heute, Haushalt und Putzplan, bis ein Tipp es erledigt. */
+function WhoAmI() {
+  const { D, me, setMe } = useD();
+  const users = D.users || [];
+  if (me || users.length < 2) return null;
+  return (
+    <div className="hero rise" data-testid="who-am-i" style={{'--glow':'rgba(251,191,36,.16)',border:'1px solid rgba(251,191,36,.45)'}}>
+      <div className="hero-lbl" style={{marginBottom:10}}>👋 Wer bist du auf diesem Handy?</div>
+      <div className="pick">
+        {users.map(u=><button key={u.id} className="pick-btn" style={{background:u.color}} aria-label={`Ich bin ${u.name}`} onClick={()=>setMe(u.id)}>{u.name}</button>)}
+      </div>
+      <div style={{fontSize:12.5,color:'var(--label2)',marginTop:10,lineHeight:1.5}}>Nur einmal nötig. Ohne diese Wahl stimmen Putzplan-Fairness, „Du bist dran“ und Zahlungen nicht.</div>
+    </div>
+  );
+}
+
+/* Aufklappbare Gruppe (Mehr): Zustand je Gerät; `alert` = roter Punkt + automatisch offen (Backup-/Fehler-Warnung).
+   Inhalt bleibt gerendert (nur versteckt), damit Zustände darin (z. B. Push-Abfrage) nicht bei jedem Aufklappen neu starten. */
+function Fold({ id, title, sub, alert, children }) {
+  const [open,setOpen] = useState(()=>!!ls('wg_fold_'+id, false));
+  const shown = open || !!alert;
+  const toggle = () => { const v = !shown; setOpen(v); ss('wg_fold_'+id, v); };
+  return (
+    <div className="rise" data-fold={id}>
+      <button className="group fold-hdr" aria-expanded={shown} onClick={toggle}
+        style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'14px 16px',textAlign:'left',fontFamily:'inherit',cursor:'pointer',color:'var(--label)'}}>
+        <span style={{flex:1,minWidth:0}}>
+          <span style={{display:'block',fontSize:15,fontWeight:800}}>{title}{alert && <span className="fold-dot" aria-label="Hinweis" style={{display:'inline-block',width:8,height:8,borderRadius:4,background:'var(--red)',marginLeft:8,verticalAlign:'middle'}}/>}</span>
+          {sub && <span style={{display:'block',fontSize:12.5,color:'var(--label2)',marginTop:2}}>{sub}</span>}
+        </span>
+        <span aria-hidden="true" style={{color:'var(--label2)',fontSize:18,transform:shown?'rotate(90deg)':'none',transition:'transform .2s'}}>›</span>
+      </button>
+      <div hidden={!shown} style={{display:shown?'flex':'none',flexDirection:'column',gap:'var(--gap, 18px)',marginTop:12}}>{children}</div>
+    </div>
+  );
+}
+
+/* Einkaufsliste nach Laden-Bereichen — Reihenfolge wie ein üblicher Rundgang. Erkennung über Stichwörter im Namen. */
+const SHOP_AREAS = [
+  ['obst',  '🍎', 'Obst & Gemüse',  /apfel|äpfel|banane|birne|tomate|gurke|salat|zwiebel|kartoffel|karotte|möhre|paprika|zitrone|obst|gemüse|avocado|beere|traube|pilz|knoblauch|kräuter|orange/i],
+  ['brot',  '🥖', 'Brot & Backwaren', /brot|brötchen|toast|baguette|croissant|kuchen|brezel/i],
+  ['kuehl', '🥛', 'Kühlregal',       /milch|käse|joghurt|butter|sahne|quark|ei(er)?\b|wurst|schinken|aufschnitt|hähnchen|fleisch|hack|tofu|margarine|frischkäse|mozzarella/i],
+  ['tk',    '❄️', 'Tiefkühl',         /tk\b|tiefkühl|pizza|eis\b|pommes|spinat tk/i],
+  ['vorrat','🍝', 'Vorrat',           /nudel|pasta|reis|mehl|zucker|salz|öl\b|essig|müsli|haferflocken|konserve|dose|soße|sauce|ketchup|senf|gewürz|kaffee|tee\b|honig|marmelade|nutella|brühe|linsen|bohnen|chips|schokolade|kekse/i],
+  ['drinks','🥤', 'Getränke',         /wasser|saft|cola|bier|wein|limo|sprudel|mate|energy|sirup/i],
+  ['droge', '🧴', 'Drogerie & Haushalt', /klopapier|toilettenpapier|küchenrolle|müllbeutel|spülmittel|waschmittel|spültabs|tabs|seife|shampoo|duschgel|zahnpasta|deo|schwamm|putzmittel|reiniger|weichspüler|taschentücher|batterie|glühbirne|folie/i],
+];
+const SHOP_OTHER = ['sonst', '📦', 'Sonstiges'];
+const shopArea = name => SHOP_AREAS.find(a=>a[3].test(String(name||''))) || SHOP_OTHER;
+const shopAreaIdx = name => { const i = SHOP_AREAS.findIndex(a=>a[3].test(String(name||''))); return i < 0 ? SHOP_AREAS.length : i; };
+
+/* ══════════════════════════
    EXTRA (seit wg-v64): Preis-Gedächtnis, Gesamtbudget, Einkaufs-Reihenfolge, Schnell-Eingabe,
    Kalender-Abo, Zählerstände (+ Besuch je Monat), Heute-Seite, Darstellung (Hell/Dunkel, Schriftgröße)
 ══════════════════════════ */
@@ -2335,13 +2464,14 @@ const parseQuick = txt => {
   return price > 0 ? { price, name: name || 'Einkauf', alone } : null;
 };
 const SHOP_RE = /einkauf|lidl|aldi|rewe|edeka|netto|penny|kaufland|supermarkt|lebensmittel/i;
-function QuickExpense() {
+function QuickExpense({ onFull }) {
   const { D, setFn, me, notifyOthers, undo } = useD();
   const [txt,setTxt] = useState('');
   const q = parseQuick(txt), users = D.users || [];
-  if (!me) return null;
+  // Ohne gewählte Person kein Schnell-Eintrag (wer zahlt?) — das volle Formular muss trotzdem erreichbar bleiben
+  if (!me) return onFull ? <button className="btn rise" style={{background:'var(--mint)'}} onClick={()=>onFull('')}>+ Ausgabe hinzufügen</button> : null;
   const save = () => {
-    if (!q) return;
+    if (!q) { if (onFull) { onFull(txt.trim()); setTxt(''); } return; }
     const cat = priceLast(D, q.name)?.cat || (SHOP_RE.test(q.name) ? 'food' : null);
     const it = { id:uid(), name:q.name, price:q.price, paidBy:me, date:todayISO(), owedBy:q.alone?me:null, cat, settled:false };
     setFn('hs', cur=>[it, ...(cur||[])]);
@@ -2353,11 +2483,11 @@ function QuickExpense() {
     <form className="rise" data-testid="quick-expense" onSubmit={e=>{e.preventDefault();save();}} style={{display:'flex',flexDirection:'column',gap:6}}>
       <div style={{display:'flex',gap:8}}>
         <input className="field" maxLength={80} placeholder="⚡ Schnell: „12,50 Pizza“" aria-label="Ausgabe in einem Satz" value={txt} onChange={e=>setTxt(e.target.value)} style={{flex:1}}/>
-        <button type="submit" className="btn" style={{width:'auto',padding:'0 16px',flexShrink:0,background:q?'var(--mint)':'var(--bg3)',color:q?'var(--ink)':'var(--label2)'}}>Eintragen</button>
+        <button type="submit" className="btn" style={{width:'auto',padding:'0 14px',flexShrink:0,background:(q||onFull)?'var(--mint)':'var(--bg3)',color:(q||onFull)?'var(--ink)':'var(--label2)'}}>{q || !onFull ? 'Eintragen' : '+ Ausgabe hinzufügen'}</button>
       </div>
       {txt.trim() && (
         <div data-testid="quick-preview" style={{fontSize:12,color:q?'var(--label2)':'var(--red)',padding:'0 4px'}}>
-          {q ? `→ ${q.name} · €${fmt(q.price)} · du zahlst · ${q.alone?'nur für dich':'50/50'}` : 'Betrag fehlt – z. B. „12,50 Pizza“ (Mikrofon der Tastatur geht auch)'}
+          {q ? `→ ${q.name} · €${fmt(q.price)} · du zahlst · ${q.alone?'nur für dich':'50/50'}` : onFull ? 'Ohne Betrag öffnet sich das ganze Formular (Datum, Aufteilung)' : 'Betrag fehlt – z. B. „12,50 Pizza“ (Mikrofon der Tastatur geht auch)'}
         </div>
       )}
     </form>
@@ -2507,8 +2637,6 @@ function Heute({ goTab }) {
   const hello = h < 11 ? 'Guten Morgen' : h < 18 ? 'Hallo' : 'Guten Abend';
   const meU = users.find(u=>u.id===me);
   const picks = (D.mk||[]).filter(Boolean).map(p=>({ p, d:pickupNext(p, today) })).filter(x=>x.d===today || x.d===tomorrow);
-  const board = (D.bo||[]).filter(b=>b && b.date===today);
-  const msgs = (D.qm||[]).filter(m=>m && m.by!==me && m.ts > Date.now() - 12*3600e3);
   const pays = (D.pr||[]).filter(p=>p && p.status==='open' && (p.to===me || p.from===me));
   const openSl = (D.sl||[]).filter(i=>i && !i.done).length;
   const soon = (D.vr||[]).filter(v=>v && !v.hidden && (stockLeft(v) ?? 99) <= 2);
@@ -2524,8 +2652,6 @@ function Heute({ goTab }) {
   const rows = [
     ...picks.map(x=>{ const k = PICK_KINDS[x.p.kind] || ['🗑️', x.p.kind]; return row('🚛', `${k[0]} ${k[1]} ${x.d===today?'heute':'morgen früh'} – ${x.d===today?'Tonne draußen?':'heute Abend rausstellen'}`, ()=>goTab('putz'), 'today-pick-'+x.p.kind); }),
     ...pays.map(p=>row('💶', p.to===me ? `${nameOfU(users, p.from)} hat €${fmt(p.amount)} bezahlt – bitte bestätigen` : `Zahlung €${fmt(p.amount)} wartet auf ${nameOfU(users, p.to)}`, ()=>goTab('haus'), 'today-pay-'+p.id)),
-    ...board.map(b=>row((BOARD_KINDS[b.kind]||{}).emoji||'📌', `${nameOfU(users, b.by)}: ${(BOARD_KINDS[b.kind]||{}).label||''}${b.text?` – ${b.text}`:''}`, ()=>goTab('haus'), 'today-bo-'+b.id)),
-    ...msgs.slice(0,3).map(m=>row('💬', `${nameOfU(users, m.by)}: ${m.text}`, ()=>goTab('haus'), 'today-qm-'+m.id)),
     (openSl || soon.length) ? row('🛒', `${openSl} auf der Einkaufsliste${soon.length?` · bald leer: ${soon.map(s=>s.name).join(', ')}`:''}`, goList, 'today-shop') : null,
     (me && other && Math.abs(net) > 0.01) ? row(net<0?'💸':'💰', net<0 ? `Du schuldest ${other.name} €${fmt(-net)}` : `${other.name} schuldet dir €${fmt(net)}`, ()=>goTab('haus'), 'today-bal') : null,
   ].filter(Boolean);
@@ -2537,12 +2663,17 @@ function Heute({ goTab }) {
           <div style={{fontSize:22,fontWeight:800}}>{hello}{meU?`, ${meU.name}`:''}</div>
           <div style={{fontSize:13,color:'var(--label2)'}}>{new Date().toLocaleDateString('de-DE',{ weekday:'long', day:'numeric', month:'long' })}</div>
         </div>
+        <WhoAmI/>
         <ChoreQuick goPutz={()=>goTab('putz')}/>
         {me && !mine.length && <div className="rise" data-testid="today-free" style={{fontSize:14,fontWeight:700,color:'var(--green)',padding:'0 4px'}}>✨ Heute ist nichts im Putzplan für dich fällig</div>}
         <AwayCard compact/>
-        <WashCard/>
         {rows.length>0 && <div className="group rise" data-testid="today-rows">{rows}</div>}
         <QuickExpense/>
+        <WashCard/>
+        <BoardCard/>
+        <QuickMsgs/>
+        <RepairCard/>
+        <LoginShare/>
       </div></div>
     </div>
   );
@@ -2628,32 +2759,38 @@ function StockCard() {
   const items = (D.vr||[]).filter(Boolean), list = D.sl || [];
   const meName = nameOfU(D.users, me);
   // Vorlagen erscheinen ohne Einrichtung; erst die erste Meldung legt den Eintrag an
-  const all = [...items, ...STOCK_PRESETS.filter(([n])=>!items.some(i=>i.id===stockSlug(n))).map(([name,em])=>({ id:stockSlug(name), name, em, preset:true }))]
-    .filter(it=>!it.hidden);
+  // Gelernte Käufe (≥ 2×, aus dem Abhaken) erscheinen als Kacheln — ersetzt die früheren Vorschlags-Chips
+  const learned = [...(D.slh||[])].filter(x=>x && (x.n||0)>=2).sort((a,b)=>(b.n||0)-(a.n||0)).map(x=>x.name).filter(Boolean);
+  const known = new Set([...items.map(i=>i.id), ...STOCK_PRESETS.map(([n])=>stockSlug(n))]);
+  const all = [...items,
+    ...STOCK_PRESETS.filter(([n])=>!items.some(i=>i.id===stockSlug(n))).map(([name,em])=>({ id:stockSlug(name), name, em, preset:true })),
+    ...learned.filter(n=>!known.has(stockSlug(n))).slice(0,8).map(name=>({ id:stockSlug(name), name, em:shopArea(name)[1], preset:true, learned:true })),
+  ].filter(it=>!it.hidden);
   const onList = n => list.some(i=>i && !i.done && String(i.name).toLowerCase()===String(n).toLowerCase());
   const out = it => {
     if (onList(it.name)) return;
     const iso = todayISO();
     const outs = [...stockOuts(it).filter(d=>d!==iso), iso].slice(-6).join(',');
-    const { preset, ...base } = it;
+    const { preset, learned, ...base } = it;
     const slIt = { id:uid(), name:it.name, addedBy:me||null, date:iso, done:false };
     setFn('vr', cur=>{ const l=cur||[]; return l.some(x=>x.id===it.id) ? l.map(x=>x.id===it.id?{...x,outs}:x) : [...l,{...base,outs}]; });
     setFn('sl', cur=>[slIt, ...(cur||[])]);
-    notifyOthers(`🛒 ${it.em} ${it.name} ist fast leer`, `${meName} hat es auf die Einkaufsliste gesetzt`, 'wg-shop', 'shop');
+    // Gelernte Käufe sind kein Vorrat, der ausgeht — nur „braucht“
+    notifyOthers(learned ? `🛒 ${meName} braucht ${it.name}` : `🛒 ${it.em} ${it.name} ist fast leer`, learned ? '' : `${meName} hat es auf die Einkaufsliste gesetzt`, 'wg-shop', 'shop');
     undo(`${it.em} ${it.name} auf die Liste`, ()=>{
       setFn('sl', cur=>cur.filter(x=>x.id!==slIt.id));
       setFn('vr', cur=>preset ? cur.filter(x=>x.id!==it.id) : cur.map(x=>x.id===it.id?{...x,outs:it.outs||''}:x));
     });
   };
   // Ausblenden statt löschen: Vorlagen kämen sonst sofort wieder
-  const hide = it => { const { preset, ...base } = it; setFn('vr', cur=>{ const l=cur||[]; return l.some(x=>x.id===it.id) ? l.map(x=>x.id===it.id?{...x,hidden:true}:x) : [...l,{...base,outs:'',hidden:true}]; }); };
+  const hide = it => { const { preset, learned, ...base } = it; setFn('vr', cur=>{ const l=cur||[]; return l.some(x=>x.id===it.id) ? l.map(x=>x.id===it.id?{...x,hidden:true}:x) : [...l,{...base,outs:'',hidden:true}]; }); };
   const addCustom = () => { const n=nn.trim(); if(!n) return; const id=stockSlug(n); setFn('vr', cur=>[...(cur||[]).filter(x=>x.id!==id), { id, name:n, em:'📦', outs:'' }]); setNn(''); };
   const hiddenN = items.filter(i=>i.hidden).length;
   const soon = all.filter(it=>!onList(it.name) && (stockLeft(it) ?? 99) <= 2);
   return (
     <div className="rise" data-testid="stock-card" style={{animationDelay:'30ms'}}>
       <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span>🧻 Vorrat · was ist fast leer?</span>
+        <span>🛒 Antippen = auf die Liste</span>
         <button className="hit" onClick={()=>setEdit(e=>!e)} style={{...hdrBtn,color:'var(--mint)'}}>{edit?'Fertig':'Bearbeiten'}</button>
       </div>
       <div className="group" style={{padding:12}}>
@@ -2667,7 +2804,7 @@ function StockCard() {
                   background:on&&!edit?'rgba(94,234,212,.10)':'var(--bg3)',color:on&&!edit?'var(--mint)':'var(--label)',fontWeight:700,fontSize:12,fontFamily:'inherit',cursor:'pointer',lineHeight:1.2}}>
                 <span style={{fontSize:20}}>{it.em}</span>{it.name}
                 <span style={{fontSize:10.5,fontWeight:600,color:on&&!edit?'var(--mint)':warn?'var(--amber)':'var(--label2)'}}>
-                  {edit ? '× ausblenden' : on ? '✓ auf der Liste' : left===null ? 'fast leer?' : left<=0 ? 'jetzt leer?' : `~${left} Tag${left===1?'':'e'}`}
+                  {edit ? '× ausblenden' : on ? '✓ auf der Liste' : it.learned ? '+ auf die Liste' : left===null ? 'fast leer?' : left<=0 ? 'jetzt leer?' : `~${left} Tag${left===1?'':'e'}`}
                 </span>
               </button>
             );
@@ -2769,7 +2906,7 @@ function AwayCard({ compact }) {
     if (!me || !f.from || !f.to || f.to < f.from) return;
     const it = { id:uid(), userId:me, from:f.from, to:f.to, note:f.note.trim().slice(0,80) };
     setFn('aw', cur=>[it, ...(cur||[]).filter(a=>a && a.to>=shiftISO(today,-CHORE_WINDOW))]);   // Vergangene bleiben fürs Zeitfenster der Fairness
-    notifyOthers(`✈️ ${nameOfU(users, me)} ist weg`, `${fmtDM(it.from)}–${fmtDM(it.to)}${it.note?` · ${it.note}`:''} · Putzplan übernimmt das`, 'wg-board', 'board');
+    notifyOthers(`✈️ ${nameOfU(users, me)} ist weg`, `${fmtDM(it.from)}–${fmtDM(it.to)}${it.note?` · ${it.note}`:''} · Putzplan übernimmt das`, 'wg-away', 'away');
     undo('✈️ Abwesenheit eingetragen', ()=>setFn('aw', cur=>cur.filter(a=>a.id!==it.id)));
     setOpen(false);
   };
@@ -2815,7 +2952,9 @@ function WashCard() {
   const { D, setFn, me, notifyOthers } = useD();
   const [open,setOpen] = useState(false);
   const [kind,setKind] = useState('wasch');
-  const [mins,setMins] = useState(90);
+  const lastMins = ls('wg_wt_last', {}) || {};
+  const [mins,setMins_] = useState(lastMins.wasch || 90);
+  const setMins = m => { setMins_(m); ss('wg_wt_last', { ...(ls('wg_wt_last', {}) || {}), [kind]: m }); };   // je Maschine merken
   const [now,setNow] = useState(Date.now());
   const runs = (D.wt||[]).filter(r=>r && r.end > now - 12*3600e3);
   const ids = runs.map(r=>r.id).join();
@@ -2831,14 +2970,14 @@ function WashCard() {
       if (now - r.end > 2*3600e3) return;   // Stunden später öffnen → nur die Anzeige, keine veraltete Meldung
       const [em,label] = WASH_KINDS[r.kind] || ['🧺','Maschine'];
       showLocalNote(`${em} ${label} ist fertig`, 'Bitte ausräumen');
-      if (r.by === me) notifyOthers(`${em} ${label} ist fertig`, 'Bitte ausräumen', 'wt-'+r.id, 'board');
+      if (r.by === me) notifyOthers(`${em} ${label} ist fertig`, 'Bitte ausräumen', 'wt-'+r.id, 'wash');
     });
   }, [now, ids]);
   const start = () => {
     const t = Date.now(), [em,label] = WASH_KINDS[kind];
     const r = { id:uid(), kind, by:me||null, start:t, mins, end:t + mins*60000 };
     setFn('wt', cur=>[r, ...(cur||[]).filter(x=>x && x.kind!==kind && x.end > t - 12*3600e3)]);
-    notifyOthers(`${em} ${nameOfU(D.users, me)} hat die ${label} gestartet`, `fertig um ${fmtHM(r.end)}`, 'wt-'+r.id, 'board');
+    notifyOthers(`${em} ${nameOfU(D.users, me)} hat die ${label} gestartet`, `fertig um ${fmtHM(r.end)}`, 'wt-'+r.id, 'wash');
     setNow(t); setOpen(false);
   };
   const clear = r => setFn('wt', cur=>cur.filter(x=>x.id!==r.id));
@@ -2872,7 +3011,7 @@ function WashCard() {
       </button>
       <MiniSheet open={open} onClose={()=>setOpen(false)} title="Timer starten" color="var(--mint)">
         <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-          {Object.entries(WASH_KINDS).map(([k,[em,l]])=><button key={k} type="button" style={chipSt(kind===k)} onClick={()=>setKind(k)}>{em} {l}</button>)}
+          {Object.entries(WASH_KINDS).map(([k,[em,l]])=><button key={k} type="button" style={chipSt(kind===k)} onClick={()=>{ setKind(k); setMins_((ls('wg_wt_last', {}) || {})[k] || (k==='spuel'?150:k==='trock'?120:90)); }}>{em} {l}</button>)}
         </div>
         <div className="sheet-sublbl">Wie lange?</div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6}}>
@@ -2896,7 +3035,7 @@ function QuickMsgs() {
     const t = String(text).trim().slice(0,80); if (!t || !me) return;
     const it = { id:uid(), by:me, text:t, ts:Date.now() };
     setFn('qm', cur=>[it, ...(cur||[]).filter(m=>m && m.ts > Date.now() - 24*3600e3)].slice(0,20));
-    notifyOthers(`💬 ${nameOfU(users, me)}`, t, 'wg-qm', 'board');
+    notifyOthers(`💬 ${nameOfU(users, me)}`, t, 'wg-qm', 'msg');
     undo('💬 Gesendet', ()=>setFn('qm', cur=>cur.filter(m=>m.id!==it.id)));
     setTxt('');
   };
@@ -2936,7 +3075,7 @@ function RepairCard() {
     const t = txt.trim().slice(0,120); if (!t) return;
     const it = { id:uid(), text:t, by:me||null, ts:Date.now(), status:'offen' };
     setFn('rp', cur=>[it, ...(cur||[])]);
-    notifyOthers(`🔧 Kaputt: ${t}`, `${nameOfU(users, me)} hat es notiert`, 'wg-board', 'board');
+    notifyOthers(`🔧 Kaputt: ${t}`, `${nameOfU(users, me)} hat es notiert`, 'wg-repair', 'repair');
     setTxt('');
   };
   const step = r => {
@@ -3044,6 +3183,7 @@ function ShortcutRunner({ goTab }) {
 
 function Haushalt({goGrow, goPutz}) {
   const { D, set, setFn, status, me, setMe, undo, askConfirm, flashIds, notifyOthers, mods } = useD();
+  const heuteOn = mods.heute !== false;   // Kommunikation, Timer und „Du bist dran" leben dann auf „Heute"
   const users = D.users, items = D.hs || [], list = D.sl || [];
   const meName = users.find(u=>u.id===me)?.name || 'Jemand';
   const [seg,setSeg] = useState('aus');
@@ -3062,9 +3202,6 @@ function Haushalt({goGrow, goPutz}) {
   const [stamp,setStamp] = useState(false);    // grüner Ausgleich-Stempel
   const [bringOpen,setBringOpen] = useState(false); // „Bitte mitbringen"-Schnellfenster
   const [bringName,setBringName] = useState('');
-  const [boardKind,setBoardKind] = useState(null); // 'besuch'|'gast'|'wecker' → offenes Ankündigungs-Sheet
-  const [boardText,setBoardText] = useState('');
-  const [boardDate,setBoardDate] = useState('');
 
   const addRec = d => {
     const tp={ id:uid(), name:d.name||'Posten', price:parseNum(d.price)||0, paidBy:d.paidBy||users[0].id, owedBy:d.owedBy||null, cat:d.cat||null, since:todayISO().slice(0,7) };
@@ -3084,27 +3221,12 @@ function Haushalt({goGrow, goPutz}) {
     undo(`🛒 „${n}" gesendet`, ()=>setFn('sl', cur=>cur.filter(i=>i.id!==it.id)));
     setBringName(''); setBringOpen(false);
   };
-  // WG-Board: Ankündigungen (Besuch / Übernachtungsgast / früh auf) — reine Info + Sofort-Push, laufen nach dem Tag aus.
-  const board = D.bo || [];
-  const activeBoard = board.filter(b=>b && b.date && b.date>=todayISO()).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
-  const openBoard = kind => { setBoardKind(kind); setBoardText(''); setBoardDate(kind==='wecker'?shiftISO(todayISO(),1):todayISO()); };
-  const sendBoard = () => {
-    const kind=boardKind; if(!kind) return; const m=BOARD_KINDS[kind];
-    const text=boardText.trim(); const date=boardDate||todayISO();
-    const it={ id:uid(), kind, text, date, by:me||null, ts:Date.now() };
-    set('bo',[it,...board]);
-    notifyOthers(`${m.emoji} ${meName}: ${m.label}${text?` – ${text}`:''}`, boardWhen(date), 'wg-board', 'board');
-    undo(`${m.emoji} „${m.label}" gesendet`, ()=>setFn('bo', cur=>cur.filter(i=>i.id!==it.id)));
-    setBoardKind(null); setBoardText(''); setBoardDate('');
-  };
-  const delBoard = id => { const it=board.find(b=>b.id===id); set('bo',board.filter(b=>b.id!==id)); undo('Ankündigung entfernt', ()=>setFn('bo', cur=>cur.some(b=>b.id===id)?cur:[it,...cur])); };
   const save   = d => set('hs',items.map(i=>i.id===editItem.id?{...i,name:d.name||i.name,price:parseNum(d.price)||i.price,paidBy:d.paidBy||i.paidBy,date:d.date||i.date,owedBy:d.owedBy||null,cat:d.cat||null}:i));
   const toggle = id => set('hs',items.map(i=>i.id===id?{...i,settled:!i.settled,settledAt:!i.settled?todayISO():null}:i));
   const del    = id => { const it=items.find(i=>i.id===id); set('hs',items.filter(i=>i.id!==id)); undo(`„${it?.name||'Ausgabe'}" gelöscht`, ()=>setFn('hs', cur => cur.some(i=>i.id===id)?cur:[it,...cur])); };
 
   /* Einkaufsliste */
   const addL      = () => { const n=newName.trim(); if(!n){ listInput.current?.focus(); return; } set('sl',[{id:uid(),name:n,addedBy:me||null,date:todayISO(),done:false},...list]); setNewName(''); listInput.current?.focus(); notifyOthers(`🛒 ${meName} braucht ${n}`, '', 'wg-shop', 'shop'); };
-  const quickAdd  = (n) => { set('sl',[{id:uid(),name:n,addedBy:me||null,date:todayISO(),done:false},...list]); notifyOthers(`🛒 ${meName} braucht ${n}`, '', 'wg-shop', 'shop'); };
   /* Kaufzähler für lernende Vorschläge: beim Abhaken (offen→erledigt) hochzählen.
      id = Slug (RTDB-Pfad-sicher), name behält die zuletzt getippte Schreibweise. */
   const bumpSlh   = name => { const n=String(name||'').trim(); if(!n) return; const sid=n.toLowerCase().replace(/[.#$/\[\]]/g,'_').slice(0,80); setFn('slh', cur => { const l=cur||[]; const ex=l.find(x=>x.id===sid); return ex ? l.map(x=>x.id===sid?{...x,n:(x.n||0)+1,name:n}:x) : [{id:sid,name:n,n:1},...l]; }); };
@@ -3118,7 +3240,8 @@ function Haushalt({goGrow, goPutz}) {
   const delL      = id => { const it=list.find(i=>i.id===id); set('sl',list.filter(i=>i.id!==id)); undo(`„${it?.name||'Eintrag'}" gelöscht`, ()=>setFn('sl', cur => cur.some(i=>i.id===id)?cur:[it,...cur])); };
   const clearDone = async () => { if(await askConfirm({title:'Erledigte leeren',body:`${doneL} erledigte Einträge aus dem Wagen entfernen?`,okLabel:'Leeren',danger:true})) set('sl',list.filter(i=>!i.done)); };
   const convert   = d => { add(d); delL(convItem.id); };
-  const sortedList=[...list.filter(i=>!i.done),...list.filter(i=>i.done)];
+  // Offene nach Laden-Bereich (Rundgang), erledigte dahinter
+  const sortedList=[...list.filter(i=>!i.done).sort((a,b)=>shopAreaIdx(a.name)-shopAreaIdx(b.name)),...list.filter(i=>i.done)];
   const openL=list.filter(i=>!i.done).length, doneL=list.length-openL;
 
   const open=items.filter(i=>!i.settled);
@@ -3230,9 +3353,8 @@ function Haushalt({goGrow, goPutz}) {
       <NBar title="Haushalt" color="var(--mint)" status={status}/>
       <div className="scroll">
         <div className="content">
-          <ChoreQuick goPutz={goPutz}/>
-          <AwayCard compact/>
-          <WashCard/>
+          <WhoAmI/>
+          {!heuteOn && <><ChoreQuick goPutz={goPutz}/><AwayCard compact/><WashCard/></>}
           <div className="seg rise">
             {[['aus','💶 Ausgaben'],['liste',`🛒 Einkaufsliste${openL>0?` (${openL})`:''}`]].map(([v,l])=>(
               <button key={v} className={`seg-btn${seg===v?' on':''}`} onClick={()=>setSeg(v)}>{l}</button>
@@ -3329,47 +3451,14 @@ function Haushalt({goGrow, goPutz}) {
               Growbox: noch <span className="num">€{fmt(-gNet)}</span> offen · im Grow-Tab ›
             </button>
           )}
+          <QuickExpense onFull={name=>{ setWizInit(name ? { name, paidBy:me||undefined } : null); setWiz(true); }}/>
           <TotalBudget/>
-          <QuickExpense/>
-          <button className="btn rise" style={{background:'var(--mint)',animationDelay:'60ms'}} onClick={()=>setWiz(true)}>+ Ausgabe hinzufügen</button>
-          <button className="rise hit" onClick={()=>setBringOpen(true)}
-            style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,padding:'9px 14px',marginTop:-2,borderRadius:12,border:'none',background:'var(--bg3)',color:'var(--label2)',fontWeight:600,fontSize:13,fontFamily:'inherit',cursor:'pointer',animationDelay:'70ms'}}>
-            🛒 Vergessen? Mitbringen lassen
-          </button>
-          <div className="rise" style={{animationDelay:'75ms'}}>
-            <div className="section-hdr">🗓️ Ankündigungen</div>
-            <div className="group" style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:11}}>
-              {activeBoard.map(b=>{
-                const who=users.find(u=>u.id===b.by); const m=BOARD_KINDS[b.kind]||{emoji:'📌',label:b.kind};
-                return (
-                  <div key={b.id} style={{display:'flex',alignItems:'center',gap:11}}>
-                    <span style={{fontSize:19,lineHeight:1,flexShrink:0}}>{m.emoji}</span>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:14,fontWeight:700,color:'var(--label)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{m.label}{b.text?` · ${b.text}`:''}</div>
-                      <div style={{fontSize:11.5,color:'var(--label3)',fontWeight:500}}>{boardWhen(b.date)}{who?` · ${who.name}`:''}</div>
-                    </div>
-                    <button aria-label="Zum Kalender hinzufügen" title="Zum Kalender hinzufügen" onClick={()=>addToCalendar(b)}
-                      style={{background:'none',border:'none',cursor:'pointer',fontSize:17,padding:'2px 4px',lineHeight:1,flexShrink:0}}>📅</button>
-                    <button className="del-btn" aria-label="Ankündigung entfernen" onClick={()=>delBoard(b.id)}>×</button>
-                  </div>
-                );
-              })}
-              <div style={{display:'flex',gap:8}}>
-                {Object.entries(BOARD_KINDS).map(([k,m])=>(
-                  <button key={k} onClick={()=>openBoard(k)}
-                    style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3,padding:'9px 4px',borderRadius:12,border:'none',background:'var(--bg3)',color:'var(--label2)',fontWeight:700,fontSize:11.5,fontFamily:'inherit',cursor:'pointer',lineHeight:1.2}}>
-                    <span style={{fontSize:19}}>{m.emoji}</span>{m.short}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          <QuickMsgs/>
-          <LoginShare/>
-          <RepairCard/>
-          {open.length>0&&(
-            <button className="btn btn-sec rise" style={{animationDelay:'80ms'}} onClick={settleAll}>✓ Alles abrechnen ({open.length})</button>
-          )}
+          {!heuteOn && <><BoardCard/><QuickMsgs/><LoginShare/><RepairCard/></>}
+          {open.length>0 && (() => {
+            const deb = bals.find(b=>b.net<-0.01), cred = bals.find(b=>b.net>0.01);
+            if (me && deb && deb.id===me) return <div className="rise" data-testid="settle-hint" style={{fontSize:12.5,color:'var(--label2)',textAlign:'center'}}>Abrechnen macht {cred?.name}, sobald das Geld da ist – oben „Ich habe bezahlt“ tippen.</div>;
+            return <button className="btn btn-sec rise" style={{animationDelay:'80ms'}} onClick={settleAll}>✓ Alles abrechnen ({open.length})</button>;
+          })()}
           {recs.length>0&&(
             <div className="rise" style={{animationDelay:'90ms'}}>
               <div className="section-hdr">🔁 Wiederkehrend · monatlich</div>
@@ -3451,7 +3540,7 @@ function Haushalt({goGrow, goPutz}) {
           </>
           ):(
           <>
-          {!me&&(
+          {false&&(
             <div className="hero rise" style={{'--glow':'rgba(94,234,212,.14)'}}>
               <div className="hero-lbl" style={{marginBottom:12}}>Wer bist du auf diesem Gerät?</div>
               <div className="pick">
@@ -3464,25 +3553,15 @@ function Haushalt({goGrow, goPutz}) {
             <button className="btn rise" data-testid="receipt-btn" style={{background:'var(--mint)'}} onClick={openReceipt}>🧾 {boughtItems.length} abgehakt · Betrag vom Kassenzettel eintragen</button>
           )}
           <ShopTurn/>
+          <button className="rise hit" onClick={()=>setBringOpen(true)}
+            style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,padding:'9px 14px',borderRadius:12,border:'none',background:'var(--bg3)',color:'var(--label2)',fontWeight:600,fontSize:13,fontFamily:'inherit',cursor:'pointer'}}>
+            🛒 Unterwegs? Mitbringen lassen (mit Push)
+          </button>
           <StockCard/>
           <form className="rise" style={{display:'flex',gap:8,animationDelay:'40ms'}} onSubmit={e=>{e.preventDefault();addL();}}>
             <input ref={listInput} maxLength={200} className="field" style={{flex:1}} placeholder="Milch, Klopapier, Müllbeutel …" value={newName} onChange={e=>setNewName(e.target.value)}/>
             <button type="submit" className="btn" style={{width:54,flexShrink:0,background:'var(--mint)',fontSize:26,lineHeight:1}}>+</button>
           </form>
-          {(() => {
-            const offen = new Set(list.filter(i=>!i.done).map(i=>i.name.toLowerCase()));
-            /* Lernende Vorschläge: eigene häufige Käufe (≥2×) vor der statischen Liste */
-            const learned = [...(D.slh||[])].filter(x=>(x.n||0)>=2).sort((a,b)=>(b.n||0)-(a.n||0)).map(x=>x.name);
-            const pool = [...learned, ...COMMON_ITEMS.filter(c=>!learned.some(l=>l.toLowerCase()===c.toLowerCase()))];
-            const tipps = pool.filter(c=>!offen.has(c.toLowerCase())).slice(0,8);
-            return tipps.length>0 && (
-              <div className="rise" style={{display:'flex',flexWrap:'wrap',gap:7,animationDelay:'55ms'}}>
-                {tipps.map(t=>(
-                  <button key={t} className="hit-v" onClick={()=>quickAdd(t)} style={{background:'rgba(255,255,255,.05)',border:'1px solid var(--border)',borderRadius:999,padding:'8px 13px',fontSize:13,fontWeight:600,color:'var(--label2)'}}>+ {t}</button>
-                ))}
-              </div>
-            );
-          })()}
           {list.length===0
             ?<div className="empty"><div className="empty-ico">🛒</div><span style={{fontSize:14,color:'var(--label2)'}}>Liste ist leer — was fehlt?</span></div>
             :(
@@ -3504,7 +3583,7 @@ function Haushalt({goGrow, goPutz}) {
                         </button>
                         <div className="cell-content">
                           <span className="cell-title" style={{textDecoration:i.done?'line-through':'none'}}>{i.name}</span>
-                          <span className="cell-sub">von {u?<span style={{color:u.color,fontWeight:700}}>{u.name}</span>:'?'} · {fmtDate(i.date)}</span>
+                          <span className="cell-sub">{shopArea(i.name)[1]} {shopArea(i.name)[2]} · von {u?<span style={{color:u.color,fontWeight:700}}>{u.name}</span>:'?'} · {fmtDate(i.date)}</span>
                         </div>
                         {i.done&&(
                           <button className="due-chip" style={{background:'rgba(94,234,212,.13)',color:'var(--mint)',border:'none',cursor:'pointer'}} onClick={()=>setConvItem(i)}>€ AUSGABE</button>
@@ -3543,27 +3622,6 @@ function Haushalt({goGrow, goPutz}) {
             <div className="sheet-acts">
               <button className="btn btn-sec" style={{flex:1}} onClick={()=>{ setBringName(''); setBringOpen(false); }}>Abbrechen</button>
               <button className="btn" disabled={!bringName.trim()} style={{background:'var(--mint)',color:'var(--ink)',flex:1,whiteSpace:'nowrap',opacity:bringName.trim()?1:.45,cursor:bringName.trim()?'pointer':'default'}} onClick={sendBring}>🔔 Senden</button>
-            </div>
-          </div>
-        </div>, document.body)}
-      {boardKind && ReactDOM.createPortal(
-        <div className="overlay" onClick={()=>setBoardKind(null)}>
-          <div className="sheet" onClick={e=>e.stopPropagation()}>
-            <div className="sheet-handle"/>
-            <div className="sheet-body" style={{gap:12,paddingTop:6}}>
-              <div style={{textAlign:'center',fontSize:40,lineHeight:1}}>{BOARD_KINDS[boardKind].emoji}</div>
-              <div className="hero-lbl" style={{textAlign:'center'}}>{BOARD_KINDS[boardKind].label}</div>
-              <div style={{fontSize:13.5,color:'var(--label2)',lineHeight:1.5,textAlign:'center'}}>
-                {users.find(u=>u.id!==me)?.name || 'Dein Mitbewohner'} bekommt sofort eine Push.
-              </div>
-              <DateField value={boardDate} onChange={setBoardDate}/>
-              <input className="field" autoFocus maxLength={80} placeholder={BOARD_KINDS[boardKind].ph}
-                value={boardText} onChange={e=>setBoardText(e.target.value)}
-                onKeyDown={e=>{ if(e.key==='Enter') sendBoard(); }}/>
-            </div>
-            <div className="sheet-acts">
-              <button className="btn btn-sec" style={{flex:1}} onClick={()=>setBoardKind(null)}>Abbrechen</button>
-              <button className="btn" style={{background:'var(--mint)',color:'var(--ink)',flex:1,whiteSpace:'nowrap'}} onClick={sendBoard}>🔔 Senden</button>
             </div>
           </div>
         </div>, document.body)}
@@ -3907,9 +3965,12 @@ function Grow() {
         )}
 
         <button className="btn rise" style={{background:'var(--lime)',animationDelay:'100ms'}} onClick={()=>setWiz(true)}>+ Grow-Ausgabe</button>
-        {open.length>0&&(
-          <button className="btn btn-sec rise" style={{animationDelay:'120ms'}} onClick={settleAll}>✓ Alles abrechnen ({open.length})</button>
-        )}
+        {open.length>0 && (() => {
+          // Wie im Haushalt: abrechnen darf, wer Geld bekommt — der Schuldner meldet „Ich habe bezahlt"
+          const deb = bals.find(b=>b.net<-0.01), cred = bals.find(b=>b.net>0.01);
+          if (me && deb && deb.id===me) return <div className="rise" data-testid="settle-hint-gi" style={{fontSize:12.5,color:'var(--label2)',textAlign:'center'}}>Abrechnen macht {cred?.name}, sobald das Geld da ist – oben „Ich habe bezahlt“ tippen.</div>;
+          return <button className="btn btn-sec rise" style={{animationDelay:'120ms'}} onClick={settleAll}>✓ Alles abrechnen ({open.length})</button>;
+        })()}
 
         {items.length===0
           ?<div className="empty"><div className="empty-ico">🌱</div><span style={{fontSize:14,color:'var(--label2)'}}>Noch keine Ausgaben</span></div>
@@ -4027,6 +4088,8 @@ const isoMid = s => { const [y,m,d]=String(s||'').split('-').map(Number); return
 const choreCut = days => { const c=new Date(); c.setDate(c.getDate()-days); c.setHours(0,0,0,0); return c; };
 // Tage bis fällig (≤ 0 = heute/überfällig; nie gemacht = sofort fällig)
 const choreDueIn = t => {
+  // „Morgen" gedrückt: bis dahin nicht fällig (zählt nicht als Verspätung, bricht keine Serie); api/_wg.js spiegelt das
+  if (t?.snooze && t.snooze > todayISO()) return Math.round((isoMid(t.snooze) - isoMid(todayISO()))/864e5);
   if (t?.pk) { const p = (PICKUPS||[]).find(x=>x && x.kind===t.pk); if (p) return pickupDueIn(p, t.lastDone); }   // an Müllabfuhr gekoppelt
   if(!t?.lastDone) return 0;
   const due=isoMid(t.lastDone); due.setDate(due.getDate()+(t.interval||7));
@@ -4119,8 +4182,8 @@ function useChoreDone() {
       ...(late>0 && by!==t.assignee ? { miss:t.assignee } : {}) };   // … und die Serie des Eingeteilten bricht
     const log2 = [entry, ...(D.pl||[])];
     const next = choreNext(t.id, log2, users, t.assignee);
-    const prev = { lastDone:t.lastDone||null, assignee:t.assignee };
-    setFn('pt', cur => cur.map(x=>x.id===t.id?{...x,lastDone:iso,assignee:next}:x));
+    const prev = { lastDone:t.lastDone||null, assignee:t.assignee, snooze:t.snooze||null };
+    setFn('pt', cur => cur.map(x=>x.id===t.id?{...x,lastDone:iso,assignee:next,snooze:null}:x));
     setFn('pl', cur => [entry, ...cur].slice(0,300));
     const streak = choreStreak(log2, D.pt, by);
     const fire = game && streak>=2 ? ` · 🔥 ${streak}` : '';
@@ -4148,9 +4211,15 @@ function ChoreTally({ task, log, users }) {
 
 /* Haushalt-Tab: „Du bist dran" — nur sichtbar, wenn mir etwas fällig ist. Ein Tipp = erledigt. */
 function ChoreQuick({ goPutz }) {
-  const { D, me, mods } = useD();
+  const { D, me, mods, setFn, undo } = useD();
   const done = useChoreDone();
   if (mods.putz === false || !me) return null;
+  // Auf morgen schieben: keine Strafe (nicht überfällig), mit Rückgängig
+  const snooze = t => {
+    const prev = t.snooze || null;
+    setFn('pt', cur=>cur.map(x=>x.id===t.id?{...x,snooze:shiftISO(todayISO(),1)}:x));
+    undo(`${t.em||'🧹'} „${t.name}" auf morgen`, ()=>setFn('pt', cur=>cur.map(x=>x.id===t.id?{...x,snooze:prev}:x)));
+  };
   const mine = choreMine(D.pt, me);
   if (!mine.length) return null;
   const users = D.users || [], meU = users.find(u=>u.id===me);
@@ -4173,6 +4242,7 @@ function ChoreQuick({ goPutz }) {
                 <span className="cell-title">{t.em} {t.name}</span>
                 <span className="cell-sub">{d<0?<b style={{color:'var(--red)'}}>{-d} {-d===1?'Tag':'Tage'} überfällig</b>:'heute fällig'} · Stand <ChoreTally task={t} log={D.pl} users={users}/></span>
               </div>
+              <button className="btn btn-sec" aria-label={`${t.name} auf morgen`} style={{width:'auto',padding:'8px 11px',fontSize:12.5,flexShrink:0}} onClick={()=>snooze(t)}>Morgen</button>
             </div>
           );
         })}
@@ -4311,6 +4381,7 @@ function Putzplan() {
       <NBar title="Putzplan" color="var(--amber)" status={status}/>
       <div className="scroll"><div className="content">
 
+        <WhoAmI/>
         <div className="hero rise" style={{'--glow':'rgba(251,191,36,.15)'}}>
           <div className="hero-lbl">Heute dran</div>
           {tasks.length===0
@@ -5119,6 +5190,7 @@ function Einstellungen() {
       <NBar title="Mehr" color="var(--label)" status={status}/>
       <div className="scroll"><div className="content">
 
+        <Fold id="wg" title="🔗 WG-Code & Verbindung" sub="Code teilen, Sync, Datenbank" alert={status==='moved'}>
         {/* Sync Status */}
         <div className="rise">
           <div className="section-hdr">Sync-Status</div>
@@ -5226,6 +5298,8 @@ function Einstellungen() {
           )}
         </div>
 
+        </Fold>
+        <Fold id="look" title="🎨 Ansicht & Kalender" sub="Module, Spielelemente, Hell/Dunkel, Kalender-Abo">
         {/* Module sichtbar */}
         <div className="rise" style={{animationDelay:'120ms'}}>
           <div className="section-hdr">Module anzeigen</div>
@@ -5268,6 +5342,8 @@ function Einstellungen() {
         <LookCard/>
         <CalendarCard/>
 
+        </Fold>
+        <Fold id="data" title="💾 Daten & Backup" sub="Archiv, Backups, Fehlerprotokoll" alert={(typeof bkAgeS==='number' && bkAgeS>2) || (D.err||[]).length>0}>
         {/* Archiv */}
         <div className="rise" style={{animationDelay:'150ms'}}>
           <div className="section-hdr">Archiv</div>
@@ -5363,6 +5439,8 @@ function Einstellungen() {
           </div>
         )}
 
+        </Fold>
+        <Fold id="people" title="👥 Personen" sub="Wer bist du, Namen, Farben, PayPal" alert={!me}>
         {/* Persons */}
         <div className="rise" style={{animationDelay:'200ms'}}>
           <div className="section-hdr">Personen</div>
@@ -5388,6 +5466,8 @@ function Einstellungen() {
           <div className="section-ftr">„Das bin ich" gilt nur für dieses Gerät. Der PayPal.me-Name ermöglicht den „Per PayPal zahlen"-Button beim Schuldenausgleich.</div>
         </div>
 
+        </Fold>
+        <Fold id="push" title="🔔 Benachrichtigungen" sub="Push je Art, Ruhezeit, Geräte, Homescreen">
         {/* Erinnerungen — nur zeigen, wenn das Gerät Notifications kann (iOS: nur als installierte PWA) */}
         {notifySupported && (
         <div className="rise" style={{animationDelay:'220ms'}}>
@@ -5440,7 +5520,12 @@ function Einstellungen() {
               ['putz','✅','Putzplan'],
               ['settle','🤝','Abrechnung'],
               ['remind','⏰','Morgen-Erinnerungen'],
-              ['board','🗓️','WG-Board (Besuch, Wecker)'],
+              ['board','🗓️','Ankündigungen (Besuch, Wecker)'],
+              ['msg','💬','Kurz Bescheid (Nachrichten)'],
+              ['wash','🧺','Waschmaschine & Co. fertig'],
+              ['away','✈️','Abwesenheiten'],
+              ['repair','🔧','Kaputt & Vermieter'],
+              ['game','👑','Wochen-Duell (montags)'],
             ].map(([key,em,label]) => (
               <div key={key} className="cell" style={{minHeight:44,padding:'8px 16px'}}>
                 <div className="cell-content">
@@ -5501,6 +5586,7 @@ function Einstellungen() {
             ))}
           </div>
         </div>
+        </Fold>
 
         <button style={{width:'100%',height:50,border:'1px solid rgba(251,113,133,.25)',borderRadius:16,background:'rgba(251,113,133,.06)',color:'var(--red)',fontSize:15,fontWeight:700}}
             onClick={async()=>{if(await askConfirm({title:'Alle lokalen Daten löschen',body:'Entfernt alle Daten und Einstellungen auf diesem Gerät. Über den WG-Code synchronisierte Daten auf anderen Geräten bleiben erhalten — der private Finanzbereich (nur lokal, inkl. PIN) ist danach unwiderruflich weg.',okLabel:'Löschen',danger:true})){['wg_data','fb_cfg','wg_code','wg_modules','wg_me','wg_priv','wg_priv_pin','wg_priv_tab_v1'].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>
@@ -6023,7 +6109,7 @@ function AppInner() {
   useState(() => { try { const a = new URLSearchParams(location.search).get('a'); if (a) { SHORTCUT = a; history.replaceState(null, '', location.pathname); } } catch {} return null; });
   const visibleTabs = TABS.filter(t => t.id==='set' || mods[t.id] !== false);
   const [tab,setTab_] = useState(() => {
-    if (SHORTCUT) return SHORTCUT==='muell' ? 'putz' : 'haus';
+    if (SHORTCUT) return SHORTCUT==='muell' ? 'putz' : (SHORTCUT==='waesche' && mods.heute!==false) ? 'heute' : 'haus';   // Timer lebt auf „Heute“
     const saved = ls('wg_tab', null); // letzten Tab merken
     return (saved && (saved==='set' || mods[saved] !== false)) ? saved : (visibleTabs[0]?.id || 'set');
   });

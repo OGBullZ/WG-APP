@@ -140,6 +140,7 @@ check('F5 Besuch diesen Monat: Torben 1×', /Torben 1× · Tom 0×/.test(await p
 
 // ── G: Kalender-Abo ──
 await tabTo('Mehr');
+await page.waitForTimeout(300); await page.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click()));   // Mehr-Gruppen aufklappen (seit wg-v66 zu)
 await page.locator('[data-testid="ics-make"]').click(); await page.waitForTimeout(500);
 check('G1 Link mit Schlüssel (nicht dem WG-Code)', /\/api\/ics\?t=TOK123$/.test(await page.locator('[data-testid="ics-url"]').innerText()) && !(await page.locator('[data-testid="ics-url"]').innerText()).includes('TEST-LOKAL'));
 check('G2 „Im Kalender abonnieren" = webcal://', (await page.locator('[data-testid="ics-open"]').getAttribute('href')).startsWith('webcal://'));
@@ -164,13 +165,12 @@ lk = await look();
 check('H5 zurück auf Dunkel + normal', lk.t === 'dark' && lk.z === '' && lk.bg === 'rgb(6, 10, 8)', JSON.stringify(lk));
 
 // ── I: Heute-Seite ──
-check('I0 Heute standardmäßig aus', await page.locator('.tabbar .tabitem', { hasText: 'Heute' }).count() === 0);
-await page.locator('.cell', { hasText: 'Heute (Startseite)' }).getByRole('button').click(); await page.waitForTimeout(400);
+check('I0 Heute standardmäßig an (erster Tab)', await page.locator('.tabbar .tabitem').first().innerText() === 'Heute');
 await tabTo('Heute');
 check('I1 Begrüßung mit Name', /Torben/.test(await page.locator('[data-testid="today-hello"]').innerText()));
 check('I2 Abholung morgen', /Papier morgen früh/.test(await page.locator('[data-testid="today-pick-papier"]').innerText().catch(() => '')));
 check('I3 Zahlung zum Bestätigen', /Tom hat €5,00 bezahlt – bitte bestätigen/.test(await page.locator('[data-testid="today-pay-pr1"]').innerText().catch(() => '')));
-check('I4 Ankündigung + Nachricht', await page.locator('[data-testid="today-bo-b1"]').count() === 1 && /Bin gleich da/.test(await page.locator('[data-testid="today-qm-q1"]').innerText().catch(() => '')));
+check('I4 Ankündigungen, Nachrichten, Reparaturen, Logins als Karten auf Heute', /Eltern/.test(await page.locator('[data-testid="board-card"]').innerText().catch(() => '')) && /Bin gleich da/.test(await page.locator('[data-testid="quick-msgs"]').innerText().catch(() => '')) && await page.locator('[data-testid="repair-card"]').count() === 1);
 check('I5 Einkauf: 1 offen · bald leer: Kaffee', /1 auf der Einkaufsliste · bald leer: Kaffee/.test(await page.locator('[data-testid="today-shop"]').innerText().catch(() => '')));
 check('I6 Saldo-Zeile', await page.locator('[data-testid="today-bal"]').count() === 1);
 check('I7 Schnell-Eingabe auch hier', await page.locator('[data-testid="quick-expense"]').count() === 1);
@@ -182,6 +182,7 @@ await M.ctx.close();
 // ── J: Kalender-Fehler wird angezeigt (Server lehnt ab) ──
 {
   const J = await open({ users: USERS }, { tab: 'set', route: r => r.request().url().includes('/api/ics') ? r.fulfill({ status: 403, contentType: 'application/json', body: '{"error":"falscher Code"}' }) : null });
+await J.page.waitForTimeout(300); await J.page.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click()));   // Mehr-Gruppen aufklappen (seit wg-v66 zu)
   await J.page.locator('[data-testid="ics-make"]').click(); await J.page.waitForTimeout(500);
   check('J1 Ablehnung sichtbar, kein Link', /konnte nicht erzeugt werden \(falscher Code\)/.test(await J.page.locator('[data-testid="calendar-card"]').innerText()) && await J.page.locator('[data-testid="ics-url"]').count() === 0);
   await J.ctx.close();

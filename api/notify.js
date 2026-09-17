@@ -34,7 +34,7 @@ module.exports = async (req, res) => {
   const title = body.title;
   const msgBody = body.body;
   // 'board' ergänzt: Ankündigungen richten sich jetzt auch nach Typ-Schalter und Ruhezeit des Geräts
-  const type = ['exp', 'shop', 'putz', 'settle', 'board'].includes(body.type) ? body.type : undefined;
+  const type = ['exp', 'shop', 'putz', 'settle', 'board', 'msg', 'wash', 'away', 'repair'].includes(body.type) ? body.type : undefined;
 
   if (typeof code !== 'string' || code.length < 6 || code.length > 64) {
     res.status(400).json({ error: 'invalid code' });

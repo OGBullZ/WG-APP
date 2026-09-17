@@ -96,12 +96,14 @@ async function run(prefix, ctxOpts, mode) {
     await page.getByRole('button', { name:'Später' }).click();
     await page.waitForTimeout(400);
   }
-  if (await page.getByText('Du schuldest').isVisible().catch(()=>false)) {
+  if (await page.locator('.sheet').getByText('Du schuldest').isVisible().catch(()=>false)) {
     if (mode==='mobile') await shot('start-popup-schulden');
     await page.getByRole('button', { name:'Später' }).click();
     await page.waitForTimeout(400);
   }
 
+  await shot('heute');                  // seit wg-v66 Startseite
+  await page.locator('.tabbar .tabitem', { hasText: 'Haushalt' }).click(); await page.waitForTimeout(420);
   await shot('haushalt');               // personalisierter Hero + gemischter Split + PayPal
 
   // Wizard: auf Tablet/Desktop zentriertes Modal, auf Handy Bottom-Sheet
@@ -124,6 +126,7 @@ async function run(prefix, ctxOpts, mode) {
   await shot('wizard-3-zusammenfassung-split');
   await page.getByRole('button', { name:'Abbrechen' }).click(); await page.waitForTimeout(300);
 
+  await page.locator('.tabbar .tabitem', { hasText: 'Heute' }).click(); await page.waitForTimeout(420);                   // Abo-Logins leben seit wg-v66 auf „Heute“
   // ── Abo-Logins: Karte → Code eingeben → sichtbarer Login → Freigabe anlegen → Code ──
   // Auf den unteren Knopf der Karte zielen — die Überschrift allein landet hinter der Tabbar
   await page.getByRole('button', { name:/Login freigeben/ }).scrollIntoViewIfNeeded(); await page.waitForTimeout(300);
@@ -155,6 +158,7 @@ async function run(prefix, ctxOpts, mode) {
   await shot('logins-6-karte-danach');
 
   if (mode === 'mobile') {
+    await page.locator('.tabbar .tabitem', { hasText: 'Haushalt' }).click(); await page.waitForTimeout(420);
     await tap('🛒 Einkaufsliste'); await shot('einkaufsliste');
     await tap('Growbox');  await shot('growbox');
     await tap('Putzplan'); await shot('putzplan');

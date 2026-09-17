@@ -174,17 +174,19 @@ async function report(label) {
   console.log(' Tap-Ziel <40px:', a.smallTap.length); [...new Set(a.smallTap)].slice(0,14).forEach(x=>console.log('   -',x));
   console.log(' Input ohne Label:', a.noLabelInput.length); a.noLabelInput.slice(0,8).forEach(x=>console.log('   -',x));
   console.log(' Kontrast < AA:', a.lowContrast.length); a.lowContrast.slice(0,25).forEach(x=>console.log('   -',x));
-  if (label==='Haushalt') console.log(' misc:', a.misc.join(' | '));
+  if (label==='Heute') console.log(' misc:', a.misc.join(' | '));
 }
 
 await page.waitForTimeout(900);
+await report('Heute');   // seit wg-v66 Startseite
+await page.locator('.tabbar .tabitem', { hasText: 'Haushalt' }).click(); await page.waitForTimeout(600);
 await report('Haushalt');
 for (const t of ['🛒 Einkaufsliste','Growbox','Putzplan','Übersicht','Mehr']) {
   await page.locator(`text=${t}`).first().click(); await page.waitForTimeout(600);
   await report(t);
 }
 // Wizard
-await page.locator('.tabbar .tabitem').first().click(); await page.waitForTimeout(400);
+await page.locator('.tabbar .tabitem', { hasText: 'Haushalt' }).click(); await page.waitForTimeout(400);
 await page.getByText('+ Ausgabe hinzufügen').click(); await page.waitForTimeout(500);
 await report('Wizard');
 // Fokus-Sichtbarkeit / Tastatur

@@ -43,6 +43,7 @@ async function open({ localData = {}, joinMode = null, code = 'TEST-LOKAL-SYNC00
 
   await page.addInitScript(([d, jm, c, u]) => {
     localStorage.setItem('wg_code', JSON.stringify(c));
+    localStorage.setItem('wg_tab', JSON.stringify('haus'));   // Start im Haushalt (seit wg-v66 ist „Heute“ die erste Seite)
     localStorage.setItem('wg_me', JSON.stringify('u1'));
     localStorage.setItem('wg_data', JSON.stringify({ users: u, ...d }));
     // Wöchentlichen Start-Ablauf (Push/PayPal/Schulden) abschalten: er kam unter Last NACH der Wegklick-Schleife
@@ -260,6 +261,7 @@ const remoteHs = page => page.evaluate(() => Object.values(window.__wg.remote.hs
 
   // Löschen in dieser (frischen) Sitzung muss beim Server ankommen
   // Kein ×-Knopf = Ankündigung gar nicht sichtbar → laut rot statt Timeout-Absturz
+  await page.locator('.tabbar .tabitem', { hasText: 'Heute' }).click(); await page.waitForTimeout(500);   // Ankündigungen leben seit wg-v66 auf „Heute“
   const delBtn = page.locator('.del-btn[aria-label="Ankündigung entfernen"]');
   check('H4a Ankündigung ist in der UI sichtbar (×-Knopf da)', await delBtn.count() > 0);
   if (await delBtn.count()) {

@@ -120,7 +120,12 @@ globalThis.fetch = realFetch;
 // Verdrahtung
 const cron = readFileSync(new URL('../api/cron.js', import.meta.url), 'utf8');
 const vj = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
-check('26 Morgen-Job nutzt taskDueIn/taskWho, Reparaturen, Jahr am 1.1.', /taskDueIn\(t, wg, todayIso\)/.test(cron) && /taskWho\(/.test(cron) && /repairReminders\(wg, todayIso\)/.test(cron) && /m === 1 && d === 1 \? yearReview\(wg, y - 1\)/.test(cron));
+// Sammel-Push (wg-v66): eine Nachricht für alles Fällige, Abwesende geben ab, „Morgen" nimmt raus
+const dg = W.putzDigest({ ...wg, pt: { ...wg.pt, y: { ...wg.pt.y, lastDone: '2026-09-01' }, s: { id: 's', name: 'Glas', interval: 1, assignee: 'u1', lastDone: '2026-09-01', snooze: '2026-09-17' } } }, '2026-09-16');
+check('25b Sammel-Push: 2 fällig, Tom weg → Torben, verschobene Aufgabe fehlt', dg && dg.title === 'Putzplan · 2 fällig' && /Bad \(Torben, 8 T\. überfällig\)/.test(dg.body) && /Papier raus \(Torben\)/.test(dg.body) && !/Glas/.test(dg.body) && dg.tag === 'putz-2026-09-16', JSON.stringify(dg));
+check('25c „Morgen": nicht fällig bis zum Datum, danach normal', W.taskDueIn({ interval: 1, lastDone: '2026-09-01', snooze: '2026-09-18' }, {}, '2026-09-16') === 2 && W.taskDueIn({ interval: 1, lastDone: '2026-09-01', snooze: '2026-09-16' }, {}, '2026-09-16') < 0);
+check('25d nichts fällig → keine Sammel-Push', W.putzDigest({ users, pt: { a: { id: 'a', name: 'X', interval: 7, lastDone: '2026-09-15' } } }, '2026-09-16') === null);
+check('26 Morgen-Job nutzt taskDueIn + Sammel-Push, Reparaturen, Jahr am 1.1.', /taskDueIn\(t, wg, todayIso\)/.test(cron) && /putzDigest\(wg, todayIso\)/.test(cron) && /repairReminders\(wg, todayIso\)/.test(cron) && /m === 1 && d === 1 \? yearReview\(wg, y - 1\)/.test(cron));
 check('26b Gesamtbudget zählt alle Posten, Zähler-Erinnerung am 1.', /b\.id === 'total' \|\| i\.cat === b\.id/.test(cron) && /d === 1 \? meterReminder\(wg\)/.test(cron));
 check('27 Abend-Job in vercel.json', vj.crons.some(c => c.path === '/api/evening'));
 

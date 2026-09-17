@@ -44,6 +44,7 @@ async function device({ me, dev, seedTree, localData, rotateStatus = 200 }) {
   await page.addInitScript(([m, d, t, ld, day]) => {
     if (!localStorage.getItem('wg_code')) {
       localStorage.setItem('wg_code', JSON.stringify('BLAU-MOND-ABC234'));
+      localStorage.setItem('wg_tab', JSON.stringify('haus'));   // Start im Haushalt (seit wg-v66 ist „Heute“ die erste Seite)
       localStorage.setItem('wg_me', JSON.stringify(m));
       localStorage.setItem('wg_device', JSON.stringify(d));
       localStorage.setItem('wg_start_shown', JSON.stringify(day));
@@ -60,7 +61,7 @@ async function device({ me, dev, seedTree, localData, rotateStatus = 200 }) {
   return { page, calls, ctx };
 }
 const tree = page => page.evaluate(() => window.__wg.tree);
-const openMehr = async page => { await page.locator('.tabbar .tabitem', { hasText: 'Mehr' }).click(); await page.waitForTimeout(400); };
+const openMehr = async page => { await page.locator('.tabbar .tabitem', { hasText: 'Mehr' }).click(); await page.waitForTimeout(300); await page.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click())); await page.waitForTimeout(400); };
 
 // ── A) Wechsel klappt ──
 {

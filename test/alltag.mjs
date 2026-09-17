@@ -105,7 +105,7 @@ check('C3 Ausgabe 12,50 € · Lebensmittel · ich', !!ex && ex.price === 12.5 &
 check('C4 abgehakte Milch aus der Liste, Knopf weg', !d.sl.some(i => i.name === 'Milch') && await rb.count() === 0);
 
 // ── D: Waschtimer ──
-await page.getByRole('button', { name: /Ausgaben/ }).first().click(); await page.waitForTimeout(400);
+await tabTo('Heute');   // Timer, Nachrichten, Reparaturen leben seit wg-v66 auf „Heute“
 check('D1 abgelaufener Lauf: „ist fertig" + Push an die anderen (Starter = ich)', /ist fertig/.test(await page.locator('[data-testid="wash-run"]').first().innerText())
   && pushes.some(p => p.tag === 'wt-w1' && /Waschmaschine ist fertig/.test(p.title)));
 check('D2 je Gerät nur einmal gemeldet (ein Merker-Schlüssel)', await page.evaluate(() => JSON.parse(localStorage.getItem('wg_wt_noted') || '[]').includes('w1')));
@@ -122,7 +122,7 @@ check('D5 Anzeige „noch 30 Min." + Start-Push', /noch 30 Min\./.test(await pag
 
 // ── E: Schnell-Nachrichten ──
 await page.locator('[data-testid="qm-preset"]', { hasText: 'Paket für dich' }).click(); await page.waitForTimeout(400);
-check('E1 Preset → Push + Eintrag sichtbar', pushes.some(p => p.type === 'board' && /Paket für dich angenommen/.test(p.body)) && /Paket für dich/.test(await page.locator('[data-testid="qm-row"]').first().innerText()));
+check('E1 Preset → Push + Eintrag sichtbar', pushes.some(p => p.type === 'msg' && /Paket für dich angenommen/.test(p.body)) && /Paket für dich/.test(await page.locator('[data-testid="qm-row"]').first().innerText()));
 await page.getByLabel('Eigene Nachricht').fill('Bringe Brötchen mit'); await page.getByRole('button', { name: 'Senden', exact: true }).click(); await page.waitForTimeout(400);
 check('E2 eigene Nachricht', (await data()).qm.some(m => m.text === 'Bringe Brötchen mit' && m.by === 'u1'));
 
@@ -138,6 +138,7 @@ check('F2b offener Eintrag löschbar', !(await data()).rp.some(r => r.text === '
 check('F3 gemeldet mit Datum', (await data()).rp.some(r => r.text === 'Heizung Bad' && r.status === 'gemeldet' && r.md === T));
 
 // ── G: „Ich habe bezahlt" (Schuldner-Seite) ──
+await tabTo('Haushalt');
 await page.locator('[data-testid="pay-claim"]').click(); await page.waitForTimeout(400);
 const pr = (await data()).pr.find(p => p.status === 'open');
 // 40 € von Tom, 12,50 € Kassenzettel von Torben → Torben schuldet 20 − 6,25 = 13,75 €
@@ -169,7 +170,7 @@ check('I1b vergangene Abwesenheit bleibt erhalten (Fairness-Fenster)', d.aw.some
 check('I2 meine Aufgaben gehen an Tom', d.pt.every(t => t.assignee === 'u2'), JSON.stringify(d.pt.map(t => t.assignee)));
 check('I3 Reihenfolge überspringt mich', await page.evaluate(() => choreNext('zz', [], [{ id: 'u1' }, { id: 'u2' }], 'u1')) === 'u2');
 check('I4 Einträge aus der Abwesenheit zählen nicht', await page.evaluate(d0 => JSON.stringify(choreTally('zz', [{ taskId: 'zz', userId: 'u2', date: d0 }], [{ id: 'u1' }, { id: 'u2' }])), T) === '{"u1":0,"u2":0}');
-await tabTo('Haushalt');
+await tabTo('Heute');
 check('I5 Banner im Haushalt: „Du bist weg"', /Du bist weg/.test(await page.locator('[data-testid="away-banner"]').innerText().catch(() => '')));
 
 // ── J: Jahresrückblick ──

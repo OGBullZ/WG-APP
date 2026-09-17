@@ -6,14 +6,20 @@ WG-Splitter für 2 Personen (Torben + Tom). Single-File-PWA, Live-Sync zwischen 
 
 - **Eine Datei:** `wgapp.html` (~4700 Z.) — React 18, KEIN Build-Schritt.
 - **Selbst gehostet (seit wg-v55):** `vendor/` = React/ReactDOM 18.3.1 + `@babel/standalone` 7.25.6 (aus `npm pack`, `umd/`-Dateien), `fonts/` = Unbounded, Hanken Grotesk, Spline Sans Mono (Google Fonts, nur `latin` + `latin-ext`, variable woff2, Lizenz `fonts/OFL.txt`). Seit wg-v56 auch das **Firebase-SDK** (`firebase-app-compat`/`firebase-database-compat` 9.23.0 aus dem npm-Paket `firebase`, byte-gleich mit gstatic) — die App lädt keinen Code mehr von fremden Servern; nur die Datenbank-Verbindung selbst geht zu `*.firebasedatabase.app`. **Dateinamen tragen Version bzw. Inhalts-Hash** → `immutable`-Header + stabiler SW-Cache `wg-cdn`. **Tausch einer Datei = neuer Name an drei Stellen:** `wgapp.html` (Script/`@font-face`/Preload), `sw.js` (`IMMUTABLE`), sonst hält der Cache die alte Datei für immer. `sw.js` lädt `IMMUTABLE` beim Installieren vorab (nur Fehlendes) und räumt beim activate alte CDN-Kopien und abgelöste Versionen weg. Test: `node test/selfhost.mjs` (u. a. Offline-Start mit leerem JSX-Cache = Babel aus dem SW-Cache, mit Gegenprobe).
-- **JSX-Compile-Cache (seit wg-v42):** Der App-Code steht in `<script type="text/jsx-src">`, wird **einmal** von Babel übersetzt und unter `localStorage.wg_jsx_<FNV1a-Hash>_<len>` abgelegt; danach wird Babel gar nicht mehr geladen (live 3423 ms → 113 ms). Quelltext ändert sich → Hash ändert sich → automatisch neu. **Folge für Tests: nach `goto` auf die gerenderte App warten** (`.tabbar` bzw. `#root > *`), nie auf eine feste Zeit — beim Erststart lädt Babel erst nach dem HTML.
+- **Ausgeliefert wird `dist/` (seit wg-v66, `scripts/build.mjs`, ruft `ship.mjs` auf):**
+  - Die App ist **vorab übersetzt** (`app.<hash>.js`, immutable), Babel wird nicht ausgeliefert, HTML-Kommentare und der JSX-Quelltext fallen weg. `wgapp.html` im Repo bleibt der Quelltext mit Browser-Übersetzung; Tests und lokaler Start laufen darüber.
+  - Grund: Gemessen dauerte der erste Start nach jedem Deploy 16,5 s bei 4× CPU-Drosselung.
+  - `firebase.json` → `public: "dist"`; Hosting sieht Repo-Dateien (Tests, Doku, API) gar nicht mehr.
+  - Der Build prüft, dass jedes verbleibende Inline-Skript einen CSP-Hash hat. `dist/sw.js` lädt Babel nicht vor und hat die App-Datei in der Shell-Liste.
+  - **Nie `firebase deploy` ohne vorherigen Build** (`ship.mjs` erledigt beides). Die Live-Prüfung kontrolliert, ob `app.<hash>.js` ausgeliefert wird.
+- **JSX-Compile-Cache (seit wg-v42, nur noch Quelltext/Tests):** Der App-Code steht in `<script type="text/jsx-src">`, wird **einmal** von Babel übersetzt und unter `localStorage.wg_jsx_<FNV1a-Hash>_<len>` abgelegt; danach wird Babel gar nicht mehr geladen (live 3423 ms → 113 ms). Quelltext ändert sich → Hash ändert sich → automatisch neu. **Folge für Tests: nach `goto` auf die gerenderte App warten** (`.tabbar` bzw. `#root > *`), nie auf eine feste Zeit — beim Erststart lädt Babel erst nach dem HTML.
 - **Sync:** Firebase RTDB `wgapp-65484` (europe-west1), Pfad `wg/<wgCode>`. Item-granular als Map `{id:item}` pro Listen-Key (Phase-1-Sync). localStorage offline-first; RTDB überlagert.
 - **Live-Listener (`ref.on`) überspringt Keys mit offener eigener Änderung — `dirty` UND `inflight`:** Ein Fremd-Event trägt den Server-Stand von vor dem eigenen Write. Ohne die `inflight`-Prüfung stand ein gerade gelöschter Posten wieder da und eine frische Eingabe wurde überschrieben. Verworfen wird nichts: RTDB merged item-granular, das Event nach der Bestätigung liefert Fremd- und eigene Änderung zusammen (Szenario G in `test/sync.mjs` sichert genau das ab).
 - **Erst-Read (`ref.once`) darf lokale Änderungen nicht wegwischen:** Der Server antwortet mit dem Stand von vor dem Verbindungsaufbau. Geschützt werden deshalb `prevPending` (Vor-Session) **∪ `dirty` ∪ `inflight`** (alles seit dem Verbindungsaufbau) — sonst verschwindet eine Ausgabe, die man beim Öffnen sofort eintippt, spurlos: lokal überschrieben, und der nachlaufende Flush schickt den überschriebenen Stand. `joinMode` („WG übernehmen") verwirft weiterhin bewusst alles Lokale. Regressionsnetz: `test/sync.mjs`.
 - **Pairing:** WG-Code (`WORT-WORT-XXXXXX`). Liegt in `localStorage.wg_code` und wird beim Erststart sofort persistiert (sonst Desync, s. Gotchas).
 - **PWA:** `sw.js` (App-Shell + `vendor/`/`fonts/` cache-first; RTDB/Auth nie gecacht; nur `ok`-Antworten werden abgelegt). Test-Stubs (`test/_fbstub.mjs`) fangen `firebase-(app|database)-compat[-Version].js` ab — beim Umbenennen der SDK-Dateien das Muster in `sync.mjs`/`logins.mjs` mitziehen. `manifest.json`, `icon.svg`.
 - **DB-Regeln:** `database.rules.json` (Root zu; nur `wg/$code` mit Code-Länge 6–64; Feld-Validierung).
-- **Hosting:** `firebase.json` (statisch; `test/**`, `scripts/**`, `CLAUDE.md`, `package*.json` ausgeschlossen — `CLAUDE.md` lag bis 15.09. öffentlich).
+- **Hosting:** `firebase.json` liefert seit wg-v66 nur `dist/` aus (Build); vorher war es das Repo mit Ausschlussliste, und `CLAUDE.md` lag bis 15.09. öffentlich.
 - **Sicherheits-Header (seit wg-v54, `firebase.json` → `source: "**"`):** CSP, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: no-referrer`, `Permissions-Policy`, `X-Robots-Tag: noindex`. **Neuer externer Host (CDN, API, Bild) → erst in die CSP eintragen**, sonst blockt der Browser still. Die CSP braucht `'unsafe-inline'` bei `script-src`, weil der JSX-Cache sein Kompilat als Inline-Script ausführt; sie schützt trotzdem gegen fremde Script-Hosts und — wichtiger — per `connect-src` gegen Datenabfluss an fremde Server. `*.firebasedatabase.app` steht auch in `script-src`/`frame-src`: RTDB fällt ohne WebSocket auf Long-Polling per Script-Tag/iframe zurück.
 - **Header-Änderungen immer erst auf einem Vorschaukanal prüfen:** `firebase hosting:channel:deploy <name> --expires 1d`, dann echter Start (WebSocket UND gesperrter WebSocket → Long-Polling), `securitypolicyviolation` mitschreiben. Eine falsche CSP legt die App auf beiden Handys lahm. `ship.mjs` prüft nach dem Deploy, dass `/` mit `no-cache` + CSP kommt.
 - **`/` braucht eine eigene Cache-Regel:** die Rewrite-Wurzel bekam vorher `max-age=3600` (die Regel für `/wgapp.html` greift dort nicht) → ein Deploy kam bis zu 1 Std verspätet an.
@@ -144,6 +150,36 @@ Die Komponenten stehen gesammelt vor dem ALLTAG-Block (Block „EXTRA“). Neuer
 ` im Heredoc wurde zur echten Zeile. Lösung: Code-Stücke als eigene Datei schreiben und per Skript einsetzen.
   - Der erste Test auf die Schriftfarbe im Tab „Mehr“ fand nichts, weil dort keine Personenfarbe als Schrift vorkommt.
 
+## Alltagstauglich (seit wg-v66, 2026-09-17 — torbe: „alle umsetzen“ nach der Nutzungs-Analyse)
+
+Anlass war eine Messung mit realistischen Daten: 16,5 s Erststart nach Updates, Haushalt 3,9 Bildschirme mit 53 Bedienelementen (Ausgaben erst ab 1.792 px), Mehr 4,6 Bildschirme, Tab-Beschriftung 10 px, 6 verschiedene Dinge unter einem Push-Schalter.
+1. **Vorab übersetzen** → siehe „Ausgeliefert wird dist/“ oben.
+2. **„Heute“ ist Standard-Startseite** (`MOD_DEF.heute:true`, erster Tab; ein gespeicherter Tab gewinnt weiter). Ankündigungen (`BoardCard`, aus dem Haushalt herausgelöst), Nachrichten, Timer, Reparaturen, Logins und „Du bist dran“ stehen auf Heute. **Heute aus → alles wieder im Haushalt** (`heuteOn`). Der Haushalt zeigt nur noch Geld; „Mitbringen lassen“ ist in die Einkaufsliste umgezogen.
+3. **Ein Weg je Sache:**
+   - Die Schnell-Zeile ist der einzige Eingabeknopf: leer bzw. ohne Betrag → volles Formular mit vorbelegtem Namen. Ohne gewählte Person bleibt „+ Ausgabe hinzufügen“ trotzdem da.
+   - Einkaufsliste: Die Vorschlags-Chips sind entfernt, gelernte Käufe (`slh` ≥ 2) erscheinen als Kacheln („+ auf die Liste“, Push „braucht“).
+   - **„Alles abrechnen“ nur für den, der Geld bekommt** (oder wenn nichts offen ist); der Schuldner sieht den Hinweis auf „Ich habe bezahlt“ (Haushalt + Growbox).
+4. **Push je Art:** `msg` (Kurz Bescheid), `wash`, `away`, `repair` + Schalter für `game`; notify.js-Liste und DB-Regel ergänzt. Morgens **eine Sammel-Push** `putzDigest` (max. 5 Aufgaben, Abwesende berücksichtigt) statt je Aufgabe eine.
+5. **„Wer bist du?“** (`WhoAmI`): nicht blockierend oben auf Heute, Haushalt und Putzplan. Die Gruppe „Personen“ öffnet sich ohne Person von selbst.
+6. **Mehr in 5 Gruppen** (`Fold`, Zustand `wg_fold_<id>`, Standard zu):
+   - Die Gruppe öffnet sich von selbst bei Backup-Warnung oder Fehlerprotokoll (roter Punkt) und bei „Code geändert“, damit das Eingabefeld sichtbar ist (per Test gefunden).
+   - Stolperfalle: `display:flex` im Stil überstimmt das `hidden`-Attribut, deshalb steuert `display` die Sichtbarkeit.
+   - Tests klappen nach dem Wechsel auf Mehr alle Gruppen auf (`.fold-hdr[aria-expanded="false"]`).
+7. **Lesbarkeit:** Tab-Beschriftung 11 px, `.cell-sub` 12,5 px, `--label3` dunkel .62.
+8. **Kleinigkeiten:**
+   - Waschtimer merkt sich die Dauer je Maschine (`wg_wt_last`).
+   - **„Morgen“** in „Du bist dran“: `pt.snooze` → bis dahin nicht fällig, ohne Strafe für die Serie; beim Abhaken gelöscht. `_wg.taskDueIn` spiegelt das.
+   - Einkaufsliste **nach Laden-Bereichen** sortiert (`SHOP_AREAS` per Stichwort, Bereich steht an der Zeile).
+- **Test-Folgen:**
+  - Tests ohne gespeicherten Tab starten jetzt auf Heute und wurden auf `wg_tab:'haus'` gestellt.
+  - „Wer bist du?“ hat Personen-Knöpfe, deshalb Formular-Knöpfe per `.sheet .pick-btn` suchen.
+  - `visual.mjs` sucht „Du schuldest“ nur im Fenster.
+  - `paypal.mjs`/`torben.mjs` (nicht im Gate) erwarteten noch das vierstufige Formular und sind nachgezogen.
+- **Funde beim Umbau:**
+  - Ohne Person gab es keinen Ausgaben-Knopf mehr.
+  - Das Kürzel „Maschine läuft“ öffnete den Haushalt statt Heute.
+  - „Neuen Code eingeben“ landete in einer zugeklappten Gruppe.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -174,6 +210,7 @@ node test/bkwatch.mjs   # Backup-Wächter: alte Sicherung → Tab-Punkt + Warnun
 node test/update.mjs    # „Neue Version": Hinweis, kein Neuladen mit offenem Formular, sonst Neuladen (eigener Port 8098)
 node test/putz.mjs     # Putz-Fairness: Gutschrift an den, der hakt; dran ist, wer seltener; Haushalt-Karte, Tab-Punkt, Vorlagen, Rückgängig
 node test/alltag.mjs      # Alltag: Vorrat, Kassenzettel, Waschtimer, Nachrichten, Reparaturen, Zahlung bestätigen, Müllabfuhr, Abwesend, Jahr, App-Kürzel
+node test/ux.mjs          # Alltagstauglich: Build (vorab übersetzt, ohne Babel, Erststart < 6 s bei 4× CPU), Heute-Start, eine Eingabezeile, Abrechnen nur Gläubiger, Laden-Bereiche, Wer-bist-du, Morgen-Knopf, Timer-Dauer, Push je Art, Mehr-Gruppen, Lesbarkeit
 node test/extra.mjs       # Extra: Schnell-Eingabe, Preis-Gedächtnis, Gesamtbudget, Einkaufs-Reihenfolge, Heute, Zähler, Kalender-Abo, Hell/Dunkel + Schrift
 node test/cron_alltag.mjs # Server-Hälfte (api/_wg.js): Abholrhythmus, Vorabend-Fälligkeit, Abwesenheit, Abend-Push, Sonntags-Überblick, Reparaturen, Jahr
 node test/cron_duel.mjs # Montags-Push Wochen-Duell: Vorwoche Mo–So, Punkte-Fallbacks wie in der App, Gleichstand, nur montags, Typ game

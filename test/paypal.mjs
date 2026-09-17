@@ -23,6 +23,7 @@ await page.waitForTimeout(2000);
 
 // 1) Mehr → Personen: Tom einen PayPal.me-Namen geben
 await page.locator('.tabitem', { hasText: 'Mehr' }).click();
+await page.waitForTimeout(300); await page.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click()));   // Mehr-Gruppen aufklappen (seit wg-v66 zu)
 await page.waitForTimeout(500);
 // pp-Input von Tom (zweites paypal.me-Feld)
 const ppInputs = page.locator('input[placeholder="dein-name"]');
@@ -38,9 +39,9 @@ await page.locator('.sheet input.field').first().fill('Pizza');
 await page.getByRole('button', { name: 'Weiter' }).click();
 await page.locator('input[inputmode="decimal"]').fill('20');
 await page.getByRole('button', { name: 'Weiter' }).click();
-await page.locator('.pick-btn', { hasText: /^Tom$/ }).click();
-await page.getByRole('button', { name: 'Weiter' }).click();
-await page.locator('.pick-btn', { hasText: 'Torben zahlt alles' }).click();
+// Formular hat seit wg-v29 drei Schritte: Bezahler + Aufteilung stehen auf derselben Seite
+await page.locator('.sheet .pick-btn', { hasText: /^Tom$/ }).click();
+await page.locator('.sheet .pick-btn', { hasText: 'Torben zahlt alles' }).click();
 await page.getByRole('button', { name: 'Fertig', exact: true }).click();
 await page.waitForTimeout(800);
 

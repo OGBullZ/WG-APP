@@ -23,6 +23,7 @@ const check = (name, cond) => (cond ? pass : fail).push(name);
 
 await page.goto(url, { waitUntil: 'domcontentloaded' });
 await page.locator('.tabbar').waitFor({ timeout: 30000 });   // siehe archive.mjs
+await page.locator('.tabbar .tabitem', { hasText: 'Haushalt' }).click();   // seit wg-v66 startet eine neue App auf „Heute“
 await page.waitForTimeout(2000);
 
 // --- Wizard-Struktur: 3 Schritte, Datum eingeklappt, Zusammenfassung am Ende ---
@@ -48,8 +49,8 @@ async function addExpense({ name, price, paidBy, split }) {
   await page.locator('input[inputmode="decimal"]').fill(price);
   await page.getByRole('button', { name: 'Weiter' }).click();
   // Schritt 3 (NEU kombiniert): Bezahler + Aufteilung auf einem Screen mit Zusammenfassung
-  await page.locator('.pick-btn', { hasText: new RegExp('^' + paidBy + '$') }).click();
-  await page.locator('.pick-btn', { hasText: split }).click();
+  await page.locator('.sheet .pick-btn', { hasText: new RegExp('^' + paidBy + '$') }).click();
+  await page.locator('.sheet .pick-btn', { hasText: split }).click();
   await page.getByRole('button', { name: 'Fertig', exact: true }).click();
   await page.waitForTimeout(400);
 }

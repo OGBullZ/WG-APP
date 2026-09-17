@@ -26,6 +26,7 @@ try {
   await ctx.addInitScript(() => {
     if (localStorage.getItem('wg_code')) return;
     localStorage.setItem('wg_code', JSON.stringify('TEST-LOKAL-UPDATE'));
+    localStorage.setItem('wg_tab', JSON.stringify('haus'));   // Start im Haushalt (seit wg-v66 ist „Heute“ die erste Seite)
     localStorage.setItem('wg_start_shown', JSON.stringify(new Date().toISOString().slice(0, 10)));
   });
   const page = await ctx.newPage();

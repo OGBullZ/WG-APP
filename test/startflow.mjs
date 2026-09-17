@@ -12,6 +12,7 @@ await ctx.route('**/*', r => /firebasedatabase\.app|firebaseio\.com/.test(r.requ
 // Start-Ablauf fällig: me gesetzt, kein wg_start_shown, keine Push-Berechtigung (headless) → Push-Fenster kommt
 await ctx.addInitScript(() => {
   localStorage.setItem('wg_code', JSON.stringify('TEST-LOKAL-STARTFLOW'));
+  localStorage.setItem('wg_tab', JSON.stringify('haus'));   // Start im Haushalt (seit wg-v66 ist „Heute“ die erste Seite)
   localStorage.setItem('wg_me', JSON.stringify('u1'));
   localStorage.setItem('wg_data', JSON.stringify({ users: [{ id: 'u1', name: 'Torben', color: '#38bdf8', pp: 'x' }, { id: 'u2', name: 'Tom', color: '#fbbf24', pp: 'y' }] }));
 });

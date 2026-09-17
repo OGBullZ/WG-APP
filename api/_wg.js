@@ -31,6 +31,7 @@ const isAway = (wg, userId, iso) => toArray(wg.aw).some((a) => a.userId === user
 
 // Fälligkeit wie choreDueIn() in der App (Rhythmus oder Müllabfuhr)
 function taskDueIn(t, wg, todayIso) {
+  if (t.snooze && t.snooze > todayIso) return daysBetween(todayIso, t.snooze);   // „Morgen" gedrückt
   if (t.pk) { const p = toArray(wg.mk).find((x) => x.kind === t.pk); if (p) return pickupDueIn(p, t.lastDone, todayIso); }
   if (!t.lastDone) return 0;
   return daysBetween(todayIso, shiftIso(t.lastDone, t.interval || 7));
@@ -43,6 +44,18 @@ function taskWho(t, wg, todayIso) {
   return u || null;
 }
 const ptsOf = (l, byId) => { const p = Number(l.pts || (byId[l.taskId] && byId[l.taskId].pts)); return [1, 2, 3].includes(p) ? p : 2; };
+
+// Morgens: EINE Putz-Push für alles Fällige statt je Aufgabe eine (weniger Rauschen → Push bleibt an)
+function putzDigest(wg, todayIso) {
+  const due = toArray(wg.pt).map((t) => ({ t, d: taskDueIn(t, wg, todayIso) })).filter((x) => x.d <= 0).sort((a, b) => a.d - b.d);
+  if (!due.length) return null;
+  const parts = due.slice(0, 5).map(({ t, d }) => {
+    const who = taskWho(t, wg, todayIso);
+    return `${t.em || '🧽'} ${t.name}${who ? ` (${who.name}` : ' ('}${d < 0 ? `, ${-d} T. überfällig` : ''})`;
+  });
+  const more = due.length > 5 ? ` · +${due.length - 5} weitere` : '';
+  return { title: `Putzplan · ${due.length} fällig`, body: parts.join(' · ') + more, tag: `putz-${todayIso}` };
+}
 
 // Abend: morgen ist Abholung → Push je Tonne (mit dem, der rausbringt)
 function pickupTomorrow(wg, todayIso) {
@@ -184,4 +197,4 @@ function buildIcs(wg, todayIso, now = new Date()) {
   return lines.map(icsFold).join('\r\n') + '\r\n';
 }
 
-module.exports = { toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, meterReminder, buildIcs, icsText, icsFold, PICK_KINDS };
+module.exports = { toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, meterReminder, putzDigest, buildIcs, icsText, icsFold, PICK_KINDS };

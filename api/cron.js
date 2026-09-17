@@ -13,7 +13,7 @@
 
 const { loadSubs, sendToSubs, DB_BASE } = require('./_push');
 const { hasKey, currentCode, writeSnapshot, listSnapshots, pruneSnapshots, berlinParts } = require('./_sv');
-const { taskDueIn, taskWho, repairReminders, yearReview, meterReminder, isoOf } = require('./_wg');
+const { taskDueIn, repairReminders, yearReview, meterReminder, putzDigest, isoOf } = require('./_wg');
 
 function berlinTodayParts() {
   const fmt = new Intl.DateTimeFormat('en-CA', {
@@ -200,17 +200,9 @@ module.exports = async (req, res) => {
   });
 
   const messages = [];
-  for (const t of dueTasks) {
-    const u = taskWho(t, wg, todayIso);   // Abwesende geben ab
-    const name = u ? u.name : '?';
-    const d = taskDueIn(t, wg, todayIso);
-    const status = d < 0 ? `ist seit ${-d} Tag${-d === 1 ? '' : 'en'} überfällig` : 'ist heute fällig';
-    messages.push({
-      title: 'Putzplan',
-      body: `${t.em || '🧽'} ${t.name} ${status} — ${name} ist dran`,
-      tag: `putz-${t.id}`,
-    });
-  }
+  // Eine Sammel-Push statt je Aufgabe eine (wg-v66) — Namen berücksichtigen Abwesenheiten (_wg.putzDigest)
+  const putzMsg = putzDigest(wg, todayIso);
+  if (putzMsg) messages.push(putzMsg);
   for (const s of soonAbos) {
     const until = daysUntilCharge(s, todayMid);
     const when = until === 0 ? 'heute' : 'morgen';

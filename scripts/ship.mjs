@@ -25,7 +25,7 @@ const server = spawn('python', ['-m', 'http.server', '8099'], { stdio: 'ignore' 
 let gateOk = false;
 try {
   await sleep(1600);
-  for (const t of ['test/split.mjs', 'test/persist.mjs', 'test/paybtn.mjs', 'test/archive.mjs', 'test/privat.mjs', 'test/grow.mjs', 'test/cron_grow.mjs', 'test/cron_duel.mjs', 'test/privquota.mjs', 'test/sync.mjs', 'test/logins.mjs', 'test/selfhost.mjs', 'test/startflow.mjs', 'test/backup_api.mjs', 'test/rotate.mjs', 'test/errlog.mjs', 'test/notify_api.mjs', 'test/bkwatch.mjs', 'test/update.mjs', 'test/putz.mjs', 'test/alltag.mjs', 'test/cron_alltag.mjs', 'test/extra.mjs', 'test/csp_hash.mjs']) {
+  for (const t of ['test/split.mjs', 'test/persist.mjs', 'test/paybtn.mjs', 'test/archive.mjs', 'test/privat.mjs', 'test/grow.mjs', 'test/cron_grow.mjs', 'test/cron_duel.mjs', 'test/privquota.mjs', 'test/sync.mjs', 'test/logins.mjs', 'test/selfhost.mjs', 'test/startflow.mjs', 'test/backup_api.mjs', 'test/rotate.mjs', 'test/errlog.mjs', 'test/notify_api.mjs', 'test/bkwatch.mjs', 'test/update.mjs', 'test/putz.mjs', 'test/alltag.mjs', 'test/cron_alltag.mjs', 'test/extra.mjs', 'test/ux.mjs', 'test/csp_hash.mjs']) {
     console.log('   • ' + t);
     sh(`node ${t}`);
   }
@@ -56,7 +56,8 @@ console.log('▶ 4/6 push …');
 sh('git push origin main');
 
 // 5) deploy
-console.log('▶ 5/6 firebase deploy …');
+console.log('▶ 5/6 build + firebase deploy …');
+sh('node scripts/build.mjs');   // dist/ mit vorab übersetztem App-Code (ohne Babel) — nur das geht raus
 sh(`firebase deploy --only ${rules ? 'database,hosting' : 'hosting'}`);
 
 // 6) Live-Smoke: neue SW-Version muss live sein
@@ -71,3 +72,8 @@ const root = await fetch('https://wgapp-65484.web.app/');
 const cc = root.headers.get('cache-control') || '', csp = root.headers.get('content-security-policy') || '';
 if (/no-cache/.test(cc) && csp) console.log('✓ Header: / no-cache + CSP');
 else { console.error(`✗ Header fehlen: cache-control="${cc}", CSP ${csp ? 'da' : 'FEHLT'} (firebase.json prüfen)`); process.exit(1); }
+// Vorab-Kompilat (seit wg-v66): ohne Build ginge der Quelltext raus und jedes Handy übersetzte wieder selbst
+const rootHtml = await root.text();
+const appFile = (rootHtml.match(/src="(app\.[0-9a-f]{10}\.js)"/) || [])[1];
+if (appFile && !rootHtml.includes('text/jsx-src') && (await fetch('https://wgapp-65484.web.app/' + appFile)).ok) console.log(`✓ Vorab übersetzt: ${appFile}`);
+else { console.error('✗ Live-Seite ohne Vorab-Kompilat (Build nicht ausgeliefert?)'); process.exit(1); }
