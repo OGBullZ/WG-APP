@@ -854,7 +854,7 @@ const PUSH_API = 'https://wg-app-bull-z.vercel.app';
 // nächsten Start selbst neu (healPush) — der private Teil liegt nur in der Vercel-Env.
 const VAPID_PUBLIC_KEY = 'BFlztnmVhus9TTvtVJzqe7gN8PCYyD3qb6DnZblhE5-nes3JcaB_wkxMm85VClKmVoeHLJ-SFb0wti4A-tjL9RA';
 /* Push-Typ-/Ruhezeit-Defaults — global, damit sowohl Einstellungen als auch das Start-Push-Fenster sie nutzen. */
-const PUSH_PREFS_DEF = { exp:true, shop:true, putz:true, settle:true, remind:true, board:true, game:false, quiet:false, qs:22, qe:8 };
+const PUSH_PREFS_DEF = { exp:true, shop:true, putz:true, settle:true, remind:true, board:true, game:true, quiet:false, qs:22, qe:8 };
 /* VAPID-Public-Key (URL-safe base64) → Uint8Array für applicationServerKey */
 const urlBase64ToUint8Array = (base64String) => {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -1034,7 +1034,7 @@ const canonSer = v => JSON.stringify(v, (key, val) =>
 ════════════════════════════ */
 const Ctx = createContext(null);
 
-const MOD_DEF = { heute:false, haus:true, grow:true, putz:true, fin:true, abos:false, stats:true, game:false };   // game = 👑 Duell + 🔥 Serie (kein Tab), Standard aus — nur wer will, spielt mit
+const MOD_DEF = { heute:false, haus:true, grow:true, putz:true, fin:true, abos:false, stats:true, game:true };   // game = 👑 Duell + 🔥 Serie (kein Tab), Standard an (torbe 17.09.) — abschaltbar unter Mehr
 
 /* Einmalige Migration: `wg_modules` speichert bei jedem Toggle den VOLLEN Snapshot,
    auf Bestandsgeräten steht dort also fin:false und würde den neuen Default schlagen.
@@ -4106,7 +4106,7 @@ const choreStreak = (log, tasks, userId) => {
 /* Haken setzen — von Putzplan UND Haushalt-Karte genutzt (eine Stelle für Gutschrift, Rotation, Undo, Push) */
 function useChoreDone() {
   const { D, setFn, me, undo, notifyOthers, mods } = useD();
-  const game = mods.game === true;
+  const game = mods.game !== false;
   return (t, btnEl) => {
     const users = D.users || [];
     const by = users.some(u=>u.id===me) ? me : t.assignee;   // kein Gerät gewählt → wie früher der Eingeteilte
@@ -4154,7 +4154,7 @@ function ChoreQuick({ goPutz }) {
   const mine = choreMine(D.pt, me);
   if (!mine.length) return null;
   const users = D.users || [], meU = users.find(u=>u.id===me);
-  const myStreak = mods.game === true ? choreStreak(D.pl, D.pt, me) : 0;
+  const myStreak = mods.game !== false ? choreStreak(D.pl, D.pt, me) : 0;
   return (
     <div className="rise" data-testid="chore-quick" style={{animationDelay:'20ms'}}>
       <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
@@ -4329,7 +4329,7 @@ function Putzplan() {
                 </div>
               )
           }
-          {mods.game===true && <ChoreDuel log={log} tasks={tasks} users={users} me={me}/>}
+          {mods.game!==false && <ChoreDuel log={log} tasks={tasks} users={users} me={me}/>}
           <div className="hero-lbl" style={{marginBottom:8}}>Einsatz · letzte 30 Tage</div>
           <div className="fair-bar">
             {totN>0 && counts.map(c=>(<div key={c.id} className="fair-seg" style={{width:`${c.n/totN*100}%`,background:c.color}}/>))}
@@ -4338,7 +4338,7 @@ function Putzplan() {
             {counts.map(c=>(<span key={c.id} style={{fontSize:13,fontWeight:700,color:c.color}}>{c.name} <span className="num">{c.n}</span> P.</span>))}
           </div>
           <div style={{fontSize:11.5,color:'var(--label3)',marginTop:10,lineHeight:1.45,fontWeight:500}}>
-            Wer den Haken setzt, bekommt die Aufgabe gutgeschrieben. Dran ist, wer sie seltener gemacht hat. Kurz zählt 1, mittel 2, groß 3 Punkte.{mods.game===true && ' Wer die Woche gewinnt, trägt 👑. 🔥 zählt Aufgaben, die du nicht überfällig werden lässt.'}
+            Wer den Haken setzt, bekommt die Aufgabe gutgeschrieben. Dran ist, wer sie seltener gemacht hat. Kurz zählt 1, mittel 2, groß 3 Punkte.{mods.game!==false && ' Wer die Woche gewinnt, trägt 👑. 🔥 zählt Aufgaben, die du nicht überfällig werden lässt.'}
           </div>
         </div>
 
@@ -5256,10 +5256,10 @@ function Einstellungen() {
                 <span className="cell-title">Wochen-Duell &amp; Serie</span>
                 <span className="cell-sub">👑 Wochensieger, 🔥 pünktlich in Folge, Montags-Ergebnis per Push</span>
               </div>
-              <button data-testid="game-toggle" aria-pressed={mods.game===true}
-                onClick={()=>{ const on = mods.game!==true; setMods({...mods, game:on}); setPref({game:on}); }}
-                style={{background:mods.game===true?'var(--amber)':'var(--bg3)',color:mods.game===true?'var(--ink)':'var(--label)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800}}>
-                {mods.game===true?'An':'Aus'}
+              <button data-testid="game-toggle" aria-pressed={mods.game!==false}
+                onClick={()=>{ const on = mods.game===false; setMods({...mods, game:on}); setPref({game:on}); }}
+                style={{background:mods.game!==false?'var(--amber)':'var(--bg3)',color:mods.game!==false?'var(--ink)':'var(--label)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800}}>
+                {mods.game!==false?'An':'Aus'}
               </button>
             </div>
           </div>

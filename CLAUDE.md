@@ -52,13 +52,13 @@ WG-Splitter für 2 Personen (Torben + Tom). Single-File-PWA, Live-Sync zwischen 
   - **Nach dem Abhaken:** 5 Sekunden lang Rückgängig (stellt `lastDone`/`assignee` wieder her und entfernt den Eintrag).
   - **Push:** nennt den Stand („Tom, du bist dran! (Torben 6× · Tom 2×)").
   - **Tägliche Erinnerung:** nur noch für eigene Aufgaben.
-- **Spielelemente (seit wg-v60, Schalter unter Mehr → „Spielelemente“, je Gerät, **Standard AUS** (torbes Wunsch, wg-v61): `mods.game === true`):**
+- **Spielelemente (seit wg-v60, Schalter unter Mehr → „Spielelemente“, je Gerät, **Standard AN** (wg-v61 kurz aus, seit wg-v65 wieder an — torbe 17.09.): `mods.game !== false`):**
   - **👑 Wochen-Duell:**
     - Punkte: Einsatz-Punkte Mo–So (`choreWeek`).
     - Krone: für den Sieger der Vorwoche (`choreCrown`), bei Gleichstand keine.
     - Anzeige: Block im Putzplan-Hero (`ChoreDuel`).
     - Push: **Montags** schickt `api/cron.js` das Ergebnis (`weekDuel`, spiegelt `choreWeek`, beide zusammen ändern) mit Push-Typ `game`.
-    - Die Push-Einstellung `game` (`PUSH_PREFS_DEF`, DB-Regel) zieht mit dem Schalter mit. Der Cron schickt **nur an `game === true`**: fehlt das Feld (alte Registrierung) oder ist es `false`, kommt keine Duell-Push. Die generische Typ-Prüfung `subWants` (fehlt → an) passt dafür nicht, deshalb filtert `cron.js` selbst.
+    - Die Push-Einstellung `game` (`PUSH_PREFS_DEF`, DB-Regel) zieht mit dem Schalter mit. Der Cron nutzt `sendToSubs(…, { type: 'game' })`: Fehlt das Feld (alte Registrierung), gilt es als an, genau wie der Standard in der App. Nur `game: false` bekommt keine Duell-Push.
   - **🔥 Pünktlich-Serie** (`choreStreak`):
     - Jeder `pl`-Eintrag bekommt `late` (Tage über Fälligkeit, nur für den Eingeteilten).
     - Wer eine fremde überfällige Aufgabe rettet, schreibt `miss: <Eingeteilter>` dazu.

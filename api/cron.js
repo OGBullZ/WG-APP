@@ -317,8 +317,8 @@ module.exports = async (req, res) => {
   const growMsgs = growCycleMessages(wg, todayMid);
   messages.push(...growMsgs);
 
-  // Montag: Ergebnis des Wochen-Duells — nur an Geräte, die „Spielelemente" ausdrücklich eingeschaltet haben
-  // (game === true; Standard ist aus, alte Registrierungen ohne das Feld bekommen nichts)
+  // Montag: Ergebnis des Wochen-Duells — an alle Geräte außer denen, die „Spielelemente" abgeschaltet haben
+  // (Typ `game`: fehlt das Feld → an, wie der Standard in der App)
   const duel = todayMid.getDay() === 1 ? weekDuel(wg, todayMid) : null;
 
   let sent = 0;
@@ -331,7 +331,7 @@ module.exports = async (req, res) => {
   }
   if (duel) {
     const subs = await loadSubs(code);
-    sent += (await sendToSubs(subs.filter((s) => s && s.game === true), duel)).sent;
+    sent += (await sendToSubs(subs, duel, { type: 'game' })).sent;
   }
 
   res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, budWarns, grow: growMsgs.length, duel: duel ? 1 : 0, repairs: repairMsgs.length, year: yearMsg ? 1 : 0, meter: meterMsg ? 1 : 0, sent, backup, pruned });
