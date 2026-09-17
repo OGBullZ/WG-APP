@@ -51,7 +51,8 @@ function putzDigest(wg, todayIso) {
   if (!due.length) return null;
   const parts = due.slice(0, 5).map(({ t, d }) => {
     const who = taskWho(t, wg, todayIso);
-    return `${t.em || '🧽'} ${t.name}${who ? ` (${who.name}` : ' ('}${d < 0 ? `, ${-d} T. überfällig` : ''})`;
+    const info = [who && who.name, d < 0 && `${-d} T. überfällig`].filter(Boolean).join(', ');
+    return `${t.em || '🧽'} ${t.name}${info ? ` (${info})` : ''}`;
   });
   const more = due.length > 5 ? ` · +${due.length - 5} weitere` : '';
   return { title: `Putzplan · ${due.length} fällig`, body: parts.join(' · ') + more, tag: `putz-${todayIso}` };

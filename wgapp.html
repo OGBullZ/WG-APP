@@ -1039,6 +1039,8 @@ const MOD_DEF = { heute:true, haus:true, grow:true, putz:true, fin:true, abos:fa
    auf Bestandsgeräten steht dort also fin:false und würde den neuen Default schlagen.
    Der private Finanzbereich wäre damit unsichtbar → genau einmal erzwingen. */
 const migrateMods = m => {
+  // wg-v66: „Heute“ wurde Standard — alte Schnappschüsse (jeder Schalter speichert ALLE Module) hatten heute:false
+  if (!ls('wg_heute_v1', null)) { m = { ...m, heute:true }; ss('wg_heute_v1', 1); ss('wg_modules', m); }
   if (ls('wg_priv_tab_v1', null)) return m;
   const out = { ...m, fin:true };
   ss('wg_priv_tab_v1', 1);
@@ -2334,8 +2336,9 @@ function WhoAmI() {
    Inhalt bleibt gerendert (nur versteckt), damit Zustände darin (z. B. Push-Abfrage) nicht bei jedem Aufklappen neu starten. */
 function Fold({ id, title, sub, alert, children }) {
   const [open,setOpen] = useState(()=>!!ls('wg_fold_'+id, false));
-  const shown = open || !!alert;
-  const toggle = () => { const v = !shown; setOpen(v); ss('wg_fold_'+id, v); };
+  const [dismissed,setDismissed] = useState(false);   // Warnung gesehen und bewusst zugeklappt
+  const shown = open || (!!alert && !dismissed);
+  const toggle = () => { const v = !shown; if (!v && alert) setDismissed(true); if (v) setDismissed(false); setOpen(v); ss('wg_fold_'+id, v); };
   return (
     <div className="rise" data-fold={id}>
       <button className="group fold-hdr" aria-expanded={shown} onClick={toggle}
@@ -2352,18 +2355,34 @@ function Fold({ id, title, sub, alert, children }) {
 }
 
 /* Einkaufsliste nach Laden-Bereichen — Reihenfolge wie ein üblicher Rundgang. Erkennung über Stichwörter im Namen. */
-const SHOP_AREAS = [
-  ['obst',  '🍎', 'Obst & Gemüse',  /apfel|äpfel|banane|birne|tomate|gurke|salat|zwiebel|kartoffel|karotte|möhre|paprika|zitrone|obst|gemüse|avocado|beere|traube|pilz|knoblauch|kräuter|orange/i],
+// Ganzes Wort: \b kennt keine Umlaute („Weißwein“ hatte sonst eine Grenze nach „Wei“)
+const wordRe = words => new RegExp('(?:^|[^a-zäöüß])(?:' + words.join('|') + ')(?![a-zäöüß])', 'i');
+const SHOP_AREAS_RAW = [
+  ['obst',  '🍎', 'Obst & Gemüse',  /apfel|äpfel|banane|birne|tomate|gurke|salat|zwiebel|kartoffel|karotte|möhre|paprika|zitrone|obst|gemüse|avocado|beere|traube|pilz|knoblauch|kräuter|orange|spinat|zucchini|brokkoli|lauch|aubergine|mais/i],
   ['brot',  '🥖', 'Brot & Backwaren', /brot|brötchen|toast|baguette|croissant|kuchen|brezel/i],
-  ['kuehl', '🥛', 'Kühlregal',       /milch|käse|joghurt|butter|sahne|quark|ei(er)?\b|wurst|schinken|aufschnitt|hähnchen|fleisch|hack|tofu|margarine|frischkäse|mozzarella/i],
-  ['tk',    '❄️', 'Tiefkühl',         /tk\b|tiefkühl|pizza|eis\b|pommes|spinat tk/i],
-  ['vorrat','🍝', 'Vorrat',           /nudel|pasta|reis|mehl|zucker|salz|öl\b|essig|müsli|haferflocken|konserve|dose|soße|sauce|ketchup|senf|gewürz|kaffee|tee\b|honig|marmelade|nutella|brühe|linsen|bohnen|chips|schokolade|kekse/i],
-  ['drinks','🥤', 'Getränke',         /wasser|saft|cola|bier|wein|limo|sprudel|mate|energy|sirup/i],
+  ['kuehl', '🥛', 'Kühlregal',       /milch|käse|joghurt|butter|sahne|quark|wurst|schinken|aufschnitt|hähnchen|fleisch|hack|tofu|margarine|mozzarella/i],
+  ['tk',    '❄️', 'Tiefkühl',         /tiefkühl|pizza|pommes|fischstäbchen/i],
+  ['vorrat','🍝', 'Vorrat',           /nudel|pasta|reis(?!e)|zucker|essig|müsli|haferflocken|konserve|dose|soße|sauce|ketchup|senf|gewürz|kaffee|honig|marmelade|nutella|brühe|linsen|bohnen|chips|schokolade|kekse|tomatenmark|passierte|cracker|popcorn/i],
+  ['drinks','🥤', 'Getränke',         /wasser|saft|cola|bier|wein|limo|sprudel|mate\b|energy|sirup|eistee/i],
   ['droge', '🧴', 'Drogerie & Haushalt', /klopapier|toilettenpapier|küchenrolle|müllbeutel|spülmittel|waschmittel|spültabs|tabs|seife|shampoo|duschgel|zahnpasta|deo|schwamm|putzmittel|reiniger|weichspüler|taschentücher|batterie|glühbirne|folie/i],
 ];
+// Prüf-Reihenfolge (spezifisch vor allgemein): Getränke („Apfelsaft“), Vorrat („Butterkekse“, „Reis“, „Tomatenmark“),
+// Drogerie, Tiefkühl („TK Spinat“), dann Obst, Brot, Kühlregal. Kurze Stichwörter nur als ganzes Wort.
+const SHOP_AREAS = SHOP_AREAS_RAW;
+const SHOP_ORDER = ['drinks','vorrat','droge','tk','obst','brot','kuehl'];
+const SHOP_WORDS = {
+  kuehl: wordRe(['ei','eier']), tk: wordRe(['tk','eis','eiswürfel']), vorrat: wordRe(['reis','tee','öl','mehl','salz']),
+};
 const SHOP_OTHER = ['sonst', '📦', 'Sonstiges'];
-const shopArea = name => SHOP_AREAS.find(a=>a[3].test(String(name||''))) || SHOP_OTHER;
-const shopAreaIdx = name => { const i = SHOP_AREAS.findIndex(a=>a[3].test(String(name||''))); return i < 0 ? SHOP_AREAS.length : i; };
+// Bereich zu einem Namen: in Prüf-Reihenfolge, Stichwort-Regex ODER Ganzwort-Liste
+const shopAreaOf = name => {
+  const n = String(name||'');
+  for (const k of SHOP_ORDER) { const a = SHOP_AREAS.find(x=>x[0]===k); if (a[3].test(n) || (SHOP_WORDS[k] && SHOP_WORDS[k].test(n))) return a; }
+  return SHOP_OTHER;
+};
+const shopArea = name => shopAreaOf(name);
+// Sortierung nach Laden-Rundgang (Reihenfolge in SHOP_AREAS), Sonstiges ans Ende
+const shopAreaIdx = name => { const a = shopAreaOf(name); const i = SHOP_AREAS.indexOf(a); return i < 0 ? SHOP_AREAS.length : i; };
 
 /* ══════════════════════════
    EXTRA (seit wg-v64): Preis-Gedächtnis, Gesamtbudget, Einkaufs-Reihenfolge, Schnell-Eingabe,
@@ -2631,7 +2650,7 @@ const hsNetOf = (D, id) => {
 
 /* ── Heute-Seite (optionaler Tab, Mehr → Module): alles, was heute ansteht, an einem Ort ── */
 function Heute({ goTab }) {
-  const { D, me, status } = useD();
+  const { D, me, status, mods } = useD();
   const users = D.users || [], today = todayISO(), tomorrow = shiftISO(today, 1);
   const h = new Date().getHours();
   const hello = h < 11 ? 'Guten Morgen' : h < 18 ? 'Hallo' : 'Guten Abend';
@@ -2665,7 +2684,7 @@ function Heute({ goTab }) {
         </div>
         <WhoAmI/>
         <ChoreQuick goPutz={()=>goTab('putz')}/>
-        {me && !mine.length && <div className="rise" data-testid="today-free" style={{fontSize:14,fontWeight:700,color:'var(--green)',padding:'0 4px'}}>✨ Heute ist nichts im Putzplan für dich fällig</div>}
+        {me && mods.putz!==false && !mine.length && <div className="rise" data-testid="today-free" style={{fontSize:14,fontWeight:700,color:'var(--green)',padding:'0 4px'}}>✨ Heute ist nichts im Putzplan für dich fällig</div>}
         <AwayCard compact/>
         {rows.length>0 && <div className="group rise" data-testid="today-rows">{rows}</div>}
         <QuickExpense/>
@@ -2773,13 +2792,13 @@ function StockCard() {
     const outs = [...stockOuts(it).filter(d=>d!==iso), iso].slice(-6).join(',');
     const { preset, learned, ...base } = it;
     const slIt = { id:uid(), name:it.name, addedBy:me||null, date:iso, done:false };
-    setFn('vr', cur=>{ const l=cur||[]; return l.some(x=>x.id===it.id) ? l.map(x=>x.id===it.id?{...x,outs}:x) : [...l,{...base,outs}]; });
+    if (!learned) setFn('vr', cur=>{ const l=cur||[]; return l.some(x=>x.id===it.id) ? l.map(x=>x.id===it.id?{...x,outs}:x) : [...l,{...base,outs}]; });
     setFn('sl', cur=>[slIt, ...(cur||[])]);
     // Gelernte Käufe sind kein Vorrat, der ausgeht — nur „braucht“
     notifyOthers(learned ? `🛒 ${meName} braucht ${it.name}` : `🛒 ${it.em} ${it.name} ist fast leer`, learned ? '' : `${meName} hat es auf die Einkaufsliste gesetzt`, 'wg-shop', 'shop');
     undo(`${it.em} ${it.name} auf die Liste`, ()=>{
       setFn('sl', cur=>cur.filter(x=>x.id!==slIt.id));
-      setFn('vr', cur=>preset ? cur.filter(x=>x.id!==it.id) : cur.map(x=>x.id===it.id?{...x,outs:it.outs||''}:x));
+      if (!learned) setFn('vr', cur=>preset ? cur.filter(x=>x.id!==it.id) : cur.map(x=>x.id===it.id?{...x,outs:it.outs||''}:x));
     });
   };
   // Ausblenden statt löschen: Vorlagen kämen sonst sofort wieder

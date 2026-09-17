@@ -199,8 +199,29 @@ const L = await open(SEED, { me: null, tab: 'set' });
 check('J6 ohne Person: „Personen“ offen', await L.page.locator('.fold-hdr[aria-expanded="true"]', { hasText: 'Personen' }).count() === 1);
 await L.ctx.close();
 
+// ── L: Funde der Fehlersuche 17.09. ──
+const Q = await open(SEED, { tab: 'haus', extra: { wg_modules: { heute: false, haus: true, putz: true, game: true } } });
+check('L1 alter Modul-Schnappschuss (heute:false aus v64/65) → Heute kommt einmalig zurück', await Q.page.locator('.tabbar .tabitem', { hasText: 'Heute' }).count() === 1 && await Q.page.evaluate(() => JSON.parse(localStorage.getItem('wg_modules')).heute) === true);
+const areas = await Q.page.evaluate(() => ['Reis','Eis','Eier','Tomatenmark','Butterkekse','Weißwein','Butter','Apfelsaft','TK Spinat','Spinat','Eistee','Reiseführer','Äpfel'].map(n => shopArea(n)[0]).join(','));
+check('L2 Laden-Bereiche: Reis/Butterkekse/Tomatenmark → Vorrat, Weißwein/Apfelsaft/Eistee → Getränke, Eis/TK → Tiefkühl', areas === 'vorrat,tk,kuehl,vorrat,vorrat,drinks,kuehl,drinks,tk,obst,drinks,sonst,obst', areas);
+await Q.page.getByRole('button', { name: /Einkaufsliste/ }).first().click(); await Q.page.waitForTimeout(400);
+await Q.page.getByRole('button', { name: 'Hafermilch ist fast leer' }).click(); await Q.page.waitForTimeout(400);
+check('L3 gelernte Kachel bleibt gelernt (kein Vorrat-Eintrag, weiter „+ auf die Liste“)', !((await Q.data()).vr || []).some(v => v.name === 'Hafermilch'));
+await Q.tabTo('Mehr');
+await Q.ctx.close();
+const R = await open({ ...SEED, err: map([{ id: 'e1', msg: 'Boom', t: Date.now(), dev: 'x' }]) }, { tab: 'set' });
+const dataFold = R.page.locator('.fold-hdr', { hasText: 'Daten & Backup' });
+await dataFold.click(); await R.page.waitForTimeout(300);
+check('L4 Gruppe mit Warnpunkt lässt sich zuklappen', await dataFold.getAttribute('aria-expanded') === 'false');
+await dataFold.click(); await R.page.waitForTimeout(300);
+check('L5 … und wieder aufklappen', await dataFold.getAttribute('aria-expanded') === 'true');
+await R.ctx.close();
+const S2 = await open(SEED, { extra: { wg_modules: { heute: true, putz: false } } });
+check('L6 Putzplan aus → Heute meldet nicht „nichts fällig“', await S2.page.locator('[data-testid="today-free"]').count() === 0);
+await S2.ctx.close();
+
 // ── K: „Heute“ ausgeschaltet → alles wieder im Haushalt ──
-const N = await open(SEED, { tab: 'haus', extra: { wg_modules: { heute: false } } });
+const N = await open(SEED, { tab: 'haus', extra: { wg_modules: { heute: false }, wg_heute_v1: 1 } });
 check('K1 ohne Heute: Karten im Haushalt', await N.page.locator('.tabbar .tabitem', { hasText: 'Heute' }).count() === 0 &&
   await N.page.locator('[data-testid="board-card"]').count() === 1 && await N.page.locator('[data-testid="chore-quick"]').count() === 1 && await N.page.locator('[data-testid="wash-card"]').count() === 1);
 await N.ctx.close();

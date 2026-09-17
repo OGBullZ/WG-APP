@@ -175,6 +175,14 @@ Anlass war eine Messung mit realistischen Daten: 16,5 s Erststart nach Updates, 
   - „Wer bist du?“ hat Personen-Knöpfe, deshalb Formular-Knöpfe per `.sheet .pick-btn` suchen.
   - `visual.mjs` sucht „Du schuldest“ nur im Fenster.
   - `paypal.mjs`/`torben.mjs` (nicht im Gate) erwarteten noch das vierstufige Formular und sind nachgezogen.
+- **Fehlersuche 17.09. (wg-v67), jeweils mit Test:**
+  - **Alte Modul-Stände:** Geräte, die unter v64/65 irgendeinen Schalter umgelegt hatten, speicherten `heute:false`, weil das damals Standard war. Bei ihnen fehlte die neue Startseite, deshalb gibt es jetzt eine einmalige Umstellung (`wg_heute_v1`).
+  - **Laden-Bereiche:** `` kennt keine Umlaute („Weißwein“ → Kühlregal), deshalb gilt eine feste Prüf-Reihenfolge, spezifisch vor allgemein. Kurze Wörter werden nur als ganzes Wort erkannt (`wordRe`). Vorher landeten Reis bei Tiefkühl und Butterkekse im Kühlregal.
+  - **Gelernte Kacheln** wurden beim Antippen zu Vorrat-Einträgen und hießen dann „fast leer?“.
+  - **Sammel-Push** ohne zugeordnete Person zeigte „Bad (, 2 T. …)“.
+  - **Gruppe mit Warnpunkt** ließ sich nicht zuklappen.
+  - **„Heute“** meldete „nichts fällig“ auch bei ausgeschaltetem Putzplan.
+  - **Update-Pfad v65 → v66** mit echtem Service Worker durchgespielt (`upgrade_dist.mjs`), ohne Befund.
 - **Funde beim Umbau:**
   - Ohne Person gab es keinen Ausgaben-Knopf mehr.
   - Das Kürzel „Maschine läuft“ öffnete den Haushalt statt Heute.
@@ -210,6 +218,7 @@ node test/bkwatch.mjs   # Backup-Wächter: alte Sicherung → Tab-Punkt + Warnun
 node test/update.mjs    # „Neue Version": Hinweis, kein Neuladen mit offenem Formular, sonst Neuladen (eigener Port 8098)
 node test/putz.mjs     # Putz-Fairness: Gutschrift an den, der hakt; dran ist, wer seltener; Haushalt-Karte, Tab-Punkt, Vorlagen, Rückgängig
 node test/alltag.mjs      # Alltag: Vorrat, Kassenzettel, Waschtimer, Nachrichten, Reparaturen, Zahlung bestätigen, Müllabfuhr, Abwesend, Jahr, App-Kürzel
+node test/upgrade_dist.mjs # Update-Pfad wie auf den Handys: alte Auslieferung (Quelltext+Babel, alter SW) → dist; Update erkannt, Daten bleiben, Babel aus dem Cache, offline
 node test/ux.mjs          # Alltagstauglich: Build (vorab übersetzt, ohne Babel, Erststart < 6 s bei 4× CPU), Heute-Start, eine Eingabezeile, Abrechnen nur Gläubiger, Laden-Bereiche, Wer-bist-du, Morgen-Knopf, Timer-Dauer, Push je Art, Mehr-Gruppen, Lesbarkeit
 node test/extra.mjs       # Extra: Schnell-Eingabe, Preis-Gedächtnis, Gesamtbudget, Einkaufs-Reihenfolge, Heute, Zähler, Kalender-Abo, Hell/Dunkel + Schrift
 node test/cron_alltag.mjs # Server-Hälfte (api/_wg.js): Abholrhythmus, Vorabend-Fälligkeit, Abwesenheit, Abend-Push, Sonntags-Überblick, Reparaturen, Jahr
