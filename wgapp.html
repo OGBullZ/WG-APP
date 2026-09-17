@@ -284,6 +284,16 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 button.cell { color:var(--label); }
 .hit::after { content:''; position:absolute; inset:-12px -4px; }
 .section-hdr .hit::after { inset:-13px -6px; }   /* spezifischer als „.section-hdr button::after" (-8px → nur 31px) */
+/* Übergabe-Seite (Auszug): eigenes helles Blatt; beim Drucken wird nur dieses ausgegeben */
+.print-sheet { position:fixed; inset:0; z-index:600; overflow:auto; background:#fff; color:#111; padding:24px; font-size:14px; line-height:1.5; user-select:text; }
+.print-sheet h2 { font-size:20px; margin-bottom:4px; } .print-sheet h3 { font-size:15px; margin:18px 0 6px; }
+.print-sheet table { border-collapse:collapse; width:100%; } .print-sheet td { border-bottom:1px solid #ddd; padding:4px 6px; }
+.print-sheet ul { padding-left:18px; } .print-sheet p { margin:4px 0; }
+@media print {
+  body > *:not(.print-sheet) { display:none !important; }
+  body::before, body::after, .print-sheet .no-print { display:none !important; }
+  .print-sheet { position:static; padding:0; overflow:visible; }
+}
 .seg-btn, .chip-scroll > button, .stepper button, .hit-v { position:relative; }
 .seg-btn::after, .chip-scroll > button::after, .hit-v::after { content:''; position:absolute; inset:-6px 0; }
 .stepper button::after { content:''; position:absolute; inset:-4px; }
@@ -887,6 +897,7 @@ const INIT = {
   ls:     [],
   err:    [],   // Fehlerprotokoll der Geräte (max. 30, s. Früh-Skript im <head> + drainErr)
   vr: [], mk: [], aw: [], wt: [], pr: [], qm: [], rp: [],
+  sg: [], ep: [], kf: [], inv: [], rg: [], ci: [],   // wg-v68: Sparziele, Essensplan, Kühlschrank, Inventar, WG-Regeln, Check-in
   zs: [],   // Zählerstände (wg-v64): Ablesungen + Tarif je Zähler (cfg-<kind>)   // Alltag (wg-v62): Vorrat, Müllabfuhr, Abwesend, Waschtimer, Zahlung bestätigen, Nachrichten, Reparaturen
 };
 const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
@@ -899,7 +910,7 @@ const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
    slh = Einkaufslisten-Historie (id=Slug, n=Kaufzähler), gh = Ernte-Log, bud = Kategorie-Budgets (id=Cat-Key),
    gz = Grow-Zyklen {start, phase, pAt, wiv, lastW, lastWBy, wn, end} — offen ist der ohne `end`.
    ls = Login-Freigaben {svc, by, ts, exp, view, s, iv, ct, it} — nur Chiffretext, s. LOGIN_*. */
-const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz','bo','ls','err','vr','mk','aw','wt','pr','qm','rp','zs'];
+const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz','bo','ls','err','vr','mk','aw','wt','pr','qm','rp','zs','sg','ep','kf','inv','rg','ci'];
 const isListKey = k => LIST_KEYS.includes(k);
 /* WG-Board (Key `bo`): kurze Ankündigungen zwischen den zwei Bewohnern — reine Info + Sofort-Push,
    keine Kostenrelevanz. Einträge mit Datum, laufen nach dem Tag automatisch aus der Anzeige. */
@@ -2238,6 +2249,490 @@ function LoginShare() {
 }
 
 /* ══════════════════════════
+   PLUS (seit wg-v68): Sparziel, Nebenkosten, Essensplan, Kühlschrank, Inventar, Auszug, WG-Regeln, Check-in, Sprach-Kurzbefehl
+   Neue Listen-Keys: sg, ep, kf, inv, rg, ci — Items nur mit einfachen Feldern (DB-Regel). Beträge je Person als Feld `c_<userId>`.
+══════════════════════════ */
+const otherOf = (users, me) => (users||[]).find(u=>u.id!==me);
+const hsItem = (o) => ({ id:uid(), date:todayISO(), settled:false, ...o });   // neuer Haushalt-Posten mit Standardfeldern
+
+/* ── Sparziel (Key `sg`): {name, target, holder, c_<uid>, bought} — Einzahlungen gehen an den „Verwalter".
+   Beim Kauf: Ausgabe (Verwalter zahlt, 50/50) + je Einzahlung des anderen ein Posten „an Verwalter gezahlt".
+   So rechnet die bestehende Bilanz alles richtig, ohne neues Rechenmodell. ── */
+function SavingsCard() {
+  const { D, setFn, me, notifyOthers, undo } = useD();
+  const [add,setAdd] = useState(null);   // {name,target}
+  const [pay,setPay] = useState(null);   // {goal, amount}
+  const [buy,setBuy] = useState(null);   // {goal, price}
+  const users = D.users || [];
+  const goals = (D.sg||[]).filter(g=>g && !g.bought);
+  if (!me) return null;
+  const sum = g => users.reduce((s,u)=>s+(Number(g['c_'+u.id])||0), 0);
+  const create = () => {
+    const t = parseNum(add.target); if (!add.name.trim() || !(t>0)) return;
+    const g = { id:uid(), name:add.name.trim().slice(0,60), target:t, holder:me, ts:Date.now() };
+    setFn('sg', cur=>[g, ...(cur||[])]);
+    notifyOthers(`🐷 Neues Sparziel: ${g.name}`, `€${fmt(t)} · ${nameOfU(users, me)} verwaltet das Geld`, 'wg-sg', 'exp');
+    setAdd(null);
+  };
+  const deposit = () => {
+    const a = parseNum(pay.amount); if (!(a>0)) return;
+    const g = pay.goal, k = 'c_'+me;
+    setFn('sg', cur=>cur.map(x=>x.id===g.id?{...x,[k]:(Number(x[k])||0)+a}:x));
+    undo(`🐷 €${fmt(a)} eingezahlt`, ()=>setFn('sg', cur=>cur.map(x=>x.id===g.id?{...x,[k]:Math.max(0,(Number(x[k])||0)-a)}:x)));
+    if (g.holder!==me) notifyOthers(`🐷 ${nameOfU(users, me)} zahlt €${fmt(a)} ein`, `${g.name} · bitte Geld annehmen`, 'wg-sg', 'exp');
+    setPay(null);
+  };
+  const bought = () => {
+    const p = parseNum(buy.price); if (!(p>0)) return;
+    const g = buy.goal, h = g.holder;
+    const items = [hsItem({ name:`🐷 ${g.name}`, price:p, paidBy:h, owedBy:null, cat:'home', sg:g.id })];
+    // Einzahlungen der anderen hat der Verwalter schon bekommen → als „gezahlt an Verwalter" verbuchen
+    users.filter(u=>u.id!==h).forEach(u=>{ const c = Number(g['c_'+u.id])||0; if (c>0) items.push(hsItem({ name:`🐷 ${g.name}: Einzahlung ${u.name}`, price:c, paidBy:u.id, owedBy:h, sg:g.id })); });
+    setFn('hs', cur=>[...items, ...(cur||[])]);
+    setFn('sg', cur=>cur.map(x=>x.id===g.id?{...x,bought:todayISO(),price:p}:x));
+    notifyOthers(`🛍️ ${g.name} gekauft`, `€${fmt(p)} · in der Abrechnung`, 'wg-sg', 'exp');
+    undo(`🛍️ ${g.name} als Ausgabe eingetragen`, ()=>{ const ids=items.map(i=>i.id); setFn('hs', cur=>cur.filter(i=>!ids.includes(i.id))); setFn('sg', cur=>cur.map(x=>x.id===g.id?{...x,bought:null,price:null}:x)); });
+    setBuy(null);
+  };
+  return (
+    <div className="rise" data-testid="savings-card">
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span>🐷 Gemeinsam sparen</span>
+        <button className="hit" onClick={()=>setAdd({ name:'', target:'' })} style={{...hdrBtn,color:'var(--mint)'}}>+ Ziel</button>
+      </div>
+      {goals.length>0 && (
+        <div className="group">
+          {goals.map(g=>{
+            const s = sum(g), pct = Math.min(100, s/g.target*100);
+            return (
+              <div key={g.id} className="cell" data-testid="savings-row" style={{flexWrap:'wrap',gap:8}}>
+                <div className="cell-content">
+                  <span className="cell-title">{g.name} · €{fmt(s)} / €{fmt(g.target)}</span>
+                  <span className="cell-sub">{users.map(u=>`${u.name} €${fmt(Number(g['c_'+u.id])||0)}`).join(' · ')} · Geld bei {nameOfU(users, g.holder)}</span>
+                </div>
+                <button className="btn btn-sec" style={{width:'auto',padding:'8px 11px',fontSize:13}} onClick={()=>setPay({ goal:g, amount:'' })}>Einzahlen</button>
+                <button className="btn btn-sec" style={{width:'auto',padding:'8px 11px',fontSize:13}} onClick={()=>setBuy({ goal:g, price:String(g.target).replace('.',',') })}>Gekauft</button>
+                <div style={{flexBasis:'100%',height:5,borderRadius:3,background:'var(--bg3)',overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'var(--mint)'}}/></div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <MiniSheet open={!!add} onClose={()=>setAdd(null)} title="Sparziel" color="var(--mint)">
+        {add && <>
+          <input className="field" autoFocus maxLength={60} placeholder="z. B. Neuer Staubsauger" aria-label="Name des Sparziels" value={add.name} onChange={e=>setAdd({...add,name:e.target.value})}/>
+          <div className="f-euro"><input className="field" inputMode="decimal" placeholder="Ziel, z. B. 150" aria-label="Zielbetrag" value={add.target} onChange={e=>setAdd({...add,target:e.target.value})}/></div>
+          <div style={{fontSize:12.5,color:'var(--label2)'}}>Du verwaltest das Geld: Einzahlungen gehen an dich, beim Kauf zahlst du.</div>
+          <button className="btn" style={{background:'var(--mint)'}} onClick={create}>Anlegen</button>
+        </>}
+      </MiniSheet>
+      <MiniSheet open={!!pay} onClose={()=>setPay(null)} title={pay?`Einzahlen · ${pay.goal.name}`:''} color="var(--mint)">
+        {pay && <>
+          <div className="f-euro"><input className="field" autoFocus inputMode="decimal" placeholder="0,00" aria-label="Einzahlung" value={pay.amount} onChange={e=>setPay({...pay,amount:e.target.value})}/></div>
+          {pay.goal.holder!==me && <div style={{fontSize:12.5,color:'var(--label2)'}}>Überweise den Betrag an {nameOfU(users, pay.goal.holder)} – hier wird er nur vermerkt.</div>}
+          <button className="btn" style={{background:'var(--mint)'}} onClick={deposit}>Vermerken</button>
+        </>}
+      </MiniSheet>
+      <MiniSheet open={!!buy} onClose={()=>setBuy(null)} title={buy?`Gekauft · ${buy.goal.name}`:''} color="var(--mint)">
+        {buy && <>
+          <div className="sheet-sublbl">Was hat es gekostet? ({nameOfU(users, buy.goal.holder)} zahlt)</div>
+          <div className="f-euro"><input className="field" autoFocus inputMode="decimal" aria-label="Kaufpreis" value={buy.price} onChange={e=>setBuy({...buy,price:e.target.value})}/></div>
+          <div style={{fontSize:12.5,color:'var(--label2)'}}>Wird 50/50 geteilt; Einzahlungen werden dabei verrechnet.</div>
+          <button className="btn" style={{background:'var(--mint)'}} onClick={bought}>Als Ausgabe eintragen</button>
+        </>}
+      </MiniSheet>
+    </div>
+  );
+}
+
+/* ── Nebenkosten-Abrechnung (Übersicht): Nachzahlung/Guthaben nach Anteil verteilen → Haushalt-Posten (nk:true) ──
+   Nachzahlung, Zahler Z: je Person ein Posten (Z zahlt, Person trägt ihren Anteil).
+   Guthaben, Empfänger E: E schuldet den anderen ihren Anteil → Posten (andere „zahlt", E trägt). */
+const NK_KINDS = [['strom','⚡ Strom'],['wasser','💧 Wasser'],['heizung','🔥 Heizung'],['nk','🏠 Nebenkosten']];
+function CostsCard() {
+  const { D, setFn, me, notifyOthers, undo } = useD();
+  const users = D.users || [];
+  const [f,setF] = useState(null);   // {kind, year, amount, credit, who, share}
+  const done = hsAll(D).filter(i=>i.nk).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  if (users.length < 2) return null;
+  const [a, b] = users;
+  const save = () => {
+    const amt = parseNum(f.amount); if (!(amt>0)) return;
+    const p = Math.min(100, Math.max(0, Number(f.share)))/100;   // Anteil der ersten Person
+    const label = `${(NK_KINDS.find(k=>k[0]===f.kind)||['',''])[1]} ${f.year}`;
+    const shares = { [a.id]: Math.round(amt*p*100)/100, [b.id]: Math.round(amt*(1-p)*100)/100 };
+    const items = [];
+    if (!f.credit) users.forEach(u=>{ if (shares[u.id]>0) items.push(hsItem({ name:`${label} – Nachzahlung (${u.name})`, price:shares[u.id], paidBy:f.who, owedBy:u.id, cat:'fix', nk:true })); });
+    else users.filter(u=>u.id!==f.who).forEach(u=>{ if (shares[u.id]>0) items.push(hsItem({ name:`${label} – Guthaben-Anteil ${u.name}`, price:shares[u.id], paidBy:u.id, owedBy:f.who, cat:'fix', nk:true })); });
+    if (!items.length) return;
+    setFn('hs', cur=>[...items, ...(cur||[])]);
+    notifyOthers(`🏠 ${label}: ${f.credit?'Guthaben':'Nachzahlung'} €${fmt(amt)}`, users.map(u=>`${u.name} €${fmt(shares[u.id])}`).join(' · '), 'wg-nk', 'exp');
+    undo(`🏠 ${label} verteilt`, ()=>{ const ids=items.map(i=>i.id); setFn('hs', cur=>cur.filter(i=>!ids.includes(i.id))); });
+    setF(null);
+  };
+  const preview = f && parseNum(f.amount)>0 ? `${a.name} €${fmt(parseNum(f.amount)*Number(f.share)/100)} · ${b.name} €${fmt(parseNum(f.amount)*(100-Number(f.share))/100)}` : '';
+  return (
+    <div className="rise" data-testid="costs-card" style={{animationDelay:'114ms'}}>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span>🧾 Nebenkosten-Abrechnung</span>
+        <button className="hit" onClick={()=>setF({ kind:'nk', year:String(new Date().getFullYear()-1), amount:'', credit:false, who:me||a.id, share:50 })} style={{...hdrBtn,color:'var(--sky)'}}>+ Abrechnung</button>
+      </div>
+      <div className="group">
+        {!done.length && <div className="cell"><div className="cell-content"><span className="cell-sub">Jahresabrechnung eintragen – Nachzahlung oder Guthaben wird nach euren Anteilen verteilt.</span></div></div>}
+        {done.slice(0,4).map(i=><div key={i.id} className="cell"><div className="cell-content"><span className="cell-title">{i.name}</span><span className="cell-sub">€{fmt(i.price)} · {fmtDate(i.date)}{i.settled?' · abgerechnet':''}</span></div></div>)}
+      </div>
+      <MiniSheet open={!!f} onClose={()=>setF(null)} title="Nebenkosten verteilen" color="var(--sky)">
+        {f && <>
+          <div style={{display:'flex',flexWrap:'wrap',gap:6}}>{NK_KINDS.map(([k,l])=><button key={k} type="button" style={chipSt(f.kind===k)} onClick={()=>setF({...f,kind:k})}>{l}</button>)}</div>
+          <input className="field" inputMode="numeric" maxLength={4} aria-label="Abrechnungsjahr" value={f.year} onChange={e=>setF({...f,year:e.target.value})}/>
+          <div style={{display:'flex',gap:6}}>
+            <button type="button" style={{...chipSt(!f.credit),flex:1}} onClick={()=>setF({...f,credit:false})}>Nachzahlung</button>
+            <button type="button" style={{...chipSt(f.credit),flex:1}} onClick={()=>setF({...f,credit:true})}>Guthaben</button>
+          </div>
+          <div className="f-euro"><input className="field" inputMode="decimal" placeholder="Betrag" aria-label="Betrag der Abrechnung" value={f.amount} onChange={e=>setF({...f,amount:e.target.value})}/></div>
+          <div className="sheet-sublbl">{f.credit ? 'Wer hat das Guthaben bekommen?' : 'Wer hat die Nachzahlung bezahlt?'}</div>
+          <div className="pick">{users.map(u=><button key={u.id} type="button" className={`pick-btn${f.who===u.id?' on':''}`} style={{background:u.color}} onClick={()=>setF({...f,who:u.id})}>{u.name}</button>)}</div>
+          <label className="sheet-sublbl" htmlFor="nk-share">Anteil {a.name}: {f.share} % · {b.name}: {100-f.share} %</label>
+          <input id="nk-share" type="range" min="0" max="100" step="5" value={f.share} onChange={e=>setF({...f,share:Number(e.target.value)})}/>
+          {preview && <div data-testid="nk-preview" style={{fontSize:13,color:'var(--label2)'}}>{preview}</div>}
+          <button className="btn" style={{background:'var(--sky)'}} onClick={save}>Verteilen</button>
+        </>}
+      </MiniSheet>
+    </div>
+  );
+}
+
+/* ── Essensplan (Key `ep`): {date, dish, cook, ings} — wer kocht, fair wie im Putzplan (seltener in 30 Tagen) ── */
+const cookCount = (D, users) => { const cut = shiftISO(todayISO(), -30); return users.map(u=>({ ...u, n:(D.ep||[]).filter(e=>e && e.cook===u.id && e.date>=cut && e.date<=todayISO()).length })); };
+function MealCard() {
+  const { D, setFn, me, notifyOthers, undo } = useD();
+  const users = D.users || [];
+  const [f,setF] = useState(null);
+  const today = todayISO(), end = shiftISO(today, 6);
+  const week = (D.ep||[]).filter(e=>e && e.date>=today && e.date<=end).sort((a,b)=>a.date.localeCompare(b.date));
+  const counts = cookCount(D, users);
+  const fairCook = () => counts.length>1 ? [...counts].sort((a,b)=>a.n-b.n || (a.id===me?-1:1))[0].id : me;
+  const open = () => setF({ date: [0,1,2,3,4,5,6].map(i=>shiftISO(today,i)).find(d=>!week.some(e=>e.date===d)) || today, dish:'', cook:fairCook(), ings:'' });
+  const save = () => {
+    if (!f.dish.trim()) return;
+    const it = { id:uid(), date:f.date, dish:f.dish.trim().slice(0,60), cook:f.cook, ings:f.ings.trim().slice(0,300) };
+    setFn('ep', cur=>[it, ...(cur||[]).filter(e=>e && e.date>=shiftISO(today,-60))]);
+    notifyOthers(`🍝 ${boardWhen(it.date)}: ${it.dish}`, `${nameOfU(users, it.cook)} kocht`, 'wg-ep', 'board');
+    setF(null);
+  };
+  const shop = e => {
+    const list = D.sl || [];
+    const miss = String(e.ings||'').split(',').map(s=>s.trim()).filter(Boolean).filter(n=>!list.some(i=>i && !i.done && i.name.toLowerCase()===n.toLowerCase()));
+    if (!miss.length) return;
+    const add = miss.map(n=>({ id:uid(), name:n, addedBy:me||null, date:todayISO(), done:false }));
+    setFn('sl', cur=>[...add, ...(cur||[])]);
+    notifyOthers(`🛒 Zutaten für ${e.dish}`, miss.join(', '), 'wg-shop', 'shop');
+    undo(`🛒 ${miss.length} Zutat${miss.length===1?'':'en'} auf die Liste`, ()=>{ const ids=add.map(i=>i.id); setFn('sl', cur=>cur.filter(i=>!ids.includes(i.id))); });
+  };
+  const del = e => { setFn('ep', cur=>cur.filter(x=>x.id!==e.id)); undo('Gericht entfernt', ()=>setFn('ep', cur=>[e, ...cur])); };
+  return (
+    <div className="rise" data-testid="meal-card">
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span>🍝 Essensplan · 7 Tage</span>
+        <button className="hit" onClick={open} style={{...hdrBtn,color:'var(--amber)'}}>+ Gericht</button>
+      </div>
+      <div className="group">
+        {!week.length && <div className="cell"><div className="cell-content"><span className="cell-sub">Gemeinsam kochen planen – wer kocht, wird fair vorgeschlagen, Zutaten mit einem Tipp auf die Liste.</span></div></div>}
+        {week.map(e=>{ const u = users.find(x=>x.id===e.cook); return (
+          <div key={e.id} className="cell" data-testid="meal-row">
+            <div className="cell-content">
+              <span className="cell-title">{(w=>w.charAt(0).toUpperCase()+w.slice(1))(boardWhen(e.date))} · {e.dish}</span>
+              <span className="cell-sub"><b style={{color:u?.color}}>{u?.id===me?'Du kochst':`${u?.name||'?'} kocht`}</b>{e.ings?` · ${e.ings}`:''}</span>
+            </div>
+            {e.ings && <button className="btn btn-sec" aria-label={`Zutaten für ${e.dish} auf die Liste`} style={{width:'auto',padding:'8px 11px',fontSize:13,flexShrink:0}} onClick={()=>shop(e)}>🛒 Zutaten</button>}
+            <button className="del-btn" aria-label={`${e.dish} entfernen`} onClick={()=>del(e)}>×</button>
+          </div>); })}
+        {counts.length>1 && <div className="cell" style={{minHeight:40}}><span className="cell-sub" data-testid="meal-fair">Gekocht (30 Tage): {counts.map(c=>`${c.name} ${c.n}×`).join(' · ')}</span></div>}
+      </div>
+      <MiniSheet open={!!f} onClose={()=>setF(null)} title="Gericht planen" color="var(--amber)">
+        {f && <>
+          <input type="date" className="field" aria-label="Tag" value={f.date} min={today} onChange={e=>setF({...f,date:e.target.value})}/>
+          <input className="field" autoFocus maxLength={60} placeholder="Was gibt es? z. B. Lasagne" aria-label="Gericht" value={f.dish} onChange={e=>setF({...f,dish:e.target.value})}/>
+          <div className="sheet-sublbl">Wer kocht? (Vorschlag: wer seltener gekocht hat)</div>
+          <div className="pick">{users.map(u=><button key={u.id} type="button" className={`pick-btn${f.cook===u.id?' on':''}`} style={{background:u.color}} onClick={()=>setF({...f,cook:u.id})}>{u.name}</button>)}</div>
+          <input className="field" maxLength={300} placeholder="Zutaten, mit Komma getrennt" aria-label="Zutaten" value={f.ings} onChange={e=>setF({...f,ings:e.target.value})}/>
+          <button className="btn" style={{background:'var(--amber)'}} onClick={save}>Speichern</button>
+        </>}
+      </MiniSheet>
+    </div>
+  );
+}
+
+/* ── Kühlschrank (Key `kf`): {name, exp, owner} — rot ab „morgen", Cron erinnert am Vortag (api/_wg.fridgeReminders) ── */
+function FridgeCard() {
+  const { D, setFn, me, undo } = useD();
+  const users = D.users || [];
+  const [f,setF] = useState(null);
+  const items = (D.kf||[]).filter(Boolean).sort((a,b)=>String(a.exp).localeCompare(String(b.exp)));
+  const save = () => {
+    if (!f.name.trim() || !f.exp) return;
+    setFn('kf', cur=>[{ id:uid(), name:f.name.trim().slice(0,40), exp:f.exp, owner:f.owner||null }, ...(cur||[])]);
+    setF(null);
+  };
+  const gone = it => { setFn('kf', cur=>cur.filter(x=>x.id!==it.id)); undo(`🧊 ${it.name} entfernt`, ()=>setFn('kf', cur=>[it, ...cur])); };
+  return (
+    <div className="rise" data-testid="fridge-card">
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span>🧊 Kühlschrank</span>
+        <button className="hit" onClick={()=>setF({ name:'', exp:shiftISO(todayISO(),3), owner:null })} style={{...hdrBtn,color:'var(--sky)'}}>+ Eintrag</button>
+      </div>
+      {items.length>0 && (
+        <div className="group">
+          {items.slice(0,8).map(it=>{
+            const d = -daysSince(it.exp), u = users.find(x=>x.id===it.owner);
+            const col = d<0 ? 'var(--red)' : d<=1 ? 'var(--amber)' : 'var(--label2)';
+            return (
+              <div key={it.id} className="cell" data-testid="fridge-row">
+                <div className="cell-content">
+                  <span className="cell-title">{it.name}{u?<span style={{color:u.color,fontWeight:700,fontSize:13}}> · {u.id===me?'deins':u.name}</span>:''}</span>
+                  <span className="cell-sub" style={{color:col,fontWeight:d<=1?700:500}}>{d<0?`seit ${-d} ${-d===1?'Tag':'Tagen'} abgelaufen`:d===0?'läuft heute ab':d===1?'läuft morgen ab':`bis ${fmtDM(it.exp)}`}</span>
+                </div>
+                <button className="btn btn-sec" aria-label={`${it.name} ist weg`} style={{width:'auto',padding:'8px 11px',fontSize:13,flexShrink:0}} onClick={()=>gone(it)}>Weg ✓</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <MiniSheet open={!!f} onClose={()=>setF(null)} title="Kühlschrank" color="var(--sky)">
+        {f && <>
+          <input className="field" autoFocus maxLength={40} placeholder="Was? z. B. Milch" aria-label="Lebensmittel" value={f.name} onChange={e=>setF({...f,name:e.target.value})}/>
+          <label className="sheet-sublbl" htmlFor="kf-exp">Haltbar bis</label>
+          <input id="kf-exp" type="date" className="field" value={f.exp} onChange={e=>setF({...f,exp:e.target.value})}/>
+          <div className="sheet-sublbl">Gehört</div>
+          <div style={{display:'flex',gap:6}}>
+            <button type="button" style={{...chipSt(!f.owner),flex:1}} onClick={()=>setF({...f,owner:null})}>Allen</button>
+            {users.map(u=><button key={u.id} type="button" style={{...chipSt(f.owner===u.id),flex:1}} onClick={()=>setF({...f,owner:u.id})}>{u.name}</button>)}
+          </div>
+          <button className="btn" style={{background:'var(--sky)'}} onClick={save}>Speichern</button>
+        </>}
+      </MiniSheet>
+    </div>
+  );
+}
+
+/* ── Inventar (Key `inv`): {name, owner: userId|'wg', bought, price, warranty} — Garantie-Hinweis 30 Tage vorher ── */
+function InventoryCard() {
+  const { D, setFn, undo } = useD();
+  const users = D.users || [];
+  const [f,setF] = useState(null);
+  const items = (D.inv||[]).filter(Boolean);
+  const owners = [...users.map(u=>[u.id,u.name,u.color]), ['wg','Gemeinsam','var(--mint)']];
+  const save = () => {
+    if (!f.name.trim()) return;
+    setFn('inv', cur=>[{ id:uid(), name:f.name.trim().slice(0,60), owner:f.owner, bought:f.bought||null, price:parseNum(f.price)||null, warranty:f.warranty||null }, ...(cur||[])]);
+    setF(null);
+  };
+  const del = it => { setFn('inv', cur=>cur.filter(x=>x.id!==it.id)); undo(`„${it.name}" entfernt`, ()=>setFn('inv', cur=>[it, ...cur])); };
+  return (
+    <div data-testid="inventory-card">
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span>🛋️ Inventar · wem gehört was</span>
+        <button className="hit" onClick={()=>setF({ name:'', owner:'wg', bought:'', price:'', warranty:'' })} style={{...hdrBtn,color:'var(--mint)'}}>+ Gegenstand</button>
+      </div>
+      <div className="group">
+        {!items.length && <div className="cell"><div className="cell-content"><span className="cell-sub">Möbel und Geräte mit Besitzer eintragen – spart Streit beim Auszug.</span></div></div>}
+        {owners.map(([id,name,color])=>{ const own = items.filter(i=>i.owner===id); return own.length ? (
+          <React.Fragment key={id}>
+            <div className="cell" style={{minHeight:36,padding:'8px 16px'}}><span style={{fontSize:12.5,fontWeight:800,color}}>{name} · {own.length}</span></div>
+            {own.map(i=>{ const w = i.warranty ? -daysSince(i.warranty) : null; return (
+              <div key={i.id} className="cell" data-testid="inv-row">
+                <div className="cell-content">
+                  <span className="cell-title">{i.name}</span>
+                  <span className="cell-sub">{[i.bought&&`gekauft ${fmtDate(i.bought)}`, i.price&&`€${fmt(i.price)}`, w!==null && (w<0?'Garantie abgelaufen':w<=30?<b key="w" style={{color:'var(--amber)'}}>Garantie noch {w} Tage</b>:`Garantie bis ${fmtDate(i.warranty)}`)].filter(Boolean).reduce((acc,x,k)=>k?[...acc,' · ',x]:[x],[])}</span>
+                </div>
+                <button className="del-btn" aria-label={`${i.name} entfernen`} onClick={()=>del(i)}>×</button>
+              </div>); })}
+          </React.Fragment>) : null; })}
+      </div>
+      <MiniSheet open={!!f} onClose={()=>setF(null)} title="Gegenstand" color="var(--mint)">
+        {f && <>
+          <input className="field" autoFocus maxLength={60} placeholder="z. B. Sofa, Mikrowelle" aria-label="Gegenstand" value={f.name} onChange={e=>setF({...f,name:e.target.value})}/>
+          <div style={{display:'flex',gap:6}}>{owners.map(([id,name])=><button key={id} type="button" style={{...chipSt(f.owner===id),flex:1}} onClick={()=>setF({...f,owner:id})}>{name}</button>)}</div>
+          <label className="sheet-sublbl" htmlFor="inv-b">Gekauft am (optional)</label>
+          <input id="inv-b" type="date" className="field" value={f.bought} onChange={e=>setF({...f,bought:e.target.value})}/>
+          <div className="f-euro"><input className="field" inputMode="decimal" placeholder="Preis (optional)" aria-label="Preis" value={f.price} onChange={e=>setF({...f,price:e.target.value})}/></div>
+          <label className="sheet-sublbl" htmlFor="inv-w">Garantie bis (optional)</label>
+          <input id="inv-w" type="date" className="field" value={f.warranty} onChange={e=>setF({...f,warranty:e.target.value})}/>
+          <button className="btn" style={{background:'var(--mint)'}} onClick={save}>Speichern</button>
+        </>}
+      </MiniSheet>
+    </div>
+  );
+}
+
+/* ── Auszugs-Assistent: alles für die Übergabe auf einer Druckseite (Zähler, Reparaturen, Inventar, offene Beträge) ── */
+function MoveOutCard() {
+  const { D } = useD();
+  const [open,setOpen] = useState(false);
+  const users = D.users || [];
+  const reads = (D.zs||[]).filter(z=>z && !z.cfg);
+  const lastRead = k => reads.filter(z=>z.kind===k).sort((a,b)=>b.date.localeCompare(a.date))[0];
+  const openRep = (D.rp||[]).filter(r=>r && r.status!=='erledigt');
+  const inv = (D.inv||[]).filter(Boolean);
+  const gc = growCalc(D);
+  const balLine = () => { const [a] = users; if (!a) return ''; const n = hsNetOf(D, a.id) + (gc.tCost ? gc.net(a.id) : 0); const o = otherOf(users, a.id);
+    return Math.abs(n) < 0.01 ? 'Alles ausgeglichen' : n < 0 ? `${a.name} schuldet ${o?.name} €${fmt(-n)}` : `${o?.name} schuldet ${a.name} €${fmt(n)}`; };
+  return (
+    <div data-testid="moveout-card">
+      <div className="section-hdr">📦 Auszug</div>
+      <button className="group" onClick={()=>setOpen(true)} style={{width:'100%',padding:'14px 16px',textAlign:'left',fontFamily:'inherit',cursor:'pointer',color:'var(--label)'}}>
+        <span style={{display:'block',fontSize:15,fontWeight:700}}>Übergabe-Seite öffnen</span>
+        <span style={{display:'block',fontSize:12.5,color:'var(--label2)'}}>Zählerstände, offene Mängel, Inventar und offene Beträge – zum Drucken oder als PDF</span>
+      </button>
+      {open && ReactDOM.createPortal(
+        <div className="print-sheet" data-testid="moveout-sheet" role="dialog" aria-label="Übergabe-Seite">
+          <div className="no-print" style={{display:'flex',gap:8,marginBottom:16}}>
+            <button className="btn" style={{background:'#0f766e',color:'#fff'}} onClick={()=>window.print()}>Drucken / als PDF speichern</button>
+            <button className="btn" style={{width:'auto',padding:'0 18px',background:'#e5e7eb',color:'#111'}} onClick={()=>setOpen(false)}>Schließen</button>
+          </div>
+          <h2>Übergabe WG · {fmtDate(todayISO())}</h2>
+          <p>{users.map(u=>u.name).join(' & ')}</p>
+          <h3>Zählerstände</h3>
+          <table><tbody>{Object.entries(METER_KINDS).map(([k,[em,l,unit]])=>{ const r = lastRead(k); return <tr key={k}><td>{em} {l}</td><td>{r?`${fmtN(r.value,2)} ${unit}`:'– bitte ablesen –'}</td><td>{r?fmtDate(r.date):''}</td></tr>; })}</tbody></table>
+          <h3>Offene Mängel ({openRep.length})</h3>
+          {openRep.length ? <ul>{openRep.map(r=><li key={r.id}>{r.text} – {r.status==='gemeldet'?`gemeldet am ${fmtDate(r.md)}`:'noch nicht gemeldet'}</li>)}</ul> : <p>Keine.</p>}
+          <h3>Inventar</h3>
+          {inv.length ? <table><tbody>{inv.map(i=><tr key={i.id}><td>{i.name}</td><td>{i.owner==='wg'?'Gemeinsam':nameOfU(users, i.owner)}</td><td>{i.price?`€${fmt(i.price)}`:''}</td></tr>)}</tbody></table> : <p>Nichts eingetragen.</p>}
+          <h3>Offene Beträge</h3>
+          <p data-testid="moveout-bal">{balLine()}</p>
+          <p style={{marginTop:32}}>Unterschriften: ______________________ &nbsp; ______________________</p>
+        </div>, document.body)}
+    </div>
+  );
+}
+
+/* ── WG-Regeln (Key `rg`): {text, by, ok_<uid}> — gilt erst, wenn alle zugestimmt haben ── */
+function RulesCard() {
+  const { D, setFn, me, notifyOthers, undo } = useD();
+  const users = D.users || [];
+  const [txt,setTxt] = useState('');
+  const [showAll,setShowAll] = useState(false);
+  const rules = (D.rg||[]).filter(Boolean).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const agreed = r => users.every(u=>r['ok_'+u.id]===true);
+  const pending = rules.filter(r=>!agreed(r)), valid = rules.filter(agreed);
+  const add = () => {
+    const t = txt.trim().slice(0,160); if (!t || !me) return;
+    setFn('rg', cur=>[{ id:uid(), text:t, by:me, ts:Date.now(), ['ok_'+me]:true }, ...(cur||[])]);
+    notifyOthers(`📜 Neue WG-Regel: ${t}`, `${nameOfU(users, me)} schlägt vor – einverstanden?`, 'wg-rg', 'board');
+    setTxt('');
+  };
+  const agree = r => { setFn('rg', cur=>cur.map(x=>x.id===r.id?{...x,['ok_'+me]:true}:x)); notifyOthers(`📜 Regel gilt jetzt: ${r.text}`, `${nameOfU(users, me)} ist einverstanden`, 'wg-rg', 'board'); };
+  const reject = r => { setFn('rg', cur=>cur.filter(x=>x.id!==r.id)); undo('📜 Regel abgelehnt', ()=>setFn('rg', cur=>[r, ...cur])); if (r.by!==me) notifyOthers(`📜 Regel abgelehnt: ${r.text}`, `${nameOfU(users, me)} ist nicht einverstanden – lieber besprechen`, 'wg-rg', 'board'); };
+  return (
+    <div className="rise" data-testid="rules-card">
+      <div className="section-hdr">📜 WG-Regeln</div>
+      <div className="group">
+        {pending.map(r=>{ const mine = r['ok_'+me]===true, waiting = users.filter(u=>r['ok_'+u.id]!==true).map(u=>u.name).join(', '); return (
+          <div key={r.id} className="cell" data-testid="rule-pending" style={{flexWrap:'wrap',gap:8}}>
+            <div className="cell-content"><span className="cell-title">{r.text}</span><span className="cell-sub" style={{color:'var(--amber)'}}>wartet auf {waiting}</span></div>
+            {!mine && me && <button className="btn" style={{width:'auto',padding:'8px 12px',fontSize:13,background:'var(--green)'}} onClick={()=>agree(r)}>Einverstanden</button>}
+            <button className="btn btn-sec" style={{width:'auto',padding:'8px 12px',fontSize:13}} onClick={()=>reject(r)}>{mine?'Zurückziehen':'Ablehnen'}</button>
+          </div>); })}
+        {(showAll ? valid : valid.slice(0,3)).map(r=>(
+          <div key={r.id} className="cell" data-testid="rule-valid">
+            <div className="cell-content"><span className="cell-title">✅ {r.text}</span></div>
+            <button className="del-btn" aria-label={`Regel „${r.text}" aufheben`} onClick={()=>reject(r)}>×</button>
+          </div>
+        ))}
+        {valid.length>3 && <button className="cell hit" onClick={()=>setShowAll(s=>!s)} style={{background:'none',width:'100%',fontFamily:'inherit',color:'var(--label2)',fontSize:13,cursor:'pointer'}}>{showAll?'Weniger':'Alle '+valid.length+' Regeln'}</button>}
+        {me && <form className="cell" onSubmit={e=>{e.preventDefault();add();}} style={{gap:8}}>
+          <input className="field" maxLength={160} placeholder="Regel vorschlagen, z. B. Ruhe ab 22 Uhr" aria-label="Regel vorschlagen" value={txt} onChange={e=>setTxt(e.target.value)} style={{flex:1}}/>
+          <button type="submit" className="btn" style={{width:54,flexShrink:0,background:'var(--mint)'}}>+</button>
+        </form>}
+      </div>
+    </div>
+  );
+}
+
+/* ── Monats-Check-in (Key `ci`, id = <Monat>-<userId>): Note 1–5 + Wunsch. Antworten sieht man erst, wenn alle
+   geantwortet haben (Ausnahme: die eigene). Sichtbar vom 1. bis zum 10., danach nur solange eine begonnene Runde unvollständig ist. ── */
+function CheckinCard() {
+  const { D, setFn, me, notifyOthers } = useD();
+  const users = D.users || [];
+  const [score,setScore] = useState(0);
+  const [wish,setWish] = useState('');
+  const ym = todayISO().slice(0,7), day = Number(todayISO().slice(8,10));
+  const answers = (D.ci||[]).filter(c=>c && c.ym===ym);
+  const mine = answers.find(c=>c.userId===me);
+  const all = users.length>1 && users.every(u=>answers.some(c=>c.userId===u.id));
+  // nach dem 10.: nur eine begonnene Runde zeigen — unvollständig, oder fertig und höchstens 3 Tage alt (Ergebnis lesen)
+  const lastTs = Math.max(0, ...answers.map(c=>Number(c.ts)||0));
+  if (!me || users.length<2 || (day>10 && (!answers.length || (all && Date.now()-lastTs > 3*864e5)))) return null;
+  const send = () => {
+    if (!score) return;
+    setFn('ci', cur=>[{ id:`${ym}-${me}`, ym, userId:me, score, wish:wish.trim().slice(0,200), ts:Date.now() }, ...(cur||[]).filter(c=>c && c.id!==`${ym}-${me}`)]);
+    notifyOthers('💬 Monats-Check-in', `${nameOfU(users, me)} hat geantwortet – du auch?`, 'wg-ci', 'board');
+  };
+  const faces = ['😣','😕','😐','🙂','😄'];
+  return (
+    <div className="rise" data-testid="checkin-card">
+      <div className="section-hdr">💬 Monats-Check-in · {ymLabel(ym)}</div>
+      <div className="group" style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:10}}>
+        {!mine ? <>
+          <span style={{fontSize:14,fontWeight:700}}>Wie läuft's in der WG?</span>
+          <div style={{display:'flex',gap:6}}>{faces.map((f,i)=><button key={i} type="button" aria-label={`Note ${i+1}`} aria-pressed={score===i+1} onClick={()=>setScore(i+1)} style={{...chipSt(score===i+1),flex:1,fontSize:22}}>{f}</button>)}</div>
+          <input className="field" maxLength={200} placeholder="Ein Wunsch oder Danke (optional)" aria-label="Wunsch" value={wish} onChange={e=>setWish(e.target.value)}/>
+          <button className="btn" style={{background:score?'var(--mint)':'var(--bg3)'}} onClick={send}>Absenden</button>
+          <span style={{fontSize:12,color:'var(--label2)'}}>Die Antworten sieht man erst, wenn beide geantwortet haben.</span>
+        </> : !all ? (
+          <span data-testid="checkin-wait" style={{fontSize:13.5,color:'var(--label2)'}}>Danke! Deine Antwort ({faces[mine.score-1]}) ist gespeichert – wir warten auf {users.filter(u=>!answers.some(c=>c.userId===u.id)).map(u=>u.name).join(', ')}.</span>
+        ) : (
+          <div data-testid="checkin-result" style={{display:'flex',flexDirection:'column',gap:8}}>
+            {users.map(u=>{ const c = answers.find(x=>x.userId===u.id); return <div key={u.id} style={{fontSize:14}}><b style={{color:u.color}}>{u.name}</b> {faces[c.score-1]}{c.wish?` – „${c.wish}“`:''}</div>; })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Sprach-Kurzbefehl: Link-Vorlage für Siri/Kurzbefehle bzw. Android (Link öffnen) → Schnell-Zeile vorbelegt ── */
+let SHORTCUT_TEXT = null;
+function VoiceCard() {
+  const [msg,setMsg] = useState('');
+  const base = location.origin + location.pathname.replace(/wgapp\.html$/, '');
+  const tpl = `${base}?a=ausgabe&t=`;
+  const copy = async () => setMsg(await copyTxt(tpl) ? 'Kopiert ✓' : 'Kopieren ging nicht – bitte markieren.');
+  return (
+    <div className="rise" data-testid="voice-card">
+      <div className="section-hdr">🎙️ Sprach-Kurzbefehl</div>
+      <div className="group" style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:8,fontSize:13,color:'var(--label2)',lineHeight:1.5}}>
+        <span><b style={{color:'var(--label)'}}>iPhone (Kurzbefehle-App):</b> „Diktierten Text“ → „URL“ mit der Vorlage unten + Text dahinter → „URLs öffnen“. Namen z. B. „WG Ausgabe“, dann: „Hey Siri, WG Ausgabe“ – „12,50 Pizza“.</span>
+        <span><b style={{color:'var(--label)'}}>Android:</b> Vorlage mit dem Text dahinter als Lesezeichen/Verknüpfung öffnen (z. B. mit „HTTP Shortcuts“).</span>
+        <code data-testid="voice-tpl" style={{fontSize:11.5,wordBreak:'break-all',userSelect:'all'}}>{tpl}</code>
+        <button className="btn btn-sec" onClick={copy}>Vorlage kopieren</button>
+        {msg && <span>{msg}</span>}
+        <span>Die App öffnet sich mit ausgefüllter Schnell-Zeile – ein Tipp auf „Eintragen“ bestätigt.</span>
+      </div>
+    </div>
+  );
+}
+
+/* ── Gemischter Einkauf (Kassenzettel): Artikel antippen, die nur mir gehören, und deren Betrag angeben.
+   addFromWiz teilt dann in „gemeinsam" (50/50) und „nur ich" (trägt der Zahler selbst). ── */
+function ReceiptMine({ d, sd }) {
+  const items = Array.isArray(d.items) ? d.items : [];
+  const mineSet = Array.isArray(d.mineNames) ? d.mineNames : [];
+  const toggle = n => sd({ ...d, mineNames: mineSet.includes(n) ? mineSet.filter(x=>x!==n) : [...mineSet, n] });
+  const total = parseNum(d.price), mine = parseNum(d.mine);
+  return (
+    <div data-testid="receipt-mine" style={{display:'flex',flexDirection:'column',gap:8,marginTop:4}}>
+      <div className="sheet-sublbl">Was davon ist nur für dich? (antippen)</div>
+      <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+        {items.map(n=><button key={n} type="button" aria-pressed={mineSet.includes(n)} style={chipSt(mineSet.includes(n))} onClick={()=>toggle(n)}>{n}</button>)}
+      </div>
+      {mineSet.length>0 && <div className="f-euro"><input className="field" inputMode="decimal" placeholder="Betrag nur für dich" aria-label="Betrag nur für dich" value={d.mine||''} onChange={e=>sd({...d,mine:e.target.value})}/></div>}
+      {mineSet.length>0 && total>0 && mine>0 && <div data-testid="receipt-split" style={{fontSize:12.5,color:mine>total?'var(--red)':'var(--label2)'}}>{mine>total ? 'Mehr als der Gesamtbetrag' : `Gemeinsam €${fmt(total-mine)} (je €${fmt((total-mine)/2)}) · nur du €${fmt(mine)}`}</div>}
+    </div>
+  );
+}
+
+/* ══════════════════════════
    ALLTAGSTAUGLICH (seit wg-v66): Ankündigungen als eigene Karte (lebt auf „Heute"), „Wer bist du?",
    aufklappbare Gruppen unter „Mehr", Einkaufsliste nach Laden-Bereichen
 ══════════════════════════ */
@@ -2485,7 +2980,9 @@ const parseQuick = txt => {
 const SHOP_RE = /einkauf|lidl|aldi|rewe|edeka|netto|penny|kaufland|supermarkt|lebensmittel/i;
 function QuickExpense({ onFull }) {
   const { D, setFn, me, notifyOthers, undo } = useD();
-  const [txt,setTxt] = useState('');
+  // Sprach-Kurzbefehl: Text einmal übernehmen (nur die Schnell-Zeile im Haushalt hat onFull)
+  const [voice] = useState(() => !!(onFull && SHORTCUT_TEXT));
+  const [txt,setTxt] = useState(() => { if (!onFull || !SHORTCUT_TEXT) return ''; const t = SHORTCUT_TEXT; SHORTCUT_TEXT = null; return t; });
   const q = parseQuick(txt), users = D.users || [];
   // Ohne gewählte Person kein Schnell-Eintrag (wer zahlt?) — das volle Formular muss trotzdem erreichbar bleiben
   if (!me) return onFull ? <button className="btn rise" style={{background:'var(--mint)'}} onClick={()=>onFull('')}>+ Ausgabe hinzufügen</button> : null;
@@ -2504,6 +3001,7 @@ function QuickExpense({ onFull }) {
         <input className="field" maxLength={80} placeholder="⚡ Schnell: „12,50 Pizza“" aria-label="Ausgabe in einem Satz" value={txt} onChange={e=>setTxt(e.target.value)} style={{flex:1}}/>
         <button type="submit" className="btn" style={{width:'auto',padding:'0 14px',flexShrink:0,background:(q||onFull)?'var(--mint)':'var(--bg3)',color:(q||onFull)?'var(--ink)':'var(--label2)'}}>{q || !onFull ? 'Eintragen' : '+ Ausgabe hinzufügen'}</button>
       </div>
+      {voice && txt.trim() && <div data-testid="quick-voice" style={{fontSize:12.5,color:'var(--amber)',fontWeight:700,padding:'0 4px'}}>🎙️ Per Sprache übernommen – prüfen und „Eintragen“ tippen</div>}
       {txt.trim() && (
         <div data-testid="quick-preview" style={{fontSize:12,color:q?'var(--label2)':'var(--red)',padding:'0 4px'}}>
           {q ? `→ ${q.name} · €${fmt(q.price)} · du zahlst · ${q.alone?'nur für dich':'50/50'}` : onFull ? 'Ohne Betrag öffnet sich das ganze Formular (Datum, Aufteilung)' : 'Betrag fehlt – z. B. „12,50 Pizza“ (Mikrofon der Tastatur geht auch)'}
@@ -2688,9 +3186,13 @@ function Heute({ goTab }) {
         <AwayCard compact/>
         {rows.length>0 && <div className="group rise" data-testid="today-rows">{rows}</div>}
         <QuickExpense/>
+        <CheckinCard/>
         <WashCard/>
+        <FridgeCard/>
+        <MealCard/>
         <BoardCard/>
         <QuickMsgs/>
+        <RulesCard/>
         <RepairCard/>
         <LoginShare/>
       </div></div>
@@ -3216,7 +3718,10 @@ function Haushalt({goGrow, goPutz}) {
   const listInput = useRef(null);
   const heroRef = useRef(null);          // Ziel für den Ausgabe-Flug
   // App-Kürzel „Ausgabe eintragen" / „Einkaufsliste" (einmal verbrauchen)
-  useEffect(()=>{ if (SHORTCUT==='ausgabe') { SHORTCUT=null; setWiz(true); } else if (SHORTCUT==='liste') { SHORTCUT=null; setSeg('liste'); } }, []);
+  // „Ausgabe“ mit Text (Sprach-Kurzbefehl): die Schnell-Zeile übernimmt, kein Formular
+  // beim Rendern merken: die Schnell-Zeile (Kind) verbraucht SHORTCUT_TEXT, bevor dieser Effekt läuft
+  const [voiceStart] = useState(() => !!SHORTCUT_TEXT);
+  useEffect(()=>{ if (SHORTCUT==='ausgabe') { SHORTCUT=null; if (!voiceStart) setWiz(true); } else if (SHORTCUT==='liste') { SHORTCUT=null; setSeg('liste'); } }, []);
   const [leaving,setLeaving] = useState(null); // sl-Item, das gerade animiert abgehakt wird
   const [stamp,setStamp] = useState(false);    // grüner Ausgleich-Stempel
   const [bringOpen,setBringOpen] = useState(false); // „Bitte mitbringen"-Schnellfenster
@@ -3249,10 +3754,14 @@ function Haushalt({goGrow, goPutz}) {
   /* Kaufzähler für lernende Vorschläge: beim Abhaken (offen→erledigt) hochzählen.
      id = Slug (RTDB-Pfad-sicher), name behält die zuletzt getippte Schreibweise. */
   const bumpSlh   = name => { const n=String(name||'').trim(); if(!n) return; const sid=n.toLowerCase().replace(/[.#$/\[\]]/g,'_').slice(0,80); setFn('slh', cur => { const l=cur||[]; const ex=l.find(x=>x.id===sid); return ex ? l.map(x=>x.id===sid?{...x,n:(x.n||0)+1,name:n}:x) : [{id:sid,name:n,n:1},...l]; }); };
+  /* Abhaken läuft zeitversetzt (Animation) → aktuelle Liste über Ref lesen und nur den einen Eintrag ändern.
+     Vorher: zwei schnelle Haken — der zweite Timer schrieb die alte Liste zurück, der erste Haken war weg. */
+  const listRef   = useRef(list); listRef.current = list;
   const toggleL   = id => {
-    const it=list.find(i=>i.id===id); if(it&&!it.done) bumpSlh(it.name);
-    if (it) setBought(b=>{ const nb = it.done ? {...b, ids:b.ids.filter(x=>x!==id)} : { t:Date.now(), ids:[...b.ids.filter(x=>x!==id), id] }; ss('wg_bought', nb); return nb; });
-    set('sl',list.map(i=>i.id===id?{...i,done:!i.done}:i));
+    const it=listRef.current.find(i=>i.id===id); if(!it) return;
+    if(!it.done) bumpSlh(it.name);
+    setBought(b=>{ const nb = it.done ? {...b, ids:b.ids.filter(x=>x!==id)} : { t:Date.now(), ids:[...b.ids.filter(x=>x!==id), id] }; ss('wg_bought', nb); return nb; });
+    setFn('sl', cur=>(cur||[]).map(i=>i.id===id?{...i,done:!it.done}:i));
   };
   /* Abhaken mit Wisch-Strich + Kollaps, dann erst in den Wagen wandern. Uncheck (done→offen) sofort. */
   const checkL    = i => { if(leaving===i.id) return; /* Doppel-Tap während der Abhak-Animation würde sonst doppelt togglen */ if(i.done||REDUCE()){ toggleL(i.id); return; } setLeaving(i.id); setTimeout(()=>{ toggleL(i.id); setLeaving(l=>l===i.id?null:l); }, 600); };
@@ -3303,9 +3812,17 @@ function Haushalt({goGrow, goPutz}) {
   const [bought,setBought] = useState(()=>{ const b=ls('wg_bought',null); return b && Date.now()-(b.t||0) < 3*3600e3 && Array.isArray(b.ids) ? b : { t:0, ids:[] }; });
   const boughtItems = list.filter(i=>i && i.done && bought.ids.includes(i.id));
   const [wizInit,setWizInit] = useState(null);
-  const openReceipt = () => { setWizInit({ receipt:true, name:('Einkauf: '+boughtItems.map(i=>i.name).join(', ')).slice(0,120), paidBy:me||undefined, cat:'food', date:todayISO() }); setWiz(true); };
+  const openReceipt = () => { setWizInit({ receipt:true, items:boughtItems.map(i=>i.name), name:('Einkauf: '+boughtItems.map(i=>i.name).join(', ')).slice(0,120), paidBy:me||undefined, cat:'food', date:todayISO() }); setWiz(true); };
   const addFromWiz = d => {
-    add(d);
+    // Gemischter Einkauf: „nur für mich" als eigener Posten, den der Zahler selbst trägt; der Rest 50/50
+    const total = parseNum(d.price), mine = Math.min(parseNum(d.mine)||0, total);
+    const mineNames = Array.isArray(d.mineNames) ? d.mineNames : [];
+    if (wizInit?.receipt && mine > 0.004 && mineNames.length) {
+      const payer = d.paidBy || me, rest = Math.round((total - mine)*100)/100;
+      const sharedNames = (d.items||[]).filter(n=>!mineNames.includes(n));
+      if (rest > 0.004) add({ ...d, owedBy:null, price:String(rest).replace('.',','), name:('Einkauf: '+(sharedNames.join(', ')||'gemeinsam')).slice(0,120) });
+      setFn('hs', cur=>[hsItem({ name:(`Einkauf nur ${nameOfU(users, payer)}: ${mineNames.join(', ')}`).slice(0,120), price:mine, paidBy:payer, owedBy:payer, cat:d.cat||null, date:d.date||todayISO() }), ...(cur||[])]);
+    } else add(d);
     if (wizInit?.receipt) { const ids=boughtItems.map(i=>i.id); setFn('sl', cur=>cur.filter(i=>!ids.includes(i.id))); const nb={t:0,ids:[]}; ss('wg_bought',nb); setBought(nb); }
   };
   // Schritt 3 (Bezahler + Aufteilung kombiniert) mit Review-Karte oben — geteilt von steps/recSteps
@@ -3351,6 +3868,7 @@ function Haushalt({goGrow, goPutz}) {
         <div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>
         <DateField value={d.date} onChange={v=>sd({...d,date:v})}/>
         <PriceHint name={d.name} price={d.price} onPick={v=>sd({...d,price:v})}/>
+        {d.receipt && <ReceiptMine d={d} sd={sd}/>}
       </div>
     )},
     payerSplitStep('Wer hat bezahlt?'),
@@ -3472,7 +3990,8 @@ function Haushalt({goGrow, goPutz}) {
           )}
           <QuickExpense onFull={name=>{ setWizInit(name ? { name, paidBy:me||undefined } : null); setWiz(true); }}/>
           <TotalBudget/>
-          {!heuteOn && <><BoardCard/><QuickMsgs/><LoginShare/><RepairCard/></>}
+          <SavingsCard/>
+          {!heuteOn && <><CheckinCard/><FridgeCard/><MealCard/><BoardCard/><QuickMsgs/><RulesCard/><LoginShare/><RepairCard/></>}
           {open.length>0 && (() => {
             const deb = bals.find(b=>b.net<-0.01), cred = bals.find(b=>b.net>0.01);
             if (me && deb && deb.id===me) return <div className="rise" data-testid="settle-hint" style={{fontSize:12.5,color:'var(--label2)',textAlign:'center'}}>Abrechnen macht {cred?.name}, sobald das Geld da ist – oben „Ich habe bezahlt“ tippen.</div>;
@@ -5360,6 +5879,7 @@ function Einstellungen() {
         </div>
         <LookCard/>
         <CalendarCard/>
+        <VoiceCard/>
 
         </Fold>
         <Fold id="data" title="💾 Daten & Backup" sub="Archiv, Backups, Fehlerprotokoll" alert={(typeof bkAgeS==='number' && bkAgeS>2) || (D.err||[]).length>0}>
@@ -5458,6 +5978,10 @@ function Einstellungen() {
           </div>
         )}
 
+        </Fold>
+        <Fold id="home" title="🏠 Inventar & Auszug" sub="Wem gehört was, Übergabe-Seite zum Drucken">
+        <InventoryCard/>
+        <MoveOutCard/>
         </Fold>
         <Fold id="people" title="👥 Personen" sub="Wer bist du, Namen, Farben, PayPal" alert={!me}>
         {/* Persons */}
@@ -5926,6 +6450,7 @@ function Statistik() {
         </div>
 
         <MeterCard/>
+        <CostsCard/>
         <YearReview all={all} pl={pl} pt={D.pt||[]} users={users}/>
 
         {pl.length>0&&(
@@ -6125,7 +6650,7 @@ function PushPrompt({ onClose }){
 function AppInner() {
   const { mods, remotePulse, D, me, pushSave, status, wgCode, setFn, fbCfg } = useD();
   // App-Kürzel (?a=…) einmal lesen und aus der Adresse entfernen — sonst liefe es bei jedem Neuladen erneut
-  useState(() => { try { const a = new URLSearchParams(location.search).get('a'); if (a) { SHORTCUT = a; history.replaceState(null, '', location.pathname); } } catch {} return null; });
+  useState(() => { try { const q = new URLSearchParams(location.search), a = q.get('a'); if (a) { SHORTCUT = a; const t = q.get('t'); if (t) SHORTCUT_TEXT = t.slice(0,80); history.replaceState(null, '', location.pathname); } } catch {} return null; });
   const visibleTabs = TABS.filter(t => t.id==='set' || mods[t.id] !== false);
   const [tab,setTab_] = useState(() => {
     if (SHORTCUT) return SHORTCUT==='muell' ? 'putz' : (SHORTCUT==='waesche' && mods.heute!==false) ? 'heute' : 'haus';   // Timer lebt auf „Heute“

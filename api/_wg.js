@@ -45,6 +45,19 @@ function taskWho(t, wg, todayIso) {
 }
 const ptsOf = (l, byId) => { const p = Number(l.pts || (byId[l.taskId] && byId[l.taskId].pts)); return [1, 2, 3].includes(p) ? p : 2; };
 
+// Morgens: was im Kühlschrank heute/morgen abläuft (eine Push)
+function fridgeReminders(wg, todayIso) {
+  const users = toArray(wg.users), tomorrow = shiftIso(todayIso, 1);
+  const soon = toArray(wg.kf).filter((k) => k.exp && k.exp >= todayIso && k.exp <= tomorrow).sort((a, b) => String(a.exp).localeCompare(String(b.exp)));
+  if (!soon.length) return null;
+  const who = (id) => { const u = users.find((x) => x.id === id); return u ? ` (${u.name})` : ''; };
+  return { title: 'Kühlschrank', body: `🧊 Läuft bald ab: ${soon.slice(0, 5).map((k) => `${k.name}${who(k.owner)} ${k.exp === todayIso ? 'heute' : 'morgen'}`).join(', ')}`, tag: `kf-${todayIso}` };
+}
+// 1. des Monats: Check-in-Aufruf (nur wenn es zwei Personen gibt)
+function checkinReminder(wg) {
+  return toArray(wg.users).length > 1 ? { title: 'Monats-Check-in', body: '💬 Wie läuft\'s in der WG? Kurz in der App antworten – die Antworten seht ihr, wenn beide geantwortet haben.', tag: 'ci-month' } : null;
+}
+
 // Morgens: EINE Putz-Push für alles Fällige statt je Aufgabe eine (weniger Rauschen → Push bleibt an)
 function putzDigest(wg, todayIso) {
   const due = toArray(wg.pt).map((t) => ({ t, d: taskDueIn(t, wg, todayIso) })).filter((x) => x.d <= 0).sort((a, b) => a.d - b.d);
@@ -198,4 +211,4 @@ function buildIcs(wg, todayIso, now = new Date()) {
   return lines.map(icsFold).join('\r\n') + '\r\n';
 }
 
-module.exports = { toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, meterReminder, putzDigest, buildIcs, icsText, icsFold, PICK_KINDS };
+module.exports = { toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, checkinReminder, buildIcs, icsText, icsFold, PICK_KINDS };

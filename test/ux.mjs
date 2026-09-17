@@ -184,7 +184,7 @@ check('I2 Server + Regeln kennen die Arten', ['msg', 'wash', 'away', 'repair'].e
 // ── J: Mehr in Gruppen, Lesbarkeit ──
 const J = await open(SEED, { tab: 'set' });
 const folds = await J.page.locator('.fold-hdr').count();
-check('J1 fünf Gruppen, anfangs zu', folds === 5 && await J.page.locator('.fold-hdr[aria-expanded="true"]').count() === 0, `${folds}`);
+check('J1 sechs Gruppen (seit wg-v68 + Inventar & Auszug), anfangs zu', folds === 6 && await J.page.locator('.fold-hdr[aria-expanded="true"]').count() === 0, `${folds}`);
 const h0 = await J.page.evaluate(() => document.querySelector('.scroll').scrollHeight);
 check('J2 Mehr ist kurz (≤ 1,5 Bildschirme)', h0 <= 844 * 1.5, `${h0}px`);
 await J.page.locator('.fold-hdr', { hasText: 'Ansicht & Kalender' }).click(); await J.page.waitForTimeout(300);

@@ -177,7 +177,7 @@ Anlass war eine Messung mit realistischen Daten: 16,5 s Erststart nach Updates, 
   - `paypal.mjs`/`torben.mjs` (nicht im Gate) erwarteten noch das vierstufige Formular und sind nachgezogen.
 - **Fehlersuche 17.09. (wg-v67), jeweils mit Test:**
   - **Alte Modul-Stände:** Geräte, die unter v64/65 irgendeinen Schalter umgelegt hatten, speicherten `heute:false`, weil das damals Standard war. Bei ihnen fehlte die neue Startseite, deshalb gibt es jetzt eine einmalige Umstellung (`wg_heute_v1`).
-  - **Laden-Bereiche:** `` kennt keine Umlaute („Weißwein“ → Kühlregal), deshalb gilt eine feste Prüf-Reihenfolge, spezifisch vor allgemein. Kurze Wörter werden nur als ganzes Wort erkannt (`wordRe`). Vorher landeten Reis bei Tiefkühl und Butterkekse im Kühlregal.
+  - **Laden-Bereiche:** `\b` kennt keine Umlaute („Weißwein“ → Kühlregal), deshalb gilt eine feste Prüf-Reihenfolge, spezifisch vor allgemein. Kurze Wörter werden nur als ganzes Wort erkannt (`wordRe`). Vorher landeten Reis bei Tiefkühl und Butterkekse im Kühlregal.
   - **Gelernte Kacheln** wurden beim Antippen zu Vorrat-Einträgen und hießen dann „fast leer?“.
   - **Sammel-Push** ohne zugeordnete Person zeigte „Bad (, 2 T. …)“.
   - **Gruppe mit Warnpunkt** ließ sich nicht zuklappen.
@@ -187,6 +187,53 @@ Anlass war eine Messung mit realistischen Daten: 16,5 s Erststart nach Updates, 
   - Ohne Person gab es keinen Ausgaben-Knopf mehr.
   - Das Kürzel „Maschine läuft“ öffnete den Haushalt statt Heute.
   - „Neuen Code eingeben“ landete in einer zugeklappten Gruppe.
+
+## Plus (seit wg-v68, 2026-09-17 — torbe: alle 10 Ideen)
+
+Bausteine im Block `PLUS` in wgapp.html. Neue Listen-Keys: `sg ep kf inv rg ci`, jeweils in INIT, LIST_KEYS und `database.rules.json`. Die Regeln müssen **vor** der App live sein.
+- **Warum ohne neues Rechenmodell:** Sparziel, Nebenkosten und gemischter Einkauf erzeugen nur normale `hs`-Posten mit `paidBy`/`owedBy`. Bilanz, Abrechnen und Export bleiben dadurch unverändert.
+  - Verworfen wurden eigene Salden je Ziel: Die Bilanz hätte dann an drei Stellen addiert werden müssen, ein Fall von „doppelter Herleitung“.
+  - Items dürfen nur einfache Felder haben (DB-Regel `$f`), deshalb stehen die Beträge je Person als `c_<userId>` im Item und nicht als Objekt.
+- **Sparziel** (Haushalt, `sg`):
+  - Einzahlungen gehen an den Verwalter.
+  - „Gekauft“ erzeugt die Ausgabe (Verwalter zahlt, 50/50) und je Einzahlung der anderen einen Posten `paidBy: andere, owedBy: Verwalter`. Haben beide gleich viel eingezahlt, schuldet niemand etwas.
+- **Nebenkosten** (Übersicht, `hs` mit `nk:true`):
+  - Nachzahlung: je Person ein Posten `paidBy: Zahler, owedBy: Person`.
+  - Guthaben: `paidBy: andere, owedBy: Empfänger`.
+  - Der Anteil wird per Schieber auf die erste Person gesetzt.
+- **Gemischter Einkauf:**
+  - Der Kassenzettel-Schritt zeigt die abgehakten Artikel als Chips (`ReceiptMine`).
+  - `addFromWiz` teilt auf: der gemeinsame Rest wird 50/50 geteilt, der Posten „Einkauf nur X“ bekommt `owedBy = Zahler`.
+- **Essensplan** (`ep`, Heute):
+  - Vorgeschlagener Koch ist, wer in 30 Tagen seltener gekocht hat.
+  - „🛒 Zutaten“ setzt nur Fehlendes auf die Liste (Groß-/Kleinschreibung egal).
+- **Kühlschrank** (`kf`): Cron schickt morgens **eine** Push für „heute/morgen“. Abgelaufenes erinnert nicht mehr (`fridgeReminders`).
+- **Inventar** (`inv`, Mehr → „Inventar & Auszug“): Garantie-Hinweis ab 30 Tagen vorher.
+- **Auszug:**
+  - Portal `.print-sheet` (immer hell) mit Zählern, offenen Mängeln, Inventar und Bilanz.
+  - `@media print` blendet alles andere aus.
+- **WG-Regeln** (`rg`):
+  - Eine Regel gilt erst, wenn **alle** `ok_<id>` gesetzt haben.
+  - Wer sie vorschlägt, stimmt automatisch zu.
+  - Ablehnen löscht die Regel (mit Rückgängig).
+- **Monats-Check-in** (`ci`, id `<YYYY-MM>-<userId>`):
+  - Fremde Antworten sind erst sichtbar, wenn alle geantwortet haben.
+  - Sichtbar ist die Karte vom 1. bis 10. Danach nur, solange eine begonnene Runde unvollständig ist oder höchstens 3 Tage fertig.
+  - Die erste Fassung hätte eine halbe Runde ab dem 11. versteckt.
+  - Cron ruft am 1. auf.
+- **Sprach-Kurzbefehl:**
+  - `?a=ausgabe&t=<Text>` belegt die Schnell-Zeile im Haushalt vor und öffnet kein Formular. Die Vorlage steht in Mehr → Kalender & Kurzbefehl.
+  - **Falle:** Die Schnell-Zeile (Kind) verbraucht `SHORTCUT_TEXT` schon beim Rendern, **vor** dem `useEffect` im Haushalt. Deshalb merkt sich der Haushalt den Wert per `useState`-Initialisierer (`voiceStart`). Vorher ging trotz Text das Formular auf.
+- **Fund beim Testen (alter Fehler seit wg-v62):**
+  - Zwei Artikel kurz hintereinander abhaken ließ den ersten wieder offen. Das Abhaken läuft per `setTimeout` (Animation), der zweite Timer schrieb die Liste aus seinem alten Render zurück (`set('sl', list.map…)`).
+  - Jetzt liest `toggleL` die Liste über eine Ref und ändert per `setFn` nur den einen Eintrag.
+- **Weitere Fallen dabei:**
+  - Ein `// Kommentar` mitten in eine einzeilige JSX-Zeile gesetzt, kommentierte den Rest aus. Babel meldete den Fehler weit entfernt (bei `growCalc`).
+  - `.sheet` gibt es auch geschlossen im DOM, Tests prüfen deshalb `.sheet:visible`.
+  - `.btn-sec` ist auf der hellen Druckseite im Dunkelmodus unsichtbar, dort gelten feste Farben.
+- **Gegenproben:** 11 Stück, alle rot:
+  - Abhaken, Sprache, Warten, Koch, Zutaten, Zustimmung
+  - Einzahlung, nur-ich, Anteil, Druck, abgelaufen (Server)
 
 ## Live & Deploy
 
@@ -221,7 +268,8 @@ node test/alltag.mjs      # Alltag: Vorrat, Kassenzettel, Waschtimer, Nachrichte
 node test/upgrade_dist.mjs # Update-Pfad wie auf den Handys: alte Auslieferung (Quelltext+Babel, alter SW) → dist; Update erkannt, Daten bleiben, Babel aus dem Cache, offline
 node test/ux.mjs          # Alltagstauglich: Build (vorab übersetzt, ohne Babel, Erststart < 6 s bei 4× CPU), Heute-Start, eine Eingabezeile, Abrechnen nur Gläubiger, Laden-Bereiche, Wer-bist-du, Morgen-Knopf, Timer-Dauer, Push je Art, Mehr-Gruppen, Lesbarkeit
 node test/extra.mjs       # Extra: Schnell-Eingabe, Preis-Gedächtnis, Gesamtbudget, Einkaufs-Reihenfolge, Heute, Zähler, Kalender-Abo, Hell/Dunkel + Schrift
-node test/cron_alltag.mjs # Server-Hälfte (api/_wg.js): Abholrhythmus, Vorabend-Fälligkeit, Abwesenheit, Abend-Push, Sonntags-Überblick, Reparaturen, Jahr
+node test/plus.mjs        # Plus: Check-in (verdeckt bis alle), Kühlschrank, Essensplan, WG-Regeln, Sparziel, gemischter Einkauf, Nebenkosten, Sprach-Kurzbefehl, Inventar, Auszug + Druck
+node test/cron_alltag.mjs # Server-Hälfte (api/_wg.js): Abholrhythmus, Vorabend-Fälligkeit, Abwesenheit, Abend-Push, Sonntags-Überblick, Reparaturen, Jahr, Kühlschrank, Check-in
 node test/cron_duel.mjs # Montags-Push Wochen-Duell: Vorwoche Mo–So, Punkte-Fallbacks wie in der App, Gleichstand, nur montags, Typ game
 node test/csp_hash.mjs  # CSP-Hashes passen zu wgapp.html (+ Gegenproben) — ohne passende Hashes wäre die App blockiert
 npm run visual    # Screenshot-Harness: Handy/Tablet/Desktop + Tastatur-offen
@@ -241,7 +289,7 @@ node test/_audit.mjs        # a11y-Diagnose: Tap-Ziele, Kontraste, Labels, Fokus
 
 ## Datenmodell (localStorage `wg_data` / RTDB `wg/<code>`)
 
-`users` (id/name/color/pp), Listen-Keys: `hs` Haushalt, `gi` Grow-Ausgaben, `gp` Pflanzen-Anteile, `sl` Einkaufsliste, `pt`/`pl` Putzplan, `ab` Abos, `stl` Abrechnungen, `rec` Wiederkehrend, `bo` Ankündigungen, `ls` Login-Freigaben. Nicht gesynct: `wg_me` (Geräte-Identität), `wg_modules`, `wg_tab`, `wg_lg`, `wg_lg_view`.
+`users` (id/name/color/pp), Listen-Keys: `hs` Haushalt, `gi` Grow-Ausgaben, `gp` Pflanzen-Anteile, `sl` Einkaufsliste, `pt`/`pl` Putzplan, `ab` Abos, `stl` Abrechnungen, `rec` Wiederkehrend, `bo` Ankündigungen, `ls` Login-Freigaben; seit wg-v68 `sg` Sparziele, `ep` Essensplan, `kf` Kühlschrank, `inv` Inventar, `rg` WG-Regeln, `ci` Check-in (Details im Abschnitt „Plus“). Nicht gesynct: `wg_me` (Geräte-Identität), `wg_modules`, `wg_tab`, `wg_lg`, `wg_lg_view`.
 
 - **Neuer Listen-Key = Eintrag in `LIST_KEYS` UND in `INIT`.** Der Sync liest nur `KEYS = Object.keys(INIT)`. `bo` stand bis wg-v52 nur in `LIST_KEYS`: Ankündigungen kamen auf dem anderen Gerät nie an (weder beim Start noch live), Löschungen nie beim Server — kein Test merkte es, weil keiner zwei Geräte hatte. `sync.mjs` Szenario H prüft jetzt `LIST_KEYS ⊆ KEYS` und das Verhalten.
 - Neue Keys brauchen außerdem eine Regel in `database.rules.json` (`$other` lehnt alles Unbekannte ab) → `npm run ship -- "…" --rules`.

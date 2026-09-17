@@ -48,6 +48,12 @@
         "pr":   { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
         "qm":   { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
         "rp":   { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
+        "sg":   { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
+        "ep":   { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
+        "kf":   { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
+        "inv":  { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
+        "rg":   { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
+        "ci":   { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
         "zs":  { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
         "budSent": { "$id": { ".validate": "newData.hasChildren(['id'])", "$f": { ".validate": "newData.isString() ? newData.val().length <= 500 : (newData.isNumber() || newData.isBoolean())" } } },
 

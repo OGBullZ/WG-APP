@@ -130,6 +130,19 @@ check('26 Morgen-Job nutzt taskDueIn + Sammel-Push, Reparaturen, Jahr am 1.1.', 
 check('26b Gesamtbudget zählt alle Posten, Zähler-Erinnerung am 1.', /b\.id === 'total' \|\| i\.cat === b\.id/.test(cron) && /d === 1 \? meterReminder\(wg\)/.test(cron));
 check('27 Abend-Job in vercel.json', vj.crons.some(c => c.path === '/api/evening'));
 
+// ── PLUS (wg-v68): Kühlschrank-Erinnerung + Monats-Check-in ──
+const kfWg = { users, kf: {
+  a: { id: 'a', name: 'Milch', exp: '2026-09-18', owner: 'u2' },
+  b: { id: 'b', name: 'Käse', exp: '2026-09-17' },
+  c: { id: 'c', name: 'Wurst', exp: '2026-09-16' },   // schon abgelaufen → keine Erinnerung mehr
+  d: { id: 'd', name: 'Senf', exp: '2026-10-01' },
+} };
+const kf = W.fridgeReminders(kfWg, '2026-09-17');
+check('28 Kühlschrank: heute + morgen, sortiert, mit Besitzer', kf?.body === '🧊 Läuft bald ab: Käse heute, Milch (Tom) morgen' && kf.tag === 'kf-2026-09-17', kf?.body);
+check('29 nichts fällig → keine Push', W.fridgeReminders({ users, kf: { d: kfWg.kf.d } }, '2026-09-17') === null && W.fridgeReminders({ users }, '2026-09-17') === null);
+check('30 Check-in nur mit zwei Personen', !!W.checkinReminder({ users }) && W.checkinReminder({ users: { a: users.a } }) === null);
+check('31 Morgen-Job: Kühlschrank täglich, Check-in am 1.', /fridgeReminders\(wg, todayIso\)/.test(cron) && /d === 1 \? checkinReminder\(wg\)/.test(cron));
+
 console.log(pass.map(p => '  OK  ' + p).join('\n'));
 if (fail.length) console.log(fail.map(f => '  FAIL ' + f).join('\n'));
 console.log(`\n${pass.length} ok, ${fail.length} fehlgeschlagen`);
