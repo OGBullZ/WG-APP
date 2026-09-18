@@ -252,6 +252,46 @@ Bausteine im Block `PLUS` in wgapp.html. Neue Listen-Keys: `sg ep kf inv rg ci`,
   - Abhaken, Sprache, Warten, Koch, Zutaten, Zustimmung
   - Einzahlung, nur-ich, Anteil, Druck, abgelaufen (Server)
 
+## Mehr (seit wg-v70, 2026-09-18 — torbe: alle 10 Ideen)
+
+Bausteine im Block `MEHR` in wgapp.html (vor `PLUS`). Neue Listen-Keys: `st vo lh wa kt wk ga`, jeweils in INIT, LIST_KEYS und `database.rules.json`. Die Regeln müssen **vor** der App live sein. Neuer Vercel-Endpunkt `api/guest.js`.
+- **Status** (`st`, id = userId):
+  - Einträge `{text, back, until}`. Ohne „zurück um“ gilt der Status bis Mitternacht, sonst bis zur Uhrzeit plus 1 Std.
+  - Er wird nie gelöscht, sondern ausgeblendet, sobald `until` vorbei ist. Ein Minuten-Timer sorgt dafür, dass er ohne Neuladen verschwindet.
+- **Umfragen** (`vo`):
+  - Die Möglichkeiten stehen als `"A|B"` in einem String, weil Items nur einfache Felder haben dürfen. `|` im Text wird zu `/`.
+  - Das Ergebnis ist erst nach der eigenen Stimme sichtbar. Entschieden ist die Umfrage, wenn alle gestimmt haben oder die Frist vorbei ist; dann geht eine Push „Entschieden“ raus.
+  - „Ohne Namen“ blendet nur die Namen aus, gespeichert wird weiter `v_<uid>`. Die Beschriftung sagt deshalb nicht „geheim“.
+- **Wartung** (`wa`, Abstände in Monaten, `addMonthsISO` kappt am Monatsende) und **Ausleihe** (`lh`):
+  - Heute zeigt nur Fälliges und Überfälliges (`HomeDueCard`).
+  - Server (`maintReminders`/`loanReminders`): Push am Fälligkeitstag. Überfälliges und nie Erledigtes nur montags, damit es nicht täglich nervt.
+- **Verbrauch je Monat:**
+  - `monthlyUse` interpoliert linear zwischen den Ablesungen. Gezählt werden nur Monate, die ganz zwischen zwei Ablesungen liegen.
+  - **Fund beim Testen:** Eine Ablesung am 1. ließ den ersten Monat fallen.
+  - Hinweis bei mehr als 1,3 × dem Schnitt der letzten 6 Monate; Vorjahresvergleich ab einem Jahr Ablesungen.
+- **Monatsbericht:** Druckseite wie der Auszug (`hsAll` des Monats, Anteile wie `hsNetOf`), dazu „Als Text“ über `navigator.share` oder Kopieren.
+- **Kaution** (`kt`, ein Eintrag `k`):
+  - Die Rückzahlung auf das Konto von X wird anteilig nach Einzahlung verteilt. Je andere Person entsteht ein Posten `paidBy: sie, owedBy: X`, also schuldet X ihr den Anteil.
+  - Steht auch auf der Übergabe-Seite.
+- **Wochen-Korb** (`wk`): setzt nur Fehlendes auf die Liste; „aus häufigen Käufen“ nimmt `slh` mit n ≥ 3.
+- **Mitbewohner-Wechsel:**
+  - Gesperrt bei offener Bilanz (inklusive Growbox) oder offenem Sparziel.
+  - Die neue Person bekommt eine neue ID. Putz-Aufgaben und Kautions-Anteil gehen über, Status und Abwesenheiten der alten Person werden gelöscht.
+  - Das Inventar der alten Person landet unter „Ehemalige“. WG-Regeln brauchen die Zustimmung der neuen Person, weil `ok_<neu>` fehlt – so ist es gewollt.
+  - **Alle** bekommen `joined = heute`. `choreTally` zählt erst ab dem jüngsten `joined`, sonst müsste die neue Person 90 Tage „aufholen“.
+  - Verworfen wurde, die alte ID weiterzuverwenden: Dann gälten Toms Putzpunkte, Stimmen und Regel-Zustimmungen für Kim.
+- **Gast-Link** (`ga`, Eintrag `info` mit `wifi`, `pw`, `note`, `v`):
+  - `/api/guest` erzeugt per POST mit dem Code einen Schlüssel aus BACKUP_KEY, Code und `v`. Per GET liefert der Endpunkt reines HTML ohne Skripte.
+  - Header: eigene CSP `default-src 'none'`, `no-store`, `noindex`.
+  - Inhalt: WLAN, Hinweis, nur **gültige** Regeln, nächste Müll-Termine. Nichts vom Geld.
+  - Nutzertext wird escaped, siehe Test 45.
+  - Der Server kennt `v` erst nach dem Lesen der WG, deshalb kommt zuerst die Bremse, dann das Lesen, dann der Vergleich.
+  - „Alle Gast-Links ungültig machen“ zählt `v` hoch, ein Code-Wechsel wirkt genauso.
+- **Tests:** mehr 44/44, cron_alltag 64/64.
+- **Gegenproben:** 13 Stück, alle rot:
+  - Browser: Ablauf, verdeckt, Pipe, fällig, Kaution-Anteil, Korb, Sperre, Einzug, erster Monat
+  - Server: Monatsende, Montag, Escape, Version
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -285,6 +325,7 @@ node test/alltag.mjs      # Alltag: Vorrat, Kassenzettel, Waschtimer, Nachrichte
 node test/upgrade_dist.mjs # Update-Pfad wie auf den Handys: alte Auslieferung (Quelltext+Babel, alter SW) → dist; Update erkannt, Daten bleiben, Babel aus dem Cache, offline
 node test/ux.mjs          # Alltagstauglich: Build (vorab übersetzt, ohne Babel, Erststart < 6 s bei 4× CPU), Heute-Start, eine Eingabezeile, Abrechnen nur Gläubiger, Laden-Bereiche, Wer-bist-du, Morgen-Knopf, Timer-Dauer, Push je Art, Mehr-Gruppen, Lesbarkeit
 node test/extra.mjs       # Extra: Schnell-Eingabe, Preis-Gedächtnis, Gesamtbudget, Einkaufs-Reihenfolge, Heute, Zähler, Kalender-Abo, Hell/Dunkel + Schrift
+node test/mehr.mjs        # Mehr: Status (Ablauf), Umfragen (verdeckt bis zur eigenen Stimme), Wartung/Ausleihe + Heute-Fälliges, Verbrauch je Monat, Monatsbericht, Kaution, Wochen-Korb, Mitbewohner-Wechsel, Gast-Link
 node test/plus.mjs        # Plus: Check-in (verdeckt bis alle), Kühlschrank, Essensplan, WG-Regeln, Sparziel, gemischter Einkauf, Nebenkosten, Sprach-Kurzbefehl, Inventar, Auszug + Druck
 node test/cron_alltag.mjs # Server-Hälfte (api/_wg.js): Abholrhythmus, Vorabend-Fälligkeit, Abwesenheit, Abend-Push, Sonntags-Überblick, Reparaturen, Jahr, Kühlschrank, Check-in
 node test/cron_duel.mjs # Montags-Push Wochen-Duell: Vorwoche Mo–So, Punkte-Fallbacks wie in der App, Gleichstand, nur montags, Typ game
@@ -306,7 +347,7 @@ node test/_audit.mjs        # a11y-Diagnose: Tap-Ziele, Kontraste, Labels, Fokus
 
 ## Datenmodell (localStorage `wg_data` / RTDB `wg/<code>`)
 
-`users` (id/name/color/pp), Listen-Keys: `hs` Haushalt, `gi` Grow-Ausgaben, `gp` Pflanzen-Anteile, `sl` Einkaufsliste, `pt`/`pl` Putzplan, `ab` Abos, `stl` Abrechnungen, `rec` Wiederkehrend, `bo` Ankündigungen, `ls` Login-Freigaben; seit wg-v68 `sg` Sparziele, `ep` Essensplan, `kf` Kühlschrank, `inv` Inventar, `rg` WG-Regeln, `ci` Check-in (Details im Abschnitt „Plus“). Nicht gesynct: `wg_me` (Geräte-Identität), `wg_modules`, `wg_tab`, `wg_lg`, `wg_lg_view`.
+`users` (id/name/color/pp), Listen-Keys: `hs` Haushalt, `gi` Grow-Ausgaben, `gp` Pflanzen-Anteile, `sl` Einkaufsliste, `pt`/`pl` Putzplan, `ab` Abos, `stl` Abrechnungen, `rec` Wiederkehrend, `bo` Ankündigungen, `ls` Login-Freigaben; seit wg-v68 `sg` Sparziele, `ep` Essensplan, `kf` Kühlschrank, `inv` Inventar, `rg` WG-Regeln, `ci` Check-in (Details im Abschnitt „Plus“); seit wg-v70 `st` Status, `vo` Umfragen, `lh` Ausleihe, `wa` Wartung, `kt` Kaution, `wk` Wochen-Korb, `ga` Gast-Link (Abschnitt „Mehr“). Nicht gesynct: `wg_me` (Geräte-Identität), `wg_modules`, `wg_tab`, `wg_lg`, `wg_lg_view`.
 
 - **Neuer Listen-Key = Eintrag in `LIST_KEYS` UND in `INIT`.** Der Sync liest nur `KEYS = Object.keys(INIT)`. `bo` stand bis wg-v52 nur in `LIST_KEYS`: Ankündigungen kamen auf dem anderen Gerät nie an (weder beim Start noch live), Löschungen nie beim Server — kein Test merkte es, weil keiner zwei Geräte hatte. `sync.mjs` Szenario H prüft jetzt `LIST_KEYS ⊆ KEYS` und das Verhalten.
 - Neue Keys brauchen außerdem eine Regel in `database.rules.json` (`$other` lehnt alles Unbekannte ab) → `npm run ship -- "…" --rules`.

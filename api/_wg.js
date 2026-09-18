@@ -45,6 +45,33 @@ function taskWho(t, wg, todayIso) {
 }
 const ptsOf = (l, byId) => { const p = Number(l.pts || (byId[l.taskId] && byId[l.taskId].pts)); return [1, 2, 3].includes(p) ? p : 2; };
 
+// ── wg-v70 ──
+// Monate addieren, Monatsende gekappt (31.01. + 1 → 28./29.02.) — wie addMonthsISO in der App
+const addMonthsIso = (iso, n) => { const [y, m, d] = String(iso).split('-').map(Number); const x = new Date(y, m - 1 + n, 1); x.setDate(Math.min(d, new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate())); return isoOf(x); };
+const maintDueIso = (t, todayIso) => (t.last ? addMonthsIso(t.last, t.every || 12) : todayIso);
+const isMonday = (iso) => parseIso(iso).getDay() === 1;
+// Morgens: Wartung — am Fälligkeitstag, danach (und bei „noch nie gemacht") nur montags, damit es nicht täglich nervt
+function maintReminders(wg, todayIso) {
+  const due = toArray(wg.wa).filter((t) => t.name && (t.last ? (maintDueIso(t, todayIso) === todayIso || (maintDueIso(t, todayIso) < todayIso && isMonday(todayIso))) : isMonday(todayIso)));
+  if (!due.length) return null;
+  return { title: 'Wartung', body: `🔧 Fällig: ${due.slice(0, 5).map((t) => t.name).join(', ')}`, tag: `wa-${todayIso}` };
+}
+// Morgens: Ausleihe — Rückgabetag, danach montags
+function loanReminders(wg, todayIso) {
+  const due = toArray(wg.lh).filter((l) => l.what && l.due && (l.due === todayIso || (l.due < todayIso && isMonday(todayIso))));
+  if (!due.length) return null;
+  const txt = (l) => (l.dir === 'out' ? `${l.what} von ${l.person} zurückholen` : `${l.what} an ${l.person} zurückgeben`);
+  return { title: 'Ausleihe', body: `🤝 ${due.slice(0, 3).map(txt).join(' · ')}`, tag: `lh-${todayIso}` };
+}
+// Gast-Seite: nur, was Besuch sehen darf — WLAN, Hinweis, gültige Regeln (alle zugestimmt), nächste Müll-Termine
+function guestView(wg, todayIso) {
+  const users = toArray(wg.users), info = (wg.ga && wg.ga.info) || {};
+  const rules = toArray(wg.rg).filter((r) => r.text && users.length && users.every((u) => r['ok_' + u.id] === true)).map((r) => r.text);
+  const pickups = toArray(wg.mk).filter((p) => p.kind && p.start).map((p) => ({ p, d: pickupNext(p, todayIso) })).sort((a, b) => a.d.localeCompare(b.d))
+    .map(({ p, d }) => { const k = PICK_KINDS[p.kind] || ['🗑️', p.kind]; const [, mm, dd] = d.split('-'); return `${k[0]} ${k[1]}: ${d === todayIso ? 'heute' : `${+dd}.${+mm}.`} (Tonne am Vorabend raus)`; });
+  return { date: todayIso.split('-').reverse().join('.'), wifi: info.wifi || '', pw: info.pw || '', note: info.note || '', rules, pickups };
+}
+
 // Morgens: was im Kühlschrank heute/morgen abläuft (eine Push)
 function fridgeReminders(wg, todayIso) {
   const users = toArray(wg.users), tomorrow = shiftIso(todayIso, 1);
@@ -211,4 +238,4 @@ function buildIcs(wg, todayIso, now = new Date()) {
   return lines.map(icsFold).join('\r\n') + '\r\n';
 }
 
-module.exports = { toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, checkinReminder, buildIcs, icsText, icsFold, PICK_KINDS };
+module.exports = { toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, checkinReminder, maintReminders, loanReminders, guestView, addMonthsIso, buildIcs, icsText, icsFold, PICK_KINDS };

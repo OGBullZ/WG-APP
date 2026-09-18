@@ -143,6 +143,46 @@ check('29 nichts fällig → keine Push', W.fridgeReminders({ users, kf: { d: kf
 check('30 Check-in nur mit zwei Personen', !!W.checkinReminder({ users }) && W.checkinReminder({ users: { a: users.a } }) === null);
 check('31 Morgen-Job: Kühlschrank täglich, Check-in am 1.', /fridgeReminders\(wg, todayIso\)/.test(cron) && /d === 1 \? checkinReminder\(wg\)/.test(cron));
 
+// ── MEHR (wg-v70): Wartung, Ausleihe, Gast-Seite ──
+check('32 Monate addieren kappt am Monatsende', W.addMonthsIso('2026-01-31', 1) === '2026-02-28' && W.addMonthsIso('2026-11-15', 3) === '2027-02-15');
+const waWg = { wa: { a: { name: 'Rauchmelder', every: 12, last: '2025-09-17' }, b: { name: 'Entkalken', every: 2, last: '2026-07-01' }, c: { name: 'Filter', every: 3, last: null }, d: { name: 'Neu', every: 2, last: '2026-09-10' } } };
+const waThu = W.maintReminders(waWg, '2026-09-17'), waMon = W.maintReminders(waWg, '2026-09-21');
+check('33 Wartung: am Fälligkeitstag (nicht die überfällige/nie gemachte an einem Donnerstag)', waThu?.body === '🔧 Fällig: Rauchmelder', waThu?.body);
+check('34 Wartung montags: alles Überfällige + nie gemacht', /Rauchmelder/.test(waMon?.body) && /Entkalken/.test(waMon?.body) && /Filter/.test(waMon?.body) && !/Neu/.test(waMon?.body), waMon?.body);
+const lhWg = { lh: { a: { what: 'Bohrmaschine', person: 'Nachbar', dir: 'out', due: '2026-09-17' }, b: { what: 'Beamer', person: 'Kai', dir: 'in', due: '2026-09-10' } } };
+check('35 Ausleihe: Rückgabetag', W.loanReminders(lhWg, '2026-09-17')?.body === '🤝 Bohrmaschine von Nachbar zurückholen');
+check('36 Ausleihe montags: auch Überfälliges', /Beamer an Kai zurückgeben/.test(W.loanReminders(lhWg, '2026-09-21')?.body || '') && W.loanReminders({ lh: {} }, '2026-09-21') === null);
+const gv = W.guestView({ users, rg: { a: { text: 'Ruhe ab 22 Uhr', ok_u1: true, ok_u2: true }, b: { text: 'Nur vorgeschlagen', ok_u1: true } },
+  mk: { p: papier }, ga: { info: { wifi: 'WG-Netz', pw: 'geheim123', note: 'Handtücher links' } }, hs: { x: { name: 'Pizza', price: 10 } } }, '2026-09-16');
+check('44 Gast-Ansicht: nur gültige Regeln, Müll-Termine, WLAN — kein Geld', gv.rules.join() === 'Ruhe ab 22 Uhr' && /Papier: 17\.9\./.test(gv.pickups[0]) && gv.wifi === 'WG-Netz' && !JSON.stringify(gv).includes('Pizza'), JSON.stringify(gv));
+const guestMod = require('../api/guest.js');
+const gp = guestMod.page({ ...gv, note: '<script>alert(1)</script>', rules: ['<img src=x onerror=1>'] });
+check('45 Gast-Seite escaped Nutzertext', !gp.includes('<script>alert') && !gp.includes('<img src=x') && gp.includes('&lt;script&gt;'));
+// /api/guest mit nachgebautem Server
+process.env.BACKUP_KEY = 'k'.repeat(43); process.env.WG_CODE = 'BLAU-MOND-ABC234';
+let gWg = { users, ga: { info: { id: 'info', wifi: 'WG-Netz', v: 1 } } };
+globalThis.fetch = async (u, o = {}) => {
+  const s = String(u);
+  if (s.includes('/cfg/code')) return new Response('null', { status: 200 });
+  if (s.includes('/rl/')) return new Response(o.method === 'PUT' ? '{}' : 'null', { status: 200 });
+  if (s.includes('/wg/BLAU-MOND-ABC234.json')) return new Response(JSON.stringify(gWg), { status: 200 });
+  return new Response('null', { status: 404 });
+};
+const gcall = (method, { body, query } = {}) => new Promise((resolve) => {
+  const res = { h: {}, code: 0, setHeader(k, v) { this.h[k.toLowerCase()] = v; }, status(c) { this.code = c; return this; },
+    json(b) { resolve({ code: this.code, body: b, h: this.h }); }, send(b) { resolve({ code: this.code, body: b, h: this.h }); }, end() { resolve({ code: this.code, h: this.h }); } };
+  guestMod({ method, body, query: query || {} }, res);
+});
+const gt = await gcall('POST', { body: { code: 'BLAU-MOND-ABC234', v: 1 } });
+check('46 Gast-Schlüssel nur mit richtigem Code, anders als der Kalender-Schlüssel', gt.code === 200 && /^[\w-]{32}$/.test(gt.body.token) && gt.body.token !== tok.body.token
+  && (await gcall('POST', { body: { code: 'FALSCH-CODE-ABC234', v: 1 } })).code === 403);
+const gg = await gcall('GET', { query: { t: gt.body.token } });
+check('47 GET → HTML mit WLAN, strenge CSP, kein Cache', gg.code === 200 && /text\/html/.test(gg.h['content-type']) && gg.body.includes('WG-Netz') && /default-src 'none'/.test(gg.h['content-security-policy']) && gg.h['cache-control'] === 'no-store');
+gWg = { ...gWg, ga: { info: { ...gWg.ga.info, v: 2 } } };
+check('48 nach „ungültig machen" (v=2) ist der alte Link tot', (await gcall('GET', { query: { t: gt.body.token } })).code === 404 && (await gcall('GET', { query: { t: 'x' } })).code === 404);
+globalThis.fetch = realFetch;
+check('49 Morgen-Job: Wartung + Ausleihe', /maintReminders\(wg, todayIso\)/.test(cron) && /loanReminders\(wg, todayIso\)/.test(cron));
+
 console.log(pass.map(p => '  OK  ' + p).join('\n'));
 if (fail.length) console.log(fail.map(f => '  FAIL ' + f).join('\n'));
 console.log(`\n${pass.length} ok, ${fail.length} fehlgeschlagen`);

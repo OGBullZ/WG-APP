@@ -897,7 +897,8 @@ const INIT = {
   ls:     [],
   err:    [],   // Fehlerprotokoll der Geräte (max. 30, s. Früh-Skript im <head> + drainErr)
   vr: [], mk: [], aw: [], wt: [], pr: [], qm: [], rp: [],
-  sg: [], ep: [], kf: [], inv: [], rg: [], ci: [],   // wg-v68: Sparziele, Essensplan, Kühlschrank, Inventar, WG-Regeln, Check-in
+  sg: [], ep: [], kf: [], inv: [], rg: [], ci: [],
+  st: [], vo: [], lh: [], wa: [], kt: [], wk: [], ga: [],   // wg-v70: Status, Umfragen, Ausleihe, Wartung, Kaution, Wochen-Korb, Gast-Link   // wg-v68: Sparziele, Essensplan, Kühlschrank, Inventar, WG-Regeln, Check-in
   zs: [],   // Zählerstände (wg-v64): Ablesungen + Tarif je Zähler (cfg-<kind>)   // Alltag (wg-v62): Vorrat, Müllabfuhr, Abwesend, Waschtimer, Zahlung bestätigen, Nachrichten, Reparaturen
 };
 const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
@@ -910,7 +911,7 @@ const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
    slh = Einkaufslisten-Historie (id=Slug, n=Kaufzähler), gh = Ernte-Log, bud = Kategorie-Budgets (id=Cat-Key),
    gz = Grow-Zyklen {start, phase, pAt, wiv, lastW, lastWBy, wn, end} — offen ist der ohne `end`.
    ls = Login-Freigaben {svc, by, ts, exp, view, s, iv, ct, it} — nur Chiffretext, s. LOGIN_*. */
-const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz','bo','ls','err','vr','mk','aw','wt','pr','qm','rp','zs','sg','ep','kf','inv','rg','ci'];
+const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz','bo','ls','err','vr','mk','aw','wt','pr','qm','rp','zs','sg','ep','kf','inv','rg','ci','st','vo','lh','wa','kt','wk','ga'];
 const isListKey = k => LIST_KEYS.includes(k);
 /* WG-Board (Key `bo`): kurze Ankündigungen zwischen den zwei Bewohnern — reine Info + Sofort-Push,
    keine Kostenrelevanz. Einträge mit Datum, laufen nach dem Tag automatisch aus der Anzeige. */
@@ -2249,6 +2250,543 @@ function LoginShare() {
 }
 
 /* ══════════════════════════
+   MEHR (seit wg-v70): Status, Umfragen, Ausleihe, Wartung, Verbrauchs-Verlauf, Monatsbericht, Kaution,
+   Wochen-Korb, Mitbewohner-Wechsel, Gast-Link.
+   Neue Listen-Keys: st, vo, lh, wa, kt, wk, ga — Items nur mit einfachen Feldern (DB-Regel `$f`).
+══════════════════════════ */
+
+/* ── Status „unterwegs / zurück um" (Key `st`, id = userId): {text, back, until} — verfällt von selbst ── */
+const STATUS_PRESETS = [['🚶','Unterwegs'],['💼','Bei der Arbeit'],['📚','Lerne – bitte leise'],['😴','Schlafe'],['🏋️','Beim Sport']];
+// „HH:MM" → nächster Zeitpunkt dieser Uhrzeit (heute, sonst morgen)
+const nextTimeTs = hhmm => { const m=/^(\d{1,2}):(\d{2})$/.exec(hhmm||''); if(!m) return null; const d=new Date(); d.setHours(+m[1],+m[2],0,0); if(d.getTime()<=Date.now()) d.setDate(d.getDate()+1); return d.getTime(); };
+const endOfDayTs = () => { const d=new Date(); d.setHours(23,59,59,0); return d.getTime(); };
+function StatusCard() {
+  const { D, setFn, me } = useD();
+  const users = D.users || [];
+  const [f,setF] = useState(null);   // {text, back}
+  const [now,setNow] = useState(Date.now());
+  useEffect(()=>{ const t=setInterval(()=>setNow(Date.now()), 60000); return ()=>clearInterval(t); }, []);   // abgelaufene Status verschwinden ohne Neuladen
+  if (!me || users.length < 2) return null;
+  const live = id => { const s=(D.st||[]).find(x=>x && x.id===id); return s && s.text && (!s.until || s.until>now) ? s : null; };
+  const mine = live(me), others = users.filter(u=>u.id!==me).map(u=>({ u, s:live(u.id) })).filter(x=>x.s);
+  const save = () => {
+    const text = (f.text||'').trim().slice(0,60); if (!text) return;
+    // mit „zurück um" hält der Status bis dahin (+1 Std. Kulanz), sonst bis Mitternacht
+    const bt = nextTimeTs(f.back);
+    setFn('st', cur=>[{ id:me, text, back:f.back||'', until: bt ? bt+3600e3 : endOfDayTs() }, ...(cur||[]).filter(x=>x && x.id!==me)]);
+    setF(null);
+  };
+  const clear = () => setFn('st', cur=>(cur||[]).filter(x=>x && x.id!==me));
+  const line = s => `${s.text}${s.back?` · zurück um ${s.back}`:''}`;
+  return (
+    <div className="rise" data-testid="status-card">
+      <div className="group">
+        {others.map(({u,s})=>(
+          <div key={u.id} className="cell" data-testid="status-other"><span style={{fontSize:18}}>📍</span>
+            <div className="cell-content"><span className="cell-title"><b style={{color:u.color}}>{u.name}</b>: {line(s)}</span></div>
+          </div>))}
+        <div className="cell" style={{gap:8}}>
+          <span style={{fontSize:18}}>🙋</span>
+          <div className="cell-content">
+            <span className="cell-title" data-testid="status-mine">{mine ? `Du: ${line(mine)}` : 'Kein Status'}</span>
+            <span className="cell-sub">{mine ? 'verschwindet von selbst' : 'Unterwegs? Zurück um …? Die anderen sehen es hier'}</span>
+          </div>
+          {mine && <button className="btn btn-sec" style={{width:'auto',padding:'8px 11px',fontSize:13,flexShrink:0}} onClick={clear}>Zurück ✓</button>}
+          <button className="btn btn-sec" style={{width:'auto',padding:'8px 11px',fontSize:13,flexShrink:0}} onClick={()=>setF({ text:mine?.text||'', back:mine?.back||'' })}>{mine?'Ändern':'Status'}</button>
+        </div>
+      </div>
+      <MiniSheet open={!!f} onClose={()=>setF(null)} title="Mein Status" color="var(--sky)">
+        {f && <>
+          <div style={{display:'flex',flexWrap:'wrap',gap:6}}>{STATUS_PRESETS.map(([em,l])=>{ const t=`${em} ${l}`; return <button key={l} type="button" style={chipSt(f.text===t)} onClick={()=>setF({...f,text:t})}>{t}</button>; })}</div>
+          <input className="field" maxLength={60} placeholder="Oder eigener Text" aria-label="Status-Text" value={f.text} onChange={e=>setF({...f,text:e.target.value})}/>
+          <label className="sheet-sublbl" htmlFor="st-back">Zurück um (optional)</label>
+          <input id="st-back" type="time" className="field" value={f.back} onChange={e=>setF({...f,back:e.target.value})}/>
+          <button className="btn" style={{background:'var(--sky)'}} onClick={save}>Zeigen</button>
+        </>}
+      </MiniSheet>
+    </div>
+  );
+}
+
+/* ── Umfragen (Key `vo`): {q, opts ("A|B|C"), by, ts, until, anon, v_<uid>: Index}
+   Ergebnis erst nach der eigenen Stimme (keine Beeinflussung); entschieden, wenn alle gestimmt haben oder die Frist um ist. ── */
+const pollOpts = p => String(p.opts||'').split('|').filter(Boolean);
+const pollDone = (p, users) => users.every(u=>Number.isInteger(p['v_'+u.id])) || (p.until && p.until < todayISO());
+function PollCard() {
+  const { D, setFn, me, notifyOthers, undo } = useD();
+  const users = D.users || [];
+  const [f,setF] = useState(null);   // {q, opts:[..], until, anon}
+  const cut = shiftISO(todayISO(), -7);
+  const polls = (D.vo||[]).filter(p=>p && p.q && (!pollDone(p, users) || (p.until||todayISO()) >= cut)).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const create = () => {
+    const q = f.q.trim().slice(0,120), opts = f.opts.map(o=>o.trim().replace(/\|/g,'/').slice(0,40)).filter(Boolean);
+    if (!q || opts.length < 2 || !me) return;
+    const p = { id:uid(), q, opts:opts.join('|'), by:me, ts:Date.now(), until:f.until, anon:!!f.anon };
+    setFn('vo', cur=>[p, ...(cur||[]).filter(x=>x && (x.ts||0) > Date.now()-60*864e5)]);   // alte Umfragen (>60 Tage) aufräumen
+    notifyOthers(`🗳️ Umfrage: ${q}`, `${opts.join(' · ')} – bis ${fmtDM(f.until)}`, 'wg-vo', 'board');
+    setF(null);
+  };
+  const vote = (p, i) => {
+    const after = { ...p, ['v_'+me]:i };
+    setFn('vo', cur=>cur.map(x=>x.id===p.id?{...x,['v_'+me]:i}:x));
+    if (!pollDone(p, users) && pollDone(after, users)) { const w = pollWinner(after); notifyOthers(`🗳️ Entschieden: ${p.q}`, w, 'wg-vo', 'board'); }
+  };
+  const pollWinner = p => { const o=pollOpts(p), n=o.map((_,i)=>users.filter(u=>p['v_'+u.id]===i).length), max=Math.max(...n);
+    const top=o.filter((_,i)=>n[i]===max); return max===0 ? 'Keine Stimmen' : top.length>1 ? `Gleichstand: ${top.join(' / ')}` : `${top[0]} (${max} von ${users.length})`; };
+  const del = p => { setFn('vo', cur=>cur.filter(x=>x.id!==p.id)); undo('Umfrage entfernt', ()=>setFn('vo', cur=>[p, ...cur])); };
+  return (
+    <div className="rise" data-testid="poll-card">
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span>🗳️ Abstimmen</span>
+        {me && <button className="hit" onClick={()=>setF({ q:'', opts:['',''], until:shiftISO(todayISO(),3), anon:false })} style={{...hdrBtn,color:'var(--mint)'}}>+ Umfrage</button>}
+      </div>
+      {polls.length>0 && <div className="group">
+        {polls.map(p=>{ const o=pollOpts(p), mineV=p['v_'+me], done=pollDone(p, users), show=done || Number.isInteger(mineV);
+          const waiting = users.filter(u=>!Number.isInteger(p['v_'+u.id])).map(u=>u.name);
+          return (
+            <div key={p.id} className="cell" data-testid="poll-row" style={{flexDirection:'column',alignItems:'stretch',gap:8,padding:'12px 16px'}}>
+              <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
+                <span className="cell-title" style={{flex:1}}>{p.q}</span>
+                <button className="del-btn" aria-label={`Umfrage „${p.q}" entfernen`} onClick={()=>del(p)}>×</button>
+              </div>
+              {o.map((opt,i)=>{ const who=users.filter(u=>p['v_'+u.id]===i), pct=users.length?who.length/users.length*100:0; return (
+                <button key={i} type="button" disabled={done || !me} aria-pressed={mineV===i} onClick={()=>vote(p,i)}
+                  style={{position:'relative',overflow:'hidden',textAlign:'left',border:mineV===i?'2px solid var(--mint)':'1px solid var(--sep)',borderRadius:12,padding:'9px 12px',background:'var(--bg3)',color:'var(--label)',fontFamily:'inherit',fontSize:14,fontWeight:600,cursor:done?'default':'pointer'}}>
+                  {show && <span style={{position:'absolute',inset:0,width:`${pct}%`,background:'rgba(94,234,212,.18)'}}/>}
+                  <span style={{position:'relative'}}>{opt}{show?` · ${who.length}`:''}{show && !p.anon && who.length?<span style={{color:'var(--label2)',fontWeight:500}}> ({who.map(u=>u.name).join(', ')})</span>:''}</span>
+                </button>); })}
+              <span className="cell-sub" data-testid="poll-state">{done ? `✅ ${pollWinner(p)}` : `${show?'':'Ergebnis nach deiner Stimme · '}offen bis ${fmtDM(p.until)}${waiting.length?` · fehlt: ${waiting.join(', ')}`:''}${p.anon?' · ohne Namen':''}`}</span>
+            </div>); })}
+      </div>}
+      <MiniSheet open={!!f} onClose={()=>setF(null)} title="Umfrage" color="var(--mint)">
+        {f && <>
+          <input className="field" autoFocus maxLength={120} placeholder="Frage, z. B. Welcher Staubsauger?" aria-label="Frage" value={f.q} onChange={e=>setF({...f,q:e.target.value})}/>
+          {f.opts.map((o,i)=><input key={i} className="field" maxLength={40} placeholder={`Möglichkeit ${i+1}`} aria-label={`Möglichkeit ${i+1}`} value={o} onChange={e=>setF({...f,opts:f.opts.map((x,j)=>j===i?e.target.value:x)})}/>)}
+          {f.opts.length<5 && <button type="button" className="btn btn-sec" onClick={()=>setF({...f,opts:[...f.opts,'']})}>+ Möglichkeit</button>}
+          <label className="sheet-sublbl" htmlFor="vo-until">Abstimmen bis</label>
+          <input id="vo-until" type="date" className="field" min={todayISO()} value={f.until} onChange={e=>setF({...f,until:e.target.value||todayISO()})}/>
+          <button type="button" style={chipSt(f.anon)} aria-pressed={f.anon} onClick={()=>setF({...f,anon:!f.anon})}>{f.anon?'✓ ':''}Ohne Namen anzeigen</button>
+          <button className="btn" style={{background:'var(--mint)'}} onClick={create}>Starten</button>
+        </>}
+      </MiniSheet>
+    </div>
+  );
+}
+
+/* ── Ausleihe (Key `lh`): {what, person, dir: 'out' (wir haben verliehen) | 'in' (wir haben geliehen), since, due, by} ── */
+function LoanCard() {
+  const { D, setFn, me, undo } = useD();
+  const [f,setF] = useState(null);
+  const items = (D.lh||[]).filter(Boolean).sort((a,b)=>String(a.due||'9').localeCompare(String(b.due||'9')));
+  const save = () => {
+    if (!f.what.trim() || !f.person.trim()) return;
+    setFn('lh', cur=>[{ id:uid(), what:f.what.trim().slice(0,60), person:f.person.trim().slice(0,40), dir:f.dir, since:todayISO(), due:f.due||null, by:me||null }, ...(cur||[])]);
+    setF(null);
+  };
+  const back = it => { setFn('lh', cur=>cur.filter(x=>x.id!==it.id)); undo(`↩️ ${it.what} zurück`, ()=>setFn('lh', cur=>[it, ...cur])); };
+  return (
+    <div data-testid="loan-card">
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span>🤝 Ausgeliehen</span>
+        <button className="hit" onClick={()=>setF({ what:'', person:'', dir:'out', due:shiftISO(todayISO(),14) })} style={{...hdrBtn,color:'var(--mint)'}}>+ Eintrag</button>
+      </div>
+      <div className="group">
+        {!items.length && <div className="cell"><div className="cell-content"><span className="cell-sub">Bohrmaschine an den Nachbarn, Beamer von Freunden – mit Rückgabe-Erinnerung.</span></div></div>}
+        {items.map(it=>{ const d = it.due ? -daysSince(it.due) : null; return (
+          <div key={it.id} className="cell" data-testid="loan-row">
+            <div className="cell-content">
+              <span className="cell-title">{it.dir==='out' ? `${it.what} → ${it.person}` : `${it.what} ← von ${it.person}`}</span>
+              <span className="cell-sub" style={d!==null && d<=0 ? {color:d<0?'var(--red)':'var(--amber)',fontWeight:700} : undefined}>
+                {it.dir==='out'?'verliehen':'geliehen'} seit {fmtDM(it.since)}{d===null ? '' : d<0 ? ` · ${-d} ${-d===1?'Tag':'Tage'} über der Zeit` : d===0 ? ' · heute zurück' : ` · zurück bis ${fmtDM(it.due)}`}
+              </span>
+            </div>
+            <button className="btn btn-sec" aria-label={`${it.what} ist zurück`} style={{width:'auto',padding:'8px 11px',fontSize:13,flexShrink:0}} onClick={()=>back(it)}>Zurück ✓</button>
+          </div>); })}
+      </div>
+      <MiniSheet open={!!f} onClose={()=>setF(null)} title="Ausleihe" color="var(--mint)">
+        {f && <>
+          <div style={{display:'flex',gap:6}}>
+            <button type="button" style={{...chipSt(f.dir==='out'),flex:1}} onClick={()=>setF({...f,dir:'out'})}>Wir verleihen</button>
+            <button type="button" style={{...chipSt(f.dir==='in'),flex:1}} onClick={()=>setF({...f,dir:'in'})}>Wir leihen</button>
+          </div>
+          <input className="field" autoFocus maxLength={60} placeholder="Was? z. B. Bohrmaschine" aria-label="Gegenstand der Ausleihe" value={f.what} onChange={e=>setF({...f,what:e.target.value})}/>
+          <input className="field" maxLength={40} placeholder={f.dir==='out'?'An wen?':'Von wem?'} aria-label="Person" value={f.person} onChange={e=>setF({...f,person:e.target.value})}/>
+          <label className="sheet-sublbl" htmlFor="lh-due">Zurück bis (optional)</label>
+          <input id="lh-due" type="date" className="field" value={f.due||''} onChange={e=>setF({...f,due:e.target.value})}/>
+          <button className="btn" style={{background:'var(--mint)'}} onClick={save}>Speichern</button>
+        </>}
+      </MiniSheet>
+    </div>
+  );
+}
+
+/* ── Wartung (Key `wa`): {name, em, every (Monate), last} — lange Abstände, die der Putzplan nicht abbildet.
+   Fällig = last + every Monate; nie gemacht = jetzt. api/_wg.js (maintDue) rechnet genauso. ── */
+const MAINT_PRESETS = [['Rauchmelder testen','🚨',12],['Wasserkocher entkalken','🫖',2],['Kaffeemaschine entkalken','☕',3],['Dunstabzug-Filter','🌬️',3],
+  ['Waschmaschine: Flusensieb','🧺',3],['Duschkopf entkalken','🚿',3],['Heizung entlüften','🔥',12],['Kühlschrank abtauen','🧊',6],['Spülmaschine: Filter','🍽️',1],['Abflüsse reinigen','🪠',3]];
+const addMonthsISO = (iso, n) => { const [y,m,d]=String(iso).split('-').map(Number); const x=new Date(y,m-1+n,1); const last=new Date(x.getFullYear(),x.getMonth()+1,0).getDate(); x.setDate(Math.min(d,last)); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`; };
+const maintDue = t => t.last ? addMonthsISO(t.last, t.every||12) : todayISO();
+const maintDueIn = t => -daysSince(maintDue(t));
+function MaintCard() {
+  const { D, setFn, me, undo } = useD();
+  const [f,setF] = useState(null);
+  const items = (D.wa||[]).filter(Boolean).sort((a,b)=>maintDue(a).localeCompare(maintDue(b)));
+  const has = n => items.some(t=>t.name===n);
+  const add = (name, em, every) => { if (!name.trim() || has(name.trim())) return; setFn('wa', cur=>[...(cur||[]), { id:uid(), name:name.trim().slice(0,50), em:em||'🔧', every:Math.max(1,Math.min(60,+every||12)), last:null }]); };
+  const del = t => { setFn('wa', cur=>cur.filter(x=>x.id!==t.id)); undo(`„${t.name}" entfernt`, ()=>setFn('wa', cur=>[...cur, t])); };
+  return (
+    <div data-testid="maint-card">
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span>🔧 Wartung · alle paar Monate</span>
+        <button className="hit" onClick={()=>setF({ name:'', every:'6' })} style={{...hdrBtn,color:'var(--amber)'}}>+ Eigene</button>
+      </div>
+      <div className="group">
+        {items.map(t=>{ const d = maintDueIn(t); return (
+          <div key={t.id} className="cell" data-testid="maint-row">
+            <span style={{fontSize:18}}>{t.em}</span>
+            <div className="cell-content">
+              <span className="cell-title">{t.name}</span>
+              <span className="cell-sub" style={d<=0?{color:'var(--amber)',fontWeight:700}:undefined}>{!t.last ? 'noch nie – jetzt fällig' : d<0 ? `seit ${-d} Tagen fällig` : d===0 ? 'heute fällig' : `nächstes Mal ${fmtDate(maintDue(t))}`} · alle {t.every} Mon.</span>
+            </div>
+            <button className="del-btn" aria-label={`${t.name} entfernen`} onClick={()=>del(t)}>×</button>
+          </div>); })}
+        <div className="cell" style={{flexWrap:'wrap',gap:6,padding:'10px 16px'}}>
+          {MAINT_PRESETS.filter(p=>!has(p[0])).map(([n,em,m])=><button key={n} type="button" data-testid="maint-preset" style={chipSt(false)} onClick={()=>add(n,em,m)}>{em} {n}</button>)}
+        </div>
+      </div>
+      <MiniSheet open={!!f} onClose={()=>setF(null)} title="Wartung" color="var(--amber)">
+        {f && <>
+          <input className="field" autoFocus maxLength={50} placeholder="z. B. Fenster abdichten" aria-label="Wartungsaufgabe" value={f.name} onChange={e=>setF({...f,name:e.target.value})}/>
+          <label className="sheet-sublbl" htmlFor="wa-every">Alle … Monate</label>
+          <input id="wa-every" type="number" min="1" max="60" className="field" value={f.every} onChange={e=>setF({...f,every:e.target.value})}/>
+          <button className="btn" style={{background:'var(--amber)'}} onClick={()=>{ add(f.name,'🔧',f.every); setF(null); }}>Speichern</button>
+        </>}
+      </MiniSheet>
+    </div>
+  );
+}
+
+/* ── Heute: was an Wartung fällig und an Ausleihe überfällig ist — mit Erledigt-Knopf, sonst unsichtbar ── */
+function HomeDueCard() {
+  const { D, setFn, me, undo } = useD();
+  const maint = (D.wa||[]).filter(t=>t && maintDueIn(t)<=0);
+  const loans = (D.lh||[]).filter(l=>l && l.due && -daysSince(l.due)<=0);
+  if (!maint.length && !loans.length) return null;
+  const done = t => { const prev=t.last; setFn('wa', cur=>cur.map(x=>x.id===t.id?{...x,last:todayISO(),by:me||null}:x)); undo(`🔧 ${t.name} erledigt`, ()=>setFn('wa', cur=>cur.map(x=>x.id===t.id?{...x,last:prev}:x))); };
+  const back = l => { setFn('lh', cur=>cur.filter(x=>x.id!==l.id)); undo(`↩️ ${l.what} zurück`, ()=>setFn('lh', cur=>[l, ...cur])); };
+  return (
+    <div className="group rise" data-testid="home-due">
+      {maint.map(t=>(
+        <div key={t.id} className="cell" data-testid="home-due-maint"><span style={{fontSize:18}}>{t.em}</span>
+          <div className="cell-content"><span className="cell-title">{t.name}</span><span className="cell-sub">Wartung fällig · alle {t.every} Mon.</span></div>
+          <button className="btn btn-sec" aria-label={`${t.name} erledigt`} style={{width:'auto',padding:'8px 11px',fontSize:13,flexShrink:0}} onClick={()=>done(t)}>Erledigt ✓</button>
+        </div>))}
+      {loans.map(l=>(
+        <div key={l.id} className="cell" data-testid="home-due-loan"><span style={{fontSize:18}}>🤝</span>
+          <div className="cell-content"><span className="cell-title">{l.dir==='out'?`${l.what} von ${l.person} zurückholen`:`${l.what} an ${l.person} zurückgeben`}</span><span className="cell-sub" style={{color:'var(--amber)'}}>{-daysSince(l.due)<0?'über der Zeit':'heute'}</span></div>
+          <button className="btn btn-sec" aria-label={`${l.what} ist zurück`} style={{width:'auto',padding:'8px 11px',fontSize:13,flexShrink:0}} onClick={()=>back(l)}>Zurück ✓</button>
+        </div>))}
+    </div>
+  );
+}
+
+/* ── Verbrauchs-Verlauf aus den Zählerständen: Monatsverbrauch per linearer Interpolation zwischen Ablesungen.
+   Ein Monat zählt nur, wenn Ablesungen ihn ganz einschließen (sonst wäre er geraten). ── */
+const monthStart = ym => isoMid(ym+'-01');
+const monthlyUse = reads => {
+  const r = [...reads].filter(z=>z && z.date && Number.isFinite(+z.value)).sort((a,b)=>a.date.localeCompare(b.date));
+  if (r.length < 2) return [];
+  const t = z => isoMid(z.date).getTime();
+  const at = ts => { for (let i=1;i<r.length;i++) if (ts <= t(r[i])) { const a=r[i-1], b=r[i], span=t(b)-t(a); return span>0 ? a.value + (b.value-a.value)*(ts-t(a))/span : b.value; } return null; };
+  const out = []; const d = new Date(isoMid(r[0].date)); if (d.getDate() !== 1) { d.setDate(1); d.setMonth(d.getMonth()+1); }   // erster voller Monat (Ablesung am 1. zählt)
+  while (true) {
+    const s = new Date(d), e = new Date(d); e.setMonth(e.getMonth()+1);
+    if (e.getTime() > t(r[r.length-1])) break;
+    const use = at(e.getTime()) - at(s.getTime());
+    out.push({ ym:`${s.getFullYear()}-${String(s.getMonth()+1).padStart(2,'0')}`, use:Math.max(0, use) });
+    d.setMonth(d.getMonth()+1);
+  }
+  return out;
+};
+function ConsumptionCard() {
+  const { D } = useD();
+  const reads = (D.zs||[]).filter(z=>z && !z.cfg);
+  const series = Object.keys(METER_KINDS).map(k=>({ k, m:monthlyUse(reads.filter(z=>z.kind===k)) })).filter(x=>x.m.length);
+  if (!series.length) return null;
+  return (
+    <div className="rise" data-testid="use-card">
+      <div className="section-hdr">📉 Verbrauch je Monat</div>
+      <div className="group" style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:16}}>
+        {series.map(({k,m})=>{
+          const [em,label,unit] = METER_KINDS[k], last12 = m.slice(-12), max = Math.max(...last12.map(x=>x.use), 0.0001), cur = m[m.length-1];
+          const prevYear = m.find(x=>x.ym === `${+cur.ym.slice(0,4)-1}${cur.ym.slice(4)}`);
+          const before = m.slice(0,-1).slice(-6), avg = before.length>=3 ? before.reduce((s,x)=>s+x.use,0)/before.length : null;
+          return (
+            <div key={k} data-testid="use-series">
+              <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>{em} {label} · {ymLabel(cur.ym)}: {fmtN(cur.use,1)} {unit}</div>
+              <div style={{display:'flex',alignItems:'flex-end',gap:4,height:64}} aria-hidden="true">
+                {last12.map(x=><div key={x.ym} title={`${ymLabel(x.ym)}: ${fmtN(x.use,1)} ${unit}`} style={{flex:1,height:`${Math.max(4, x.use/max*100)}%`,borderRadius:4,background:x===cur?'var(--sky)':'var(--bg3)'}}/>)}
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'var(--label3)',marginTop:3}}><span>{ymLabel(last12[0].ym)}</span><span>{ymLabel(cur.ym)}</span></div>
+              <div className="cell-sub" data-testid="use-note" style={{marginTop:4}}>
+                {prevYear && prevYear.use>0 ? `${cur.use>=prevYear.use?'+':'−'}${fmtN(Math.abs(cur.use/prevYear.use-1)*100,0)} % gegenüber ${ymLabel(prevYear.ym)}` : 'Vorjahresvergleich ab einem Jahr Ablesungen'}
+                {avg && cur.use > avg*1.3 && <b style={{color:'var(--amber)'}}> · ⚠️ deutlich über dem Schnitt ({fmtN(avg,1)} {unit})</b>}
+              </div>
+            </div>
+          );
+        })}
+        <span style={{fontSize:12,color:'var(--label2)'}}>Monate zwischen zwei Ablesungen werden gleichmäßig aufgeteilt – je öfter abgelesen, desto genauer.</span>
+      </div>
+    </div>
+  );
+}
+
+/* ── Monatsbericht: Ausgaben eines Monats als Druckseite (Kategorien, wer hat gezahlt, Anteile, größte Posten) ── */
+function ReportCard() {
+  const { D } = useD();
+  const [ym,setYm] = useState(null);
+  const users = D.users || [];
+  const shiftYm = (y, n) => { const d=monthStart(y); d.setMonth(d.getMonth()+n); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; };
+  const items = ym ? hsAll(D).filter(i=>i && String(i.date||'').startsWith(ym)) : [];
+  const total = items.reduce((s,i)=>s+(+i.price||0),0);
+  const share = (i, id) => i.owedBy ? (i.owedBy===id ? i.price : 0) : i.price/Math.max(1,users.length);
+  const text = () => [`WG-Ausgaben ${ymLabel(ym)}: €${fmt(total)}`, ...CATS.map(([k,,l])=>{ const s=items.filter(i=>(i.cat||'other')===k).reduce((a,i)=>a+i.price,0); return s?`${l}: €${fmt(s)}`:null; }).filter(Boolean),
+    ...users.map(u=>`${u.name}: bezahlt €${fmt(items.filter(i=>i.paidBy===u.id).reduce((a,i)=>a+i.price,0))}, Anteil €${fmt(items.reduce((a,i)=>a+share(i,u.id),0))}`)].join('\n');
+  return (
+    <div className="rise" data-testid="report-card">
+      <div className="section-hdr">🧾 Monatsbericht</div>
+      <button className="group" onClick={()=>setYm(shiftYm(todayISO().slice(0,7), new Date().getDate()<=5 ? -1 : 0))} style={{width:'100%',padding:'14px 16px',textAlign:'left',fontFamily:'inherit',cursor:'pointer',color:'var(--label)'}}>
+        <span style={{display:'block',fontSize:15,fontWeight:700}}>Bericht öffnen</span>
+        <span style={{display:'block',fontSize:12.5,color:'var(--label2)'}}>Kategorien, wer hat was gezahlt, größte Posten – zum Drucken, als PDF oder als Text</span>
+      </button>
+      {ym && ReactDOM.createPortal(
+        <div className="print-sheet" data-testid="report-sheet" role="dialog" aria-label="Monatsbericht">
+          <div className="no-print" style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
+            <button className="btn" style={{width:'auto',padding:'0 14px',background:'#e5e7eb',color:'#111'}} aria-label="Vormonat" onClick={()=>setYm(shiftYm(ym,-1))}>‹</button>
+            <button className="btn" style={{width:'auto',padding:'0 14px',background:'#e5e7eb',color:'#111'}} aria-label="Folgemonat" onClick={()=>setYm(shiftYm(ym,1))}>›</button>
+            <button className="btn" style={{width:'auto',padding:'0 16px',background:'#0f766e',color:'#fff'}} onClick={()=>window.print()}>Drucken / PDF</button>
+            <button className="btn" style={{width:'auto',padding:'0 16px',background:'#e5e7eb',color:'#111'}} onClick={async()=>{ const t=text(); if (navigator.share) { try { await navigator.share({ text:t }); return; } catch {} } await copyTxt(t); }}>Als Text</button>
+            <button className="btn" style={{width:'auto',padding:'0 16px',background:'#e5e7eb',color:'#111'}} onClick={()=>setYm(null)}>Schließen</button>
+          </div>
+          <h2>WG-Ausgaben · {ymLabel(ym)}</h2>
+          <p data-testid="report-total"><b>Gesamt: €{fmt(total)}</b> · {items.length} Posten</p>
+          <h3>Nach Kategorie</h3>
+          <table><tbody>{CATS.map(([k,em,l])=>{ const s=items.filter(i=>(i.cat||'other')===k).reduce((a,i)=>a+i.price,0); return s ? <tr key={k}><td>{em} {l}</td><td>€{fmt(s)}</td><td>{fmtN(s/total*100,0)} %</td></tr> : null; })}</tbody></table>
+          <h3>Pro Person</h3>
+          <table data-testid="report-people"><tbody>{users.map(u=>{ const paid=items.filter(i=>i.paidBy===u.id).reduce((a,i)=>a+i.price,0), sh=items.reduce((a,i)=>a+share(i,u.id),0); return <tr key={u.id}><td>{u.name}</td><td>bezahlt €{fmt(paid)}</td><td>Anteil €{fmt(sh)}</td><td>{paid-sh>=0?'+':'−'}€{fmt(Math.abs(paid-sh))}</td></tr>; })}</tbody></table>
+          <h3>Größte Posten</h3>
+          {items.length ? <ul>{[...items].sort((a,b)=>b.price-a.price).slice(0,5).map(i=><li key={i.id}>{i.name} – €{fmt(i.price)} ({fmtDate(i.date)})</li>)}</ul> : <p>Keine Ausgaben in diesem Monat.</p>}
+        </div>, document.body)}
+    </div>
+  );
+}
+
+/* ── Kaution (Key `kt`, ein Eintrag id 'k'): {total, c_<uid>, refund, back}
+   Rückzahlung auf das Konto von X → je andere Person ein Posten „X schuldet ihr ihren Anteil" (anteilig nach Einzahlung). ── */
+function DepositCard() {
+  const { D, setFn, me, notifyOthers, undo } = useD();
+  const users = D.users || [];
+  const k = (D.kt||[]).find(x=>x && x.id==='k');
+  const [f,setF] = useState(null);   // Bearbeiten: {total, c:{uid:betrag}}
+  const [r,setR] = useState(null);   // Rückzahlung: {amount, to}
+  const paid = u => Number(k?.['c_'+u.id])||0;
+  const sum = k ? users.reduce((s,u)=>s+paid(u),0) : 0;
+  const edit = () => { const t = k?.total || ''; setF({ total:t?String(t).replace('.',','):'', c:Object.fromEntries(users.map(u=>[u.id, k ? String(paid(u)).replace('.',',') : ''])) }); };
+  const save = () => {
+    const total = parseNum(f.total); if (!(total>0)) return;
+    const c = Object.fromEntries(users.map(u=>['c_'+u.id, parseNum(f.c[u.id]) || (k ? 0 : Math.round(total/users.length*100)/100)]));
+    setFn('kt', cur=>[{ ...(k||{}), id:'k', total, ...c }, ...(cur||[]).filter(x=>x && x.id!=='k')]); setF(null);
+  };
+  const refund = () => {
+    const R = parseNum(r.amount); if (!(R>=0) || !sum) return;
+    const items = users.filter(u=>u.id!==r.to && paid(u)>0).map(u=>hsItem({ name:`🔑 Kaution zurück: Anteil ${u.name}`, price:Math.round(R*paid(u)/sum*100)/100, paidBy:u.id, owedBy:r.to, cat:'fix' })).filter(i=>i.price>0);
+    if (items.length) setFn('hs', cur=>[...items, ...(cur||[])]);
+    setFn('kt', cur=>cur.map(x=>x.id==='k'?{...x,refund:R,back:todayISO(),to:r.to}:x));
+    notifyOthers('🔑 Kaution zurück', `€${fmt(R)} auf dem Konto von ${nameOfU(users, r.to)} – Anteile stehen in der Abrechnung`, 'wg-kt', 'exp');
+    undo('🔑 Kaution verbucht', ()=>{ const ids=items.map(i=>i.id); setFn('hs', cur=>cur.filter(i=>!ids.includes(i.id))); setFn('kt', cur=>cur.map(x=>x.id==='k'?{...x,refund:null,back:null,to:null}:x)); });
+    setR(null);
+  };
+  return (
+    <div data-testid="deposit-card">
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span>🔑 Kaution</span>
+        <button className="hit" onClick={edit} style={{...hdrBtn,color:'var(--mint)'}}>{k?'Ändern':'+ Eintragen'}</button>
+      </div>
+      <div className="group">
+        {!k ? <div className="cell"><div className="cell-content"><span className="cell-sub">Wer hat wie viel Kaution gezahlt? Beim Auszug wird die Rückzahlung anteilig verrechnet.</span></div></div> : <>
+          <div className="cell" data-testid="deposit-row"><div className="cell-content">
+            <span className="cell-title">€{fmt(k.total)}{Math.abs(sum-k.total)>0.01?<b style={{color:'var(--amber)'}}> · eingetragen €{fmt(sum)}</b>:''}</span>
+            <span className="cell-sub">{users.map(u=>`${u.name} €${fmt(paid(u))}`).join(' · ')}{k.back?` · zurück: €${fmt(k.refund)} am ${fmtDate(k.back)}`:''}</span>
+          </div></div>
+          {!k.back && <button className="cell hit" data-testid="deposit-refund" onClick={()=>setR({ amount:String(k.total).replace('.',','), to:me||users[0]?.id })} style={{width:'100%',background:'none',fontFamily:'inherit',color:'var(--mint)',fontWeight:700,fontSize:14,cursor:'pointer'}}>Kaution zurückbekommen …</button>}
+        </>}
+      </div>
+      <MiniSheet open={!!f} onClose={()=>setF(null)} title="Kaution" color="var(--mint)">
+        {f && <>
+          <div className="f-euro"><input className="field" autoFocus inputMode="decimal" placeholder="Gesamt, z. B. 1200" aria-label="Kaution gesamt" value={f.total} onChange={e=>setF({...f,total:e.target.value})}/></div>
+          <div className="sheet-sublbl">Davon eingezahlt (leer = gleich verteilt)</div>
+          {users.map(u=><div key={u.id} className="f-euro"><input className="field" inputMode="decimal" placeholder={u.name} aria-label={`Kaution ${u.name}`} value={f.c[u.id]} onChange={e=>setF({...f,c:{...f.c,[u.id]:e.target.value}})}/></div>)}
+          <button className="btn" style={{background:'var(--mint)'}} onClick={save}>Speichern</button>
+        </>}
+      </MiniSheet>
+      <MiniSheet open={!!r} onClose={()=>setR(null)} title="Kaution zurück" color="var(--mint)">
+        {r && <>
+          <div className="sheet-sublbl">Wie viel kam zurück? (nach Abzügen)</div>
+          <div className="f-euro"><input className="field" inputMode="decimal" aria-label="Rückzahlung" value={r.amount} onChange={e=>setR({...r,amount:e.target.value})}/></div>
+          <div className="sheet-sublbl">Auf wessen Konto?</div>
+          <div className="pick">{users.map(u=><button key={u.id} type="button" className={`pick-btn${r.to===u.id?' on':''}`} style={{background:u.color}} onClick={()=>setR({...r,to:u.id})}>{u.name}</button>)}</div>
+          <div style={{fontSize:12.5,color:'var(--label2)'}}>Aufgeteilt nach dem, was jede Person eingezahlt hat.</div>
+          <button className="btn" style={{background:'var(--mint)'}} onClick={refund}>Verrechnen</button>
+        </>}
+      </MiniSheet>
+    </div>
+  );
+}
+
+/* ── Wochen-Korb (Key `wk`): übliche Einkäufe, ein Tipp setzt alles Fehlende auf die Liste ── */
+function BasketCard() {
+  const { D, setFn, me, notifyOthers, undo } = useD();
+  const [txt,setTxt] = useState('');
+  const [edit,setEdit] = useState(false);
+  const basket = (D.wk||[]).filter(x=>x && x.name);
+  const onList = n => (D.sl||[]).some(i=>i && !i.done && i.name.toLowerCase()===n.toLowerCase());
+  const miss = basket.filter(b=>!onList(b.name));
+  const addToBasket = n => { n=n.trim().slice(0,60); if (!n || basket.some(b=>b.name.toLowerCase()===n.toLowerCase())) return; setFn('wk', cur=>[...(cur||[]), { id:uid(), name:n }]); };
+  const fromHistory = () => [...(D.slh||[])].filter(x=>x && (x.n||0)>=3).sort((a,b)=>(b.n||0)-(a.n||0)).map(x=>x.name).filter(n=>n && !basket.some(b=>b.name.toLowerCase()===n.toLowerCase())).slice(0,8).forEach(addToBasket);
+  const fill = () => {
+    if (!miss.length) return;
+    const add = miss.map(b=>({ id:uid(), name:b.name, addedBy:me||null, date:todayISO(), done:false }));
+    setFn('sl', cur=>[...add, ...(cur||[])]);
+    notifyOthers('🧺 Wochen-Korb auf der Liste', add.map(a=>a.name).join(', '), 'wg-shop', 'shop');
+    undo(`🧺 ${add.length} auf die Liste`, ()=>{ const ids=add.map(a=>a.id); setFn('sl', cur=>cur.filter(i=>!ids.includes(i.id))); });
+  };
+  return (
+    <div className="rise" data-testid="basket-card">
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span>🧺 Wochen-Korb</span>
+        <button className="hit" onClick={()=>setEdit(e=>!e)} style={{...hdrBtn,color:'var(--mint)'}}>{edit?'Fertig':'Bearbeiten'}</button>
+      </div>
+      <div className="group" style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:10}}>
+        {basket.length>0 && <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+          {basket.map(b=><span key={b.id} style={{...chipSt(onList(b.name)),display:'inline-flex',alignItems:'center',gap:6}}>{b.name}{edit && <button type="button" aria-label={`${b.name} aus dem Korb`} onClick={()=>setFn('wk', cur=>cur.filter(x=>x.id!==b.id))} style={{background:'none',border:'none',color:'inherit',fontSize:15,padding:0,cursor:'pointer'}}>×</button>}</span>)}
+        </div>}
+        {!basket.length && !edit && <span style={{fontSize:13,color:'var(--label2)'}}>Was ihr jede Woche kauft, einmal eintragen – danach reicht ein Tipp.</span>}
+        {(edit || !basket.length) && <form onSubmit={e=>{ e.preventDefault(); addToBasket(txt); setTxt(''); }} style={{display:'flex',gap:8}}>
+          <input className="field" maxLength={60} placeholder="z. B. Milch" aria-label="In den Wochen-Korb" value={txt} onChange={e=>setTxt(e.target.value)} style={{flex:1}}/>
+          <button type="submit" className="btn" style={{width:54,flexShrink:0,background:'var(--mint)'}}>+</button>
+        </form>}
+        {(edit || !basket.length) && (D.slh||[]).some(x=>x && (x.n||0)>=3) && <button type="button" className="btn btn-sec" onClick={fromHistory}>Aus häufigen Käufen füllen</button>}
+        {basket.length>0 && !edit && <button className="btn" data-testid="basket-fill" disabled={!miss.length} style={{background:miss.length?'var(--mint)':'var(--bg3)'}} onClick={fill}>{miss.length ? `🧺 ${miss.length} auf die Liste` : 'Alles schon auf der Liste ✓'}</button>}
+      </div>
+    </div>
+  );
+}
+
+/* ── Mitbewohner-Wechsel: neue Person übernimmt den Platz einer ausziehenden.
+   Voraussetzung: deren Bilanz ist ausgeglichen und sie verwaltet kein offenes Sparziel.
+   Übernimmt: offene Putz-Aufgaben, Kautions-Anteil. Neu: `joined` = heute bei allen → Putz-Fairness startet neu (choreTally). ── */
+const NEW_COLORS = ['#a78bfa','#f472b6','#34d399','#fb923c','#60a5fa','#facc15'];
+function SwapCard() {
+  const { D, set, setFn, me, setMe, notifyOthers, askConfirm } = useD();
+  const users = D.users || [];
+  const [f,setF] = useState(null);   // {old, name}
+  if (users.length < 2) return null;
+  const gc = growCalc(D);
+  const netOf = id => hsNetOf(D, id) + (gc.tCost ? gc.net(id) : 0);
+  const blockers = id => [
+    Math.abs(netOf(id)) > 0.01 && `Offene Beträge (€${fmt(Math.abs(netOf(id)))}) – erst im Haushalt „Alles abrechnen"`,
+    (D.sg||[]).some(g=>g && !g.bought && (g.holder===id || (Number(g['c_'+id])||0)>0)) && 'Offenes Sparziel – erst kaufen oder auflösen',
+  ].filter(Boolean);
+  const go = async () => {
+    const name = f.name.trim().slice(0,40), old = users.find(u=>u.id===f.old);
+    if (!name || !old || blockers(old.id).length) return;
+    if (!(await askConfirm({ title:`${old.name} zieht aus`, body:`${name} übernimmt den Platz: offene Putz-Aufgaben und der Kautions-Anteil gehen über, der Putz-Ausgleich startet für alle neu. Rückgängig geht das nicht.`, okLabel:'Wechseln' }))) return;
+    const color = NEW_COLORS.find(c=>!users.some(u=>u.color===c)) || NEW_COLORS[0];
+    const nu = { id:uid(), name, color, joined:todayISO() };
+    set('users', users.map(u=>u.id===old.id ? nu : { ...u, joined:todayISO() }));
+    setFn('pt', cur=>(cur||[]).map(t=>t && t.assignee===old.id ? { ...t, assignee:nu.id } : t));
+    setFn('aw', cur=>(cur||[]).filter(a=>a && a.userId!==old.id));
+    setFn('st', cur=>(cur||[]).filter(s=>s && s.id!==old.id));
+    setFn('kt', cur=>(cur||[]).map(k=>k && k.id==='k' ? { ...k, ['c_'+nu.id]:Number(k['c_'+old.id])||0, ['c_'+old.id]:0 } : k));
+    if (me===old.id) setMe(null);   // das Gerät der ausziehenden Person fragt danach „Wer bist du?"
+    notifyOthers(`👋 ${name} zieht ein`, `übernimmt den Platz von ${old.name}`, 'wg-users', 'board');
+    setF(null);
+  };
+  const cur = f && users.find(u=>u.id===f.old), bl = cur ? blockers(cur.id) : [];
+  const kt = (D.kt||[]).find(x=>x && x.id==='k');
+  return (
+    <div data-testid="swap-card">
+      <button className="cell hit" onClick={()=>setF({ old:users.find(u=>u.id!==me)?.id || users[0].id, name:'' })} style={{width:'100%',background:'var(--bg2)',borderRadius:14,fontFamily:'inherit',color:'var(--label)',textAlign:'left',cursor:'pointer',marginTop:10}}>
+        <span style={{fontSize:18}}>🔄</span>
+        <div className="cell-content"><span className="cell-title">Mitbewohner-Wechsel</span><span className="cell-sub">Jemand zieht aus, jemand Neues ein</span></div>
+      </button>
+      <MiniSheet open={!!f} onClose={()=>setF(null)} title="Mitbewohner-Wechsel" color="var(--sky)">
+        {f && <>
+          <div className="sheet-sublbl">Wer zieht aus?</div>
+          <div className="pick">{users.map(u=><button key={u.id} type="button" className={`pick-btn${f.old===u.id?' on':''}`} style={{background:u.color}} onClick={()=>setF({...f,old:u.id})}>{u.name}</button>)}</div>
+          {bl.length>0 && <div data-testid="swap-block" style={{fontSize:13,color:'var(--red)',fontWeight:700,display:'flex',flexDirection:'column',gap:4}}>{bl.map(b=><span key={b}>⛔ {b}</span>)}</div>}
+          <input className="field" maxLength={40} placeholder="Name der neuen Person" aria-label="Neue Person" value={f.name} onChange={e=>setF({...f,name:e.target.value})}/>
+          {kt && cur && Number(kt['c_'+cur.id])>0 && <div style={{fontSize:12.5,color:'var(--label2)'}}>Kaution: {cur.name}s Anteil €{fmt(kt['c_'+cur.id])} geht auf die neue Person über – das Geld klärt ihr direkt untereinander.</div>}
+          <button className="btn" disabled={!!bl.length || !f.name.trim()} style={{background:bl.length||!f.name.trim()?'var(--bg3)':'var(--sky)'}} onClick={go}>Wechsel durchführen</button>
+        </>}
+      </MiniSheet>
+    </div>
+  );
+}
+
+/* ── Gast-Link (Key `ga`, ein Eintrag id 'info': {wifi, pw, note, v}) → Vercel /api/guest rendert eine Nur-Lese-Seite
+   mit WLAN, gültigen WG-Regeln und Müllplan. Schlüssel aus Code + v abgeleitet; v++ macht alte Links ungültig. ── */
+function GuestCard() {
+  const { D, setFn, wgCode } = useD();
+  const info = (D.ga||[]).find(x=>x && x.id==='info') || { id:'info', wifi:'', pw:'', note:'', v:1 };
+  const [f,setF] = useState(null);
+  const [tok,setTok] = useState(null);
+  const [msg,setMsg] = useState('');
+  const url = tok ? `${PUSH_API}/api/guest?t=${tok}` : '';
+  const save = () => { setFn('ga', cur=>[{ ...info, wifi:f.wifi.trim().slice(0,60), pw:f.pw.slice(0,80), note:f.note.trim().slice(0,300) }, ...(cur||[]).filter(x=>x && x.id!=='info')]); setF(null); };
+  const make = async () => {
+    setMsg('');
+    try {
+      const r = await fetch(PUSH_API + '/api/guest', { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ code:wgCode, v:info.v||1 }) });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok || !j.token) throw new Error(j.error || `Fehler ${r.status}`);
+      setTok(j.token);
+    } catch (e) { setMsg(`Link ging nicht (${e.message}).`); }
+  };
+  const renew = () => { setFn('ga', cur=>[{ ...info, v:(info.v||1)+1 }, ...(cur||[]).filter(x=>x && x.id!=='info')]); setTok(null); setMsg('Alter Link ist ungültig – neuen erzeugen.'); };
+  const copy = async () => setMsg(await copyTxt(url) ? 'Kopiert ✓ – per Messenger an den Besuch schicken.' : 'Kopieren ging nicht – bitte markieren.');
+  return (
+    <div data-testid="guest-card">
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span>🛎️ Gast-Link</span>
+        <button className="hit" onClick={()=>setF({ wifi:info.wifi||'', pw:info.pw||'', note:info.note||'' })} style={{...hdrBtn,color:'var(--sky)'}}>Angaben</button>
+      </div>
+      <div className="group" style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:8,fontSize:13,color:'var(--label2)'}}>
+        <span>Besuch bekommt eine Seite zum Lesen: WLAN{info.wifi?` („${info.wifi}")`:''}, eure gültigen WG-Regeln und die nächsten Müll-Termine – ohne WG-Code, ohne Zugriff auf Geld.</span>
+        {!tok ? <button className="btn btn-sec" onClick={make}>Link erzeugen</button> : <>
+          <code data-testid="guest-url" style={{fontSize:11.5,wordBreak:'break-all',userSelect:'all'}}>{url}</code>
+          <div style={{display:'flex',gap:8}}>
+            <button className="btn btn-sec" onClick={copy}>Kopieren</button>
+            <a className="btn btn-sec" href={url} target="_blank" rel="noopener" style={{display:'flex',alignItems:'center',justifyContent:'center',textDecoration:'none'}}>Ansehen</a>
+          </div>
+        </>}
+        <button className="btn btn-sec" onClick={renew}>Alle Gast-Links ungültig machen</button>
+        {msg && <span data-testid="guest-msg">{msg}</span>}
+      </div>
+      <MiniSheet open={!!f} onClose={()=>setF(null)} title="Für Gäste" color="var(--sky)">
+        {f && <>
+          <input className="field" maxLength={60} placeholder="WLAN-Name" aria-label="WLAN-Name" value={f.wifi} onChange={e=>setF({...f,wifi:e.target.value})}/>
+          <input className="field" maxLength={80} placeholder="WLAN-Passwort" aria-label="WLAN-Passwort" autoCapitalize="off" autoCorrect="off" spellCheck={false} value={f.pw} onChange={e=>setF({...f,pw:e.target.value})}/>
+          <textarea className="field" maxLength={300} rows={3} placeholder="Hinweis, z. B. Handtücher im Schrank links" aria-label="Hinweis für Gäste" value={f.note} onChange={e=>setF({...f,note:e.target.value})}/>
+          <div style={{fontSize:12.5,color:'var(--label2)'}}>Keine Schlüssel-Verstecke eintragen – wer den Link hat, sieht alles hier.</div>
+          <button className="btn" style={{background:'var(--sky)'}} onClick={save}>Speichern</button>
+        </>}
+      </MiniSheet>
+    </div>
+  );
+}
+
+/* ══════════════════════════
    PLUS (seit wg-v68): Sparziel, Nebenkosten, Essensplan, Kühlschrank, Inventar, Auszug, WG-Regeln, Check-in, Sprach-Kurzbefehl
    Neue Listen-Keys: sg, ep, kf, inv, rg, ci — Items nur mit einfachen Feldern (DB-Regel). Beträge je Person als Feld `c_<userId>`.
 ══════════════════════════ */
@@ -2599,6 +3137,7 @@ function MoveOutCard() {
   const lastRead = k => reads.filter(z=>z.kind===k).sort((a,b)=>b.date.localeCompare(a.date))[0];
   const openRep = (D.rp||[]).filter(r=>r && r.status!=='erledigt');
   const inv = (D.inv||[]).filter(Boolean);
+  const kt = (D.kt||[]).find(x=>x && x.id==='k');
   const gc = growCalc(D);
   const balLine = () => { const [a] = users; if (!a) return ''; const n = hsNetOf(D, a.id) + (gc.tCost ? gc.net(a.id) : 0); const o = otherOf(users, a.id);
     return Math.abs(n) < 0.01 ? 'Alles ausgeglichen' : n < 0 ? `${a.name} schuldet ${o?.name} €${fmt(-n)}` : `${o?.name} schuldet ${a.name} €${fmt(n)}`; };
@@ -2625,6 +3164,7 @@ function MoveOutCard() {
           {inv.length ? <table><tbody>{inv.map(i=><tr key={i.id}><td>{i.name}</td><td>{i.owner==='wg'?'Gemeinsam':nameOfU(users, i.owner)}</td><td>{i.price?`€${fmt(i.price)}`:''}</td></tr>)}</tbody></table> : <p>Nichts eingetragen.</p>}
           <h3>Offene Beträge</h3>
           <p data-testid="moveout-bal">{balLine()}</p>
+          {kt && <><h3>Kaution</h3><p data-testid="moveout-kt">€{fmt(kt.total)} · {users.map(u=>`${u.name} €${fmt(Number(kt['c_'+u.id])||0)}`).join(' · ')}{kt.back?` · zurück €${fmt(kt.refund)}`:''}</p></>}
           <p style={{marginTop:32}}>Unterschriften: ______________________ &nbsp; ______________________</p>
         </div>, document.body)}
     </div>
@@ -3211,7 +3751,9 @@ function Heute({ goTab }) {
         <ChoreQuick goPutz={()=>goTab('putz')}/>
         {me && mods.putz!==false && !mine.length && <div className="rise" data-testid="today-free" style={{fontSize:14,fontWeight:700,color:'var(--green)',padding:'0 4px'}}>✨ Heute ist nichts im Putzplan für dich fällig</div>}
         <AwayCard compact/>
+        <StatusCard/>
         {rows.length>0 && <div className="group rise" data-testid="today-rows">{rows}</div>}
+        <HomeDueCard/>
         <QuickExpense/>
         <CheckinCard/>
         <WashCard/>
@@ -3220,6 +3762,7 @@ function Heute({ goTab }) {
         <BoardCard/>
         <QuickMsgs/>
         <RulesCard/>
+        <PollCard/>
         <RepairCard/>
         <LoginShare/>
       </div></div>
@@ -4018,7 +4561,7 @@ function Haushalt({goGrow, goPutz}) {
           <QuickExpense onFull={name=>{ setWizInit(name ? { name, paidBy:me||undefined } : null); setWiz(true); }}/>
           <TotalBudget/>
           <SavingsCard/>
-          {!heuteOn && <><CheckinCard/><FridgeCard/><MealCard/><BoardCard/><QuickMsgs/><RulesCard/><LoginShare/><RepairCard/></>}
+          {!heuteOn && <><StatusCard/><HomeDueCard/><CheckinCard/><FridgeCard/><MealCard/><BoardCard/><QuickMsgs/><RulesCard/><PollCard/><LoginShare/><RepairCard/></>}
           {open.length>0 && (() => {
             const deb = bals.find(b=>b.net<-0.01), cred = bals.find(b=>b.net>0.01);
             if (me && deb && deb.id===me) return <div className="rise" data-testid="settle-hint" style={{fontSize:12.5,color:'var(--label2)',textAlign:'center'}}>Abrechnen macht {cred?.name}, sobald das Geld da ist – oben „Ich habe bezahlt“ tippen.</div>;
@@ -4123,6 +4666,7 @@ function Haushalt({goGrow, goPutz}) {
             🛒 Unterwegs? Mitbringen lassen (mit Push)
           </button>
           <StockCard/>
+          <BasketCard/>
           <form className="rise" style={{display:'flex',gap:8,animationDelay:'40ms'}} onSubmit={e=>{e.preventDefault();addL();}}>
             <input ref={listInput} maxLength={200} className="field" style={{flex:1}} placeholder="Milch, Klopapier, Müllbeutel …" value={newName} onChange={e=>setNewName(e.target.value)}/>
             <button type="submit" className="btn" style={{width:54,flexShrink:0,background:'var(--mint)',fontSize:26,lineHeight:1}}>+</button>
@@ -4663,7 +5207,8 @@ const choreDueIn = t => {
 };
 // Wie oft hat jede Person diese Aufgabe im Fenster gemacht? → { userId: Anzahl }
 const choreTally = (taskId, log, users) => {
-  const cut=choreCut(CHORE_WINDOW), o={};
+  const j = users.map(u=>u.joined).filter(Boolean).sort().pop();   // Mitbewohner-Wechsel (wg-v70): Fenster beginnt frühestens am Einzug
+  const cut = j && isoMid(j) > choreCut(CHORE_WINDOW) ? isoMid(j) : choreCut(CHORE_WINDOW), o={};
   users.forEach(u=>{ o[u.id]=0; });
   // Einträge aus Tagen, an denen der andere weg war, zählen nicht — sonst müsste er nach dem Urlaub „aufholen"
   (log||[]).forEach(l=>{ if(l && l.taskId===taskId && l.userId in o && isoMid(l.date)>=cut && !users.some(u=>u.id!==l.userId && isAway(u.id, l.date))) o[l.userId]++; });
@@ -6006,8 +6551,12 @@ function Einstellungen() {
         )}
 
         </Fold>
-        <Fold id="home" title="🏠 Inventar & Auszug" sub="Wem gehört was, Übergabe-Seite zum Drucken">
+        <Fold id="home" title="🏠 Wohnung" sub="Wartung, Ausleihe, Inventar, Kaution, Gast-Link, Auszug">
+        <MaintCard/>
+        <LoanCard/>
         <InventoryCard/>
+        <DepositCard/>
+        <GuestCard/>
         <MoveOutCard/>
         </Fold>
         <Fold id="people" title="👥 Personen" sub="Wer bist du, Namen, Farben, PayPal" alert={!me}>
@@ -6033,6 +6582,7 @@ function Einstellungen() {
               </div>
             ))}
           </div>
+          <SwapCard/>
           <div className="section-ftr">„Das bin ich" gilt nur für dieses Gerät. Der PayPal.me-Name ermöglicht den „Per PayPal zahlen"-Button beim Schuldenausgleich.</div>
         </div>
 
@@ -6477,7 +7027,9 @@ function Statistik() {
         </div>
 
         <MeterCard/>
+        <ConsumptionCard/>
         <CostsCard/>
+        <ReportCard/>
         <YearReview all={all} pl={pl} pt={D.pt||[]} users={users}/>
 
         {pl.length>0&&(
