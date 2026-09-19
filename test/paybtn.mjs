@@ -51,7 +51,7 @@ check('Torben sieht KEINEN paypal.me-Bezahllink', torben && torben.href === null
 
 // 3. Kein PayPal-Name hinterlegt → klarer Hinweis statt leer
 const noPp = await render({ me:'u2', torbenPp:false });
-check('Ohne PayPal-Name: Hinweis sichtbar', noPp && /PayPal-Namen hinterlegt/.test(noPp.txt));
+check('Ohne PayPal-Name: Hinweis sichtbar', noPp && /PayPal oder eine IBAN hinterlegt/.test(noPp.txt));
 
 console.log('TOM:', JSON.stringify(tom));
 console.log('TORBEN:', JSON.stringify(torben));

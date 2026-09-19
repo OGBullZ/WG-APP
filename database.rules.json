@@ -71,6 +71,7 @@
             "p256dh":   { ".validate": "newData.isString() && newData.val().length <= 300" },
             "auth":     { ".validate": "newData.isString() && newData.val().length <= 200" },
             "name":     { ".validate": "newData.isString() && newData.val().length <= 100" },
+            "uid":      { ".validate": "newData.isString() && newData.val().length <= 40" },
             "t":        { ".validate": "newData.isNumber()" },
             "exp":      { ".validate": "newData.isBoolean()" },
             "shop":     { ".validate": "newData.isBoolean()" },

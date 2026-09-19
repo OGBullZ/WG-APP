@@ -703,6 +703,12 @@ const fmtK = n => n>=1000?(n/1000).toFixed(1).replace('.', ',')+'K':fmt(n);
 /* PayPal.me-Handle aus beliebiger Eingabe extrahieren (Handle, @name, paypal.me/name, volle URL) */
 const ppHandle = s => String(s ?? '').trim().replace(/^https?:\/\//i,'').replace(/^(www\.)?paypal\.me\//i,'').replace(/^@/,'').split(/[/?#\s]/)[0].trim();
 /* PayPal.me-Zahllink mit Betrag in EUR; null wenn kein gültiger Handle */
+/* Bankverbindung (seit wg-v71): IBAN säubern, prüfen (ISO 13616: Mod 97 = 1) und in 4er-Blöcken zeigen */
+const ibanClean = s => String(s||'').replace(/\s+/g,'').toUpperCase();
+const ibanValid = s => { const x = ibanClean(s); if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(x)) return false;
+  const r = (x.slice(4) + x.slice(0,4)).replace(/[A-Z]/g, c => String(c.charCodeAt(0)-55));
+  let m = 0; for (const ch of r) m = (m*10 + +ch) % 97; return m === 1; };
+const ibanFmt = s => ibanClean(s).replace(/(.{4})/g, '$1 ').trim();
 const ppLink = (handle, amount) => { const h=ppHandle(handle); return h ? `https://paypal.me/${encodeURIComponent(h)}/${Number(amount||0).toFixed(2)}EUR` : null; };
 const tod  = () => new Date().toLocaleDateString('de-DE');
 const todayISO = () => { const d=new Date(),z=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; };
@@ -1557,7 +1563,7 @@ function DataProvider({ children }) {
   const listPushDevices = useCallback(async () => {
     if (!dbRef.current) return null;
     const v = (await dbRef.current.child('push').once('value')).val() || {};
-    return Object.entries(v).map(([id, s]) => ({ id, name: (s && s.name) || 'Gerät', t: (s && s.t) || 0, me: id === deviceId }));
+    return Object.entries(v).map(([id, s]) => ({ id, name: (s && s.name) || 'Gerät', uid: (s && s.uid) || null, t: (s && s.t) || 0, me: id === deviceId }));
   }, [deviceId]);
 
   /* Replace whole dataset (used by Import + Pair-Merge) */
@@ -1836,6 +1842,35 @@ function Wiz({ open, onClose, title, color, steps, onFinish, initial, quickOk, q
   );
 }
 
+/* Überweisung an den Gläubiger: Schuldner kopiert IBAN/Betrag/alles, Gläubiger teilt seine Bankdaten.
+   Nur wenn eine gültige IBAN hinterlegt ist; der Gast-Link zeigt sie nie (guestView nimmt nur WLAN/Regeln/Müll). */
+function BankBox({ c, d, amount, me }) {
+  const [msg,setMsg] = useState('');
+  if (!ibanValid(c.iban)) return null;
+  const holder = (c.holder||'').trim() || c.name;
+  const all = [`Empfänger: ${holder}`, `IBAN: ${ibanFmt(c.iban)}`, c.bic ? `BIC: ${String(c.bic).trim().toUpperCase()}` : null, `Betrag: ${fmt(amount)} €`, `Verwendungszweck: WG-Ausgleich ${d.name}`].filter(Boolean).join('\n');
+  const copy = async (t, label) => { setMsg(await copyTxt(t) ? `${label} kopiert ✓` : 'Kopieren ging nicht – bitte markieren.'); setTimeout(()=>setMsg(''), 2500); };
+  const share = async () => { try { if (navigator.share) { await navigator.share({ title:'Bankverbindung', text:all }); return; } } catch {} copy(all, 'Bankdaten'); };
+  const b = { width:'auto', padding:'8px 12px', fontSize:13, flex:1 };
+  return (
+    <div className="group rise" data-testid="bank-box" style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:8,marginTop:-4}}>
+      <div style={{fontSize:13,color:'var(--label2)'}}>🏦 Überweisung an <b style={{color:'var(--label)'}}>{holder}</b></div>
+      <div data-testid="bank-iban" className="num" style={{fontSize:15.5,fontWeight:700,letterSpacing:.3,userSelect:'all',wordBreak:'break-all'}}>{ibanFmt(c.iban)}</div>
+      {me===c.id ? (
+        <button className="btn btn-sec" onClick={share}>Bankdaten an {d.name} schicken</button>
+      ) : (
+        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+          {/* kurze Beschriftung (passt einzeilig aufs Handy), voller Name für Screenreader */}
+          <button className="btn btn-sec" style={b} aria-label="IBAN kopieren" onClick={()=>copy(ibanClean(c.iban), 'IBAN')}>📋 IBAN</button>
+          <button className="btn btn-sec" style={b} aria-label={`€${fmt(amount)} kopieren`} onClick={()=>copy(fmt(amount), 'Betrag')}>📋 €{fmt(amount)}</button>
+          <button className="btn btn-sec" style={b} aria-label="Alles kopieren" onClick={()=>copy(all, 'Alles')}>📋 Alles</button>
+        </div>
+      )}
+      {msg && <span data-testid="bank-msg" style={{fontSize:12.5,color:'var(--green)',fontWeight:700}}>{msg}</span>}
+    </div>
+  );
+}
+
 /* ── Schulden-Banner ── */
 const PP_LOGO = <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7.2 21.3l.5-3.1h3.6c3.8 0 6.4-1.9 7-5.5.5-3-.9-4.9-3.9-4.9H8.7c-.5 0-.9.4-1 .9L5.2 20.4c-.1.5.3.9.7.9h1.3zm2.4-9.9h2.1c1.2 0 1.9.6 1.7 1.8-.2 1.4-1.2 2.1-2.7 2.1H9l.6-3.9z"/></svg>;
 function Bal({ bals, noShare, mod = 'hs', onSettle }) {
@@ -1897,9 +1932,9 @@ function Bal({ bals, noShare, mod = 'hs', onSettle }) {
         <span style={{color:c.color,fontWeight:800}}>{c.name}</span>
         <span className="num" style={{fontWeight:700,fontSize:16,color:'var(--amber)'}}>€<CountUp value={amount}/></span>
       </div>
-      {!link ? (
+      {!link ? (ibanValid(c.iban) ? null :
         <div className="rise" style={{fontSize:12.5,color:'var(--label3)',textAlign:'center',marginTop:-4,lineHeight:1.5,padding:'0 8px'}}>
-          PayPal-Zahlung möglich, sobald {c.name} unter <b>Mehr&nbsp;→&nbsp;Personen</b> einen PayPal-Namen hinterlegt.
+          Per Klick zahlen geht, sobald {c.name} unter <b>Mehr&nbsp;→&nbsp;Personen</b> PayPal oder eine IBAN hinterlegt.
         </div>
       ) : isCreditor ? (
         noShare ? null : (
@@ -1914,6 +1949,7 @@ function Bal({ bals, noShare, mod = 'hs', onSettle }) {
           {PP_LOGO}€{fmt(amount)} an {c.name} per PayPal
         </a>
       )}
+      <BankBox c={c} d={d} amount={amount} me={me}/>
       {payBox}
     </>
   );
@@ -2246,6 +2282,83 @@ function LoginShare() {
           </div>
         </div>, document.body)}
     </>
+  );
+}
+
+/* ── Push-Hinweis auf „Heute" (seit wg-v71): Push fehlte beim Mitbewohner, der Hinweis stand nur tief unter „Mehr".
+   1) Dieses Gerät: aus / blockiert / iPhone nicht auf dem Home-Bildschirm → Karte mit dem passenden nächsten Schritt.
+   2) Andere Person ohne Push-Gerät → Karte mit „Per WhatsApp Bescheid geben" (Push erreicht sie ja gerade nicht).
+   Zuordnung Gerät → Person über uid (seit wg-v71), ältere Einträge über den Namen. „Später" blendet 7 Tage aus. ── */
+let PUSH_JUMP = false;
+// Scrollt beim Öffnen von „Mehr" zur Benachrichtigungs-Gruppe, wenn man von der Heute-Karte kommt
+function PushJump() {
+  useEffect(()=>{ if (!PUSH_JUMP) return; PUSH_JUMP = false; setTimeout(()=>document.querySelector('[data-fold="push"]')?.scrollIntoView({ block:'start', behavior:'smooth' }), 80); }, []);
+  return null;
+}   // Heute → Mehr: Benachrichtigungen aufklappen und hinscrollen
+const PUSH_NUDGE_KEY = 'wg_push_nudge';
+function PushNudge({ goTab }) {
+  const { D, me, status, listPushDevices, pushPrefsUpdate } = useD();
+  const users = D.users || [];
+  const [mine,setMine] = useState(null);   // 'on' | 'off' | 'denied' | 'install' | 'na'
+  const [devs,setDevs] = useState(null);
+  const [later,setLater] = useState(()=>{ const n = ls(PUSH_NUDGE_KEY, null); return !!(n && n.until > Date.now()); });
+  useEffect(()=>{
+    let alive = true;
+    (async ()=>{
+      try {
+        const ios = /iphone|ipad|ipod/i.test(navigator.userAgent||'');
+        const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        if (!('Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window)) { if (alive) setMine(ios && !standalone ? 'install' : 'na'); return; }
+        if (Notification.permission === 'denied') { if (alive) setMine('denied'); return; }
+        // ohne aktiven Service Worker (z. B. erster Aufruf) lieber nichts behaupten → nach 3 s „unbekannt"
+        const reg = await Promise.race([navigator.serviceWorker.ready, new Promise(r=>setTimeout(()=>r(null), 3000))]);
+        if (!reg) { if (alive) setMine('na'); return; }
+        const sub = await reg.pushManager.getSubscription();
+        if (alive) setMine(sub ? 'on' : 'off');
+      } catch { if (alive) setMine('na'); }
+    })();
+    return ()=>{ alive = false; };
+  }, []);
+  useEffect(()=>{ if (status==='synced' && listPushDevices) listPushDevices().then(setDevs).catch(()=>{}); }, [status]);
+  // Alte Anmeldungen (vor wg-v71) nachträglich der Person zuordnen
+  useEffect(()=>{ if (mine==='on' && me && pushPrefsUpdate) pushPrefsUpdate({ uid:me }).catch(()=>{}); }, [mine, me]);
+  const hasPush = u => (devs||[]).some(d=>d.uid ? d.uid===u.id : d.name===u.name);
+  const missing = me && Array.isArray(devs) && !later ? users.filter(u=>u.id!==me && !hasPush(u)) : [];
+  const own = mine==='off' || mine==='denied' || mine==='install';
+  if (!own && !missing.length) return null;
+  const appUrl = location.origin + location.pathname.replace(/wgapp\.html$/, '');
+  const wa = u => 'https://wa.me/?text=' + encodeURIComponent(`Hey ${u.name}, schalt bitte in der WG-App die Benachrichtigungen ein (Müll, Putzplan, Zahlungen): App öffnen → auf „Heute" oben „Einschalten" tippen. Auf dem iPhone die App vorher über Teilen → „Zum Home-Bildschirm" hinzufügen. ${appUrl}`);
+  const jump = () => { ss('wg_fold_push', true); PUSH_JUMP = true; goTab('set'); };
+  const snooze = () => { ss(PUSH_NUDGE_KEY, { until: Date.now() + 7*864e5 }); setLater(true); };
+  return (
+    <div className="group rise" data-testid="push-nudge">
+      {own && (
+        <div className="cell" data-testid="push-nudge-own" style={{gap:10,flexWrap:'wrap'}}>
+          <span style={{fontSize:20}}>🔔</span>
+          <div className="cell-content">
+            <span className="cell-title">{mine==='install' ? 'Erst zum Home-Bildschirm hinzufügen' : mine==='denied' ? 'Benachrichtigungen sind blockiert' : 'Benachrichtigungen sind aus'}</span>
+            <span className="cell-sub">{mine==='install' ? 'Auf dem iPhone kommen sie nur in der installierten App: Teilen ⬆️ → „Zum Home-Bildschirm", dann von dort öffnen.'
+              : mine==='denied' ? 'In den Handy-Einstellungen für diese App bzw. Seite erlauben – sonst kommen Müll, Putzplan und Zahlungen nicht an.'
+              : 'Ohne sie verpasst du Müll, Putzplan und Zahlungen.'}</span>
+          </div>
+          {mine==='off' && <button className="btn" style={{width:'auto',padding:'9px 14px',fontSize:14,flexShrink:0,background:'var(--sky)'}} onClick={jump}>Einschalten</button>}
+        </div>
+      )}
+      {missing.map(u=>(
+        <div key={u.id} className="cell" data-testid="push-nudge-other" style={{gap:10,flexWrap:'wrap'}}>
+          <span style={{fontSize:20}}>🔕</span>
+          <div className="cell-content">
+            <span className="cell-title">{u.name} bekommt keine Benachrichtigungen</span>
+            <span className="cell-sub">Kein Handy von {u.name} hat Push eingeschaltet.</span>
+          </div>
+          {/* Knöpfe in eigener Zeile — nebeneinander quetschten sie den Text auf eine Wortbreite (Foto 19.09.) */}
+          <div style={{flexBasis:'100%',display:'flex',gap:8,paddingLeft:30}}>
+            <a className="btn" data-testid="push-nudge-wa" href={wa(u)} target="_blank" rel="noopener" style={{flex:1,padding:'9px 12px',fontSize:13.5,background:'#25d366',color:'#062b14',textDecoration:'none',display:'flex',alignItems:'center',justifyContent:'center'}}>Per WhatsApp sagen</a>
+            <button className="btn btn-sec" style={{width:'auto',padding:'9px 14px',fontSize:13.5}} onClick={snooze}>Später</button>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -3724,7 +3837,10 @@ function Heute({ goTab }) {
   const pays = (D.pr||[]).filter(p=>p && p.status==='open' && (p.to===me || p.from===me));
   const openSl = (D.sl||[]).filter(i=>i && !i.done).length;
   const soon = (D.vr||[]).filter(v=>v && !v.hidden && (stockLeft(v) ?? 99) <= 2);
-  const net = me ? hsNetOf(D, me) : 0, other = users.find(u=>u.id!==me);
+  // EINE Quelle für „Du schuldest": myBalance (Haushalt + Growbox, wie Start-Pop-up und Haushalt-Ring).
+  // Vorher nur Haushalt → Heute 58,25 €, Pop-up 66,25 € (Differenz = Growbox-Anteil), torbe 19.09.
+  const bal = me ? myBalance(D, me, mods) : { total:0, hs:0, g:0 }, net = bal.total, other = users.find(u=>u.id!==me);
+  const balParts = Math.abs(bal.g) > 0.01 && Math.abs(bal.hs) > 0.01 ? ` (Haushalt €${fmt(Math.abs(bal.hs))}${(bal.hs<0)===(bal.g<0)?' + ':' − '}Growbox €${fmt(Math.abs(bal.g))})` : Math.abs(bal.g) > 0.01 ? ' (Growbox)' : '';
   const mine = me ? choreMine(D.pt, me) : [];
   const row = (em, text, onClick, tid) => (
     <button key={tid} className="cell" data-testid={tid} onClick={onClick} style={{width:'100%',textAlign:'left',background:'none',fontFamily:'inherit',cursor:'pointer',color:'var(--label)'}}>
@@ -3737,7 +3853,7 @@ function Heute({ goTab }) {
     ...picks.map(x=>{ const k = PICK_KINDS[x.p.kind] || ['🗑️', x.p.kind]; return row('🚛', `${k[0]} ${k[1]} ${x.d===today?'heute':'morgen früh'} – ${x.d===today?'Tonne draußen?':'heute Abend rausstellen'}`, ()=>goTab('putz'), 'today-pick-'+x.p.kind); }),
     ...pays.map(p=>row('💶', p.to===me ? `${nameOfU(users, p.from)} hat €${fmt(p.amount)} bezahlt – bitte bestätigen` : `Zahlung €${fmt(p.amount)} wartet auf ${nameOfU(users, p.to)}`, ()=>goTab('haus'), 'today-pay-'+p.id)),
     (openSl || soon.length) ? row('🛒', `${openSl} auf der Einkaufsliste${soon.length?` · bald leer: ${soon.map(s=>s.name).join(', ')}`:''}`, goList, 'today-shop') : null,
-    (me && other && Math.abs(net) > 0.01) ? row(net<0?'💸':'💰', net<0 ? `Du schuldest ${other.name} €${fmt(-net)}` : `${other.name} schuldet dir €${fmt(net)}`, ()=>goTab('haus'), 'today-bal') : null,
+    (me && other && Math.abs(net) > 0.01) ? row(net<0?'💸':'💰', net<0 ? `Du schuldest ${other.name} €${fmt(-net)}${balParts}` : `${other.name} schuldet dir €${fmt(net)}${balParts}`, ()=>goTab('haus'), 'today-bal') : null,
   ].filter(Boolean);
   return (
     <div className="screen">
@@ -3748,6 +3864,7 @@ function Heute({ goTab }) {
           <div style={{fontSize:13,color:'var(--label2)'}}>{new Date().toLocaleDateString('de-DE',{ weekday:'long', day:'numeric', month:'long' })}</div>
         </div>
         <WhoAmI/>
+        <PushNudge goTab={goTab}/>
         <ChoreQuick goPutz={()=>goTab('putz')}/>
         {me && mods.putz!==false && !mine.length && <div className="rise" data-testid="today-free" style={{fontSize:14,fontWeight:700,color:'var(--green)',padding:'0 4px'}}>✨ Heute ist nichts im Putzplan für dich fällig</div>}
         <AwayCard compact/>
@@ -6119,7 +6236,7 @@ function Einstellungen() {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
       const j = sub.toJSON() || {};
-      await pushSave({ endpoint: j.endpoint, p256dh: (j.keys&&j.keys.p256dh)||null, auth: (j.keys&&j.keys.auth)||null, name: (users.find(u=>u.id===me)?.name)||'Gerät', t: Date.now(), ...pushPrefs });
+      await pushSave({ endpoint: j.endpoint, p256dh: (j.keys&&j.keys.p256dh)||null, auth: (j.keys&&j.keys.auth)||null, name: (users.find(u=>u.id===me)?.name)||'Gerät', uid: me||null, t: Date.now(), ...pushPrefs });
       setPushOn(true);
       flashPush('Push aktiviert ✓');
     } catch (e) {
@@ -6579,14 +6696,25 @@ function Einstellungen() {
                     placeholder="dein-name" autoCapitalize="off" autoCorrect="off" spellCheck={false}
                     value={u.pp||''} onChange={e=>set('users',users.map(x=>x.id===u.id?{...x,pp:e.target.value}:x))}/>
                 </div>
+                {/* Bankverbindung (wg-v71): Inhaber leer = Name der Person; IBAN wird geprüft, gespeichert wie getippt */}
+                <div style={{flexBasis:'100%',display:'flex',flexDirection:'column',gap:6,marginTop:9,paddingLeft:18}} data-testid="bank-fields">
+                  <input className="field" maxLength={70} aria-label={`Kontoinhaber von ${u.name}`} placeholder={`Kontoinhaber (leer = ${u.name})`} style={{background:'var(--bg3)',border:'none',padding:'7px 10px',fontSize:14,fontWeight:600}}
+                    value={u.holder||''} onChange={e=>set('users',users.map(x=>x.id===u.id?{...x,holder:e.target.value}:x))}/>
+                  <input className="field num" maxLength={42} aria-label={`IBAN von ${u.name}`} placeholder="IBAN, z. B. DE89 3704 0044 …" autoCapitalize="characters" autoCorrect="off" spellCheck={false} style={{background:'var(--bg3)',border:'none',padding:'7px 10px',fontSize:14,fontWeight:600}}
+                    value={u.iban||''} onChange={e=>set('users',users.map(x=>x.id===u.id?{...x,iban:e.target.value}:x))}/>
+                  {u.iban && <span data-testid="iban-state" style={{fontSize:12.5,fontWeight:700,color:ibanValid(u.iban)?'var(--green)':'var(--amber)'}}>{ibanValid(u.iban) ? `✓ ${ibanFmt(u.iban)}` : '⚠️ IBAN stimmt nicht (Tippfehler?)'}</span>}
+                  <input className="field" maxLength={11} aria-label={`BIC von ${u.name}`} placeholder="BIC (optional)" autoCapitalize="characters" autoCorrect="off" spellCheck={false} style={{background:'var(--bg3)',border:'none',padding:'7px 10px',fontSize:14,fontWeight:600}}
+                    value={u.bic||''} onChange={e=>set('users',users.map(x=>x.id===u.id?{...x,bic:e.target.value}:x))}/>
+                </div>
               </div>
             ))}
           </div>
           <SwapCard/>
-          <div className="section-ftr">„Das bin ich" gilt nur für dieses Gerät. Der PayPal.me-Name ermöglicht den „Per PayPal zahlen"-Button beim Schuldenausgleich.</div>
+          <div className="section-ftr">„Das bin ich" gilt nur für dieses Gerät. PayPal.me-Name und IBAN erscheinen beim Schuldenausgleich zum Antippen bzw. Kopieren – nur für die WG, nie im Gast-Link.</div>
         </div>
 
         </Fold>
+        <PushJump/>
         <Fold id="push" title="🔔 Benachrichtigungen" sub="Push je Art, Ruhezeit, Geräte, Homescreen">
         {/* Erinnerungen — nur zeigen, wenn das Gerät Notifications kann (iOS: nur als installierte PWA) */}
         {notifySupported && (
@@ -6821,7 +6949,7 @@ function Einstellungen() {
    STATISTIK / ÜBERSICHT
 ══════════════════════════ */
 function Statistik() {
-  const { D, status, setFn } = useD();
+  const { D, status, setFn, mods } = useD();
   const users=D.users, hs=D.hs||[], gi=D.gi||[], ab=D.ab||[], gp=D.gp||{}, arc=D.arc||[], pl=D.pl||[];
   const [ym,setYm] = useState(()=>todayISO().slice(0,7));
   const nowYm = todayISO().slice(0,7);
@@ -6863,7 +6991,7 @@ function Statistik() {
   // Gesamt-Saldo über alles (2 Personen): offene hs+gi-Posten, gleiche Split-Logik wie die Tabs.
   // Nur Anzeige — abgerechnet wird weiter pro Modul.
   const openAll = [...hs.filter(i=>!i.settled).map(i=>({...i,mod:'hs'})), ...gi.filter(i=>!i.settled).map(i=>({...i,mod:'gi'}))];
-  const netOf = id => openAll.reduce((s,i)=>s+(i.paidBy===id?(i.price||0):0)-shareOf(i,id),0);
+  const netOf = id => myBalance(D, id, mods).total;   // gleiche Rechnung wie Heute/Pop-up (Growbox nach Pflanzen-Anteilen)
   const nets = users.map(u=>({...u, net:netOf(u.id)}));
   const netDeb = nets.find(n=>n.net<-0.01), netCred = nets.find(n=>n.net>0.01);
 

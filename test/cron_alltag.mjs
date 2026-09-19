@@ -154,6 +154,8 @@ check('35 Ausleihe: Rückgabetag', W.loanReminders(lhWg, '2026-09-17')?.body ===
 check('36 Ausleihe montags: auch Überfälliges', /Beamer an Kai zurückgeben/.test(W.loanReminders(lhWg, '2026-09-21')?.body || '') && W.loanReminders({ lh: {} }, '2026-09-21') === null);
 const gv = W.guestView({ users, rg: { a: { text: 'Ruhe ab 22 Uhr', ok_u1: true, ok_u2: true }, b: { text: 'Nur vorgeschlagen', ok_u1: true } },
   mk: { p: papier }, ga: { info: { wifi: 'WG-Netz', pw: 'geheim123', note: 'Handtücher links' } }, hs: { x: { name: 'Pizza', price: 10 } } }, '2026-09-16');
+const gvBank = W.guestView({ users: { a: { id: 'u1', name: 'Torben', iban: 'DE89370400440532013000', holder: 'Torben-Bastian Steen' } }, ga: { info: { wifi: 'X' } } }, '2026-09-16');
+check('44b Gast-Ansicht enthält nie Bankdaten', !JSON.stringify(gvBank).includes('DE89') && !JSON.stringify(gvBank).includes('Bastian'));
 check('44 Gast-Ansicht: nur gültige Regeln, Müll-Termine, WLAN — kein Geld', gv.rules.join() === 'Ruhe ab 22 Uhr' && /Papier: 17\.9\./.test(gv.pickups[0]) && gv.wifi === 'WG-Netz' && !JSON.stringify(gv).includes('Pizza'), JSON.stringify(gv));
 const guestMod = require('../api/guest.js');
 const gp = guestMod.page({ ...gv, note: '<script>alert(1)</script>', rules: ['<img src=x onerror=1>'] });

@@ -41,6 +41,8 @@ const SEED = {
 
 async function open(seed, { tab = 'heute', me = 'u1', route } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 420, height: 900 }, serviceWorkers: 'block' });
+  // Headless meldet Benachrichtigungen immer als „blockiert" (auch mit grantPermissions) → wie ein frisches Handy: „default"
+  await ctx.addInitScript(() => { try { Object.defineProperty(Notification, 'permission', { get: () => 'default' }); } catch {} });
   await ctx.routeWebSocket(/./, () => {});
   const page = await ctx.newPage();
   const errs = [], pushes = [];
@@ -232,6 +234,93 @@ await X2.ctx.close();
 const Y = await open({ ...SEED, st: map([{ id: 'u2', text: 'Alt', until: Date.now() - 1000 }]) });
 check('S5 abgelaufener Status verschwindet', await Y.page.locator('[data-testid="status-other"]').count() === 0);
 await Y.ctx.close();
+
+// ── Schulden: überall dieselbe Zahl (Haushalt + Growbox nach Pflanzen-Anteilen) — Fund 19.09.: Heute 58,25, Pop-up 66,25 ──
+// Haushalt: Tom zahlte 116,50 (50/50) → ich schulde 58,25. Growbox: Tom zahlte 32, Pflanzen 1:3 → mein Anteil 8 (bei 50/50 wären es 16).
+const BAL = { users: USERS, hs: map([{ id: 'b1', name: 'Einkauf', price: 116.5, paidBy: 'u2', date: T, settled: false }]),
+  gi: map([{ id: 'g1', name: 'Erde', price: 32, paidBy: 'u2', date: T, settled: false }]), gp: { u1: 1, u2: 3 } };
+const Q = await open(BAL);
+const tb = await Q.page.locator('[data-testid="today-bal"]').innerText().catch(() => '');
+check('Q1 Heute: Gesamt 66,25 mit Aufschlüsselung', /Du schuldest Tom €66,25 \(Haushalt €58,25 \+ Growbox €8,00\)/.test(tb), tb);
+await Q.tabTo('Übersicht');
+const qs = await Q.page.locator('.content').innerText();
+check('Q2 Übersicht „insgesamt" = dieselbe Zahl (Growbox nach Pflanzen, nicht 50/50)', /schuldet\s+Tom\s+insgesamt\s+€66,25/.test(qs.replace(/\s+/g, ' ')), (qs.match(/schuldet[^\n]{0,60}/) || [''])[0]);
+const pop = await Q.page.evaluate(() => { const D = JSON.parse(localStorage.getItem('wg_data')); return myBalance(D, 'u1', { grow: true }).total; });
+check('Q3 Start-Pop-up rechnet gleich', Math.abs(pop + 66.25) < 0.001, String(pop));
+check('Q4 keine Seitenfehler', Q.errs.length === 0, Q.errs.join(' | '));
+await Q.ctx.close();
+
+// ── Push-Hinweis auf Heute ──
+// Eigenes Gerät ohne Push-Anmeldung (Service Worker simuliert, im Test sonst gesperrt); Tom hat ein Push-Gerät
+const fakeSW = () => { const reg = { pushManager: { getSubscription: async () => null } };
+  Object.defineProperty(navigator.serviceWorker, 'ready', { get: () => Promise.resolve(reg) }); };
+const PN2ctx = await browser.newContext({ viewport: { width: 420, height: 900 }, serviceWorkers: 'block' });
+await PN2ctx.addInitScript(() => { try { Object.defineProperty(Notification, 'permission', { get: () => 'default' }); } catch {} });
+await PN2ctx.addInitScript(fakeSW);
+const PN2page = await PN2ctx.newPage();
+await PN2page.route('**/*', r => /firebasedatabase|firebaseio|vercel/.test(r.request().url()) ? r.abort() : r.continue());
+await PN2page.route(/firebase-(app|database)-compat[-\d.]*\.js/, r => r.fulfill({ status: 200, contentType: 'application/javascript', body: /firebase-app-compat/.test(r.request().url()) ? STUB : '' }));
+await PN2page.addInitScript(([s, d]) => { window.__wgSeed = s; if (localStorage.getItem('wg_code')) return;
+  for (const [k, v] of Object.entries({ wg_code: 'TEST-LOKAL-PUSH', wg_me: 'u1', wg_start_shown: d, wg_tab: 'heute' })) localStorage.setItem(k, JSON.stringify(v)); },
+  [{ users: USERS, push: { d2: { endpoint: 'x', name: 'Tom', uid: 'u2', t: 1 } } }, T]);
+await PN2page.goto(url); await PN2page.locator('.tabbar').waitFor({ timeout: 30000 });
+await PN2page.evaluate(() => window.__wg.fire()); await PN2page.waitForTimeout(1500);
+check('N1 eigenes Gerät ohne Push → „Benachrichtigungen sind aus"', /Benachrichtigungen sind aus/.test(await PN2page.locator('[data-testid="push-nudge-own"]').innerText().catch(() => '')));
+check('N2 Tom hat ein Gerät (uid) → kein Hinweis zu Tom', await PN2page.locator('[data-testid="push-nudge-other"]').count() === 0);
+await PN2page.getByRole('button', { name: 'Einschalten', exact: true }).click(); await PN2page.waitForTimeout(700);
+check('N3 „Einschalten" → Mehr, Benachrichtigungen aufgeklappt', /Mehr/.test(await PN2page.locator('.tabbar .tabitem.on, .tabbar [aria-current="page"]').first().innerText().catch(() => 'Mehr'))
+  && await PN2page.locator('[data-fold="push"] .fold-hdr').getAttribute('aria-expanded') === 'true');
+await PN2ctx.close();
+// Berechtigung blockiert (Headless-Standard) → Hinweis „blockiert", kein Einschalt-Knopf
+const PD = await browser.newContext({ viewport: { width: 420, height: 900 }, serviceWorkers: 'block' });
+const PDp = await PD.newPage();
+await PDp.route('**/*', r => /firebasedatabase|firebaseio|vercel/.test(r.request().url()) ? r.abort() : r.continue());
+await PDp.route(/firebase-(app|database)-compat[-\d.]*\.js/, r => r.fulfill({ status: 200, contentType: 'application/javascript', body: /firebase-app-compat/.test(r.request().url()) ? STUB : '' }));
+await PDp.addInitScript(([s, d]) => { window.__wgSeed = s; if (localStorage.getItem('wg_code')) return;
+  for (const [k, v] of Object.entries({ wg_code: 'TEST-LOKAL-PUSH', wg_me: 'u1', wg_start_shown: d, wg_tab: 'heute' })) localStorage.setItem(k, JSON.stringify(v)); }, [{ users: USERS }, T]);
+await PDp.goto(url); await PDp.locator('.tabbar').waitFor({ timeout: 30000 }); await PDp.evaluate(() => window.__wg.fire()); await PDp.waitForTimeout(1200);
+const pdt = await PDp.locator('[data-testid="push-nudge-own"]').innerText().catch(() => '');
+check('N8 blockiert → Hinweis auf Einstellungen, kein Knopf', /blockiert/.test(pdt) && await PDp.getByRole('button', { name: 'Einschalten', exact: true }).count() === 0, pdt);
+await PD.close();
+// Mitbewohner ohne Push: nur mein Gerät (alter Eintrag ohne uid → Zuordnung über den Namen)
+const PO = await open({ ...SEED, push: { d1: { endpoint: 'x', name: 'Torben', t: 1 } } });
+const po = PO.page.locator('[data-testid="push-nudge-other"]');
+check('N4 Tom ohne Push → Hinweis mit WhatsApp-Link', /Tom bekommt keine Benachrichtigungen/.test(await po.innerText().catch(() => ''))
+  && /^https:\/\/wa\.me\/\?text=Hey%20Tom/.test(await PO.page.locator('[data-testid="push-nudge-wa"]').getAttribute('href') || ''));
+check('N5 ohne Service Worker kein Eigen-Hinweis (nichts behaupten)', await PO.page.locator('[data-testid="push-nudge-own"]').count() === 0);
+await po.getByRole('button', { name: 'Später' }).click(); await PO.page.waitForTimeout(300);
+check('N6 „Später" blendet 7 Tage aus', await po.count() === 0 && await PO.page.evaluate(() => JSON.parse(localStorage.getItem('wg_push_nudge')).until > Date.now() + 6 * 864e5));
+check('N7 keine Seitenfehler', PO.errs.length === 0, PO.errs.join(' | '));
+await PO.ctx.close();
+
+// ── Bankverbindung (wg-v71): Inhaber frei wählbar, IBAN geprüft, Überweisungs-Box beim Ausgleich ──
+const IBAN = 'DE89370400440532013000';
+const BK = await open({ users: USERS, hs: map([{ id: 'b1', name: 'Einkauf', price: 40, paidBy: 'u2', date: T, settled: false }]) }, { tab: 'set' });
+await BK.ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 'http://localhost:8099' });
+await BK.folds(); await BK.page.waitForTimeout(300);
+await BK.page.getByLabel('Kontoinhaber von Tom').fill('Tom-Luca Beispiel');
+await BK.page.getByLabel('IBAN von Tom').fill('de89 3704 0044 0532 0130 01');
+check('K1 falsche IBAN (Prüfziffer) → Warnung', /IBAN stimmt nicht/.test(await BK.page.locator('[data-testid="iban-state"]').first().innerText()));
+await BK.page.getByLabel('IBAN von Tom').fill('de89 3704 0044 0532 0130 00');
+check('K2 gültige IBAN → ✓ in 4er-Blöcken', /✓ DE89 3704 0044 0532 0130 00/.test(await BK.page.locator('[data-testid="iban-state"]').first().innerText()));
+await BK.page.getByLabel('Kontoinhaber von Torben').fill('Torben-Bastian Steen');
+await BK.page.waitForTimeout(300);
+let bu = (await BK.data()).users;
+check('K3 Inhaber + IBAN je Person gespeichert (Anzeigename bleibt)', bu.find(u => u.id === 'u2').holder === 'Tom-Luca Beispiel' && bu.find(u => u.id === 'u1').holder === 'Torben-Bastian Steen' && bu.find(u => u.id === 'u1').name === 'Torben', JSON.stringify(bu));
+await BK.tabTo('Haushalt');
+const bb = BK.page.locator('[data-testid="bank-box"]');
+check('K4 ich schulde Tom → Überweisung an den Kontoinhaber', /Überweisung an Tom-Luca Beispiel/.test(await bb.innerText().catch(() => '')) && /DE89 3704 0044 0532 0130 00/.test(await bb.innerText().catch(() => '')));
+await bb.getByRole('button', { name: 'IBAN kopieren' }).click(); await BK.page.waitForTimeout(300);
+check('K5 IBAN kopiert (ohne Leerzeichen)', await BK.page.evaluate(() => navigator.clipboard.readText()) === IBAN);
+await bb.getByRole('button', { name: 'Alles kopieren' }).click(); await BK.page.waitForTimeout(300);
+const allTxt = await BK.page.evaluate(() => navigator.clipboard.readText());
+check('K6 „Alles kopieren": Empfänger, IBAN, Betrag, Zweck', /Empfänger: Tom-Luca Beispiel/.test(allTxt) && /IBAN: DE89 3704/.test(allTxt) && /Betrag: 20,00 €/.test(allTxt) && /Verwendungszweck: WG-Ausgleich Torben/.test(allTxt), allTxt);
+check('K7 keine Seitenfehler', BK.errs.length === 0, BK.errs.join(' | '));
+await BK.ctx.close();
+// Gläubiger-Sicht: eigene Bankdaten teilen statt kopieren
+const BK2 = await open({ users: [{ ...USERS[0] }, { ...USERS[1], iban: IBAN }], hs: map([{ id: 'b1', name: 'Einkauf', price: 40, paidBy: 'u2', date: T, settled: false }]) }, { tab: 'haus', me: 'u2' });
+check('K8 als Gläubiger: „Bankdaten an Torben schicken"', await BK2.page.locator('[data-testid="bank-box"]').getByRole('button', { name: 'Bankdaten an Torben schicken' }).count() === 1);
+await BK2.ctx.close();
 
 // ── DB-Regeln kennen die neuen Listen ──
 const wgRules = JSON.stringify(JSON.parse(readFileSync('database.rules.json', 'utf8')));

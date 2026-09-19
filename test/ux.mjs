@@ -167,7 +167,9 @@ const w1 = await G.page.locator('.sheet button', { hasText: /^Starten/ }).innerT
 await G.page.locator('.sheet button', { hasText: 'Trockner' }).click();
 const w2 = await G.page.locator('.sheet button', { hasText: /^Starten/ }).innerText();
 const fin = m => { const d = new Date(Date.now() + m * 60000); return `${z(d.getHours())}:${z(d.getMinutes())}`; };
-check('H1 Trockner merkt 30 Min., Waschmaschine hat ihren Standard (90)', w2.includes(fin(30)) && w1.includes(fin(90)), `${w1} / ${w2}`);
+// eine Minute Toleranz: die Knopftexte entstanden kurz vorher (Wackler am 19.09. genau über einen Minutenwechsel)
+const near = (txt, m) => txt.includes(fin(m)) || txt.includes(fin(m - 1));
+check('H1 Trockner merkt 30 Min., Waschmaschine hat ihren Standard (90)', near(w2, 30) && near(w1, 90), `${w1} / ${w2}`);
 await G.page.getByRole('button', { name: 'Abbrechen' }).first().click(); await G.page.waitForTimeout(300);
 
 // ── I: Push je Art ──

@@ -292,6 +292,25 @@ Bausteine im Block `MEHR` in wgapp.html (vor `PLUS`). Neue Listen-Keys: `st vo l
   - Browser: Ablauf, verdeckt, Pipe, fällig, Kaution-Anteil, Korb, Sperre, Einzug, erster Monat
   - Server: Monatsende, Montag, Escape, Version
 
+## Feinschliff 19.09. (wg-v71)
+
+- **„Du schuldest" war uneinheitlich** (torbe: Heute 58,25 €, Pop-up 66,25 €).
+  - „Heute" rechnete nur den Haushalt, Start-Pop-up und Haushalt-Ring Haushalt + Growbox.
+  - Jetzt nutzen Heute und Übersicht `myBalance(D, id, mods)`, dieselbe Funktion wie das Pop-up. Heute zeigt die Aufschlüsselung „(Haushalt € + Growbox €)".
+  - Die Übersicht rechnete schon vorher richtig; ihre Gegenprobe blieb grün, sie wurde aber trotzdem auf die gemeinsame Funktion umgestellt, damit der Growbox-Schalter überall gleich wirkt.
+- **Push-Hinweis auf „Heute"** (`PushNudge`):
+  - Eigenes Gerät aus, blockiert oder iPhone nicht installiert → passende Karte. „Einschalten" springt zu Mehr → Benachrichtigungen (`PUSH_JUMP`, `wg_fold_push`).
+  - Andere Person ohne Push-Gerät → Karte mit WhatsApp-Text (`wa.me`) und „Später" (7 Tage).
+  - Push-Einträge speichern jetzt `uid` (DB-Regel `push/$dev/uid`). Alte Einträge werden über den Namen zugeordnet und beim nächsten Öffnen nachgetragen.
+  - Ohne Service Worker behauptet die Karte nichts (Status „na").
+  - **Testfalle:** Headless meldet `Notification.permission` immer „denied", im Test wird es per `addInitScript` auf „default" gesetzt.
+- **Bankverbindung je Person** (`users[].holder/iban/bic`, einfache Felder):
+  - Unter Mehr → Personen eintragen. Die IBAN wird per Mod 97 geprüft und in 4er-Blöcken angezeigt.
+  - Kontoinhaber ist frei wählbar, etwa „Torben-Bastian Steen" statt des Anzeigenamens.
+  - `BankBox` in der Bilanz: Wer zahlt, bekommt 📋 IBAN, Betrag und alles (Empfänger, IBAN, BIC, Betrag, Zweck); wer Geld bekommt, „Bankdaten … schicken".
+  - Der Gast-Link zeigt sie nie (Test 44b).
+- **Test-Wackler `ux` H1:** Vergleichszeit über einen Minutenwechsel, jetzt mit 1 Minute Toleranz.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
