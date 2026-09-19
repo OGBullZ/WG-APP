@@ -293,34 +293,67 @@ check('N6 „Später" blendet 7 Tage aus', await po.count() === 0 && await PO.pa
 check('N7 keine Seitenfehler', PO.errs.length === 0, PO.errs.join(' | '));
 await PO.ctx.close();
 
-// ── Bankverbindung (wg-v71): Inhaber frei wählbar, IBAN geprüft, Überweisungs-Box beim Ausgleich ──
+// ── Bankverbindung (wg-v71): Inhaber frei wählbar, IBAN geprüft; fremde Profile gesperrt (wg-v72) ──
 const IBAN = 'DE89370400440532013000';
-const BK = await open({ users: USERS, hs: map([{ id: 'b1', name: 'Einkauf', price: 40, paidBy: 'u2', date: T, settled: false }]) }, { tab: 'set' });
-await BK.ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 'http://localhost:8099' });
+// Tom trägt auf SEINEM Handy seine Daten ein; Torbens Zeile ist für ihn gesperrt
+const BK = await open({ users: USERS, hs: map([{ id: 'b1', name: 'Einkauf', price: 40, paidBy: 'u2', date: T, settled: false }]) }, { tab: 'set', me: 'u2' });
 await BK.folds(); await BK.page.waitForTimeout(300);
 await BK.page.getByLabel('Kontoinhaber von Tom').fill('Tom-Luca Beispiel');
 await BK.page.getByLabel('IBAN von Tom').fill('de89 3704 0044 0532 0130 01');
 check('K1 falsche IBAN (Prüfziffer) → Warnung', /IBAN stimmt nicht/.test(await BK.page.locator('[data-testid="iban-state"]').first().innerText()));
 await BK.page.getByLabel('IBAN von Tom').fill('de89 3704 0044 0532 0130 00');
 check('K2 gültige IBAN → ✓ in 4er-Blöcken', /✓ DE89 3704 0044 0532 0130 00/.test(await BK.page.locator('[data-testid="iban-state"]').first().innerText()));
-await BK.page.getByLabel('Kontoinhaber von Torben').fill('Torben-Bastian Steen');
 await BK.page.waitForTimeout(300);
 let bu = (await BK.data()).users;
-check('K3 Inhaber + IBAN je Person gespeichert (Anzeigename bleibt)', bu.find(u => u.id === 'u2').holder === 'Tom-Luca Beispiel' && bu.find(u => u.id === 'u1').holder === 'Torben-Bastian Steen' && bu.find(u => u.id === 'u1').name === 'Torben', JSON.stringify(bu));
+check('K3 Inhaber + IBAN gespeichert (Anzeigename bleibt)', bu.find(u => u.id === 'u2').holder === 'Tom-Luca Beispiel' && bu.find(u => u.id === 'u2').iban === 'de89 3704 0044 0532 0130 00' && bu.find(u => u.id === 'u2').name === 'Tom', JSON.stringify(bu));
+// Sperre: Torbens Felder sind für Tom nur lesbar
+const tIban = BK.page.getByLabel('IBAN von Torben');
+check('L1 fremdes Profil: Felder schreibgeschützt + Hinweis', await tIban.getAttribute('readonly') !== null && await BK.page.getByLabel('PayPal.me-Name von Torben').getAttribute('readonly') !== null
+  && /Nur Torben kann das/.test(await BK.page.locator('[data-testid="person-locked"]').first().innerText()));
+await tIban.type('DE12', { timeout: 3000 }).catch(() => {});
+check('L2 Tippen in fremde IBAN ändert nichts', !(await BK.data()).users.find(u => u.id === 'u1').iban);
+await BK.page.locator('[data-testid="person-row"]', { hasText: 'Torben' }).getByRole('button', { name: 'Das bin ich' }).click(); await BK.page.waitForTimeout(300);
+check('L3 „Das bin ich" für eine andere Person fragt nach', /Bist du wirklich Torben/i.test(await BK.page.locator('body').innerText()));
+await BK.page.getByRole('button', { name: 'Abbrechen' }).last().click().catch(() => {}); await BK.page.waitForTimeout(300);
+check('L4 abgebrochen → weiter Tom', await BK.page.evaluate(() => JSON.parse(localStorage.getItem('wg_me'))) === 'u2');
 await BK.tabTo('Haushalt');
-const bb = BK.page.locator('[data-testid="bank-box"]');
-check('K4 ich schulde Tom → Überweisung an den Kontoinhaber', /Überweisung an Tom-Luca Beispiel/.test(await bb.innerText().catch(() => '')) && /DE89 3704 0044 0532 0130 00/.test(await bb.innerText().catch(() => '')));
-await bb.getByRole('button', { name: 'IBAN kopieren' }).click(); await BK.page.waitForTimeout(300);
-check('K5 IBAN kopiert (ohne Leerzeichen)', await BK.page.evaluate(() => navigator.clipboard.readText()) === IBAN);
-await bb.getByRole('button', { name: 'Alles kopieren' }).click(); await BK.page.waitForTimeout(300);
-const allTxt = await BK.page.evaluate(() => navigator.clipboard.readText());
-check('K6 „Alles kopieren": Empfänger, IBAN, Betrag, Zweck', /Empfänger: Tom-Luca Beispiel/.test(allTxt) && /IBAN: DE89 3704/.test(allTxt) && /Betrag: 20,00 €/.test(allTxt) && /Verwendungszweck: WG-Ausgleich Torben/.test(allTxt), allTxt);
+check('K8 als Gläubiger: „Bankdaten an Torben schicken"', await BK.page.locator('[data-testid="bank-box"]').getByRole('button', { name: 'Bankdaten an Torben schicken' }).count() === 1);
 check('K7 keine Seitenfehler', BK.errs.length === 0, BK.errs.join(' | '));
 await BK.ctx.close();
-// Gläubiger-Sicht: eigene Bankdaten teilen statt kopieren
-const BK2 = await open({ users: [{ ...USERS[0] }, { ...USERS[1], iban: IBAN }], hs: map([{ id: 'b1', name: 'Einkauf', price: 40, paidBy: 'u2', date: T, settled: false }]) }, { tab: 'haus', me: 'u2' });
-check('K8 als Gläubiger: „Bankdaten an Torben schicken"', await BK2.page.locator('[data-testid="bank-box"]').getByRole('button', { name: 'Bankdaten an Torben schicken' }).count() === 1);
+// Torben schuldet: Überweisung an Toms Kontoinhaber, Kopieren
+const BK2 = await open({ users: [{ ...USERS[0] }, { ...USERS[1], iban: IBAN, holder: 'Tom-Luca Beispiel' }], hs: map([{ id: 'b1', name: 'Einkauf', price: 40, paidBy: 'u2', date: T, settled: false }]) }, { tab: 'haus' });
+await BK2.ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 'http://localhost:8099' });
+const bb = BK2.page.locator('[data-testid="bank-box"]');
+check('K4 ich schulde Tom → Überweisung an den Kontoinhaber', /Überweisung an Tom-Luca Beispiel/.test(await bb.innerText().catch(() => '')) && /DE89 3704 0044 0532 0130 00/.test(await bb.innerText().catch(() => '')));
+await bb.getByRole('button', { name: 'IBAN kopieren' }).click(); await BK2.page.waitForTimeout(300);
+check('K5 IBAN kopiert (ohne Leerzeichen)', await BK2.page.evaluate(() => navigator.clipboard.readText()) === IBAN);
+await bb.getByRole('button', { name: 'Alles kopieren' }).click(); await BK2.page.waitForTimeout(300);
+const allTxt = await BK2.page.evaluate(() => navigator.clipboard.readText());
+check('K6 „Alles kopieren": Empfänger, IBAN, Betrag, Zweck', /Empfänger: Tom-Luca Beispiel/.test(allTxt) && /IBAN: DE89 3704/.test(allTxt) && /Betrag: 20,00 €/.test(allTxt) && /Verwendungszweck: WG-Ausgleich Torben/.test(allTxt), allTxt);
 await BK2.ctx.close();
+
+// ── Verrechnen (wg-v72, torbe 19.09.): Haushalt −66,25, Growbox +8 → zu zahlen 58,25; Abrechnen schließt beide ──
+const VR = { users: USERS, hs: map([{ id: 'v1', name: 'Einkauf', price: 132.5, paidBy: 'u2', date: T, settled: false }]),
+  gi: map([{ id: 'g1', name: 'Erde', price: 16, paidBy: 'u1', date: T, settled: false }]), gp: { u1: 1, u2: 1 } };
+const V1 = await open(VR, { tab: 'haus' });
+const vb = await V1.page.locator('.bal-banner').innerText().catch(() => '');
+check('V10 Haushalt zeigt den verrechneten Betrag 58,25', /58,25/.test(vb.replace(/\s+/g, ' ')), vb);
+check('V11 Aufschlüsselung Haushalt −66,25 · Growbox +8,00', /Haushalt −€66,25 · Growbox \+€8,00/.test(await V1.page.locator('[data-testid="bal-parts"]').innerText().catch(() => '')));
+check('V12 PayPal/IBAN-Betrag = 58,25 (Tom hat PayPal? nein → Hinweis; Zahlungsmeldung mit 58,25)', /58,25/.test(await V1.page.locator('[data-testid="pay-claim"]').innerText().catch(() => '')));
+await V1.tabTo('Heute');
+check('V13 Heute: dieselbe Zahl', /Du schuldest Tom €58,25/.test(await V1.page.locator('[data-testid="today-bal"]').innerText().catch(() => '')));
+await V1.ctx.close();
+const V2 = await open(VR, { tab: 'haus', me: 'u2' });   // Tom (Gläubiger) rechnet ab
+await V2.page.getByRole('button', { name: /Alles abrechnen \(1 \+ 1 Growbox\)/ }).click(); await V2.page.waitForTimeout(500);
+const vd = await V2.data();
+const stl = vd.stl.find(x => x.mod === 'hs'), stlG = vd.stl.find(x => x.mod === 'gi');
+check('V14 Abrechnen schließt Haushalt UND Growbox', vd.hs.every(i => i.settled) && vd.gi.every(i => i.settled), JSON.stringify([vd.hs, vd.gi]));
+check('V15 Abrechnung: 58,25 von Torben an Tom; Growbox-Eintrag mit 0 (über Haushalt)', !!stl && Math.abs(stl.amount - 58.25) < 0.001 && stl.fromId === 'u1' && stl.toId === 'u2' && stl.withGi === true && !!stlG && stlG.amount === 0 && stlG.viaHs === stl.id, JSON.stringify(vd.stl));
+await V2.page.getByRole('button', { name: /Rückgängig/ }).first().click().catch(() => {}); await V2.page.waitForTimeout(400);
+const vu = await V2.data();
+check('V16 Rückgängig öffnet beide wieder', vu.hs.every(i => !i.settled) && vu.gi.every(i => !i.settled) && !(vu.stl || []).length);
+check('V17 keine Seitenfehler', V2.errs.length === 0, V2.errs.join(' | '));
+await V2.ctx.close();
 
 // ── DB-Regeln kennen die neuen Listen ──
 const wgRules = JSON.stringify(JSON.parse(readFileSync('database.rules.json', 'utf8')));

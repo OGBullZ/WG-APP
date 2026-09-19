@@ -49,6 +49,7 @@ jobs:
           node test/upgrade_dist.mjs
           node test/plus.mjs
           node test/mehr.mjs
+          node test/onboarding.mjs
           node test/csp_hash.mjs
           node test/visual.mjs
           kill $SRV 2>/dev/null || true

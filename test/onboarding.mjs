@@ -14,8 +14,9 @@ const T = dayAgo(0);
 const browser = await chromium.launch();
 const pass = [], fail = [];
 const check = (n, c, extra = '') => (c ? pass : fail).push(n + (extra ? ` — ${extra}` : ''));
-const OTHER = 'BLAU-MOND-ABC234';
-const OTHER_WG = { users: { a: { id: 'x1', name: 'Anna', color: '#38bdf8' }, b: { id: 'x2', name: 'Ben', color: '#fbbf24' } },
+const OTHER = 'GRÜN-MOND-ABC234';   // Umlaut im Code: Einladungslink muss ihn heil übertragen
+// users als Liste wie in der echten RTDB (die App schreibt sie immer komplett als Array)
+const OTHER_WG = { users: [{ id: 'x1', name: 'Anna', color: '#38bdf8' }, { id: 'x2', name: 'Ben', color: '#fbbf24' }],
   hs: { h: { id: 'h', seq: 1, name: 'Pizza', price: 20, paidBy: 'x1', date: T, settled: false } } };
 
 // fresh = kein wg_code → das Gerät erzeugt selbst einen (wie ein neues Handy)
@@ -52,10 +53,10 @@ async function open({ fresh = true, query = '', init = {}, other = false } = {})
   check('A1 frisches Gerät → Assistent mit Willkommen', await onb.count() === 1 && /Willkommen/.test(await onb.innerText()));
   await onb.locator('[data-testid="onb-found"]').click(); await page.waitForTimeout(500);
   check('A2 Weiter gesperrt ohne eigenen Namen', await onb.locator('[data-testid="onb-next"]').isDisabled());
-  await onb.getByLabel('Dein Name').fill('Lena');
-  await onb.getByLabel('Mitbewohner 1').fill('Max');
+  await onb.getByLabel('Dein Name', { exact: true }).fill('Lena');
+  await onb.getByLabel('Mitbewohner 1', { exact: true }).fill('Max');
   await onb.getByRole('button', { name: '+ Weitere Person' }).click();
-  await onb.getByLabel('Mitbewohner 2').fill('Kim');
+  await onb.getByLabel('Mitbewohner 2', { exact: true }).fill('Kim');
   await nextBtn();
   let d = await data();
   const lena = d.users.find(u => u.name === 'Lena');
@@ -79,10 +80,10 @@ async function open({ fresh = true, query = '', init = {}, other = false } = {})
   check('A8 Müllabfuhr Papier alle 2 Wochen', d.mk.some(m => m.kind === 'papier' && m.start === dayAgo(-5) && m.every === 2), JSON.stringify(d.mk));
   await onb.getByLabel('PayPal.me-Name').fill('lena-m');
   await onb.getByLabel('Kontoinhaber').fill('Lena-Marie Beispiel');
-  await onb.getByLabel('IBAN').fill('DE89 3704 0044 0532 0130 01');
+  await onb.getByLabel('IBAN', { exact: true }).fill('DE89 3704 0044 0532 0130 01');
   await nextBtn();
   check('A9 falsche IBAN hält an', /IBAN stimmt nicht/.test(await onb.locator('[data-testid="onb-msg"]').innerText().catch(() => '')));
-  await onb.getByLabel('IBAN').fill('DE89 3704 0044 0532 0130 00');
+  await onb.getByLabel('IBAN', { exact: true }).fill('DE89 3704 0044 0532 0130 00');
   await nextBtn();
   const me1 = (await data()).users.find(u => u.name === 'Lena');
   check('A10 PayPal, Inhaber, IBAN gespeichert', me1.pp === 'lena-m' && me1.holder === 'Lena-Marie Beispiel' && me1.iban === 'DE89370400440532013000', JSON.stringify(me1));
@@ -90,7 +91,8 @@ async function open({ fresh = true, query = '', init = {}, other = false } = {})
   await nextBtn();   // „Später"
   const code = await onb.locator('[data-testid="onb-code"]').innerText();
   const wa = await onb.locator('[data-testid="onb-wa"]').getAttribute('href');
-  check('A12 Einladen: Code + WhatsApp-Link mit ?join=', !!code && decodeURIComponent(wa).includes('?join=' + code), wa);
+  // zweifach kodiert: der Link im Text (Umlaute im Code, z. B. KÜHL) und der Text im wa.me-Parameter
+check('A12 Einladen: Code + WhatsApp-Link mit ?join=', !!code && decodeURIComponent(decodeURIComponent(wa)).includes('?join=' + code), wa);
   await nextBtn();
   check('A13 Fertig-Seite mit Namen', /Fertig, Lena!/.test(await onb.innerText()));
   await onb.locator('[data-testid="onb-finish"]').click(); await page.waitForTimeout(500);
@@ -152,17 +154,17 @@ async function open({ fresh = true, query = '', init = {}, other = false } = {})
 
 // ── D: bestehendes Gerät ──
 {
-  const D1 = await open({ fresh: false });
+  const D1 = await open({ init: { wg_start_shown: T }, fresh: false });
   check('D1 Gerät mit Code: kein Assistent', await D1.onb.count() === 0);
   await D1.ctx.close();
-  const D2 = await open({ fresh: false, query: '?join=' + OTHER, other: true });
+  const D2 = await open({ init: { wg_start_shown: T }, fresh: false, query: '?join=' + OTHER, other: true });
   check('D2 Einladungslink mit fremdem Code auf bestehendem Gerät: ignoriert, Code bleibt', await D2.onb.count() === 0 && await D2.page.evaluate(() => JSON.parse(localStorage.getItem('wg_code'))) === 'ALT-CODE-XYZ234');
   // E: persönlicher Teil aus „Mehr"
   await D2.page.locator('.tabbar .tabitem', { hasText: 'Mehr' }).click(); await D2.page.waitForTimeout(400);
   await D2.page.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click())); await D2.page.waitForTimeout(300);
   await D2.page.locator('[data-testid="onb-open"]').click(); await D2.page.waitForTimeout(500);
   check('E1 „Mein Profil einrichten" → Assistent ab „Das bist du"', /Das bist du/.test(await D2.onb.innerText().catch(() => '')));
-  await D2.onb.getByLabel('Dein Name').fill('Torben S.');
+  await D2.onb.getByLabel('Dein Name', { exact: true }).fill('Torben S.');
   await D2.onb.locator('[data-testid="onb-next"]').click(); await D2.page.waitForTimeout(400);
   check('E2 Name geändert', (await D2.data()).users.find(u => u.id === 'u1').name === 'Torben S.');
   await D2.onb.getByRole('button', { name: 'Schließen' }).click(); await D2.page.waitForTimeout(300);

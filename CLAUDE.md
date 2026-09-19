@@ -311,6 +311,29 @@ Bausteine im Block `MEHR` in wgapp.html (vor `PLUS`). Neue Listen-Keys: `st vo l
   - Der Gast-Link zeigt sie nie (Test 44b).
 - **Test-Wackler `ux` H1:** Vergleichszeit über einen Minutenwechsel, jetzt mit 1 Minute Toleranz.
 
+## Ersteinrichtung, Verrechnen, Profil-Sperre (wg-v72, 19.09.)
+
+- **Einrichtungs-Assistent** (`Onboarding`, Block „EINRICHTUNG"): Vollbild-Karte, Schritte gleiten herein (`onbIn`/`onbBack`), Fortschrittsbalken, Konfetti; `prefers-reduced-motion` schaltet die Animationen ab.
+  - **Neue WG:** Willkommen → Personen (eigener Name + Mitbewohner, Farben ohne Doppelte) → WG-Name/Emoji (`cf`, Eintrag `wg`, steht auf „Heute") → Bereiche (Module je Gerät) → Putzplan-Vorlagen + Müllabfuhr (Termin und Rhythmus) → Geld (PayPal, Kontoinhaber, IBAN geprüft) → Push → Einladen (Code + `wa.me`-Link `?join=CODE`) → Fertig.
+  - **Beitreten:** `?join=` oder Code eingeben → `onbCodeExists` liest `wg/<code>/users` (8 s Zeitlimit) → `wg_join_mode=remote` + `setWgCode` → nach dem Sync „Wer bist du?" (oder „Ich bin neu hier": neue Person mit freier Farbe).
+  - **„Mein Profil einrichten"** (Mehr → Personen) öffnet den persönlichen Teil: Name, Farbe, Bereiche, Geld, Push.
+  - **Wann er erscheint:**
+    - Nur, wenn der Code auf diesem Gerät erzeugt wurde (`wg_fresh`, gesetzt im DataProvider) und `wg_setup_v1` fehlt, oder bei einem Einladungslink auf so einem Gerät.
+    - Auf eingerichteten Geräten wird ein Einladungslink mit fremdem Code **ignoriert**, sonst würde ein Klick die WG wechseln.
+    - Tests setzen immer `wg_code` und sehen ihn deshalb nie.
+  - Jeder Schritt speichert sofort. Am Einrichtungstag unterdrückt `tryStart` das Wochen-Startfenster, sonst fragt es direkt nach dem Assistenten dasselbe.
+  - **Fallen:**
+    - `s="… „Heute"."` – das gerade Schlusszeichen beendet das JSX-Attribut („Unexpected token"). Im Block ist jetzt überall `„…“` gesetzt.
+    - Personen sind in der RTDB eine **Liste**. Testdaten als Objekt `{a:…}` führten zum Absturz `users.find is not a function`, der Fehler lag in den Testdaten.
+    - Ein Umlaut-Code (`KÜHL-…`) steht im WhatsApp-Link doppelt kodiert, der Test dekodiert zweimal.
+- **Verrechnen Haushalt + Growbox** (torbe: „ich habe 8 € plus aus der Growbox"):
+  - Ist in der Growbox etwas offen (`giOpen`, nur bei 2 Personen), nutzt der Haushalt-Ausgleich `payBals` = Haushalt + `growCalc.net`. Banner, PayPal, IBAN-Betrag und Zahlungsmeldung zeigen denselben Betrag wie „Heute" und das Pop-up (58,25 statt 66,25), dazu die Zeile `bal-parts`.
+  - „Alles abrechnen" schließt Haushalt **und** Growbox. Es entstehen zwei `stl`-Einträge: `hs` mit dem verrechneten Betrag und `withGi`, dazu `gi` mit Betrag 0 und `viaHs`. Rückgängig öffnet beide wieder.
+- **Fremde Profile gesperrt** (torbe: „als Torben nicht Toms PayPal ändern"):
+  - Ist `me` gesetzt, sind Name, PayPal, Kontoinhaber, IBAN und BIC anderer Personen `readOnly`, mit dem Hinweis „🔒 Nur X kann das …".
+  - „Das bin ich" für eine andere Person fragt nach. Ohne gewählte Person bleibt alles offen (Ersteinrichtung).
+- **Tests:** onboarding 33/33, mehr 76/76.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -344,6 +367,7 @@ node test/alltag.mjs      # Alltag: Vorrat, Kassenzettel, Waschtimer, Nachrichte
 node test/upgrade_dist.mjs # Update-Pfad wie auf den Handys: alte Auslieferung (Quelltext+Babel, alter SW) → dist; Update erkannt, Daten bleiben, Babel aus dem Cache, offline
 node test/ux.mjs          # Alltagstauglich: Build (vorab übersetzt, ohne Babel, Erststart < 6 s bei 4× CPU), Heute-Start, eine Eingabezeile, Abrechnen nur Gläubiger, Laden-Bereiche, Wer-bist-du, Morgen-Knopf, Timer-Dauer, Push je Art, Mehr-Gruppen, Lesbarkeit
 node test/extra.mjs       # Extra: Schnell-Eingabe, Preis-Gedächtnis, Gesamtbudget, Einkaufs-Reihenfolge, Heute, Zähler, Kalender-Abo, Hell/Dunkel + Schrift
+node test/onboarding.mjs  # Einrichtung: neue WG (alle Schritte bis Heute), Beitreten per ?join= (Umlaut-Code), falscher Code, „Ich bin neu", bestehendes Gerät/fremder Link ignoriert, „Mein Profil einrichten"
 node test/mehr.mjs        # Mehr: Status (Ablauf), Umfragen (verdeckt bis zur eigenen Stimme), Wartung/Ausleihe + Heute-Fälliges, Verbrauch je Monat, Monatsbericht, Kaution, Wochen-Korb, Mitbewohner-Wechsel, Gast-Link
 node test/plus.mjs        # Plus: Check-in (verdeckt bis alle), Kühlschrank, Essensplan, WG-Regeln, Sparziel, gemischter Einkauf, Nebenkosten, Sprach-Kurzbefehl, Inventar, Auszug + Druck
 node test/cron_alltag.mjs # Server-Hälfte (api/_wg.js): Abholrhythmus, Vorabend-Fälligkeit, Abwesenheit, Abend-Push, Sonntags-Überblick, Reparaturen, Jahr, Kühlschrank, Check-in

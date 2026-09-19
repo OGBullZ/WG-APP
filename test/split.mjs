@@ -21,6 +21,8 @@ await page.routeWebSocket(/./, () => {});
 const pass = [], fail = [];
 const check = (name, cond) => (cond ? pass : fail).push(name);
 
+// Einrichtungs-Assistent (wg-v72) überspringen — dieser Test startet absichtlich auf einem leeren Gerät
+await page.addInitScript(() => { if (!localStorage.getItem('wg_setup_v1')) localStorage.setItem('wg_setup_v1', JSON.stringify('2026-01-01')); });
 await page.goto(url, { waitUntil: 'domcontentloaded' });
 await page.locator('.tabbar').waitFor({ timeout: 30000 });   // siehe archive.mjs
 await page.locator('.tabbar .tabitem', { hasText: 'Haushalt' }).click();   // seit wg-v66 startet eine neue App auf „Heute“

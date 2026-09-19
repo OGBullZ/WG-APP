@@ -285,6 +285,37 @@ button.cell { color:var(--label); }
 .hit::after { content:''; position:absolute; inset:-12px -4px; }
 .section-hdr .hit::after { inset:-13px -6px; }   /* spezifischer als „.section-hdr button::after" (-8px → nur 31px) */
 /* Übergabe-Seite (Auszug): eigenes helles Blatt; beim Drucken wird nur dieses ausgegeben */
+/* ── Einrichtungs-Assistent (wg-v72): Vollbild-Karte, Schritte gleiten herein, Fortschrittsbalken, Konfetti ── */
+.overlay.onb { align-items:stretch; justify-content:center; padding:0; background:rgba(0,0,0,.82); }
+.onb-card { width:100%; max-width:480px; margin:0 auto; min-height:100%; background:var(--bg); display:flex; flex-direction:column; padding:max(16px, env(safe-area-inset-top)) 18px max(20px, env(safe-area-inset-bottom)); overflow-y:auto; position:relative; }
+@media (min-width:600px) { .overlay.onb { padding:24px; align-items:center; } .onb-card { min-height:0; max-height:calc(100vh - 48px); border-radius:24px; box-shadow:0 30px 80px rgba(0,0,0,.5); } }
+.onb-top { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
+.onb-back { width:32px; height:32px; border-radius:50%; border:none; background:var(--bg3); color:var(--label); font-size:20px; line-height:1; cursor:pointer; flex-shrink:0; }
+.onb-bar { flex:1; height:6px; border-radius:3px; background:var(--bg3); overflow:hidden; }
+.onb-bar > div { height:100%; border-radius:3px; background:linear-gradient(90deg, var(--mint), var(--sky)); transition:width .45s cubic-bezier(.2,.8,.2,1); }
+.onb-step { display:flex; flex-direction:column; gap:12px; flex:1; justify-content:center; padding:8px 0; }
+.onb-step.fwd { animation:onbIn .42s cubic-bezier(.2,.8,.2,1) both; }
+.onb-step.bwd { animation:onbBack .42s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes onbIn { from { opacity:0; transform:translateX(34px); } }
+@keyframes onbBack { from { opacity:0; transform:translateX(-34px); } }
+.onb-title { text-align:center; margin-bottom:6px; }
+.onb-title h2 { font-size:26px; font-weight:800; margin:6px 0 4px; }
+.onb-title p { font-size:14.5px; color:var(--label2); line-height:1.5; margin:0; }
+.onb-em { font-size:56px; line-height:1.1; animation:onbPop .6s cubic-bezier(.3,1.6,.5,1) both .08s; }
+@keyframes onbPop { from { transform:scale(.3) rotate(-12deg); opacity:0; } }
+.onb-big { font-size:16.5px; padding:15px; border-radius:16px; transition:transform .12s, filter .2s; }
+.onb-big:active { transform:scale(.97); }
+.onb-list { display:flex; flex-direction:column; gap:8px; }
+.onb-li { display:flex; gap:10px; align-items:center; background:var(--bg2); border-radius:12px; padding:10px 12px; font-size:14px; animation:rise .45s both; }
+.onb-li span { font-size:20px; }
+.onb-ok { text-align:center; font-weight:800; color:var(--green); font-size:16px; padding:10px; animation:onbPop .5s both; }
+.onb-hint { font-size:13.5px; color:var(--label2); background:var(--bg2); border-radius:12px; padding:10px 12px; line-height:1.5; }
+.onb-msg { font-size:13.5px; color:var(--red); font-weight:700; text-align:center; animation:rise .3s both; }
+.onb-code { text-align:center; font-size:24px; font-weight:800; letter-spacing:.06em; color:var(--lime); background:var(--bg2); border-radius:16px; padding:16px 10px; user-select:all; word-break:break-all; }
+.onb-confetti { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+.onb-confetti i { position:absolute; top:-12px; width:9px; height:14px; border-radius:2px; animation:onbFall 1.4s cubic-bezier(.3,.6,.6,1) both; }
+@keyframes onbFall { to { transform:translateY(105vh) rotate(540deg); opacity:.2; } }
+@media (prefers-reduced-motion: reduce) { .onb-step.fwd, .onb-step.bwd, .onb-em, .onb-li, .onb-ok { animation:none; } .onb-bar > div { transition:none; } }
 .print-sheet { position:fixed; inset:0; z-index:600; overflow:auto; background:#fff; color:#111; padding:24px; font-size:14px; line-height:1.5; user-select:text; }
 .print-sheet h2 { font-size:20px; margin-bottom:4px; } .print-sheet h3 { font-size:15px; margin:18px 0 6px; }
 .print-sheet table { border-collapse:collapse; width:100%; } .print-sheet td { border-bottom:1px solid #ddd; padding:4px 6px; }
@@ -904,7 +935,8 @@ const INIT = {
   err:    [],   // Fehlerprotokoll der Geräte (max. 30, s. Früh-Skript im <head> + drainErr)
   vr: [], mk: [], aw: [], wt: [], pr: [], qm: [], rp: [],
   sg: [], ep: [], kf: [], inv: [], rg: [], ci: [],
-  st: [], vo: [], lh: [], wa: [], kt: [], wk: [], ga: [],   // wg-v70: Status, Umfragen, Ausleihe, Wartung, Kaution, Wochen-Korb, Gast-Link   // wg-v68: Sparziele, Essensplan, Kühlschrank, Inventar, WG-Regeln, Check-in
+  st: [], vo: [], lh: [], wa: [], kt: [], wk: [], ga: [],
+  cf: [],   // wg-v72: WG-Einstellungen (id 'wg': Name + Emoji aus der Einrichtung)   // wg-v70: Status, Umfragen, Ausleihe, Wartung, Kaution, Wochen-Korb, Gast-Link   // wg-v68: Sparziele, Essensplan, Kühlschrank, Inventar, WG-Regeln, Check-in
   zs: [],   // Zählerstände (wg-v64): Ablesungen + Tarif je Zähler (cfg-<kind>)   // Alltag (wg-v62): Vorrat, Müllabfuhr, Abwesend, Waschtimer, Zahlung bestätigen, Nachrichten, Reparaturen
 };
 const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
@@ -917,7 +949,7 @@ const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
    slh = Einkaufslisten-Historie (id=Slug, n=Kaufzähler), gh = Ernte-Log, bud = Kategorie-Budgets (id=Cat-Key),
    gz = Grow-Zyklen {start, phase, pAt, wiv, lastW, lastWBy, wn, end} — offen ist der ohne `end`.
    ls = Login-Freigaben {svc, by, ts, exp, view, s, iv, ct, it} — nur Chiffretext, s. LOGIN_*. */
-const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz','bo','ls','err','vr','mk','aw','wt','pr','qm','rp','zs','sg','ep','kf','inv','rg','ci','st','vo','lh','wa','kt','wk','ga'];
+const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz','bo','ls','err','vr','mk','aw','wt','pr','qm','rp','zs','sg','ep','kf','inv','rg','ci','st','vo','lh','wa','kt','wk','ga','cf'];
 const isListKey = k => LIST_KEYS.includes(k);
 /* WG-Board (Key `bo`): kurze Ankündigungen zwischen den zwei Bewohnern — reine Info + Sofort-Push,
    keine Kostenrelevanz. Einträge mit Datum, laufen nach dem Tag automatisch aus der Anzeige. */
@@ -1073,7 +1105,10 @@ function DataProvider({ children }) {
     if (saved) return saved;
     // Erststart: Auto-Code SOFORT persistieren — sonst erzeugt jeder Neustart einen neuen
     // Zufallscode und das WG-eröffnende Gerät desynct sich von der gekoppelten WG.
-    const c = genCode(); ss('wg_code', c); return c;
+    const c = genCode(); ss('wg_code', c);
+    // wg_fresh → Einrichtungs-Assistent (wg-v72) — nur ohne lokale Daten; ein Gerät mit Daten, aber ohne Code ist Altbestand
+    try { if (!localStorage.getItem('wg_data')) ss('wg_fresh', 1); } catch {}
+    return c;
   });
   // Stabile Geräte-ID für Push-Subscriptions (wg/<code>/push/<deviceId>). Wie beim WG-Code:
   // beim Erststart SOFORT persistieren, sonst neue ID pro Neustart → verwaiste Push-Einträge.
@@ -2283,6 +2318,260 @@ function LoginShare() {
         </div>, document.body)}
     </>
   );
+}
+
+/* ══════════════════════════
+   EINRICHTUNG (seit wg-v72): Assistent Schritt für Schritt, animiert.
+   Modi: 'found' (neue WG gründen), 'join' (per Code/Einladungslink beitreten), 'personal' (aus „Mehr“: eigenes Profil nachziehen).
+   Erscheint nur auf einem wirklich neuen Gerät (wg_fresh: Code wurde auf diesem Gerät erzeugt, noch nie eingerichtet)
+   oder mit Einladungslink ?join=CODE. Bestehende Geräte sehen ihn nie ungefragt.
+   Jeder Schritt speichert sofort — bricht man ab, bleibt das Bisherige erhalten.
+══════════════════════════ */
+let JOIN_CODE = null;          // aus ?join=… (AppInner liest die URL einmal)
+const SETUP_KEY = 'wg_setup_v1';
+const ONB_COLORS = ['#38bdf8','#fbbf24','#a78bfa','#f472b6','#34d399','#fb923c'];
+const ONB_WG_EM = ['🏠','🏡','🌿','🐈','🎸','🍕','🌻','🚲'];
+const ONB_MODS = [['putz','🧽','Putzplan','Wer ist dran – fair verteilt'],['grow','🌱','Growbox','Pflanzen, Gießen, Kosten nach Anteil'],['fin','🔒','Privat','Eigene Finanzen, nur auf diesem Handy'],
+  ['abos','📱','Abos','Netflix & Co. mit Kündigungsfrist'],['stats','📊','Übersicht','Monat, Zähler, Nebenkosten'],['game','👑','Spielelemente','Wochen-Duell & Pünktlich-Serie']];
+const ONB_CHORES_PRE = ['Müll rausbringen','Bad putzen','Küche putzen','Staubsaugen'];
+// nächster Termin eines Wochentags (0 = So … 6 = Sa) ab heute
+const nextWeekdayISO = wd => { const d=new Date(); d.setHours(12); d.setDate(d.getDate()+((wd-d.getDay()+7)%7)); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+// gibt es unter diesem Code eine WG? (liest nur die Personen; eigene App-Instanz wie der DataProvider)
+async function onbCodeExists(fbCfg, code) {
+  const appName = 'wg-' + (fbCfg.projectId || fbCfg.databaseURL || 'default');
+  let app; try { app = firebase.app(appName); } catch { app = firebase.initializeApp(fbCfg, appName); }
+  const snap = await Promise.race([firebase.database(app).ref(`wg/${code}/users`).once('value'), new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), 8000))]);
+  const v = snap && snap.val(); return !!(v && (Array.isArray(v) ? v.length : Object.keys(v).length));
+}
+
+/* Bausteine des Assistenten (Modulebene: stabile Komponententypen → keine Neu-Montage bei jedem Tastendruck) */
+const OnbBig = ({ children, onClick, color='var(--mint)', disabled, tid }) => <button className="btn onb-big" data-testid={tid} disabled={disabled} onClick={onClick} style={{background:disabled?'var(--bg3)':color}}>{children}</button>;
+const OnbTitle = ({ em, t, s }) => <div className="onb-title"><div className="onb-em" aria-hidden="true">{em}</div><h2>{t}</h2>{s && <p>{s}</p>}</div>;
+const OnbDots = ({ value, onPick, taken=[] }) => <div style={{display:'flex',gap:8}}>{ONB_COLORS.map(c=><button key={c} type="button" aria-label={`Farbe ${c}`} aria-pressed={value===c} onClick={()=>onPick(c)} disabled={taken.includes(c) && value!==c}
+  style={{width:30,height:30,borderRadius:'50%',border:value===c?'3px solid var(--label)':'2px solid transparent',background:c,opacity:taken.includes(c)&&value!==c?.25:1,cursor:'pointer',transition:'transform .15s',transform:value===c?'scale(1.12)':'none'}}/>)}</div>;
+
+function Onboarding({ mode: startMode, onDone }) {
+  const { D, set, setFn, me, setMe, mods, setMods, wgCode, setWgCode, status, fbCfg, pushSave } = useD();
+  const users = D.users || [];
+  const [mode,setMode] = useState(startMode === 'personal' ? 'personal' : JOIN_CODE ? 'join' : null);
+  const [step,setStep] = useState(startMode === 'personal' ? 'who' : JOIN_CODE ? 'code' : 'welcome');
+  const [dir,setDir] = useState(1);            // Animationsrichtung (1 = vor, -1 = zurück)
+  const [f,setF] = useState(() => ({
+    name:'', color:ONB_COLORS[0], mates:[{ name:'', color:ONB_COLORS[1] }], wgName:'', wgEm:'🏠',
+    mods:{ ...MOD_DEF, ...mods }, chores:[...ONB_CHORES_PRE], trash:{}, code:JOIN_CODE||'', pp:'', holder:'', iban:'',
+  }));
+  const [msg,setMsg] = useState('');
+  const [busy,setBusy] = useState(false);
+  const [pushState,setPushState] = useState(null);   // null | 'ok' | 'denied' | 'install' | 'err'
+  const up = patch => setF(x=>({ ...x, ...patch }));
+  const [copied,setCopied] = useState(false);
+  const meU = users.find(u=>u.id===me);
+
+  const flows = {
+    found:    ['welcome','people','wg','mods', ...(f.mods.putz!==false ? ['putz'] : []), 'money','push','invite','done'],
+    join:     ['welcome','code','who','mods','money','push','done'],
+    personal: ['who','mods','money','push','done'],
+  };
+  const flow = flows[mode || 'found'];
+  const idx = Math.max(0, flow.indexOf(step));
+  const go = s => { setMsg(''); setDir(flow.indexOf(s) >= idx ? 1 : -1); setStep(s); };
+  const next = () => go(flow[Math.min(flow.length-1, idx+1)]);
+  const back = () => idx > 0 && go(flow[idx-1]);
+
+  // Beim Beitreten: sobald der Server-Stand da ist, den Code-Schritt verlassen
+  const [waitJoin,setWaitJoin] = useState(false);
+  useEffect(()=>{ if (waitJoin && status==='synced' && wgCode===f.code) { setWaitJoin(false); setBusy(false); go('who'); } }, [waitJoin, status, wgCode, D.users]);
+  // Profilfelder für „personal“/„join“ mit dem vorhandenen Stand vorbelegen
+  useEffect(()=>{ if (meU && (step==='who' || step==='money')) up({ name: f.name || meU.name, color: meU.color || f.color, pp: f.pp || meU.pp || '', holder: f.holder || meU.holder || '', iban: f.iban || meU.iban || '' }); }, [step, me]);
+
+  /* ── Aktionen je Schritt (speichern sofort) ── */
+  const savePeople = () => {
+    const name = f.name.trim(); if (!name) { setMsg('Wie heißt du?'); return; }
+    const mates = f.mates.map(m=>({ ...m, name:m.name.trim() })).filter(m=>m.name);
+    const all = [{ id:uid(), name:name.slice(0,40), color:f.color, joined:todayISO() }, ...mates.map(m=>({ id:uid(), name:m.name.slice(0,40), color:m.color, joined:todayISO() }))];
+    set('users', all); setMe(all[0].id); next();
+  };
+  const saveWg = () => { if (f.wgName.trim()) setFn('cf', cur=>[{ id:'wg', name:f.wgName.trim().slice(0,40), em:f.wgEm }, ...(cur||[]).filter(x=>x && x.id!=='wg')]); next(); };
+  const saveMods = () => { setMods({ ...mods, ...f.mods }); next(); };
+  const savePutz = () => {
+    const us = D.users || [];
+    const tasks = f.chores.map((n,i)=>{ const p = CHORE_PRESETS.find(c=>c[0]===n) || [n,'🧽',7,2]; return { id:uid(), name:p[0], em:p[1], interval:p[2], pts:p[3], assignee:us[i % Math.max(1,us.length)]?.id || me, lastDone:null }; });
+    if (tasks.length) setFn('pt', cur=>[...(cur||[]).filter(t=>t && !f.chores.includes(t.name)), ...tasks]);
+    const picks = Object.entries(f.trash).filter(([,v])=>v && v.on).map(([k,v])=>({ id:'mk-'+k, kind:k, start:v.start, every:+v.every||1 }));
+    if (picks.length) setFn('mk', cur=>[...(cur||[]).filter(x=>x && !picks.some(p=>p.id===x.id)), ...picks]);
+    next();
+  };
+  const saveMoney = () => {
+    if (f.iban.trim() && !ibanValid(f.iban)) { setMsg('Die IBAN stimmt nicht – bitte prüfen oder leer lassen.'); return; }
+    if (me) set('users', (D.users||[]).map(u=>u.id===me ? { ...u, pp:f.pp.trim(), holder:f.holder.trim(), iban:ibanClean(f.iban), ...(mode!=='found' && f.name.trim() ? { name:f.name.trim().slice(0,40), color:f.color } : {}) } : u));
+    next();
+  };
+  const joinNow = async () => {
+    const c = f.code.trim().toUpperCase(); if (!c) return;
+    if (c === wgCode) { go('who'); return; }
+    setBusy(true); setMsg('');
+    try {
+      if (!(await onbCodeExists(fbCfg, c))) { setMsg('Unter diesem Code gibt es keine WG – Tippfehler?'); setBusy(false); return; }
+      sessionStorage.setItem('wg_join_mode', 'remote');   // Server-Stand gewinnt (frisches Gerät hat nichts Eigenes)
+      up({ code:c }); setWgCode(c); setWaitJoin(true);
+    } catch { setMsg('Keine Verbindung – bitte online gehen und nochmal tippen.'); setBusy(false); }
+  };
+  const pickMe = id => { setMe(id); const u = users.find(x=>x.id===id); if (u) up({ name:u.name, color:u.color||f.color, pp:u.pp||'', holder:u.holder||'', iban:u.iban||'' }); };
+  const addMe = () => {
+    const name = f.name.trim(); if (!name) { setMsg('Wie heißt du?'); return; }
+    const color = ONB_COLORS.find(c=>!users.some(u=>u.color===c)) || f.color;
+    const nu = { id:uid(), name:name.slice(0,40), color, joined:todayISO() };
+    set('users', [...users, nu]); setMe(nu.id); next();
+  };
+  const enablePushNow = async () => {
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent||''), standalone = (()=>{ try { return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; } catch { return false; } })();
+    if (!('Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window)) { setPushState(ios && !standalone ? 'install' : 'err'); return; }
+    setBusy(true);
+    try {
+      const perm = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+      if (perm !== 'granted') { setPushState('denied'); setBusy(false); return; }
+      const reg = await Promise.race([navigator.serviceWorker.ready, new Promise(r=>setTimeout(()=>r(null), 5000))]);
+      if (!reg) throw new Error('kein Service Worker');
+      const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
+      const j = sub.toJSON() || {};
+      await pushSave({ endpoint:j.endpoint, p256dh:(j.keys&&j.keys.p256dh)||null, auth:(j.keys&&j.keys.auth)||null, name:meU?.name||'Gerät', uid:me||null, t:Date.now() });
+      setPushState('ok');
+    } catch { setPushState('err'); }
+    setBusy(false);
+  };
+  const finish = () => { ss(SETUP_KEY, todayISO()); try { localStorage.removeItem('wg_fresh'); } catch {} JOIN_CODE = null; onDone(); };
+
+  const appUrl = location.origin + location.pathname.replace(/wgapp\.html$/, '');
+  const invite = `${appUrl}?join=${encodeURIComponent(wgCode||'')}`;
+  const waText = `Hey! Ich hab unsere WG-App eingerichtet 🏠 Tipp auf den Link, dann bist du direkt drin: ${invite}`;
+
+  const screens = {
+    welcome: <>
+      <OnbTitle em="🏠" t="Willkommen!" s="In zwei Minuten ist eure WG-App eingerichtet – Namen, Putzplan, Geld und Benachrichtigungen."/>
+      <OnbBig tid="onb-found" onClick={()=>{ setMode('found'); setDir(1); setStep('people'); }}>✨ Neue WG gründen</OnbBig>
+      <OnbBig tid="onb-join" color="var(--sky)" onClick={()=>{ setMode('join'); setDir(1); setStep('code'); }}>🔑 Ich habe einen Code oder Link</OnbBig>
+    </>,
+    people: <>
+      <OnbTitle em="👋" t="Wer wohnt bei euch?" s="Erst du, dann deine Mitbewohner. Farben helfen beim schnellen Erkennen."/>
+      <input className="field" autoFocus maxLength={40} placeholder="Dein Name" aria-label="Dein Name" value={f.name} onChange={e=>up({ name:e.target.value })}/>
+      <OnbDots value={f.color} onPick={c=>up({ color:c })} taken={f.mates.map(m=>m.color)}/>
+      <div className="sheet-sublbl" style={{marginTop:6}}>Mitbewohner</div>
+      {f.mates.map((m,i)=><div key={i} className="onb-row" style={{display:'flex',flexDirection:'column',gap:6}}>
+        <div style={{display:'flex',gap:6}}>
+          <input className="field" maxLength={40} placeholder={`Name ${i+1}`} aria-label={`Mitbewohner ${i+1}`} value={m.name} style={{flex:1}} onChange={e=>up({ mates:f.mates.map((x,j)=>j===i?{...x,name:e.target.value}:x) })}/>
+          {f.mates.length>1 && <button type="button" className="del-btn" aria-label={`Mitbewohner ${i+1} entfernen`} onClick={()=>up({ mates:f.mates.filter((_,j)=>j!==i) })}>×</button>}
+        </div>
+        <OnbDots value={m.color} onPick={c=>up({ mates:f.mates.map((x,j)=>j===i?{...x,color:c}:x) })} taken={[f.color, ...f.mates.filter((_,j)=>j!==i).map(x=>x.color)]}/>
+      </div>)}
+      {f.mates.length<5 && <button type="button" className="btn btn-sec" onClick={()=>up({ mates:[...f.mates, { name:'', color:ONB_COLORS.find(c=>c!==f.color && !f.mates.some(m=>m.color===c)) || ONB_COLORS[0] }] })}>+ Weitere Person</button>}
+      <OnbBig tid="onb-next" onClick={savePeople} disabled={!f.name.trim()}>Weiter</OnbBig>
+    </>,
+    wg: <>
+      <OnbTitle em={f.wgEm} t="Wie heißt eure WG?" s="Optional – steht dann oben auf „Heute“."/>
+      <input className="field" autoFocus maxLength={40} placeholder="z. B. WG Sonnenallee" aria-label="Name der WG" value={f.wgName} onChange={e=>up({ wgName:e.target.value })}/>
+      <div style={{display:'flex',flexWrap:'wrap',gap:8}}>{ONB_WG_EM.map(e=><button key={e} type="button" aria-pressed={f.wgEm===e} onClick={()=>up({ wgEm:e })} style={{...chipSt(f.wgEm===e),fontSize:22,padding:'6px 10px'}}>{e}</button>)}</div>
+      <OnbBig tid="onb-next" onClick={saveWg}>{f.wgName.trim() ? 'Weiter' : 'Überspringen'}</OnbBig>
+    </>,
+    mods: <>
+      <OnbTitle em="🧩" t="Was braucht ihr?" s="Haushalt & Einkauf sind immer dabei. Alles hier lässt sich später unter „Mehr“ ändern."/>
+      <div style={{display:'flex',flexDirection:'column',gap:8}}>
+        {ONB_MODS.map(([k,em,l,s])=>{ const on = f.mods[k]!==false; return (
+          <button key={k} type="button" className="onb-mod" aria-pressed={on} onClick={()=>up({ mods:{ ...f.mods, [k]:!on } })}
+            style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',borderRadius:14,border:on?'2px solid var(--mint)':'2px solid var(--sep)',background:on?'rgba(94,234,212,.08)':'var(--bg2)',color:'var(--label)',textAlign:'left',fontFamily:'inherit',cursor:'pointer',transition:'all .2s'}}>
+            <span style={{fontSize:24}}>{em}</span>
+            <span style={{flex:1}}><b style={{display:'block',fontSize:15}}>{l}</b><span style={{fontSize:12.5,color:'var(--label2)'}}>{s}</span></span>
+            <span style={{fontSize:18,color:on?'var(--mint)':'var(--label3)'}}>{on?'✓':'○'}</span>
+          </button>); })}
+      </div>
+      <OnbBig tid="onb-next" onClick={saveMods}>Weiter</OnbBig>
+    </>,
+    putz: <>
+      <OnbTitle em="🧽" t="Putzplan & Müll" s="Antippen, was bei euch anfällt – wer dran ist, verteilt die App fair."/>
+      <div style={{display:'flex',flexWrap:'wrap',gap:6}}>{CHORE_PRESETS.slice(0,12).map(([n,em])=>{ const on=f.chores.includes(n); return <button key={n} type="button" aria-pressed={on} style={chipSt(on)} onClick={()=>up({ chores:on?f.chores.filter(x=>x!==n):[...f.chores,n] })}>{em} {n}</button>; })}</div>
+      <div className="sheet-sublbl" style={{marginTop:8}}>Müllabfuhr (optional)</div>
+      {Object.entries(PICK_KINDS).map(([k,[em,l]])=>{ const t=f.trash[k]; return (
+        <div key={k} style={{display:'flex',flexDirection:'column',gap:6}}>
+          <button type="button" aria-pressed={!!t?.on} style={{...chipSt(!!t?.on),alignSelf:'flex-start'}} onClick={()=>up({ trash:{ ...f.trash, [k]: t?.on ? { ...t, on:false } : { on:true, start:t?.start||nextWeekdayISO(3), every:t?.every||(k==='rest'||k==='bio'?1:2) } } })}>{em} {l}</button>
+          {t?.on && <div style={{display:'flex',gap:6,alignItems:'center',paddingLeft:6}}>
+            <input type="date" className="field" aria-label={`${l}: nächste Abholung`} value={t.start} onChange={e=>up({ trash:{ ...f.trash, [k]:{ ...t, start:e.target.value } } })} style={{flex:1,minWidth:0}}/>
+            <select className="field" aria-label={`${l}: Rhythmus`} value={t.every} onChange={e=>up({ trash:{ ...f.trash, [k]:{ ...t, every:+e.target.value } } })} style={{width:'auto',flexShrink:0}}>
+              <option value={1}>wöchentlich</option><option value={2}>alle 2 Wo.</option><option value={4}>alle 4 Wo.</option>
+            </select>
+          </div>}
+        </div>); })}
+      <OnbBig tid="onb-next" onClick={savePutz}>Weiter</OnbBig>
+    </>,
+    code: <>
+      <OnbTitle em="🔑" t="WG beitreten" s="Den Code bekommst du von deinem Mitbewohner – oder du tippst einfach auf seinen Einladungslink."/>
+      <input className="field num" autoFocus placeholder="z. B. BLAU-MOND-ABC234" aria-label="WG-Code" autoCapitalize="characters" autoCorrect="off" spellCheck={false} value={f.code} onChange={e=>up({ code:e.target.value.toUpperCase() })} style={{fontSize:18,letterSpacing:'.04em',textAlign:'center'}}/>
+      <OnbBig tid="onb-joinnow" onClick={joinNow} disabled={busy || !f.code.trim()}>{busy ? 'Verbinde …' : 'Beitreten'}</OnbBig>
+    </>,
+    who: <>
+      <OnbTitle em="🙋" t={mode==='personal' ? 'Das bist du' : 'Wer bist du?'} s={mode==='personal' ? 'Name und Farbe für dieses Handy – die anderen sehen die Änderung sofort.' : 'Tipp auf deinen Namen – oder trag dich neu ein.'}/>
+      {users.length>0 && <div className="pick">{users.map(u=><button key={u.id} type="button" className={`pick-btn${me===u.id?' on':''}`} style={{background:u.color}} aria-label={`Ich bin ${u.name}`} onClick={()=>pickMe(u.id)}>{u.name}</button>)}</div>}
+      {mode!=='personal' && <>
+        <div className="sheet-sublbl" style={{marginTop:6}}>Ich bin neu hier</div>
+        <div style={{display:'flex',gap:6}}>
+          <input className="field" maxLength={40} placeholder="Dein Name" aria-label="Neu: dein Name" value={me?'':f.name} onChange={e=>{ if (me) setMe(null); up({ name:e.target.value }); }} style={{flex:1}}/>
+          <button type="button" className="btn" style={{width:'auto',padding:'0 16px',background:'var(--mint)'}} onClick={addMe}>Hinzufügen</button>
+        </div>
+      </>}
+      {mode==='personal' && me && <>
+        <input className="field" maxLength={40} aria-label="Dein Name" value={f.name} onChange={e=>up({ name:e.target.value })}/>
+        <OnbDots value={f.color} onPick={c=>up({ color:c })} taken={users.filter(u=>u.id!==me).map(u=>u.color)}/>
+      </>}
+      <OnbBig tid="onb-next" disabled={!me} onClick={()=>{ if (mode==='personal' && f.name.trim()) set('users', users.map(u=>u.id===me?{ ...u, name:f.name.trim().slice(0,40), color:f.color }:u)); next(); }}>Weiter</OnbBig>
+    </>,
+    money: <>
+      <OnbTitle em="💶" t="So bekommst du Geld zurück" s="Wenn jemand dir etwas schuldet, zeigt die App deine Daten zum Antippen bzw. Kopieren. Alles optional."/>
+      <div style={{display:'flex',alignItems:'center',gap:6}}><span style={{fontSize:14,color:'var(--label3)',fontWeight:700}}>paypal.me/</span>
+        <input className="field" maxLength={100} placeholder="dein-name" aria-label="PayPal.me-Name" autoCapitalize="off" autoCorrect="off" spellCheck={false} value={f.pp} onChange={e=>up({ pp:e.target.value })} style={{flex:1}}/></div>
+      <input className="field" maxLength={70} placeholder="Kontoinhaber (wie auf der Karte)" aria-label="Kontoinhaber" value={f.holder} onChange={e=>up({ holder:e.target.value })}/>
+      <input className="field num" maxLength={42} placeholder="IBAN" aria-label="IBAN" autoCapitalize="characters" autoCorrect="off" spellCheck={false} value={f.iban} onChange={e=>up({ iban:e.target.value })}/>
+      {f.iban.trim() && <span data-testid="onb-iban" style={{fontSize:13,fontWeight:700,color:ibanValid(f.iban)?'var(--green)':'var(--amber)'}}>{ibanValid(f.iban) ? `✓ ${ibanFmt(f.iban)}` : '⚠️ IBAN stimmt noch nicht'}</span>}
+      <span style={{fontSize:12,color:'var(--label2)'}}>Sichtbar nur für eure WG, nie im Gast-Link.</span>
+      <OnbBig tid="onb-next" onClick={saveMoney}>{f.pp.trim() || f.iban.trim() ? 'Speichern & weiter' : 'Überspringen'}</OnbBig>
+    </>,
+    push: <>
+      <OnbTitle em="🔔" t="Nichts mehr verpassen" s="Die App meldet sich nur, wenn es dich betrifft:"/>
+      <div className="onb-list">
+        {[['🗑️','Müll: am Vorabend, wenn du dran bist'],['🧽','Putzplan: wenn deine Aufgabe fällig ist'],['💶','Geld: neue Ausgaben und Zahlungen'],['🛒','Einkauf: wenn etwas auf die Liste kommt']].map(([e,t],i)=><div key={i} className="onb-li" style={{animationDelay:`${120+i*90}ms`}}><span>{e}</span>{t}</div>)}
+      </div>
+      {pushState==='ok' ? <div data-testid="onb-push-ok" className="onb-ok">✓ Benachrichtigungen sind an</div>
+        : pushState==='install' ? <div className="onb-hint">Auf dem iPhone geht das nur in der installierten App: <b>Teilen ⬆️ → „Zum Home-Bildschirm“</b>, dann die App von dort öffnen – der Assistent macht dort weiter.</div>
+        : pushState==='denied' ? <div className="onb-hint">Blockiert – in den Handy-Einstellungen für diese App erlauben. Später unter „Mehr → Benachrichtigungen“.</div>
+        : pushState==='err' ? <div className="onb-hint">Hat nicht geklappt – später unter „Mehr → Benachrichtigungen“ nochmal.</div> : null}
+      {pushState!=='ok' && <OnbBig tid="onb-push" color="var(--sky)" onClick={enablePushNow} disabled={busy}>{busy ? '…' : 'Benachrichtigungen erlauben'}</OnbBig>}
+      <button type="button" className="btn btn-sec" data-testid="onb-next" onClick={next}>{pushState==='ok' ? 'Weiter' : 'Später'}</button>
+    </>,
+    invite: <>
+      <OnbTitle em="💌" t="Mitbewohner einladen" s="Ein Tipp auf den Link – und sie sind in eurer WG. Nur an Mitbewohner schicken: der Link ist der Zugang."/>
+      <div className="onb-code num" data-testid="onb-code">{wgCode}</div>
+      <a className="btn onb-big" data-testid="onb-wa" href={'https://wa.me/?text='+encodeURIComponent(waText)} target="_blank" rel="noopener" style={{background:'#25d366',color:'#062b14',textDecoration:'none',display:'flex',alignItems:'center',justifyContent:'center'}}>Per WhatsApp einladen</a>
+      <button type="button" className="btn btn-sec" onClick={async()=>{ if (navigator.share) { try { await navigator.share({ text:waText }); return; } catch {} } setCopied(await copyTxt(invite)); }}>{copied ? 'Link kopiert ✓' : 'Link teilen / kopieren'}</button>
+      <OnbBig tid="onb-next" onClick={next}>Weiter</OnbBig>
+    </>,
+    done: <>
+      <div className="onb-confetti" aria-hidden="true">{Array.from({ length: REDUCE() ? 0 : 36 }, (_,i)=><i key={i} style={{ left:`${(i*53)%100}%`, background:ONB_COLORS[i%ONB_COLORS.length], animationDelay:`${(i%9)*70}ms`, animationDuration:`${1100+(i%5)*180}ms` }}/>)}</div>
+      <OnbTitle em="🎉" t={`Fertig${meU ? `, ${meU.name}` : ''}!`} s={mode==='found' ? 'Eure WG ist eingerichtet. Sobald die anderen den Link öffnen, seid ihr verbunden.' : 'Alles eingerichtet. Viel Spaß in der WG!'}/>
+      <OnbBig tid="onb-finish" onClick={finish}>Los geht's</OnbBig>
+    </>,
+  };
+  const canBack = idx > 0 && !['done'].includes(step) && !(mode==='join' && step==='who') && step!=='welcome';
+  return ReactDOM.createPortal(
+    <div className="overlay onb" data-testid="onboarding" role="dialog" aria-modal="true" aria-label="Einrichtung">
+      <div className="onb-card">
+        {step!=='welcome' && step!=='done' && <div className="onb-top">
+          {canBack ? <button type="button" className="onb-back" aria-label="Zurück" onClick={back}>‹</button> : <span style={{width:32}}/>}
+          <div className="onb-bar"><div style={{ width:`${Math.round(idx/(flow.length-1)*100)}%` }}/></div>
+          {mode==='personal' ? <button type="button" className="onb-back" aria-label="Schließen" onClick={onDone}>×</button> : <span style={{width:32}}/>}
+        </div>}
+        <div key={step} className={`onb-step ${dir>0?'fwd':'bwd'}`} data-step={step}>
+          {screens[step]}
+          {msg && <div data-testid="onb-msg" className="onb-msg">{msg}</div>}
+        </div>
+      </div>
+    </div>, document.body);
 }
 
 /* ── Push-Hinweis auf „Heute" (seit wg-v71): Push fehlte beim Mitbewohner, der Hinweis stand nur tief unter „Mehr".
@@ -3833,6 +4122,7 @@ function Heute({ goTab }) {
   const h = new Date().getHours();
   const hello = h < 11 ? 'Guten Morgen' : h < 18 ? 'Hallo' : 'Guten Abend';
   const meU = users.find(u=>u.id===me);
+  const wgInfo = (D.cf||[]).find(x=>x && x.id==='wg' && x.name);   // WG-Name aus der Einrichtung
   const picks = (D.mk||[]).filter(Boolean).map(p=>({ p, d:pickupNext(p, today) })).filter(x=>x.d===today || x.d===tomorrow);
   const pays = (D.pr||[]).filter(p=>p && p.status==='open' && (p.to===me || p.from===me));
   const openSl = (D.sl||[]).filter(i=>i && !i.done).length;
@@ -3861,7 +4151,7 @@ function Heute({ goTab }) {
       <div className="scroll"><div className="content">
         <div className="rise" data-testid="today-hello" style={{padding:'4px 4px 0'}}>
           <div style={{fontSize:22,fontWeight:800}}>{hello}{meU?`, ${meU.name}`:''}</div>
-          <div style={{fontSize:13,color:'var(--label2)'}}>{new Date().toLocaleDateString('de-DE',{ weekday:'long', day:'numeric', month:'long' })}</div>
+          <div style={{fontSize:13,color:'var(--label2)'}}>{wgInfo ? `${wgInfo.em||'🏠'} ${wgInfo.name} · ` : ''}{new Date().toLocaleDateString('de-DE',{ weekday:'long', day:'numeric', month:'long' })}</div>
         </div>
         <WhoAmI/>
         <PushNudge goTab={goTab}/>
@@ -4477,18 +4767,27 @@ function Haushalt({goGrow, goPutz}) {
   const myCost  = hsShare + giShare;                                // was ich diesen Zyklus insgesamt trage
   const hsNet   = me ? (bals.find(b=>b.id===me)?.net||0) : 0;
   const totalNet= hsNet + (growOn?gNet:0);                          // netto: bereits Ausgelegtes verrechnet
+  // Verrechnen (wg-v72): Ist in der Growbox etwas offen, zeigt der Haushalt-Ausgleich EINEN Betrag (Haushalt ± Growbox)
+  // und „Alles abrechnen" schließt beide. Vorher: PayPal/Banner 66,25 € (nur Haushalt), obwohl torbe aus der Growbox
+  // 8 € bekommt → zu zahlen waren 58,25 € (gemeldet 19.09.). Nur bei 2 Personen: dort ist „wer schuldet wem" eindeutig.
+  const giOpen  = growOn && gc.tCost > 0.004 && users.length === 2;
+  const payBals = giOpen ? bals.map(b=>({ ...b, net: b.net + gc.net(b.id) })) : bals;
   const hsPct   = myCost>0 ? Math.round(hsShare/myCost*100) : 0;
   const giPct   = 100 - hsPct;
 
   /* Abrechnen: Ausgleich (wer→wem, wie viel) festhalten + offene Posten als abgerechnet markieren */
   const settleAll = () => {
-    const debtor=bals.find(b=>b.net<-0.01), creditor=bals.find(b=>b.net>0.01);
+    const debtor=payBals.find(b=>b.net<-0.01), creditor=payBals.find(b=>b.net>0.01);
     const oldStl=D.stl||[];
-    const rec={ id:uid(), mod:'hs', date:todayISO(), total:tot, n:open.length, fromId:debtor?.id||null, toId:creditor?.id||null, amount:debtor?Math.abs(debtor.net):0 };
-    set('stl',[rec,...oldStl]);
+    const rec={ id:uid(), mod:'hs', date:todayISO(), total:tot, n:open.length, fromId:debtor?.id||null, toId:creditor?.id||null, amount:debtor?Math.abs(debtor.net):0, ...(giOpen?{ withGi:true }:{}) };
+    // verrechnete Growbox: eigener Eintrag im Grow-Verlauf (Betrag 0 — bezahlt wurde über den Haushalt)
+    const recG = giOpen ? { id:uid(), mod:'gi', date:todayISO(), total:gc.tCost, n:gc.open.length, fromId:debtor?.id||null, toId:creditor?.id||null, amount:0, viaHs:rec.id } : null;
+    set('stl',[rec, ...(recG?[recG]:[]), ...oldStl]);
     set('hs',items.map(i=>i.settled?i:{...i,settled:true,settledAt:todayISO(),settlementId:rec.id}));
-    setFn('pr', cur=>(cur||[]).map(x=>x.mod==='hs'&&x.status==='open'?{...x,status:'ok',at:Date.now()}:x));   // offene „bezahlt"-Meldung erledigt
-    undo('Alles abgerechnet', ()=>{ setFn('stl', cur=>cur.filter(s=>s.id!==rec.id)); setFn('hs', cur=>cur.map(i=>i.settlementId===rec.id?{...i,settled:false,settledAt:null,settlementId:null}:i)); });
+    if (recG) setFn('gi', cur=>(cur||[]).map(i=>i && !i.settled ? {...i,settled:true,settledAt:todayISO(),settlementId:recG.id} : i));
+    setFn('pr', cur=>(cur||[]).map(x=>(x.mod==='hs'||(recG&&x.mod==='gi'))&&x.status==='open'?{...x,status:'ok',at:Date.now()}:x));   // offene „bezahlt"-Meldung erledigt
+    undo('Alles abgerechnet', ()=>{ setFn('stl', cur=>cur.filter(s=>s.id!==rec.id && s.id!==recG?.id)); setFn('hs', cur=>cur.map(i=>i.settlementId===rec.id?{...i,settled:false,settledAt:null,settlementId:null}:i));
+      if (recG) setFn('gi', cur=>cur.map(i=>i.settlementId===recG.id?{...i,settled:false,settledAt:null,settlementId:null}:i)); });
     if(!REDUCE()){ setStamp(true); setTimeout(()=>setStamp(false),1100); }
     notifyOthers(`🤝 ${meName} hat abgerechnet`, `€${fmt(tot)}`, 'wg-settle', 'settle');
   };
@@ -4667,8 +4966,12 @@ function Haushalt({goGrow, goPutz}) {
           )}
           </>
           )}
-          <Bal bals={bals} mod="hs" onSettle={settleAll}/>
-          {growOn && gNet<-0.01 && (
+          <Bal bals={payBals} mod="hs" onSettle={settleAll}/>
+          {giOpen && payBals.some(b=>Math.abs(b.net)>0.01) && (() => { const d = payBals.find(b=>b.net<-0.01), hsD = bals.find(b=>b.id===d?.id)?.net||0, gD = gc.net(d?.id);
+            return <div className="rise" data-testid="bal-parts" style={{fontSize:12.5,color:'var(--label2)',textAlign:'center',marginTop:-4}}>
+              Unterm Strich verrechnet: Haushalt {hsD<0?'−':'+'}€{fmt(Math.abs(hsD))} · Growbox {gD<0?'−':'+'}€{fmt(Math.abs(gD))} (aus Sicht von {d?.name})
+            </div>; })()}
+          {!giOpen && growOn && gNet<-0.01 && (
             <button className="rise" onClick={goGrow}
               style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginTop:-4,padding:'11px 14px',borderRadius:14,border:'1px solid rgba(163,230,53,.28)',background:'rgba(163,230,53,.06)',color:'var(--lime)',fontWeight:700,fontSize:13.5,fontFamily:'inherit',cursor:'pointer',animationDelay:'55ms'}}>
               <Ic d={ICONS.leaf} color="var(--lime)" size={16} sw={2}/>
@@ -4679,10 +4982,10 @@ function Haushalt({goGrow, goPutz}) {
           <TotalBudget/>
           <SavingsCard/>
           {!heuteOn && <><StatusCard/><HomeDueCard/><CheckinCard/><FridgeCard/><MealCard/><BoardCard/><QuickMsgs/><RulesCard/><PollCard/><LoginShare/><RepairCard/></>}
-          {open.length>0 && (() => {
-            const deb = bals.find(b=>b.net<-0.01), cred = bals.find(b=>b.net>0.01);
+          {(open.length>0 || giOpen) && (() => {
+            const deb = payBals.find(b=>b.net<-0.01), cred = payBals.find(b=>b.net>0.01);
             if (me && deb && deb.id===me) return <div className="rise" data-testid="settle-hint" style={{fontSize:12.5,color:'var(--label2)',textAlign:'center'}}>Abrechnen macht {cred?.name}, sobald das Geld da ist – oben „Ich habe bezahlt“ tippen.</div>;
-            return <button className="btn btn-sec rise" style={{animationDelay:'80ms'}} onClick={settleAll}>✓ Alles abrechnen ({open.length})</button>;
+            return <button className="btn btn-sec rise" style={{animationDelay:'80ms'}} onClick={settleAll}>✓ Alles abrechnen ({open.length}{giOpen ? ` + ${gc.open.length} Growbox` : ''})</button>;
           })()}
           {recs.length>0&&(
             <div className="rise" style={{animationDelay:'90ms'}}>
@@ -6681,35 +6984,42 @@ function Einstellungen() {
         <div className="rise" style={{animationDelay:'200ms'}}>
           <div className="section-hdr">Personen</div>
           <div className="group">
-            {users.map(u=>(
-              <div key={u.id} className="cell" style={{flexWrap:'wrap'}}>
+            {users.map(u=>{ const ro = !!me && me!==u.id;   // fremdes Profil: nur lesen
+              const lockSt = ro ? { opacity:.75, cursor:'not-allowed' } : null;
+              return (
+              <div key={u.id} className="cell" style={{flexWrap:'wrap'}} data-testid="person-row">
                 <div style={{width:10,height:10,borderRadius:'50%',background:u.color,boxShadow:`0 0 8px ${u.color}`,flexShrink:0}}/>
-                <input className="field" maxLength={100} aria-label="Name der Person" style={{background:'transparent',border:'none',padding:0,fontSize:16,fontWeight:600,flex:1}}
-                  value={u.name} onChange={e=>set('users',users.map(x=>x.id===u.id?{...x,name:e.target.value}:x))}/>
-                <button onClick={()=>setMe(u.id)}
+                <input className="field" maxLength={100} aria-label="Name der Person" readOnly={ro} style={{background:'transparent',border:'none',padding:0,fontSize:16,fontWeight:600,flex:1,...lockSt}}
+                  value={u.name} onChange={e=>{ if (!ro) set('users',users.map(x=>x.id===u.id?{...x,name:e.target.value}:x)); }}/>
+                <button onClick={async()=>{ if (me && me!==u.id && !(await askConfirm({ title:`Bist du wirklich ${u.name}?`, body:`Dieses Handy gehört dann ${u.name}: Putzplan, Zahlungen und das Profil gelten für ${u.name}.`, okLabel:`Ich bin ${u.name}` }))) return; setMe(u.id); }}
                   style={{background:me===u.id?u.color:'var(--bg3)',color:me===u.id?'#0a120c':'var(--label3)',border:'none',borderRadius:12,padding:'7px 12px',fontSize:12,fontWeight:800,flexShrink:0}}>
                   {me===u.id?'Das bin ich ✓':'Das bin ich'}
                 </button>
+                {ro && <div data-testid="person-locked" style={{flexBasis:'100%',fontSize:12,color:'var(--label3)',paddingLeft:18,marginTop:4}}>🔒 Nur {u.name} kann das auf dem eigenen Handy ändern</div>}
                 <div style={{flexBasis:'100%',display:'flex',alignItems:'center',gap:6,marginTop:9,paddingLeft:18}}>
                   <span style={{fontSize:13,color:'var(--label3)',fontWeight:600,flexShrink:0}}>paypal.me/</span>
                   <input className="field" maxLength={100} aria-label={`PayPal.me-Name von ${u.name}`} style={{background:'var(--bg3)',border:'none',padding:'7px 10px',fontSize:14,fontWeight:600,flex:1,borderRadius:10}}
                     placeholder="dein-name" autoCapitalize="off" autoCorrect="off" spellCheck={false}
-                    value={u.pp||''} onChange={e=>set('users',users.map(x=>x.id===u.id?{...x,pp:e.target.value}:x))}/>
+                    value={u.pp||''} readOnly={ro} onChange={e=>{ if (!ro) set('users',users.map(x=>x.id===u.id?{...x,pp:e.target.value}:x)); }}/>
                 </div>
                 {/* Bankverbindung (wg-v71): Inhaber leer = Name der Person; IBAN wird geprüft, gespeichert wie getippt */}
                 <div style={{flexBasis:'100%',display:'flex',flexDirection:'column',gap:6,marginTop:9,paddingLeft:18}} data-testid="bank-fields">
                   <input className="field" maxLength={70} aria-label={`Kontoinhaber von ${u.name}`} placeholder={`Kontoinhaber (leer = ${u.name})`} style={{background:'var(--bg3)',border:'none',padding:'7px 10px',fontSize:14,fontWeight:600}}
-                    value={u.holder||''} onChange={e=>set('users',users.map(x=>x.id===u.id?{...x,holder:e.target.value}:x))}/>
+                    value={u.holder||''} readOnly={ro} onChange={e=>{ if (!ro) set('users',users.map(x=>x.id===u.id?{...x,holder:e.target.value}:x)); }}/>
                   <input className="field num" maxLength={42} aria-label={`IBAN von ${u.name}`} placeholder="IBAN, z. B. DE89 3704 0044 …" autoCapitalize="characters" autoCorrect="off" spellCheck={false} style={{background:'var(--bg3)',border:'none',padding:'7px 10px',fontSize:14,fontWeight:600}}
-                    value={u.iban||''} onChange={e=>set('users',users.map(x=>x.id===u.id?{...x,iban:e.target.value}:x))}/>
+                    value={u.iban||''} readOnly={ro} onChange={e=>{ if (!ro) set('users',users.map(x=>x.id===u.id?{...x,iban:e.target.value}:x)); }}/>
                   {u.iban && <span data-testid="iban-state" style={{fontSize:12.5,fontWeight:700,color:ibanValid(u.iban)?'var(--green)':'var(--amber)'}}>{ibanValid(u.iban) ? `✓ ${ibanFmt(u.iban)}` : '⚠️ IBAN stimmt nicht (Tippfehler?)'}</span>}
                   <input className="field" maxLength={11} aria-label={`BIC von ${u.name}`} placeholder="BIC (optional)" autoCapitalize="characters" autoCorrect="off" spellCheck={false} style={{background:'var(--bg3)',border:'none',padding:'7px 10px',fontSize:14,fontWeight:600}}
-                    value={u.bic||''} onChange={e=>set('users',users.map(x=>x.id===u.id?{...x,bic:e.target.value}:x))}/>
+                    value={u.bic||''} readOnly={ro} onChange={e=>{ if (!ro) set('users',users.map(x=>x.id===u.id?{...x,bic:e.target.value}:x)); }}/>
                 </div>
               </div>
-            ))}
+            ); })}
           </div>
           <SwapCard/>
+          <button className="cell hit" data-testid="onb-open" onClick={()=>window.dispatchEvent(new CustomEvent('wg-onboarding'))} style={{width:'100%',background:'var(--bg2)',borderRadius:14,fontFamily:'inherit',color:'var(--label)',textAlign:'left',cursor:'pointer',marginTop:10}}>
+            <span style={{fontSize:18}}>✨</span>
+            <div className="cell-content"><span className="cell-title">Mein Profil einrichten</span><span className="cell-sub">Name, Farbe, Bereiche, PayPal/IBAN, Benachrichtigungen – Schritt für Schritt</span></div>
+          </button>
           <div className="section-ftr">„Das bin ich" gilt nur für dieses Gerät. PayPal.me-Name und IBAN erscheinen beim Schuldenausgleich zum Antippen bzw. Kopieren – nur für die WG, nie im Gast-Link.</div>
         </div>
 
@@ -7357,7 +7667,8 @@ function PushPrompt({ onClose }){
 function AppInner() {
   const { mods, remotePulse, D, me, pushSave, status, wgCode, setFn, fbCfg } = useD();
   // App-Kürzel (?a=…) einmal lesen und aus der Adresse entfernen — sonst liefe es bei jedem Neuladen erneut
-  useState(() => { try { const q = new URLSearchParams(location.search), a = q.get('a'); if (a) { SHORTCUT = a; const t = q.get('t'); if (t && a==='ausgabe') SHORTCUT_TEXT = t.slice(0,80); history.replaceState(null, '', location.pathname); } } catch {} return null; });
+  useState(() => { try { const q = new URLSearchParams(location.search), jn = q.get('join'); if (jn) { JOIN_CODE = jn.trim().toUpperCase().slice(0,60); history.replaceState(null, '', location.pathname); } } catch {}
+  try { const q = new URLSearchParams(location.search), a = q.get('a'); if (a) { SHORTCUT = a; const t = q.get('t'); if (t && a==='ausgabe') SHORTCUT_TEXT = t.slice(0,80); history.replaceState(null, '', location.pathname); } } catch {} return null; });
   const visibleTabs = TABS.filter(t => t.id==='set' || mods[t.id] !== false);
   const [tab,setTab_] = useState(() => {
     if (SHORTCUT) return SHORTCUT==='muell' ? 'putz' : (SHORTCUT==='waesche' && mods.heute!==false) ? 'heute' : 'haus';   // Timer lebt auf „Heute“
@@ -7400,6 +7711,14 @@ function AppInner() {
   // „Neue Version": ein neuer Service Worker hat übernommen (s. Skript am Seitenende) — Hinweis mit Knopf
   const [updReady,setUpdReady] = useState(() => !!window.__wgUpdReady);
   useEffect(() => { const on = () => setUpdReady(true); window.addEventListener('wg-update', on); return () => window.removeEventListener('wg-update', on); }, []);
+  // Einrichtungs-Assistent (wg-v72): frisches Gerät oder Einladungslink; „Mehr → Mein Profil einrichten" öffnet 'personal'.
+  // Einladungslink auf einem schon eingerichteten Gerät mit anderem Code wird ignoriert (würde sonst die WG wechseln).
+  const [onb,setOnb] = useState(() => {
+    const fresh = !!ls('wg_fresh', null) && !ls(SETUP_KEY, null);
+    if (JOIN_CODE && !fresh) JOIN_CODE = null;
+    return JOIN_CODE ? 'join' : fresh ? 'new' : null;
+  });
+  useEffect(() => { const h = () => setOnb('personal'); window.addEventListener('wg-onboarding', h); return () => window.removeEventListener('wg-onboarding', h); }, []);
   // Start-Flow (max. 1× pro Woche, nicht bei jedem Öffnen): erst PayPal einrichten (falls kein Handle),
   // danach der offene Schuldbetrag groß (idiotensicher) — beide mit „Später"-Option.
   const [debtInfo,setDebtInfo] = useState(null);
@@ -7418,6 +7737,7 @@ function AppInner() {
       // Neu versuchen, sobald es zu ist — der Hinweis selbst geht nicht verloren.
       if (document.querySelector('.overlay')) { retry = setTimeout(tryStart, 1500); return; }
       startShownRef.current = true;
+      if (ls(SETUP_KEY, null) === todayISO()) return;     // gerade eingerichtet → Assistent hat schon gefragt
       const last = ls('wg_start_shown', null);
       if (last && daysSince(last) < 7) return;            // diese Woche schon dran → nichts
       // Push: fehlt die Berechtigung (oder iOS ohne Installation), ist die App nicht vollständig → zuerst auffordern
@@ -7488,6 +7808,7 @@ function AppInner() {
         </div>
       )}
       <GlobalUI/>
+      {onb && <Onboarding mode={onb} onDone={()=>setOnb(null)}/>}
       {startStep==='push' && <PushPrompt onClose={()=>setStartStep(startNeedsPP ? 'pp' : (debtInfo ? 'debt' : null))}/>}
       {startStep==='pp' && <PayPalSetup onClose={()=>setStartStep(debtInfo ? 'debt' : null)}/>}
       {startStep==='debt' && debtInfo && <DebtAlert info={debtInfo} onClose={()=>setStartStep(null)}/>}
