@@ -48,6 +48,15 @@ if (process.argv.includes('--luecken')) {
   process.exit(0);
 }
 
+// deutsche Anführungszeichen („…“) in den ENGLISCHEN Texten auf gerade " bringen
+if (process.argv.includes('--zitate')) {
+  let n = 0;
+  for (const [k, v] of Object.entries(dict)) { const neu = v.replace(/[„“”]/g, '"'); if (neu !== v) { dict[k] = neu; n++; } }
+  writeFileSync(jsonFile, JSON.stringify(sort(dict), null, 1) + '\n');
+  console.log(`Anführungszeichen angeglichen: ${n}`);
+  process.exit(0);
+}
+
 // neue Übersetzungen dazunehmen (bestehende bleiben, damit nichts still überschrieben wird)
 const mg = process.argv.indexOf('--merge');
 if (mg > 0 && process.argv[mg + 1]) {
