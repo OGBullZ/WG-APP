@@ -379,6 +379,23 @@ Keine neuen Listen-Keys: `hs`- und `sl`-Einträge bekommen `shop` (und `sl` zus�
 - **Tests:** laden 26/26, cron_alltag 73/73, 6 Gegenproben rot.
 - **Test-Falle:** Die Rezept-Gegenprobe blieb zuerst grün, weil im Testdatensatz nur **ein** Rezept in Frage kam – die Reihenfolge war gar nicht prüfbar. Seeds so wählen, dass die geprüfte Eigenschaft überhaupt sichtbar wird.
 
+## Englisch (wg-v77, 20.09. — torbe: „englisch als letzten punkt noch umsetzen")
+
+Deutsch bleibt die Quellsprache: im Code steht der deutsche Text, Englisch kommt aus einem Wörterbuch. Fehlt ein Eintrag, steht Deutsch da — nie ein leerer Platz oder ein Schlüsselname.
+
+- **Laufzeit:** `LANG` aus `wg_lang` (nur dieses Gerät), `TT(de, …args)` ersetzt `{0}`-Platzhalter, `LOC()` gibt `en-GB`/`de-DE` für Datum und Zahlen. **`setLang` lädt die Seite neu** — `TT` wird auch außerhalb von Komponenten ausgewertet (Konstanten wie `TABS`, `CATS`), ein Wechsel im laufenden Betrieb erwischte die nicht.
+- **Wörterbuch:** Quelle ist `lang/en.json`, in `wgapp.html` steht sie als `<script id="wg-en">` **vor** dem JSX-Block (Einzeldatei + Hash-CSP erlauben kein `fetch`). Ablauf: `node scripts/i18n-dict.mjs --merge <neu.json>` → `--write`. **Danach immer `csp-hashes.mjs --write`** — es sind jetzt 5 gehashte Skripte.
+- **Werkzeuge** (alle mit Probelauf, `--write` schreibt erst):
+  - `i18n-scan.mjs` — zählt sichtbare Texte (nur lesen).
+  - `i18n-codemod.mjs` — JSX-Text, Attribute nach Whitelist, Vorlagen in `notifyOthers/undo/askConfirm/flashPush/setMsg`.
+  - `i18n-codemod2.mjs` — Texte in Bedingungen (`{x ? 'a' : 'b'}`) und in Anzeige-Helfern (`row`, `line`).
+  - `i18n-listen.mjs` — feste Listen (`TABS`, `CATS`, Vorlagen …) und die `OnbTitle`-Attribute `t`/`s`.
+  - `i18n-entpacken.mjs` — nimmt `TT(…)` wieder ab, wo kein Anzeigetext drinsteht.
+  - `i18n-dict.mjs --luecken` — alle `TT("…")`-Schlüssel aus dem Quelltext ohne Übersetzung.
+- **Test:** `node test/english.mjs` (13 Checks): Umschalter, Kern-Texte, Datums-/Zahlenformat, **Leck-Test** (auf Heute/Haushalt/Putzplan/Übersicht/Mehr darf kein deutsches Wort stehen) und „Deutsch bleibt unverändert". Gegenprobe: `node scratchpad/gegenprobe-english.mjs` sabotiert fünf Stellen einzeln, jede muss den Test rot machen.
+- **Teuer gelernt — ein Codemod, der Text erkennen will, verpackt irgendwann Schlüssel.** Der Filter „enthält typisch deutsche Wörter" ließ „Einkaufsliste" durch; der Gegenfilter „alles außer Technik" verpackte dafür `'shop'`, `'putz'`, `'wg-exp'` und den Modulschlüssel `'heute'`. Beides fällt in Tests nicht auf, solange das Wörterbuch den Schlüssel nicht kennt — **erst die Übersetzung bricht dann Push-Filter und Modul-Schalter**. Deshalb `i18n-entpacken.mjs` mit fester Ausnahmeliste und die Regel: nach jedem Codemod die kurzen kleingeschriebenen `TT`-Argumente durchsehen.
+- **Was bewusst deutsch bleibt:** Server-Texte (Cron-Pushes, Gast-Seite, `api/`) und der CSV-Export (Semikolon + deutsche Kommazahl für Excel).
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -413,6 +430,7 @@ node test/upgrade_dist.mjs # Update-Pfad wie auf den Handys: alte Auslieferung (
 node test/ux.mjs          # Alltagstauglich: Build (vorab übersetzt, ohne Babel, Erststart < 6 s bei 4× CPU), Heute-Start, eine Eingabezeile, Abrechnen nur Gläubiger, Laden-Bereiche, Wer-bist-du, Morgen-Knopf, Timer-Dauer, Push je Art, Mehr-Gruppen, Lesbarkeit
 node test/extra.mjs       # Extra: Schnell-Eingabe, Preis-Gedächtnis, Gesamtbudget, Einkaufs-Reihenfolge, Heute, Zähler, Kalender-Abo, Hell/Dunkel + Schrift
 node test/laden.mjs      # Laden & Essen: Preise je Laden, Laden am Posten, Reste-Rezepte (Reihenfolge, auf die Liste, einplanen), Touren, Mängelanzeige + Frist, Notfall-Infos
+node test/english.mjs    # Englisch: Umschalter, Kern-Texte, Datum/Zahlen, Leck-Test über die Hauptseiten, Deutsch unverändert
 node test/fair.mjs       # Fair: Auslage-Rotation, Abrechnungs-Wächter (Grenzen), Budget-Hochrechnung, Aufgabe abgeben/übernehmen, Belegung & Ruhezeiten (Überschneidung)
 node test/gross.mjs      # Größere WGs: Verrechnungsplan (3 und 4 Personen), Zeilen/Knöpfe je Rolle, Heute, Abrechnungs-Beleg, Übersicht, Übergabe-Seite; 2 Personen unverändert
 node test/miete.mjs       # Miete (3 Personen): einrichten, Anteile, abhaken/zurücknehmen, Monatswechsel, überfällig, Heute-Zeile, wer darf abhaken

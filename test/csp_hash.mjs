@@ -14,7 +14,8 @@ const r0 = run('--check');
 check('1 Hashes in firebase.json passen zur aktuellen wgapp.html', r0.status === 0, (r0.stdout + r0.stderr).trim());
 const cfg = readFileSync('firebase.json', 'utf8');
 check('2 script-src ohne unsafe-inline', /script-src [^;"]*/.test(cfg) && !/script-src [^;"]*'unsafe-inline'/.test(cfg));
-check('3 vier Hashes (3 Inline-Skripte + Kompilat)', ((cfg.match(/script-src [^;"]*/) || [''])[0].match(/'sha256-/g) || []).length === 4);
+// seit wg-v77 zusätzlich das englische Wörterbuch (<script id="wg-en">)
+check('3 fünf Hashes (4 Inline-Skripte + Kompilat)', ((cfg.match(/script-src [^;"]*/) || [''])[0].match(/'sha256-/g) || []).length === 5);
 
 const dir = mkdtempSync(join(tmpdir(), 'wg-csp-'));
 try {

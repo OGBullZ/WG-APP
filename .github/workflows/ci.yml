@@ -54,6 +54,7 @@ jobs:
           node test/gross.mjs
           node test/fair.mjs
           node test/laden.mjs
+          node test/english.mjs
           node test/csp_hash.mjs
           node test/visual.mjs
           kill $SRV 2>/dev/null || true
