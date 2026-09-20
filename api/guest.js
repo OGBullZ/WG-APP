@@ -30,6 +30,7 @@ ${view.wifi ? `<h2>📶 WLAN</h2><div class="box"><p>Name: <code>${esc(view.wifi
 ${view.note ? `<h2>ℹ️ Gut zu wissen</h2><div class="box"><p>${esc(view.note).replace(/\n/g, '<br>')}</p></div>` : ''}
 ${view.rules.length ? `<h2>📜 Hausregeln</h2><div class="box"><ul>${li(view.rules)}</ul></div>` : ''}
 ${view.pickups.length ? `<h2>🚛 Müll</h2><div class="box"><ul>${li(view.pickups)}</ul></div>` : ''}
+${view.emergency && view.emergency.length ? `<h2>🆘 Im Notfall</h2><div class="box"><ul>${li(view.emergency)}</ul></div>` : ''}
 </body></html>`;
 }
 

@@ -69,7 +69,11 @@ function guestView(wg, todayIso) {
   const rules = toArray(wg.rg).filter((r) => r.text && users.length && users.every((u) => r['ok_' + u.id] === true)).map((r) => r.text);
   const pickups = toArray(wg.mk).filter((p) => p.kind && p.start).map((p) => ({ p, d: pickupNext(p, todayIso) })).sort((a, b) => a.d.localeCompare(b.d))
     .map(({ p, d }) => { const k = PICK_KINDS[p.kind] || ['🗑️', p.kind]; const [, mm, dd] = d.split('-'); return `${k[0]} ${k[1]}: ${d === todayIso ? 'heute' : `${+dd}.${+mm}.`} (Tonne am Vorabend raus)`; });
-  return { date: todayIso.split('-').reverse().join('.'), wifi: info.wifi || '', pw: info.pw || '', note: info.note || '', rules, pickups };
+  // Notfall-Infos (wg-v76): im Ernstfall soll auch Besuch wissen, wo der Absperrhahn ist
+  const nf = toArray(wg.cf).find((x) => x && x.id === 'notfall') || {};
+  const emergency = [['⚡ Sicherungskasten', nf.strom], ['🚰 Wasser-Absperrhahn', nf.wasser], ['🔥 Heizung/Therme', nf.heizung], ['🧰 Hausmeister', nf.hausmeister]]
+    .filter((x) => x[1]).map((x) => `${x[0]}: ${x[1]}`);
+  return { date: todayIso.split('-').reverse().join('.'), wifi: info.wifi || '', pw: info.pw || '', note: info.note || '', rules, pickups, emergency };
 }
 
 // Miete (wg-v73): Fälligkeitstag im Monat, gekappt auf die Monatslänge (der 31. im Februar = Monatsletzter)

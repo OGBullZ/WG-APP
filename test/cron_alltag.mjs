@@ -191,6 +191,12 @@ check('51 zwei Tage vorher: Push mit offenen Namen und Empfänger', W.rentRemind
 check('52 am Stichtag', W.rentReminders(miWg, '2026-09-03')?.title === 'Miete heute fällig');
 check('53 danach nur montags (07.09.2026 = Montag, 05.09. nicht)', /überfällig/.test(W.rentReminders(miWg, '2026-09-07')?.title || '') && W.rentReminders(miWg, '2026-09-05') === null);
 check('54 alle bezahlt → keine Push; ohne Einstellung auch nicht', W.rentReminders({ ...miWg, mi: { cfg: miWg.mi.cfg, '2026-09-u1': {}, '2026-09-u2': {}, '2026-09-u3': {} } }, '2026-09-03') === null && W.rentReminders({ users: miWg.users }, '2026-09-03') === null);
+// Notfall-Infos auf der Gast-Seite (wg-v76)
+const gvNf = W.guestView({ users, cf: { n: { id: 'notfall', strom: 'Flur links', wasser: 'unter der Spüle' }, v: { id: 'vermieter', name: 'Meier', email: 'meier@example.com' } }, ga: { info: { wifi: 'X' } } }, '2026-09-20');
+check('56 Gast-Seite: Notfall-Infos ja, Vermieter-Daten nein', gvNf.emergency.join(' | ') === '⚡ Sicherungskasten: Flur links | 🚰 Wasser-Absperrhahn: unter der Spüle'
+  && !JSON.stringify(gvNf).includes('meier@example.com'), JSON.stringify(gvNf.emergency));
+check('57 Gast-Seite rendert den Notfall-Block', guestMod.page({ ...gvNf }).includes('Im Notfall') && guestMod.page({ ...gvNf, emergency: [] }).includes('Im Notfall') === false);
+
 check('55 Morgen-Job: Miete verdrahtet', /rentReminders\(wg, todayIso\)/.test(cron));
 
 check('49 Morgen-Job: Wartung + Ausleihe', /maintReminders\(wg, todayIso\)/.test(cron) && /loanReminders\(wg, todayIso\)/.test(cron));

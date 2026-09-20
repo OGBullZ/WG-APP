@@ -368,6 +368,17 @@ Neue Listen-Keys: `tb` (Aufgaben-Abgaben), `bk` (Belegungen); `cf` bekommt den E
 - **Tests:** fair 23/23, 5 Gegenproben rot.
 - **Falle (wieder):** Ein per `node -e` eingefügter Gegenprobe-Block zerriss an den Anführungszeichen. Solche Einfügungen gehören ins Write/Edit-Werkzeug.
 
+## Laden, Essen, Vermieter (wg-v76, 20.09. — torbe: alle 12 Ideen, Teil 2)
+
+Keine neuen Listen-Keys: `hs`- und `sl`-Einträge bekommen `shop` (und `sl` zusätzlich `tour`), `cf` die Einträge `vermieter` und `notfall`.
+- **Preise je Laden:** Im Ausgaben-Formular lässt sich der Laden wählen (`ShopPick`, bekannte Läden aus den bisherigen Posten + Vorschläge). `priceByShop` liefert je Laden den günstigsten Kauf; der Preis-Hinweis zeigt „zuletzt … · Laden" und „💰 Günstigster: X".
+- **Reste-Rezepte** (`recipeIdeas`): feste Liste einfacher Gerichte, abgeglichen mit Kühlschrank und Vorrat. Sortiert nach: nutzt Ablaufendes → wenig fehlt → viel da; höchstens 3 Vorschläge, erst ab 2 vorhandenen Zutaten. „🛒" setzt Fehlendes auf die Liste, „Einplanen" legt das Gericht für heute in den Essensplan.
+- **Einkaufs-Touren:** Jeder Listeneintrag kann einen Laden bekommen (Chip in der Zeile). Die Leiste über der Liste zeigt je Laden die Anzahl; ein Tipp übernimmt die Tour (`tour` = me, Push an die anderen). „Nur meine Tour" blendet den Rest aus.
+- **Mängelanzeige an den Vermieter** (`cf`-Eintrag `vermieter`): erzeugt ein fertiges Schreiben mit allen offenen Mängeln und 14 Tagen Frist – drucken, als E-Mail öffnen oder Text kopieren. „Abgeschickt – Frist merken" setzt alle Mängel auf „gemeldet" und trägt `due` ein; die Reparatur-Zeile zeigt die Frist und färbt sie rot, wenn sie abläuft. **Vorlage, kein Rechtsrat.**
+- **Notfall-Infos** (`cf`-Eintrag `notfall`): Sicherungskasten, Absperrhahn, Therme, Hausmeister. Erscheinen auch auf der Gast-Seite (`guestView.emergency`) – Vermieter-Daten bleiben dort draußen.
+- **Tests:** laden 26/26, cron_alltag 73/73, 6 Gegenproben rot.
+- **Test-Falle:** Die Rezept-Gegenprobe blieb zuerst grün, weil im Testdatensatz nur **ein** Rezept in Frage kam – die Reihenfolge war gar nicht prüfbar. Seeds so wählen, dass die geprüfte Eigenschaft überhaupt sichtbar wird.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -401,6 +412,7 @@ node test/alltag.mjs      # Alltag: Vorrat, Kassenzettel, Waschtimer, Nachrichte
 node test/upgrade_dist.mjs # Update-Pfad wie auf den Handys: alte Auslieferung (Quelltext+Babel, alter SW) → dist; Update erkannt, Daten bleiben, Babel aus dem Cache, offline
 node test/ux.mjs          # Alltagstauglich: Build (vorab übersetzt, ohne Babel, Erststart < 6 s bei 4× CPU), Heute-Start, eine Eingabezeile, Abrechnen nur Gläubiger, Laden-Bereiche, Wer-bist-du, Morgen-Knopf, Timer-Dauer, Push je Art, Mehr-Gruppen, Lesbarkeit
 node test/extra.mjs       # Extra: Schnell-Eingabe, Preis-Gedächtnis, Gesamtbudget, Einkaufs-Reihenfolge, Heute, Zähler, Kalender-Abo, Hell/Dunkel + Schrift
+node test/laden.mjs      # Laden & Essen: Preise je Laden, Laden am Posten, Reste-Rezepte (Reihenfolge, auf die Liste, einplanen), Touren, Mängelanzeige + Frist, Notfall-Infos
 node test/fair.mjs       # Fair: Auslage-Rotation, Abrechnungs-Wächter (Grenzen), Budget-Hochrechnung, Aufgabe abgeben/übernehmen, Belegung & Ruhezeiten (Überschneidung)
 node test/gross.mjs      # Größere WGs: Verrechnungsplan (3 und 4 Personen), Zeilen/Knöpfe je Rolle, Heute, Abrechnungs-Beleg, Übersicht, Übergabe-Seite; 2 Personen unverändert
 node test/miete.mjs       # Miete (3 Personen): einrichten, Anteile, abhaken/zurücknehmen, Monatswechsel, überfällig, Heute-Zeile, wer darf abhaken
