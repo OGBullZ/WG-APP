@@ -346,6 +346,17 @@ Bausteine im Block `MEHR` in wgapp.html (vor `PLUS`). Neue Listen-Keys: `st vo l
 - **Falle beim Bauen:** Die Heute-Zeile stand im Code **vor** der Hilfsfunktion `row` → „row is not a function“, die ganze App zeigte die Fehlerseite. Bei Einfügungen in bestehende Funktionen auf die Reihenfolge der `const`-Definitionen achten.
 - **Tests:** miete 21/21 (bewusst mit **drei** Personen), cron_alltag 71/71, 4 Gegenproben rot.
 
+## Größere WGs (wg-v74, 20.09.)
+
+Die App war auf genau zwei Personen zugeschnitten: ein Schuldner, ein Gläubiger, ein Betrag. Ab drei Personen gilt jetzt ein **Verrechnungsplan**.
+- **`settlePlan(bals)`:** greedy — größter Schuldner an größten Gläubiger, bis beide bei null sind. Ergibt höchstens n−1 Überweisungen und ist bei zwei Personen genau das bisherige Paar (Anzeige unverändert).
+- **`BalPlan`** ersetzt ab 3 Personen das Banner: eine Zeile je Überweisung, eigene Zeilen zuerst. PayPal-Knopf und IBAN-Box stehen nur an der Zeile, die man selbst zahlt.
+- **„Heute"** zeigt je offener Überweisung mit eigener Beteiligung eine Zeile.
+- **Abrechnen** darf, wer Geld bekommt; Schuldner sehen den Hinweis. Der Beleg (`stl`) hat ab 3 Personen `fromId`/`toId` `null`, `amount` = Summe des Plans und `plan` als Text (Items dürfen nur einfache Felder haben).
+- **Übersicht** und **Übergabe-Seite** listen den Plan statt eines Paares.
+- **Weiterhin auf zwei Personen ausgelegt:** die Growbox-Verrechnung im Haushalt (`giOpen`), der Nebenkosten-Schieber (ab 3 wird gleich verteilt) und der Mitbewohner-Wechsel. Wenn die App mal für größere WGs ausgerollt wird, sind das die nächsten Stellen.
+- **Tests:** gross 24/24 (3 und 4 Personen, plus die Gegenprobe, dass zwei Personen unverändert aussehen).
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -379,6 +390,7 @@ node test/alltag.mjs      # Alltag: Vorrat, Kassenzettel, Waschtimer, Nachrichte
 node test/upgrade_dist.mjs # Update-Pfad wie auf den Handys: alte Auslieferung (Quelltext+Babel, alter SW) → dist; Update erkannt, Daten bleiben, Babel aus dem Cache, offline
 node test/ux.mjs          # Alltagstauglich: Build (vorab übersetzt, ohne Babel, Erststart < 6 s bei 4× CPU), Heute-Start, eine Eingabezeile, Abrechnen nur Gläubiger, Laden-Bereiche, Wer-bist-du, Morgen-Knopf, Timer-Dauer, Push je Art, Mehr-Gruppen, Lesbarkeit
 node test/extra.mjs       # Extra: Schnell-Eingabe, Preis-Gedächtnis, Gesamtbudget, Einkaufs-Reihenfolge, Heute, Zähler, Kalender-Abo, Hell/Dunkel + Schrift
+node test/gross.mjs      # Größere WGs: Verrechnungsplan (3 und 4 Personen), Zeilen/Knöpfe je Rolle, Heute, Abrechnungs-Beleg, Übersicht, Übergabe-Seite; 2 Personen unverändert
 node test/miete.mjs       # Miete (3 Personen): einrichten, Anteile, abhaken/zurücknehmen, Monatswechsel, überfällig, Heute-Zeile, wer darf abhaken
 node test/onboarding.mjs  # Einrichtung: neue WG (alle Schritte bis Heute), Beitreten per ?join= (Umlaut-Code), falscher Code, „Ich bin neu", bestehendes Gerät/fremder Link ignoriert, „Mein Profil einrichten"
 node test/mehr.mjs        # Mehr: Status (Ablauf), Umfragen (verdeckt bis zur eigenen Stimme), Wartung/Ausleihe + Heute-Fälliges, Verbrauch je Monat, Monatsbericht, Kaution, Wochen-Korb, Mitbewohner-Wechsel, Gast-Link

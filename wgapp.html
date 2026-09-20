@@ -1908,11 +1908,34 @@ function BankBox({ c, d, amount, me }) {
   );
 }
 
+/* Verrechnungsplan (seit wg-v74): aus den Netto-Ständen die kürzeste Liste „X zahlt Y €Z".
+   Greedy: größter Schuldner an größten Gläubiger, bis beide ausgeglichen sind — bei n Personen höchstens n−1
+   Überweisungen. Bei zwei Personen ist das genau das bisherige eine Paar, die Anzeige bleibt also gleich. */
+const settlePlan = (bals) => {
+  const debt = bals.filter(b=>b.net < -0.01).map(b=>({ id:b.id, name:b.name, left:-b.net })).sort((a,b)=>b.left-a.left);
+  const cred = bals.filter(b=>b.net > 0.01).map(b=>({ id:b.id, name:b.name, left:b.net })).sort((a,b)=>b.left-a.left);
+  const out = [];
+  let i = 0, j = 0;
+  while (i < debt.length && j < cred.length) {
+    const amount = Math.round(Math.min(debt[i].left, cred[j].left) * 100) / 100;
+    if (amount > 0.004) out.push({ from:debt[i].id, fromName:debt[i].name, to:cred[j].id, toName:cred[j].name, amount });
+    debt[i].left -= amount; cred[j].left -= amount;
+    if (debt[i].left <= 0.01) i++;
+    if (cred[j].left <= 0.01) j++;
+  }
+  return out;
+};
+// Plan als Text für den Abrechnungs-Beleg (Items dürfen nur einfache Felder haben)
+const planText = (plan, users) => plan.map(t=>`${nameOfU(users,t.from)}→${nameOfU(users,t.to)}:${fmt(t.amount)}`).join(' · ').slice(0,500);
+
 /* ── Schulden-Banner ── */
 const PP_LOGO = <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7.2 21.3l.5-3.1h3.6c3.8 0 6.4-1.9 7-5.5.5-3-.9-4.9-3.9-4.9H8.7c-.5 0-.9.4-1 .9L5.2 20.4c-.1.5.3.9.7.9h1.3zm2.4-9.9h2.1c1.2 0 1.9.6 1.7 1.8-.2 1.4-1.2 2.1-2.7 2.1H9l.6-3.9z"/></svg>;
 function Bal({ bals, noShare, mod = 'hs', onSettle }) {
   const { me, D, setFn, notifyOthers, askConfirm } = useD();
   const [shared,setShared] = useState(false);
+  const plan = settlePlan(bals);
+  // Ab drei Personen kann es mehrere Überweisungen geben → eigene Liste (zwei Personen: unverändert ein Paar)
+  if ((D.users||[]).length > 2) return <BalPlan plan={plan} mod={mod} onSettle={onSettle}/>;
   const d=bals.find(b=>b.net<-.01), c=bals.find(b=>b.net>.01);
   if(!d||!c) return null;
   const amount=Math.abs(d.net);
@@ -1989,6 +2012,31 @@ function Bal({ bals, noShare, mod = 'hs', onSettle }) {
       <BankBox c={c} d={d} amount={amount} me={me}/>
       {payBox}
     </>
+  );
+}
+
+/* Bilanz ab 3 Personen: eine Zeile je Überweisung. Wer zahlen muss, sieht PayPal/IBAN direkt an der Zeile. */
+function BalPlan({ plan, mod, onSettle }) {
+  const { me, D } = useD();
+  const users = D.users || [];
+  if (!plan.length) return null;
+  const mineOut = plan.filter(t=>t.from===me), rest = plan.filter(t=>t.from!==me);
+  const row = t => { const c = users.find(u=>u.id===t.to) || {}, d = users.find(u=>u.id===t.from) || {};
+    const link = t.from===me ? ppLink(c.pp, t.amount) : null;
+    return (
+      <div key={t.from+t.to} className="cell" data-testid="plan-row" style={{flexWrap:'wrap',gap:8}}>
+        <div className="cell-content">
+          <span className="cell-title"><b style={{color:d.color}}>{t.from===me?'Du':d.name}</b> → <b style={{color:c.color}}>{t.to===me?'dir':c.name}</b> <span className="num" style={{fontWeight:800}}>€{fmt(t.amount)}</span></span>
+          {t.to===me && <span className="cell-sub">wartet auf {d.name}</span>}
+        </div>
+        {link && <a className="btn" href={link} target="_blank" rel="noopener noreferrer" style={{width:'auto',padding:'8px 12px',fontSize:13,background:'#0070ba',color:'#fff',textDecoration:'none',display:'flex',alignItems:'center',gap:6}}>{PP_LOGO}Zahlen</a>}
+        {t.from===me && ibanValid(c.iban) && <div style={{flexBasis:'100%'}}><BankBox c={c} d={d} amount={t.amount} me={me}/></div>}
+      </div>); };
+  return (
+    <div className="rise" data-testid="bal-plan">
+      <div className="section-hdr">🤝 Ausgleich · {plan.length} {plan.length===1?'Überweisung':'Überweisungen'}</div>
+      <div className="group">{[...mineOut, ...rest].map(row)}</div>
+    </div>
   );
 }
 
@@ -3641,7 +3689,10 @@ function MoveOutCard() {
   const inv = (D.inv||[]).filter(Boolean);
   const kt = (D.kt||[]).find(x=>x && x.id==='k');
   const gc = growCalc(D);
-  const balLine = () => { const [a] = users; if (!a) return ''; const n = hsNetOf(D, a.id) + (gc.tCost ? gc.net(a.id) : 0); const o = otherOf(users, a.id);
+  const balLine = () => { const [a] = users; if (!a) return '';
+    if (users.length > 2) { const p = settlePlan(users.map(u=>({ ...u, net: hsNetOf(D, u.id) + (gc.tCost ? gc.net(u.id) : 0) })));
+      return p.length ? p.map(t=>`${t.fromName} zahlt ${t.toName} €${fmt(t.amount)}`).join(' · ') : 'Alles ausgeglichen'; }
+    const n = hsNetOf(D, a.id) + (gc.tCost ? gc.net(a.id) : 0); const o = otherOf(users, a.id);
     return Math.abs(n) < 0.01 ? 'Alles ausgeglichen' : n < 0 ? `${a.name} schuldet ${o?.name} €${fmt(-n)}` : `${o?.name} schuldet ${a.name} €${fmt(n)}`; };
   return (
     <div data-testid="moveout-card">
@@ -4239,6 +4290,10 @@ function Heute({ goTab }) {
   );
   const goList = () => { SHORTCUT = 'liste'; goTab('haus'); };
   const mine = me ? choreMine(D.pt, me) : [];
+  // Ab 3 Personen: je Überweisung eine eigene Zeile (wer wem wie viel)
+  const myTransfers = users.length > 2 && me ? settlePlan(users.map(u=>({ ...u, net: myBalance(D, u.id, mods).total })))
+    .filter(t=>t.from===me || t.to===me)
+    .map(t=>row(t.from===me?'💸':'💰', t.from===me ? `Du schuldest ${t.toName} €${fmt(t.amount)}` : `${t.fromName} schuldet dir €${fmt(t.amount)}`, ()=>goTab('haus'), 'today-bal-'+t.from+t.to)) : [];
   // Miete (wg-v73): eigene Zahlung offen und Fälligkeit ≤ 3 Tage entfernt oder schon vorbei
   const rentCfg = (D.mi||[]).find(x=>x && x.id==='cfg');
   const rentRow = (() => {
@@ -4253,7 +4308,8 @@ function Heute({ goTab }) {
     ...pays.map(p=>row('💶', p.to===me ? `${nameOfU(users, p.from)} hat €${fmt(p.amount)} bezahlt – bitte bestätigen` : `Zahlung €${fmt(p.amount)} wartet auf ${nameOfU(users, p.to)}`, ()=>goTab('haus'), 'today-pay-'+p.id)),
     (openSl || soon.length) ? row('🛒', `${openSl} auf der Einkaufsliste${soon.length?` · bald leer: ${soon.map(s=>s.name).join(', ')}`:''}`, goList, 'today-shop') : null,
     rentRow,
-    (me && other && Math.abs(net) > 0.01) ? row(net<0?'💸':'💰', net<0 ? `Du schuldest ${other.name} €${fmt(-net)}${balParts}` : `${other.name} schuldet dir €${fmt(net)}${balParts}`, ()=>goTab('haus'), 'today-bal') : null,
+    ...(me && users.length>2 ? myTransfers : []),
+    (me && other && users.length<=2 && Math.abs(net) > 0.01) ? row(net<0?'💸':'💰', net<0 ? `Du schuldest ${other.name} €${fmt(-net)}${balParts}` : `${other.name} schuldet dir €${fmt(net)}${balParts}`, ()=>goTab('haus'), 'today-bal') : null,
   ].filter(Boolean);
   return (
     <div className="screen">
@@ -4889,7 +4945,9 @@ function Haushalt({goGrow, goPutz}) {
   const settleAll = () => {
     const debtor=payBals.find(b=>b.net<-0.01), creditor=payBals.find(b=>b.net>0.01);
     const oldStl=D.stl||[];
-    const rec={ id:uid(), mod:'hs', date:todayISO(), total:tot, n:open.length, fromId:debtor?.id||null, toId:creditor?.id||null, amount:debtor?Math.abs(debtor.net):0, ...(giOpen?{ withGi:true }:{}) };
+    const plan = settlePlan(payBals);   // ab 3 Personen mehrere Überweisungen — Beleg hält den ganzen Plan fest
+    const rec={ id:uid(), mod:'hs', date:todayISO(), total:tot, n:open.length, fromId:users.length>2?null:(debtor?.id||null), toId:users.length>2?null:(creditor?.id||null),
+      amount:users.length>2 ? Math.round(plan.reduce((s,t)=>s+t.amount,0)*100)/100 : (debtor?Math.abs(debtor.net):0), ...(plan.length>1?{ plan:planText(plan, users) }:{}), ...(giOpen?{ withGi:true }:{}) };
     // verrechnete Growbox: eigener Eintrag im Grow-Verlauf (Betrag 0 — bezahlt wurde über den Haushalt)
     const recG = giOpen ? { id:uid(), mod:'gi', date:todayISO(), total:gc.tCost, n:gc.open.length, fromId:debtor?.id||null, toId:creditor?.id||null, amount:0, viaHs:rec.id } : null;
     set('stl',[rec, ...(recG?[recG]:[]), ...oldStl]);
@@ -5095,6 +5153,7 @@ function Haushalt({goGrow, goPutz}) {
           {!heuteOn && <><StatusCard/><HomeDueCard/><CheckinCard/><FridgeCard/><MealCard/><BoardCard/><QuickMsgs/><RulesCard/><PollCard/><LoginShare/><RepairCard/></>}
           {(open.length>0 || giOpen) && (() => {
             const deb = payBals.find(b=>b.net<-0.01), cred = payBals.find(b=>b.net>0.01);
+            if (me && users.length>2 && payBals.find(b=>b.id===me)?.net < -0.01) return <div className="rise" data-testid="settle-hint" style={{fontSize:12.5,color:'var(--label2)',textAlign:'center'}}>Abrechnen macht, wer Geld bekommt – sobald es da ist.</div>;
             if (me && deb && deb.id===me) return <div className="rise" data-testid="settle-hint" style={{fontSize:12.5,color:'var(--label2)',textAlign:'center'}}>Abrechnen macht {cred?.name}, sobald das Geld da ist – oben „Ich habe bezahlt“ tippen.</div>;
             return <button className="btn btn-sec rise" style={{animationDelay:'80ms'}} onClick={settleAll}>✓ Alles abrechnen ({open.length}{giOpen ? ` + ${gc.open.length} Growbox` : ''})</button>;
           })()}
@@ -7487,7 +7546,9 @@ function Statistik() {
             <div className="cell-icon" style={{background:'rgba(56,189,248,.12)',fontSize:15}}>Σ</div>
             <div className="cell-content">
               <span className="cell-title" style={{fontSize:14.5}}>
-                {netDeb&&netCred
+                {nets.length>2 && netDeb && netCred
+                  ? <span data-testid="stats-plan">{settlePlan(nets).map(t=>`${t.fromName} → ${t.toName} €${fmt(t.amount)}`).join(' · ')}</span>
+                  : netDeb&&netCred
                   ? <><span style={{color:netDeb.color,fontWeight:800}}>{netDeb.name}</span> schuldet <span style={{color:netCred.color,fontWeight:800}}>{netCred.name}</span> insgesamt <span className="num" style={{fontWeight:800}}>€{fmt(Math.abs(netDeb.net))}</span></>
                   : <>Netto über alles: <span style={{color:'var(--green)',fontWeight:800}}>ausgeglichen ✓</span></>}
               </span>
@@ -7659,7 +7720,7 @@ function myBalance(D, me, mods){
   const hs = me ? open.reduce((s,i)=>s+((i.paidBy===me?(i.price||0):0)-shareOf(i,me)),0) : 0;
   const growOn = mods.grow!==false;
   const g = (me&&growOn) ? growCalc(D).net(me) : 0;
-  const other = users.find(u=>u.id!==me) || null;
+  const other = users.length === 2 ? (users.find(u=>u.id!==me) || null) : null;   // ab 3 Personen kein festes Gegenüber
   return { total: hs+g, hs, g, growOn, other };
 }
 
