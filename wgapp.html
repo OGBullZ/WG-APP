@@ -937,6 +937,7 @@ const INIT = {
   vr: [], mk: [], aw: [], wt: [], pr: [], qm: [], rp: [],
   sg: [], ep: [], kf: [], inv: [], rg: [], ci: [],
   st: [], vo: [], lh: [], wa: [], kt: [], wk: [], ga: [],
+  tb: [], bk: [],   // wg-v75: Aufgaben-Abgaben, Belegungen (Bad/Wasch/Küche/Ruhe/Party)
   mi: [],   // wg-v73: Miete (cfg + Zahlungen je Monat/Person)
   cf: [],   // wg-v72: WG-Einstellungen (id 'wg': Name + Emoji aus der Einrichtung)   // wg-v70: Status, Umfragen, Ausleihe, Wartung, Kaution, Wochen-Korb, Gast-Link   // wg-v68: Sparziele, Essensplan, Kühlschrank, Inventar, WG-Regeln, Check-in
   zs: [],   // Zählerstände (wg-v64): Ablesungen + Tarif je Zähler (cfg-<kind>)   // Alltag (wg-v62): Vorrat, Müllabfuhr, Abwesend, Waschtimer, Zahlung bestätigen, Nachrichten, Reparaturen
@@ -951,7 +952,7 @@ const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
    slh = Einkaufslisten-Historie (id=Slug, n=Kaufzähler), gh = Ernte-Log, bud = Kategorie-Budgets (id=Cat-Key),
    gz = Grow-Zyklen {start, phase, pAt, wiv, lastW, lastWBy, wn, end} — offen ist der ohne `end`.
    ls = Login-Freigaben {svc, by, ts, exp, view, s, iv, ct, it} — nur Chiffretext, s. LOGIN_*. */
-const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz','bo','ls','err','vr','mk','aw','wt','pr','qm','rp','zs','sg','ep','kf','inv','rg','ci','st','vo','lh','wa','kt','wk','ga','cf','mi'];
+const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz','bo','ls','err','vr','mk','aw','wt','pr','qm','rp','zs','sg','ep','kf','inv','rg','ci','st','vo','lh','wa','kt','wk','ga','cf','mi','tb','bk'];
 const isListKey = k => LIST_KEYS.includes(k);
 /* WG-Board (Key `bo`): kurze Ankündigungen zwischen den zwei Bewohnern — reine Info + Sofort-Push,
    keine Kostenrelevanz. Einträge mit Datum, laufen nach dem Tag automatisch aus der Anzeige. */
@@ -2367,6 +2368,176 @@ function LoginShare() {
           </div>
         </div>, document.body)}
     </>
+  );
+}
+
+/* ══════════════════════════
+   FAIR (seit wg-v75): Auslage-Rotation, Abrechnungs-Wächter, Budget-Hochrechnung,
+   Aufgabe abgeben/übernehmen, Belegung & Ruhezeiten.
+   Neue Listen-Keys: tb (Aufgaben-Abgaben), bk (Belegungen) — `cf` bekommt den Eintrag `limit`.
+══════════════════════════ */
+
+/* ── Wer streckt diesmal vor? Zählt die offenen Posten der letzten 30 Tage je Person.
+   Vorschlag ist die Person mit dem kleinsten ausgelegten Betrag — so bleibt niemand dauerhaft in Vorleistung. ── */
+const advanceNext = (D, users) => {
+  const cut = shiftISO(todayISO(), -30);
+  const open = (D.hs||[]).filter(i=>i && !i.settled && i.date >= cut);
+  if (open.length < 3 || users.length < 2) return null;
+  const paid = users.map(u=>({ ...u, sum: open.filter(i=>i.paidBy===u.id).reduce((s,i)=>s+(Number(i.price)||0), 0) }));
+  const min = paid.reduce((a,b)=>a.sum<=b.sum?a:b), max = paid.reduce((a,b)=>a.sum>=b.sum?a:b);
+  if (max.sum - min.sum < 20) return null;   // unter 20 € Unterschied ist es egal
+  return { next: min, max };
+};
+function AdvanceHint() {
+  const { D, me } = useD();
+  const users = D.users || [];
+  const a = advanceNext(D, users);
+  if (!a) return null;
+  return (
+    <div className="rise" data-testid="advance-hint" style={{fontSize:12.5,color:'var(--label2)',textAlign:'center',padding:'0 8px',lineHeight:1.5}}>
+      💡 Diesmal wäre <b style={{color:a.next.color}}>{a.next.id===me?'du':a.next.name}</b> mit Auslegen dran – {a.max.id===me?'du hast':`${a.max.name} hat`} zuletzt €{fmt(a.max.sum)} vorgestreckt, {a.next.id===me?'du':a.next.name} €{fmt(a.next.sum)}.
+    </div>
+  );
+}
+
+/* ── Abrechnungs-Wächter: erinnert, wenn die offene Summe zu groß oder zu alt wird.
+   Grenzen in `cf` (Eintrag `limit`: max €, days). Standard 50 € / 30 Tage; api/_wg.js rechnet genauso. ── */
+const DEBT_DEF = { max: 50, days: 30 };
+const debtWatch = (D, mods) => {
+  const users = D.users || [];
+  const cfg = { ...DEBT_DEF, ...((D.cf||[]).find(x=>x && x.id==='limit') || {}) };
+  const open = (D.hs||[]).filter(i=>i && !i.settled);
+  if (!open.length || users.length < 2) return null;
+  const nets = users.map(u=>({ ...u, net: myBalance(D, u.id, mods).total }));
+  const top = Math.max(...nets.map(n=>Math.abs(n.net)));
+  const oldest = open.map(i=>i.date).filter(Boolean).sort()[0];
+  const age = oldest ? daysSince(oldest) : 0;
+  const overMax = top >= Number(cfg.max), overAge = age >= Number(cfg.days);
+  if (!overMax && !overAge) return null;
+  return { cfg, top, age, overMax, overAge, nets };
+};
+function DebtWatch() {
+  const { D, setFn, mods, me } = useD();
+  const [f,setF] = useState(null);
+  const w = debtWatch(D, mods);
+  const save = () => { setFn('cf', cur=>[{ id:'limit', max:Math.max(1, parseNum(f.max)||DEBT_DEF.max), days:Math.max(1, parseInt(f.days,10)||DEBT_DEF.days) }, ...(cur||[]).filter(x=>x && x.id!=='limit')]); setF(null); };
+  const cfg = { ...DEBT_DEF, ...((D.cf||[]).find(x=>x && x.id==='limit') || {}) };
+  return (
+    <>
+      {w && (
+        <div className="rise" data-testid="debt-watch" style={{borderRadius:14,border:'1px solid rgba(251,191,36,.45)',background:'rgba(251,191,36,.08)',padding:'12px 14px',display:'flex',flexDirection:'column',gap:6}}>
+          <span style={{fontSize:14,fontWeight:800}}>⏳ Zeit zum Abrechnen</span>
+          <span style={{fontSize:13,color:'var(--label2)',lineHeight:1.5}}>
+            {w.overMax && `Offen sind €${fmt(w.top)} (eure Grenze: €${fmt(cfg.max)}).`}{w.overMax && w.overAge ? ' ' : ''}
+            {w.overAge && `Der älteste offene Posten ist ${w.age} Tage alt (Grenze: ${cfg.days}).`}
+          </span>
+          <button className="btn btn-sec" style={{width:'auto',padding:'7px 12px',fontSize:12.5,alignSelf:'flex-start'}} onClick={()=>setF({ max:String(cfg.max).replace('.',','), days:String(cfg.days) })}>Grenzen ändern</button>
+        </div>
+      )}
+      <MiniSheet open={!!f} onClose={()=>setF(null)} title="Wann erinnern?" color="var(--amber)">
+        {f && <>
+          <div className="sheet-sublbl">Erinnern, wenn offen mehr ist als</div>
+          <div className="f-euro"><input className="field" inputMode="decimal" aria-label="Grenze in Euro" value={f.max} onChange={e=>setF({...f,max:e.target.value})}/></div>
+          <label className="sheet-sublbl" htmlFor="dw-days">… oder der älteste Posten älter ist als (Tage)</label>
+          <input id="dw-days" className="field" type="number" min="1" max="365" value={f.days} onChange={e=>setF({...f,days:e.target.value})}/>
+          <button className="btn" style={{background:'var(--amber)',color:'var(--ink)'}} onClick={save}>Speichern</button>
+        </>}
+      </MiniSheet>
+    </>
+  );
+}
+
+/* ── Aufgabe abgeben (Key `tb`): „Ich kann heute nicht" → andere sehen das Angebot und können übernehmen.
+   Übernehmen setzt den Zuständigen um; die Punkte bekommt, wer sie später abhakt. ── */
+function ChoreHandover({ compact }) {
+  const { D, setFn, me, notifyOthers, undo } = useD();
+  const users = D.users || [], tasks = D.pt || [];
+  const offers = (D.tb||[]).filter(o=>o && tasks.some(t=>t.id===o.taskId));
+  if (!offers.length) return null;
+  const take = o => {
+    const t = tasks.find(x=>x.id===o.taskId);
+    setFn('pt', cur=>cur.map(x=>x.id===o.taskId?{...x, assignee:me}:x));
+    setFn('tb', cur=>cur.filter(x=>x.id!==o.id));
+    notifyOthers(`🤝 ${nameOfU(users, me)} übernimmt „${t?.name||'die Aufgabe'}"`, `statt ${nameOfU(users, o.by)}`, 'wg-tb', 'putz');
+    undo(`„${t?.name}" übernommen`, ()=>{ setFn('pt', cur=>cur.map(x=>x.id===o.taskId?{...x, assignee:o.by}:x)); setFn('tb', cur=>[o, ...cur]); });
+  };
+  const back = o => { setFn('tb', cur=>cur.filter(x=>x.id!==o.id)); undo('Abgabe zurückgezogen', ()=>setFn('tb', cur=>[o, ...cur])); };
+  return (
+    <div className="rise" data-testid="handover-card">
+      {!compact && <div className="section-hdr">🤝 Kann jemand übernehmen?</div>}
+      <div className="group">
+        {offers.map(o=>{ const t = tasks.find(x=>x.id===o.taskId); return (
+          <div key={o.id} className="cell" data-testid="handover-row" style={{flexWrap:'wrap',gap:8}}>
+            <span style={{fontSize:18}}>{t?.em||'🧹'}</span>
+            <div className="cell-content">
+              <span className="cell-title">{t?.name || 'Aufgabe'}</span>
+              <span className="cell-sub">{nameOfU(users, o.by)} kann nicht{o.note?` · „${o.note}"`:''}</span>
+            </div>
+            {o.by===me
+              ? <button className="btn btn-sec" style={{width:'auto',padding:'8px 11px',fontSize:13}} onClick={()=>back(o)}>Doch selbst</button>
+              : me && <button className="btn" style={{width:'auto',padding:'8px 11px',fontSize:13,background:'var(--amber)',color:'var(--ink)'}} onClick={()=>take(o)}>Übernehmen</button>}
+          </div>); })}
+      </div>
+    </div>
+  );
+}
+
+/* ── Belegung & Ruhezeiten (Key `bk`): Bad, Waschmaschine, Küche als Zeitfenster; Ruhe und Party als Ansage.
+   Überschneidungen beim selben Bereich werden vor dem Speichern gemeldet. ── */
+const BK_KINDS = [['bad','🚿','Bad'],['wash','🧺','Waschmaschine'],['kueche','🍳','Küche'],['ruhe','🤫','Ruhe bitte'],['party','🎉','Party/Besuch']];
+const bkOverlap = (list, it) => list.some(x=>x && x.id!==it.id && x.kind===it.kind && x.date===it.date && x.from < it.to && it.from < x.to);
+function BookCard() {
+  const { D, setFn, me, notifyOthers, undo } = useD();
+  const users = D.users || [];
+  const [f,setF] = useState(null);
+  const [msg,setMsg] = useState('');
+  const today = todayISO(), end = shiftISO(today, 2);
+  const list = (D.bk||[]).filter(b=>b && b.date>=today && b.date<=end).sort((a,b)=>(a.date+a.from).localeCompare(b.date+b.from));
+  const save = () => {
+    const it = { id:uid(), kind:f.kind, date:f.date, from:f.from, to:f.to, by:me||null, note:f.note.trim().slice(0,60) };
+    if (it.from >= it.to) { setMsg('Ende muss nach dem Start liegen.'); return; }
+    if (bkOverlap(D.bk||[], it)) { setMsg('Da ist schon jemand eingetragen – anderes Fenster wählen.'); return; }
+    setFn('bk', cur=>[it, ...(cur||[]).filter(x=>x && x.date>=shiftISO(today,-7))]);   // Altes räumt sich selbst weg
+    const [em,label] = [(BK_KINDS.find(k=>k[0]===it.kind)||[])[1], (BK_KINDS.find(k=>k[0]===it.kind)||[])[2]];
+    notifyOthers(`${em} ${label}: ${boardWhen(it.date)} ${it.from}–${it.to}`, `${nameOfU(users, me)}${it.note?` · ${it.note}`:''}`, 'wg-bk', 'board');
+    undo(`${em} ${label} eingetragen`, ()=>setFn('bk', cur=>cur.filter(x=>x.id!==it.id)));
+    setF(null); setMsg('');
+  };
+  const del = b => { setFn('bk', cur=>cur.filter(x=>x.id!==b.id)); undo('Eintrag entfernt', ()=>setFn('bk', cur=>[b, ...cur])); };
+  return (
+    <div className="rise" data-testid="book-card">
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span>🗓️ Belegung & Ruhezeiten</span>
+        {me && <button className="hit" onClick={()=>{ setMsg(''); setF({ kind:'bad', date:todayISO(), from:'07:00', to:'07:30', note:'' }); }} style={{...hdrBtn,color:'var(--sky)'}}>+ Eintragen</button>}
+      </div>
+      {list.length>0 && <div className="group">
+        {list.map(b=>{ const k = BK_KINDS.find(x=>x[0]===b.kind) || ['','🗓️','']; const u = users.find(x=>x.id===b.by); return (
+          <div key={b.id} className="cell" data-testid="book-row">
+            <span style={{fontSize:18}}>{k[1]}</span>
+            <div className="cell-content">
+              <span className="cell-title">{k[2]} · {b.from}–{b.to}</span>
+              <span className="cell-sub">{boardWhen(b.date)} · <b style={{color:u?.color}}>{b.by===me?'du':u?.name||'jemand'}</b>{b.note?` · ${b.note}`:''}</span>
+            </div>
+            {b.by===me && <button className="del-btn" aria-label={`${k[2]} ${b.from} entfernen`} onClick={()=>del(b)}>×</button>}
+          </div>); })}
+      </div>}
+      {!list.length && <div className="group"><div className="cell"><div className="cell-content"><span className="cell-sub">Duschzeit, Waschtag, Lernphase oder Besuch eintragen – die anderen sehen es sofort.</span></div></div></div>}
+      <MiniSheet open={!!f} onClose={()=>{ setF(null); setMsg(''); }} title="Eintragen" color="var(--sky)">
+        {f && <>
+          <div style={{display:'flex',flexWrap:'wrap',gap:6}}>{BK_KINDS.map(([k,em,l])=><button key={k} type="button" style={chipSt(f.kind===k)} onClick={()=>setF({...f,kind:k})}>{em} {l}</button>)}</div>
+          <label className="sheet-sublbl" htmlFor="bk-date">Tag</label>
+          <input id="bk-date" type="date" className="field" min={todayISO()} value={f.date} onChange={e=>setF({...f,date:e.target.value})}/>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <input type="time" className="field" aria-label="Von" value={f.from} onChange={e=>setF({...f,from:e.target.value})} style={{flex:1}}/>
+            <span style={{color:'var(--label2)'}}>bis</span>
+            <input type="time" className="field" aria-label="Bis" value={f.to} onChange={e=>setF({...f,to:e.target.value})} style={{flex:1}}/>
+          </div>
+          <input className="field" maxLength={60} placeholder="Notiz (optional), z. B. Prüfung lernen" aria-label="Notiz" value={f.note} onChange={e=>setF({...f,note:e.target.value})}/>
+          {msg && <span data-testid="book-msg" style={{fontSize:13,color:'var(--red)',fontWeight:700}}>{msg}</span>}
+          <button className="btn" style={{background:'var(--sky)'}} onClick={save}>Speichern</button>
+        </>}
+      </MiniSheet>
+    </div>
   );
 }
 
@@ -4039,6 +4210,8 @@ function TotalBudget() {
   const pct = lim ? spent/lim : 0;
   const now = new Date(), daysLeft = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate() - now.getDate();
   const col = pct>=1 ? 'var(--red)' : pct>=0.8 ? 'var(--amber)' : 'var(--mint)';
+  const dayNo = now.getDate(), daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const forecast = lim && dayNo >= 5 ? Math.round(spent / dayNo * daysInMonth * 100) / 100 : null;
   return (
     <>
       {lim ? (
@@ -4049,6 +4222,10 @@ function TotalBudget() {
           </span>
           <span style={{height:6,borderRadius:3,background:'var(--bg3)',overflow:'hidden'}}><span style={{display:'block',height:'100%',width:`${Math.min(100,pct*100)}%`,background:col}}/></span>
           <span style={{fontSize:12,color:'var(--label2)'}}>{pct>=1 ? `€${fmt(spent-lim)} drüber` : `noch €${fmt(lim-spent)} für ${daysLeft} Tag${daysLeft===1?'':'e'}`}</span>
+          {/* Hochrechnung (wg-v75): bisheriges Tempo auf den ganzen Monat — ab dem 5. aussagekräftig */}
+          {forecast!==null && <span data-testid="budget-forecast" style={{fontSize:12,color:forecast>lim?'var(--amber)':'var(--label2)'}}>
+            📈 Bei dem Tempo landet ihr bei ~€{fmt(forecast)}{forecast>lim?` – €${fmt(forecast-lim)} über dem Budget`:' – passt'}
+          </span>}
         </button>
       ) : (
         <button className="hit rise" data-testid="total-budget-set" onClick={()=>{ setVal(''); setOpen(true); }}
@@ -4334,6 +4511,8 @@ function Heute({ goTab }) {
         <MealCard/>
         <BoardCard/>
         <QuickMsgs/>
+        <ChoreHandover/>
+        <BookCard/>
         <RulesCard/>
         <PollCard/>
         <RepairCard/>
@@ -5134,6 +5313,7 @@ function Haushalt({goGrow, goPutz}) {
           )}
           </>
           )}
+          <DebtWatch/>
           <Bal bals={payBals} mod="hs" onSettle={settleAll}/>
           {giOpen && payBals.some(b=>Math.abs(b.net)>0.01) && (() => { const d = payBals.find(b=>b.net<-0.01), hsD = bals.find(b=>b.id===d?.id)?.net||0, gD = gc.net(d?.id);
             return <div className="rise" data-testid="bal-parts" style={{fontSize:12.5,color:'var(--label2)',textAlign:'center',marginTop:-4}}>
@@ -5146,11 +5326,12 @@ function Haushalt({goGrow, goPutz}) {
               Growbox: noch <span className="num">€{fmt(-gNet)}</span> offen · im Grow-Tab ›
             </button>
           )}
+          <AdvanceHint/>
           <QuickExpense onFull={name=>{ setWizInit(name ? { name, paidBy:me||undefined } : null); setWiz(true); }}/>
           <TotalBudget/>
           <SavingsCard/>
           <RentCard/>
-          {!heuteOn && <><StatusCard/><HomeDueCard/><CheckinCard/><FridgeCard/><MealCard/><BoardCard/><QuickMsgs/><RulesCard/><PollCard/><LoginShare/><RepairCard/></>}
+          {!heuteOn && <><StatusCard/><HomeDueCard/><ChoreHandover/><BookCard/><CheckinCard/><FridgeCard/><MealCard/><BoardCard/><QuickMsgs/><RulesCard/><PollCard/><LoginShare/><RepairCard/></>}
           {(open.length>0 || giOpen) && (() => {
             const deb = payBals.find(b=>b.net<-0.01), cred = payBals.find(b=>b.net>0.01);
             if (me && users.length>2 && payBals.find(b=>b.id===me)?.net < -0.01) return <div className="rise" data-testid="settle-hint" style={{fontSize:12.5,color:'var(--label2)',textAlign:'center'}}>Abrechnen macht, wer Geld bekommt – sobald es da ist.</div>;
@@ -5911,7 +6092,7 @@ function ChoreTally({ task, log, users }) {
 
 /* Haushalt-Tab: „Du bist dran" — nur sichtbar, wenn mir etwas fällig ist. Ein Tipp = erledigt. */
 function ChoreQuick({ goPutz }) {
-  const { D, me, mods, setFn, undo } = useD();
+  const { D, me, mods, setFn, undo, notifyOthers } = useD();
   const done = useChoreDone();
   if (mods.putz === false || !me) return null;
   // Auf morgen schieben: keine Strafe (nicht überfällig), mit Rückgängig
@@ -5919,6 +6100,14 @@ function ChoreQuick({ goPutz }) {
     const prev = t.snooze || null;
     setFn('pt', cur=>cur.map(x=>x.id===t.id?{...x,snooze:shiftISO(todayISO(),1)}:x));
     undo(`${t.em||'🧹'} „${t.name}" auf morgen`, ()=>setFn('pt', cur=>cur.map(x=>x.id===t.id?{...x,snooze:prev}:x)));
+  };
+  // Aufgabe abgeben (wg-v75): Angebot an die anderen, die Zuteilung bleibt bis jemand übernimmt
+  const giveUp = t => {
+    if ((D.tb||[]).some(o=>o && o.taskId===t.id)) return;
+    const o = { id:uid(), taskId:t.id, by:me, ts:Date.now(), note:'' };
+    setFn('tb', cur=>[o, ...(cur||[])]);
+    notifyOthers(`🤝 ${nameOfU(D.users||[], me)} kann „${t.name}" nicht`, 'Wer übernimmt? In der App antippen', 'wg-tb', 'putz');
+    undo(`„${t.name}" abgegeben`, ()=>setFn('tb', cur=>cur.filter(x=>x.id!==o.id)));
   };
   const mine = choreMine(D.pt, me);
   if (!mine.length) return null;
@@ -5943,6 +6132,7 @@ function ChoreQuick({ goPutz }) {
                 <span className="cell-sub">{d<0?<b style={{color:'var(--red)'}}>{-d} {-d===1?'Tag':'Tage'} überfällig</b>:'heute fällig'} · Stand <ChoreTally task={t} log={D.pl} users={users}/></span>
               </div>
               <button className="btn btn-sec" aria-label={`${t.name} auf morgen`} style={{width:'auto',padding:'8px 11px',fontSize:12.5,flexShrink:0}} onClick={()=>snooze(t)}>Morgen</button>
+              <button className="btn btn-sec" data-testid="chore-giveup" aria-label={`${t.name} abgeben`} style={{width:'auto',padding:'8px 11px',fontSize:12.5,flexShrink:0}} onClick={()=>giveUp(t)}>Kann nicht</button>
             </div>
           );
         })}
@@ -8108,7 +8298,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
         filename: 'wgapp.jsx',
         presets: ['react', 'env'],
         plugins: ['transform-class-properties', 'transform-object-rest-spread', 'transform-flow-strip-types'],
-        sourceMaps: false
+        sourceMaps: false,
+        // Seit wg-v75 ist der Quelltext > 500 KB. Ohne feste Angabe schaltet Babel selbst auf „compact"
+        // und schreibt dabei einen Hinweis in die Konsole — Tests werten jede Konsolenmeldung als Fehler.
+        compact: true
       }).code;
     } catch (err) {
       console.error('JSX-Transform fehlgeschlagen', err);

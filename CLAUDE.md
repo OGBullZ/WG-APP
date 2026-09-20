@@ -357,6 +357,17 @@ Die App war auf genau zwei Personen zugeschnitten: ein Schuldner, ein Gläubiger
 - **Weiterhin auf zwei Personen ausgelegt:** die Growbox-Verrechnung im Haushalt (`giOpen`), der Nebenkosten-Schieber (ab 3 wird gleich verteilt) und der Mitbewohner-Wechsel. Wenn die App mal für größere WGs ausgerollt wird, sind das die nächsten Stellen.
 - **Tests:** gross 24/24 (3 und 4 Personen, plus die Gegenprobe, dass zwei Personen unverändert aussehen).
 
+## Fair (wg-v75, 20.09. — torbe: alle 12 Ideen, Teil 1)
+
+Neue Listen-Keys: `tb` (Aufgaben-Abgaben), `bk` (Belegungen); `cf` bekommt den Eintrag `limit`.
+- **Auslage-Rotation** (`advanceNext`): vergleicht die offenen Posten der letzten 30 Tage je Person und schlägt vor, wer diesmal vorstreckt. Erst ab 3 Posten und mehr als 20 € Unterschied — sonst ist der Hinweis nur Lärm.
+- **Abrechnungs-Wächter** (`debtWatch`): meldet sich, wenn die höchste offene Summe über der Grenze liegt (Standard 50 €) **oder** der älteste offene Posten älter ist als die Grenze (Standard 30 Tage). Beides in der Karte änderbar, gespeichert als `cf`-Eintrag `limit`.
+- **Budget-Hochrechnung:** bisherige Ausgaben durch den Tag des Monats mal Monatslänge; erst ab dem 5. sichtbar, vorher ist die Hochrechnung Unsinn.
+- **Aufgabe abgeben** (`tb`): „Kann nicht" legt ein Angebot an, die Aufgabe bleibt so lange zugeteilt. Wer übernimmt, wird zuständig; Punkte bekommt weiterhin, wer abhakt. Eigene Abgabe per „Doch selbst" zurückziehen.
+- **Belegung & Ruhezeiten** (`bk`): Bad, Waschmaschine, Küche als Zeitfenster, dazu „Ruhe bitte" und „Party/Besuch". Überschneidungen im selben Bereich werden vor dem Speichern abgelehnt, ebenso ein Ende vor dem Start. Einträge älter als 7 Tage räumen sich beim nächsten Speichern weg.
+- **Tests:** fair 23/23, 5 Gegenproben rot.
+- **Falle (wieder):** Ein per `node -e` eingefügter Gegenprobe-Block zerriss an den Anführungszeichen. Solche Einfügungen gehören ins Write/Edit-Werkzeug.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -390,6 +401,7 @@ node test/alltag.mjs      # Alltag: Vorrat, Kassenzettel, Waschtimer, Nachrichte
 node test/upgrade_dist.mjs # Update-Pfad wie auf den Handys: alte Auslieferung (Quelltext+Babel, alter SW) → dist; Update erkannt, Daten bleiben, Babel aus dem Cache, offline
 node test/ux.mjs          # Alltagstauglich: Build (vorab übersetzt, ohne Babel, Erststart < 6 s bei 4× CPU), Heute-Start, eine Eingabezeile, Abrechnen nur Gläubiger, Laden-Bereiche, Wer-bist-du, Morgen-Knopf, Timer-Dauer, Push je Art, Mehr-Gruppen, Lesbarkeit
 node test/extra.mjs       # Extra: Schnell-Eingabe, Preis-Gedächtnis, Gesamtbudget, Einkaufs-Reihenfolge, Heute, Zähler, Kalender-Abo, Hell/Dunkel + Schrift
+node test/fair.mjs       # Fair: Auslage-Rotation, Abrechnungs-Wächter (Grenzen), Budget-Hochrechnung, Aufgabe abgeben/übernehmen, Belegung & Ruhezeiten (Überschneidung)
 node test/gross.mjs      # Größere WGs: Verrechnungsplan (3 und 4 Personen), Zeilen/Knöpfe je Rolle, Heute, Abrechnungs-Beleg, Übersicht, Übergabe-Seite; 2 Personen unverändert
 node test/miete.mjs       # Miete (3 Personen): einrichten, Anteile, abhaken/zurücknehmen, Monatswechsel, überfällig, Heute-Zeile, wer darf abhaken
 node test/onboarding.mjs  # Einrichtung: neue WG (alle Schritte bis Heute), Beitreten per ?join= (Umlaut-Code), falscher Code, „Ich bin neu", bestehendes Gerät/fremder Link ignoriert, „Mein Profil einrichten"
