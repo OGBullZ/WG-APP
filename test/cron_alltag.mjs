@@ -183,6 +183,16 @@ check('47 GET → HTML mit WLAN, strenge CSP, kein Cache', gg.code === 200 && /t
 gWg = { ...gWg, ga: { info: { ...gWg.ga.info, v: 2 } } };
 check('48 nach „ungültig machen" (v=2) ist der alte Link tot', (await gcall('GET', { query: { t: gt.body.token } })).code === 404 && (await gcall('GET', { query: { t: 'x' } })).code === 404);
 globalThis.fetch = realFetch;
+// ── Miete (wg-v73) ──
+const miWg = { users: [{ id: 'u1', name: 'Torben' }, { id: 'u2', name: 'Tom' }, { id: 'u3', name: 'Kim' }],
+  mi: { cfg: { id: 'cfg', total: 1200, day: 3, mode: 'holder', holder: 'u1' }, '2026-09-u2': { id: '2026-09-u2' } } };
+check('50 Fälligkeit wird auf die Monatslänge gekappt', W.rentDueIso({ day: 31 }, '2026-02') === '2026-02-28' && W.rentDueIso({ day: 3 }, '2026-09') === '2026-09-03');
+check('51 zwei Tage vorher: Push mit offenen Namen und Empfänger', W.rentReminders(miWg, '2026-09-01')?.body === '🏠 €1200,00 an Torben · offen: Torben, Kim', W.rentReminders(miWg, '2026-09-01')?.body);
+check('52 am Stichtag', W.rentReminders(miWg, '2026-09-03')?.title === 'Miete heute fällig');
+check('53 danach nur montags (07.09.2026 = Montag, 05.09. nicht)', /überfällig/.test(W.rentReminders(miWg, '2026-09-07')?.title || '') && W.rentReminders(miWg, '2026-09-05') === null);
+check('54 alle bezahlt → keine Push; ohne Einstellung auch nicht', W.rentReminders({ ...miWg, mi: { cfg: miWg.mi.cfg, '2026-09-u1': {}, '2026-09-u2': {}, '2026-09-u3': {} } }, '2026-09-03') === null && W.rentReminders({ users: miWg.users }, '2026-09-03') === null);
+check('55 Morgen-Job: Miete verdrahtet', /rentReminders\(wg, todayIso\)/.test(cron));
+
 check('49 Morgen-Job: Wartung + Ausleihe', /maintReminders\(wg, todayIso\)/.test(cron) && /loanReminders\(wg, todayIso\)/.test(cron));
 
 console.log(pass.map(p => '  OK  ' + p).join('\n'));

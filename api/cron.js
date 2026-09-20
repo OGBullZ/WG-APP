@@ -13,7 +13,7 @@
 
 const { loadSubs, sendToSubs, DB_BASE } = require('./_push');
 const { hasKey, currentCode, writeSnapshot, listSnapshots, pruneSnapshots, berlinParts } = require('./_sv');
-const { taskDueIn, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, checkinReminder, maintReminders, loanReminders, isoOf } = require('./_wg');
+const { taskDueIn, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, checkinReminder, maintReminders, loanReminders, rentReminders, isoOf } = require('./_wg');
 
 function berlinTodayParts() {
   const fmt = new Intl.DateTimeFormat('en-CA', {
@@ -313,6 +313,9 @@ module.exports = async (req, res) => {
   const maintMsg = maintReminders(wg, todayIso), loanMsg = loanReminders(wg, todayIso);
   if (maintMsg) messages.push(maintMsg);
   if (loanMsg) messages.push(loanMsg);
+  // Miete (wg-v73): 2 Tage vorher, am Stichtag, danach montags
+  const rentMsg = rentReminders(wg, todayIso);
+  if (rentMsg) messages.push(rentMsg);
 
   // Growbox: Gießen fällig + Phase rechnerisch durch
   const growMsgs = growCycleMessages(wg, todayMid);
@@ -335,7 +338,7 @@ module.exports = async (req, res) => {
     sent += (await sendToSubs(subs, duel, { type: 'game' })).sent;
   }
 
-  res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, budWarns, grow: growMsgs.length, duel: duel ? 1 : 0, repairs: repairMsgs.length, year: yearMsg ? 1 : 0, meter: meterMsg ? 1 : 0, fridge: fridgeMsg ? 1 : 0, checkin: ciMsg ? 1 : 0, maint: maintMsg ? 1 : 0, loan: loanMsg ? 1 : 0, sent, backup, pruned });
+  res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, budWarns, grow: growMsgs.length, duel: duel ? 1 : 0, repairs: repairMsgs.length, year: yearMsg ? 1 : 0, meter: meterMsg ? 1 : 0, fridge: fridgeMsg ? 1 : 0, checkin: ciMsg ? 1 : 0, maint: maintMsg ? 1 : 0, loan: loanMsg ? 1 : 0, rent: rentMsg ? 1 : 0, sent, backup, pruned });
 };
 
 // Für test/cron_grow.mjs — der Handler selbst bleibt der Default-Export (Vercel).

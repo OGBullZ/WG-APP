@@ -334,6 +334,18 @@ Bausteine im Block `MEHR` in wgapp.html (vor `PLUS`). Neue Listen-Keys: `st vo l
   - „Das bin ich" für eine andere Person fragt nach. Ohne gewählte Person bleibt alles offen (Ersteinrichtung).
 - **Tests:** onboarding 33/33, mehr 76/76.
 
+## Miete (wg-v73, 20.09.)
+
+- **Key `mi`:** ein Eintrag `cfg` (`total`, `day`, `mode` `extern`|`holder`, `holder`, Anteile `s_<uid>`) und je Monat und Person ein Zahlungs-Beleg mit der ID `<YYYY-MM>-<uid>` (`amount`, `ts`, `by`).
+- **Bewusst kein `hs`-Posten:** Miete läuft am WG-Topf vorbei (jede Person an den Vermieter bzw. an die sammelnde Person). Als Ausgabe gebucht stünde sie doppelt in Bilanz und Abrechnung.
+- **Anteile** (`rentShares`): eigener Betrag je Person, der Rest gleich verteilt; der Rest-Cent landet bei der letzten automatisch berechneten Person, damit die Summe exakt stimmt.
+- **Fälligkeit** (`rentDue` / `rentDueIso`): Tag 1–28 in der Eingabe, beim Rechnen zusätzlich auf die Monatslänge gekappt.
+- **Abhaken** darf die eigene Zeile jede Person; alle Zeilen nur, wer einsammelt (`mode: 'holder'`). Nochmal tippen nimmt den Beleg zurück (mit Rückgängig).
+- **Heute** zeigt die eigene Miete ab 3 Tagen vor Fälligkeit und danach, bis sie bezahlt ist.
+- **Server** (`rentReminders`): 2 Tage vorher, am Stichtag, danach montags; im Text stehen die noch offenen Namen, weil Pushes nicht pro Person zugestellt werden können.
+- **Falle beim Bauen:** Die Heute-Zeile stand im Code **vor** der Hilfsfunktion `row` → „row is not a function“, die ganze App zeigte die Fehlerseite. Bei Einfügungen in bestehende Funktionen auf die Reihenfolge der `const`-Definitionen achten.
+- **Tests:** miete 21/21 (bewusst mit **drei** Personen), cron_alltag 71/71, 4 Gegenproben rot.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -367,6 +379,7 @@ node test/alltag.mjs      # Alltag: Vorrat, Kassenzettel, Waschtimer, Nachrichte
 node test/upgrade_dist.mjs # Update-Pfad wie auf den Handys: alte Auslieferung (Quelltext+Babel, alter SW) → dist; Update erkannt, Daten bleiben, Babel aus dem Cache, offline
 node test/ux.mjs          # Alltagstauglich: Build (vorab übersetzt, ohne Babel, Erststart < 6 s bei 4× CPU), Heute-Start, eine Eingabezeile, Abrechnen nur Gläubiger, Laden-Bereiche, Wer-bist-du, Morgen-Knopf, Timer-Dauer, Push je Art, Mehr-Gruppen, Lesbarkeit
 node test/extra.mjs       # Extra: Schnell-Eingabe, Preis-Gedächtnis, Gesamtbudget, Einkaufs-Reihenfolge, Heute, Zähler, Kalender-Abo, Hell/Dunkel + Schrift
+node test/miete.mjs       # Miete (3 Personen): einrichten, Anteile, abhaken/zurücknehmen, Monatswechsel, überfällig, Heute-Zeile, wer darf abhaken
 node test/onboarding.mjs  # Einrichtung: neue WG (alle Schritte bis Heute), Beitreten per ?join= (Umlaut-Code), falscher Code, „Ich bin neu", bestehendes Gerät/fremder Link ignoriert, „Mein Profil einrichten"
 node test/mehr.mjs        # Mehr: Status (Ablauf), Umfragen (verdeckt bis zur eigenen Stimme), Wartung/Ausleihe + Heute-Fälliges, Verbrauch je Monat, Monatsbericht, Kaution, Wochen-Korb, Mitbewohner-Wechsel, Gast-Link
 node test/plus.mjs        # Plus: Check-in (verdeckt bis alle), Kühlschrank, Essensplan, WG-Regeln, Sparziel, gemischter Einkauf, Nebenkosten, Sprach-Kurzbefehl, Inventar, Auszug + Druck

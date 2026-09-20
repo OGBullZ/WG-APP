@@ -72,6 +72,32 @@ function guestView(wg, todayIso) {
   return { date: todayIso.split('-').reverse().join('.'), wifi: info.wifi || '', pw: info.pw || '', note: info.note || '', rules, pickups };
 }
 
+// Miete (wg-v73): Fälligkeitstag im Monat, gekappt auf die Monatslänge (der 31. im Februar = Monatsletzter)
+function rentDueIso(cfg, ym) {
+  const [y, m] = ym.split('-').map(Number);
+  const last = new Date(y, m, 0).getDate();
+  return `${ym}-${pad2(Math.min(Math.max(1, Number(cfg && cfg.day) || 1), last))}`;
+}
+// Erinnerung: 2 Tage vorher, am Fälligkeitstag und danach montags — jeweils mit den offenen Namen.
+// Eine Push an alle (pro Person zustellen kann der Dienst nicht) — deshalb stehen die Namen im Text.
+function rentReminders(wg, todayIso) {
+  const cfg = wg.mi && wg.mi.cfg;
+  const users = toArray(wg.users);
+  if (!cfg || !Number(cfg.total) || users.length < 1) return null;
+  const ym = todayIso.slice(0, 7), due = rentDueIso(cfg, ym);
+  const open = users.filter((u) => !(wg.mi && wg.mi[`${ym}-${u.id}`]));
+  if (!open.length) return null;
+  const diff = daysBetween(todayIso, due);   // > 0 = in x Tagen fällig
+  const monday = parseIso(todayIso).getDay() === 1;
+  let when = null;
+  if (diff === 2) when = 'in 2 Tagen fällig';
+  else if (diff === 0) when = 'heute fällig';
+  else if (diff < 0 && monday) when = `seit ${-diff} ${-diff === 1 ? 'Tag' : 'Tagen'} überfällig`;
+  if (!when) return null;
+  const to = cfg.mode === 'holder' ? ` an ${(users.find((u) => u.id === cfg.holder) || {}).name || 'die WG'}` : '';
+  return { title: `Miete ${when}`, body: `🏠 €${fmtEur(cfg.total)}${to} · offen: ${open.map((u) => u.name).join(', ')}`, tag: `mi-${ym}-${diff === 2 ? 'pre' : diff === 0 ? 'due' : 'late'}` };
+}
+
 // Morgens: was im Kühlschrank heute/morgen abläuft (eine Push)
 function fridgeReminders(wg, todayIso) {
   const users = toArray(wg.users), tomorrow = shiftIso(todayIso, 1);
@@ -238,4 +264,4 @@ function buildIcs(wg, todayIso, now = new Date()) {
   return lines.map(icsFold).join('\r\n') + '\r\n';
 }
 
-module.exports = { toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, checkinReminder, maintReminders, loanReminders, guestView, addMonthsIso, buildIcs, icsText, icsFold, PICK_KINDS };
+module.exports = { toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, checkinReminder, maintReminders, loanReminders, guestView, addMonthsIso, rentReminders, rentDueIso, buildIcs, icsText, icsFold, PICK_KINDS };

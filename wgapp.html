@@ -751,6 +751,7 @@ const fmtDate  = s => { if(!s) return ''; const m=/^(\d{4})-(\d{2})-(\d{2})$/.ex
 const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 /* Monat „YYYY-MM" aus ISO- oder de-DE-Datum extrahieren */
 const ymOf = s => { if(!s) return null; let m=/^(\d{4})-(\d{2})/.exec(s); if(m) return m[1]+'-'+m[2]; m=/^(\d{1,2})\.(\d{1,2})\.(\d{4})/.exec(s); if(m) return m[3]+'-'+String(+m[2]).padStart(2,'0'); return null; };
+const isoOfTs = ts => { const d = new Date(Number(ts) || Date.now()); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const ymLabel = ym => { const [y,m]=ym.split('-'); return `${MONTHS[+m-1]} ${y}`; };
 const ymShift = (ym,delta) => { let [y,m]=ym.split('-').map(Number); m+=delta; while(m<1){m+=12;y--;} while(m>12){m-=12;y++;} return `${y}-${String(m).padStart(2,'0')}`; };
 
@@ -936,6 +937,7 @@ const INIT = {
   vr: [], mk: [], aw: [], wt: [], pr: [], qm: [], rp: [],
   sg: [], ep: [], kf: [], inv: [], rg: [], ci: [],
   st: [], vo: [], lh: [], wa: [], kt: [], wk: [], ga: [],
+  mi: [],   // wg-v73: Miete (cfg + Zahlungen je Monat/Person)
   cf: [],   // wg-v72: WG-Einstellungen (id 'wg': Name + Emoji aus der Einrichtung)   // wg-v70: Status, Umfragen, Ausleihe, Wartung, Kaution, Wochen-Korb, Gast-Link   // wg-v68: Sparziele, Essensplan, Kühlschrank, Inventar, WG-Regeln, Check-in
   zs: [],   // Zählerstände (wg-v64): Ablesungen + Tarif je Zähler (cfg-<kind>)   // Alltag (wg-v62): Vorrat, Müllabfuhr, Abwesend, Waschtimer, Zahlung bestätigen, Nachrichten, Reparaturen
 };
@@ -949,7 +951,7 @@ const KEYS = Object.keys(INIT); // synchronisierte Top-Level-Felder
    slh = Einkaufslisten-Historie (id=Slug, n=Kaufzähler), gh = Ernte-Log, bud = Kategorie-Budgets (id=Cat-Key),
    gz = Grow-Zyklen {start, phase, pAt, wiv, lastW, lastWBy, wn, end} — offen ist der ohne `end`.
    ls = Login-Freigaben {svc, by, ts, exp, view, s, iv, ct, it} — nur Chiffretext, s. LOGIN_*. */
-const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz','bo','ls','err','vr','mk','aw','wt','pr','qm','rp','zs','sg','ep','kf','inv','rg','ci','st','vo','lh','wa','kt','wk','ga','cf'];
+const LIST_KEYS = ['hs','gi','ab','pt','pl','sl','stl','rec','arc','slh','gh','bud','gz','bo','ls','err','vr','mk','aw','wt','pr','qm','rp','zs','sg','ep','kf','inv','rg','ci','st','vo','lh','wa','kt','wk','ga','cf','mi'];
 const isListKey = k => LIST_KEYS.includes(k);
 /* WG-Board (Key `bo`): kurze Ankündigungen zwischen den zwei Bewohnern — reine Info + Sofort-Push,
    keine Kostenrelevanz. Einträge mit Datum, laufen nach dem Tag automatisch aus der Anzeige. */
@@ -2317,6 +2319,104 @@ function LoginShare() {
           </div>
         </div>, document.body)}
     </>
+  );
+}
+
+/* ── Miete (seit wg-v73, Key `mi`): Einstellung {id:'cfg', total, day, mode, holder, s_<uid>} + Zahlungen {id:'<ym>-<uid>'}
+   Bewusst KEIN hs-Posten: Miete läuft am WG-Topf vorbei (jede Person zahlt an den Vermieter bzw. an die Person,
+   die einsammelt). Sonst stünde sie doppelt in Bilanz und Abrechnung.
+   Anteile: eigener Betrag je Person, sonst gleich — der Rest-Cent landet bei der letzten Person, damit die Summe stimmt. ── */
+const rentShares = (cfg, users) => {
+  if (!cfg || !users.length) return {};
+  const total = Number(cfg.total) || 0;
+  const own = users.map(u => (cfg['s_' + u.id] === undefined || cfg['s_' + u.id] === null ? null : Number(cfg['s_' + u.id]) || 0));
+  const restUsers = own.filter(x => x === null).length;
+  const rest = Math.max(0, total - own.reduce((s, x) => s + (x || 0), 0));
+  const each = restUsers ? Math.round(rest / restUsers * 100) / 100 : 0;
+  const out = {}; let used = 0, lastAuto = -1;
+  users.forEach((u, i) => { const v = own[i] === null ? each : own[i]; out[u.id] = v; used += v; if (own[i] === null) lastAuto = i; });
+  if (lastAuto >= 0 && Math.abs(used - total) > 0.001) out[users[lastAuto].id] = Math.round((out[users[lastAuto].id] + (total - used)) * 100) / 100;
+  return out;
+};
+// Fälligkeit im Monat ym (Tag wird auf die Monatslänge gekappt: der 31. im Februar = Monatsletzter)
+const rentDue = (cfg, ym) => { const [y, m] = ym.split('-').map(Number); const last = new Date(y, m, 0).getDate();
+  return `${ym}-${String(Math.min(Math.max(1, Number(cfg?.day) || 1), last)).padStart(2, '0')}`; };
+function RentCard() {
+  const { D, setFn, me, notifyOthers, undo } = useD();
+  const users = D.users || [];
+  const list = (D.mi || []).filter(Boolean);
+  const cfg = list.find(x => x.id === 'cfg');
+  const [ym, setYm] = useState(() => todayISO().slice(0, 7));
+  const [f, setF] = useState(null);
+  if (!users.length) return null;
+  const shares = rentShares(cfg, users);
+  const paidOf = id => list.find(x => x.id === `${ym}-${id}`);
+  const openUsers = users.filter(u => !paidOf(u.id));
+  const due = cfg ? rentDue(cfg, ym) : null;
+  const late = due ? -daysSince(due) < 0 : false;
+  const shiftYm = n => { const [y, m] = ym.split('-').map(Number); const d = new Date(y, m - 1 + n, 1); setYm(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`); };
+  const save = () => {
+    const total = parseNum(f.total); if (!(total > 0)) return;
+    const s = Object.fromEntries(users.map(u => ['s_' + u.id, f.s[u.id].trim() === '' ? null : parseNum(f.s[u.id])]));
+    setFn('mi', cur => [{ id: 'cfg', total, day: Math.min(28, Math.max(1, parseInt(f.day, 10) || 1)), mode: f.mode, holder: f.mode === 'holder' ? (f.holder || me) : null, ...s }, ...(cur || []).filter(x => x && x.id !== 'cfg')]);
+    setF(null);
+  };
+  // „Bezahlt" je Person und Monat; Eintrag ist der Beleg (wer, wann, wie viel) — Klick nochmal nimmt ihn zurück
+  const toggle = u => {
+    const id = `${ym}-${u.id}`, had = paidOf(u.id);
+    if (had) { setFn('mi', cur => cur.filter(x => x.id !== id)); undo(`Miete ${u.name} wieder offen`, () => setFn('mi', cur => [had, ...cur])); return; }
+    const it = { id, ym, userId: u.id, amount: shares[u.id] || 0, ts: Date.now(), by: me || null };
+    setFn('mi', cur => [it, ...(cur || [])]);
+    const restNames = users.filter(x => x.id !== u.id && !paidOf(x.id)).map(x => x.name);
+    notifyOthers(`💶 Miete ${ymLabel(ym)}: ${u.name} hat gezahlt`, restNames.length ? `Offen: ${restNames.join(', ')}` : 'Alle haben gezahlt ✓', 'wg-mi', 'exp');
+    undo(`Miete ${u.name} als gezahlt vermerkt`, () => setFn('mi', cur => cur.filter(x => x.id !== id)));
+  };
+  return (
+    <div className="rise" data-testid="rent-card">
+      <div className="section-hdr" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>🏠 Miete</span>
+        <button className="hit" onClick={() => setF({ total: cfg ? String(cfg.total).replace('.', ',') : '', day: String(cfg?.day || 3), mode: cfg?.mode || 'extern', holder: cfg?.holder || me,
+          s: Object.fromEntries(users.map(u => [u.id, cfg && cfg['s_' + u.id] != null ? String(cfg['s_' + u.id]).replace('.', ',') : ''])) })} style={{ ...hdrBtn, color: 'var(--sky)' }}>{cfg ? 'Ändern' : '+ Einrichten'}</button>
+      </div>
+      <div className="group">
+        {!cfg ? <div className="cell"><div className="cell-content"><span className="cell-sub">Miete eintragen – die App zeigt jeden Monat, wer schon gezahlt hat, und erinnert rechtzeitig.</span></div></div> : <>
+          <div className="cell" style={{ gap: 8 }}>
+            <button className="hit" aria-label="Vormonat" onClick={() => shiftYm(-1)} style={{ ...hdrBtn, fontSize: 18 }}>‹</button>
+            <div className="cell-content" style={{ textAlign: 'center' }}>
+              <span className="cell-title" data-testid="rent-month">{ymLabel(ym)} · {users.length - openUsers.length}/{users.length} bezahlt</span>
+              <span className="cell-sub">€{fmt(cfg.total)} gesamt · fällig am {fmtDate(due)}{cfg.mode === 'holder' ? ` · an ${nameOfU(users, cfg.holder)}` : ''}</span>
+            </div>
+            <button className="hit" aria-label="Folgemonat" onClick={() => shiftYm(1)} style={{ ...hdrBtn, fontSize: 18 }}>›</button>
+          </div>
+          {users.map(u => { const p = paidOf(u.id), mayMark = u.id === me || (cfg.mode === 'holder' && cfg.holder === me); return (
+            <div key={u.id} className="cell" data-testid="rent-row">
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: u.color, flexShrink: 0 }} />
+              <div className="cell-content">
+                <span className="cell-title">{u.name} · €{fmt(shares[u.id] || 0)}</span>
+                <span className="cell-sub" style={p ? { color: 'var(--green)', fontWeight: 700 } : late ? { color: 'var(--red)', fontWeight: 700 } : undefined}>
+                  {p ? `bezahlt${p.ts ? ` am ${fmtDate(isoOfTs(p.ts))}` : ''}${p.by && p.by !== u.id ? ` (vermerkt von ${nameOfU(users, p.by)})` : ''}` : late ? 'offen – überfällig' : 'offen'}
+                </span>
+              </div>
+              {mayMark && <button className="btn btn-sec" data-testid={p ? 'rent-undo' : 'rent-pay'} aria-label={p ? `${u.name}: Zahlung zurücknehmen` : `${u.name} hat gezahlt`} style={{ width: 'auto', padding: '8px 11px', fontSize: 13, flexShrink: 0 }} onClick={() => toggle(u)}>{p ? 'Zurück' : u.id === me ? 'Bezahlt ✓' : 'Erhalten ✓'}</button>}
+            </div>); })}
+        </>}
+      </div>
+      <MiniSheet open={!!f} onClose={() => setF(null)} title="Miete" color="var(--sky)">
+        {f && <>
+          <div className="f-euro"><input className="field" autoFocus inputMode="decimal" placeholder="Miete gesamt (warm)" aria-label="Miete gesamt" value={f.total} onChange={e => setF({ ...f, total: e.target.value })} /></div>
+          <label className="sheet-sublbl" htmlFor="mi-day">Fällig am … des Monats</label>
+          <input id="mi-day" className="field" type="number" min="1" max="28" value={f.day} onChange={e => setF({ ...f, day: e.target.value })} />
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button type="button" style={{ ...chipSt(f.mode === 'extern'), flex: 1 }} onClick={() => setF({ ...f, mode: 'extern' })}>Jede/r selbst</button>
+            <button type="button" style={{ ...chipSt(f.mode === 'holder'), flex: 1 }} onClick={() => setF({ ...f, mode: 'holder' })}>Eine Person sammelt</button>
+          </div>
+          {f.mode === 'holder' && <div className="pick">{users.map(u => <button key={u.id} type="button" className={`pick-btn${f.holder === u.id ? ' on' : ''}`} style={{ background: u.color }} onClick={() => setF({ ...f, holder: u.id })}>{u.name}</button>)}</div>}
+          <div className="sheet-sublbl">Anteile (leer = gleich verteilt)</div>
+          {users.map(u => <div key={u.id} className="f-euro"><input className="field" inputMode="decimal" placeholder={u.name} aria-label={`Mietanteil ${u.name}`} value={f.s[u.id]} onChange={e => setF({ ...f, s: { ...f.s, [u.id]: e.target.value } })} /></div>)}
+          <button className="btn" style={{ background: 'var(--sky)' }} onClick={save}>Speichern</button>
+        </>}
+      </MiniSheet>
+    </div>
   );
 }
 
@@ -4131,7 +4231,6 @@ function Heute({ goTab }) {
   // Vorher nur Haushalt → Heute 58,25 €, Pop-up 66,25 € (Differenz = Growbox-Anteil), torbe 19.09.
   const bal = me ? myBalance(D, me, mods) : { total:0, hs:0, g:0 }, net = bal.total, other = users.find(u=>u.id!==me);
   const balParts = Math.abs(bal.g) > 0.01 && Math.abs(bal.hs) > 0.01 ? ` (Haushalt €${fmt(Math.abs(bal.hs))}${(bal.hs<0)===(bal.g<0)?' + ':' − '}Growbox €${fmt(Math.abs(bal.g))})` : Math.abs(bal.g) > 0.01 ? ' (Growbox)' : '';
-  const mine = me ? choreMine(D.pt, me) : [];
   const row = (em, text, onClick, tid) => (
     <button key={tid} className="cell" data-testid={tid} onClick={onClick} style={{width:'100%',textAlign:'left',background:'none',fontFamily:'inherit',cursor:'pointer',color:'var(--label)'}}>
       <span style={{fontSize:19,lineHeight:1}}>{em}</span><div className="cell-content"><span className="cell-title" style={{fontSize:14.5}}>{text}</span></div>
@@ -4139,10 +4238,21 @@ function Heute({ goTab }) {
     </button>
   );
   const goList = () => { SHORTCUT = 'liste'; goTab('haus'); };
+  const mine = me ? choreMine(D.pt, me) : [];
+  // Miete (wg-v73): eigene Zahlung offen und Fälligkeit ≤ 3 Tage entfernt oder schon vorbei
+  const rentCfg = (D.mi||[]).find(x=>x && x.id==='cfg');
+  const rentRow = (() => {
+    if (!rentCfg || !me) return null;
+    const ym = today.slice(0,7), dueIso = rentDue(rentCfg, ym), d = -daysSince(dueIso);
+    if ((D.mi||[]).some(x=>x && x.id===`${ym}-${me}`) || d > 3) return null;
+    const amount = rentShares(rentCfg, users)[me] || 0;
+    return row('🏠', d < 0 ? `Miete €${fmt(amount)} war am ${fmtDM(dueIso)} fällig` : d === 0 ? `Miete €${fmt(amount)} ist heute fällig` : `Miete €${fmt(amount)} bis ${fmtDM(dueIso)}`, ()=>goTab('haus'), 'today-rent');
+  })();
   const rows = [
     ...picks.map(x=>{ const k = PICK_KINDS[x.p.kind] || ['🗑️', x.p.kind]; return row('🚛', `${k[0]} ${k[1]} ${x.d===today?'heute':'morgen früh'} – ${x.d===today?'Tonne draußen?':'heute Abend rausstellen'}`, ()=>goTab('putz'), 'today-pick-'+x.p.kind); }),
     ...pays.map(p=>row('💶', p.to===me ? `${nameOfU(users, p.from)} hat €${fmt(p.amount)} bezahlt – bitte bestätigen` : `Zahlung €${fmt(p.amount)} wartet auf ${nameOfU(users, p.to)}`, ()=>goTab('haus'), 'today-pay-'+p.id)),
     (openSl || soon.length) ? row('🛒', `${openSl} auf der Einkaufsliste${soon.length?` · bald leer: ${soon.map(s=>s.name).join(', ')}`:''}`, goList, 'today-shop') : null,
+    rentRow,
     (me && other && Math.abs(net) > 0.01) ? row(net<0?'💸':'💰', net<0 ? `Du schuldest ${other.name} €${fmt(-net)}${balParts}` : `${other.name} schuldet dir €${fmt(net)}${balParts}`, ()=>goTab('haus'), 'today-bal') : null,
   ].filter(Boolean);
   return (
@@ -4981,6 +5091,7 @@ function Haushalt({goGrow, goPutz}) {
           <QuickExpense onFull={name=>{ setWizInit(name ? { name, paidBy:me||undefined } : null); setWiz(true); }}/>
           <TotalBudget/>
           <SavingsCard/>
+          <RentCard/>
           {!heuteOn && <><StatusCard/><HomeDueCard/><CheckinCard/><FridgeCard/><MealCard/><BoardCard/><QuickMsgs/><RulesCard/><PollCard/><LoginShare/><RepairCard/></>}
           {(open.length>0 || giOpen) && (() => {
             const deb = payBals.find(b=>b.net<-0.01), cred = payBals.find(b=>b.net>0.01);
