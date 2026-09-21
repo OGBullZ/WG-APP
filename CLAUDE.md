@@ -396,6 +396,24 @@ Deutsch bleibt die Quellsprache: im Code steht der deutsche Text, Englisch kommt
 - **Teuer gelernt — ein Codemod, der Text erkennen will, verpackt irgendwann Schlüssel.** Der Filter „enthält typisch deutsche Wörter" ließ „Einkaufsliste" durch; der Gegenfilter „alles außer Technik" verpackte dafür `'shop'`, `'putz'`, `'wg-exp'` und den Modulschlüssel `'heute'`. Beides fällt in Tests nicht auf, solange das Wörterbuch den Schlüssel nicht kennt — **erst die Übersetzung bricht dann Push-Filter und Modul-Schalter**. Deshalb `i18n-entpacken.mjs` mit fester Ausnahmeliste und die Regel: nach jedem Codemod die kurzen kleingeschriebenen `TT`-Argumente durchsehen.
 - **Was bewusst deutsch bleibt:** Server-Texte (Cron-Pushes, Gast-Seite, `api/`) und der CSV-Export (Semikolon + deutsche Kommazahl für Excel).
 
+## Push-Diät (wg-v79, 21.09. — torbe: „nicht alles sollte per push benachrichtigung kommen … nur die allerwichtigsten sachen")
+
+Vorher ging fast alles als Push raus: jede neue Ausgabe, jeder Listeneintrag, jede erledigte Aufgabe an alle — und morgens schickte der Server **jede Erinnerung einzeln** (an einem Monatsersten bis zu ~10 Pushes).
+
+- **Regel:** Push nur, wenn es **dich betrifft oder eine Handlung braucht**. Alles andere steht ohnehin auf „Heute" und in den Listen.
+  - **Wichtig (Standard an):** `settle` (Zahlung bestätigen, Abrechnung, Miete gezahlt, Sparziel-Einzahlung annehmen, Nebenkosten, Kaution), `putz` (Müll am Vorabend, Aufgabe abgegeben/übernommen), `remind` (**eine** Morgen-Push), `msg` (Kurz Bescheid), `wash` (Maschine fertig).
+  - **Leise (Standard aus, unter Mehr → Benachrichtigungen einzeln einschaltbar):** `exp`, `shop`, `done` (neu: „X hat erledigt"), `board` (inkl. „Maschine läuft"), `away`, `repair`, `game`, `digest` (neu: Monats-/Jahresrückblick, Check-in-Aufruf, Wochenüberblick).
+  - Ohne Typ (Login-Code-Übergabe) geht immer raus — bewusst.
+- **Bündelung** in `api/_wg.js` (reine Funktionen): `morningPlan` fasst alle Handlungs-Meldungen zu **einer** Push zusammen („☀️ Heute: 5 Dinge", Reihenfolge Miete → Putzplan → Abrechnung → Kühlschrank …, höchstens 3 Texte + „+N weitere in der App", ≤ 240 Zeichen, Tag `morning-<datum>`). `eveningPlan` macht aus mehreren Tonnen **eine** Müll-Push; der Sonntags-Überblick ist `digest`.
+- **Alte Geräte:** Ihre gespeicherten Einstellungen haben „alles an" — das war nur die alte Voreinstellung, nie eine Wahl. Deshalb:
+  - Server (`subWants` in `api/_push.js`): Gerät mit `pv < 2` bekommt leise Arten nicht, auch wenn dort `true` steht. Ein bewusstes `false` bei einer wichtigen Art bleibt.
+  - App (`pushPrefsNow`, **eine** Stelle statt vorher drei getrennter Lesestellen): stellt beim ersten Laden einmalig um und setzt `pv: 2`. Danach wird die eigene Wahl nie wieder überschrieben.
+- **Drei Fallen, alle mit Test abgesichert** (`test/push_diaet.mjs`, 27 Checks; Gegenprobe `scratchpad/gegenprobe-push.mjs`, 7 Sabotagen rot):
+  - **Unbekannter Typ = geht immer raus:** `notify.js` macht aus einem Typ, der nicht in seiner Liste steht, `undefined` — und ohne Typ filtert der Server nichts. Neuer Typ ⇒ dort eintragen. Test C1 prüft jeden `notifyOthers`-Typ der App.
+  - **DB-Regeln lehnen unbekannte Felder ab** (`push/$dev/$other: false`): ohne Regeln für `done`, `digest`, `pv` wäre „Push aktivieren" komplett gescheitert. **Regeln vor der App deployen** (`ship --rules`). Test C3.
+  - **Leise-Liste steht zweimal** (`PUSH_LEISE` in der App, `LEISE` im Server) — Test C2 hält beide gleich.
+- Nebenbei: Push-Aktivieren aus dem Start-Hinweis schrieb keine `uid` — jetzt wie unter „Mehr".
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -431,6 +449,7 @@ node test/ux.mjs          # Alltagstauglich: Build (vorab übersetzt, ohne Babel
 node test/extra.mjs       # Extra: Schnell-Eingabe, Preis-Gedächtnis, Gesamtbudget, Einkaufs-Reihenfolge, Heute, Zähler, Kalender-Abo, Hell/Dunkel + Schrift
 node test/laden.mjs      # Laden & Essen: Preise je Laden, Laden am Posten, Reste-Rezepte (Reihenfolge, auf die Liste, einplanen), Touren, Mängelanzeige + Frist, Notfall-Infos
 node test/english.mjs    # Englisch: Umschalter, Kern-Texte, Datum/Zahlen, Leck-Test über die Hauptseiten, Deutsch unverändert
+node test/push_diaet.mjs # Push-Diät: Server-Filter (alte Geräte leise), Morgen-/Abend-Bündelung, Typ-/Regel-/Listen-Wächter, Umstellung in der App
 node test/fair.mjs       # Fair: Auslage-Rotation, Abrechnungs-Wächter (Grenzen), Budget-Hochrechnung, Aufgabe abgeben/übernehmen, Belegung & Ruhezeiten (Überschneidung)
 node test/gross.mjs      # Größere WGs: Verrechnungsplan (3 und 4 Personen), Zeilen/Knöpfe je Rolle, Heute, Abrechnungs-Beleg, Übersicht, Übergabe-Seite; 2 Personen unverändert
 node test/miete.mjs       # Miete (3 Personen): einrichten, Anteile, abhaken/zurücknehmen, Monatswechsel, überfällig, Heute-Zeile, wer darf abhaken

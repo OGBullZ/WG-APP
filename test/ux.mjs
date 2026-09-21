@@ -175,7 +175,8 @@ await G.page.getByRole('button', { name: 'Abbrechen' }).first().click(); await G
 // ── I: Push je Art ──
 await G.tabTo('Mehr');
 const pp = await G.page.evaluate(() => PUSH_PREFS_DEF);
-check('I1 neue Push-Arten mit Standard „an“', ['msg', 'wash', 'away', 'repair', 'game'].every(k => pp[k] === true), JSON.stringify(pp));
+// seit wg-v79 (Push-Diät): Nachricht + Wäsche bleiben an, Abwesenheit/Reparatur/Duell sind leise (nur in der App)
+check('I1 Push-Arten: Nachricht + Wäsche an, Info-Arten leise', ['msg', 'wash'].every(k => pp[k] === true) && ['away', 'repair', 'game'].every(k => pp[k] === false), JSON.stringify(pp));
 await G.page.locator('[data-testid="qm-preset"]').first().click().catch(() => {});
 await G.ctx.close();
 const notify = readFileSync(new URL('../api/notify.js', import.meta.url), 'utf8');

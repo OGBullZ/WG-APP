@@ -13,7 +13,7 @@
 
 const { loadSubs, sendToSubs, DB_BASE } = require('./_push');
 const { hasKey, currentCode, writeSnapshot, listSnapshots, pruneSnapshots, berlinParts } = require('./_sv');
-const { taskDueIn, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, checkinReminder, maintReminders, loanReminders, rentReminders, isoOf } = require('./_wg');
+const { taskDueIn, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, checkinReminder, maintReminders, loanReminders, rentReminders, isoOf, morningPlan } = require('./_wg');
 
 function berlinTodayParts() {
   const fmt = new Intl.DateTimeFormat('en-CA', {
@@ -325,13 +325,14 @@ module.exports = async (req, res) => {
   // (Typ `game`: fehlt das Feld → an, wie der Standard in der App)
   const duel = todayMid.getDay() === 1 ? weekDuel(wg, todayMid) : null;
 
+  // Push-Diät (wg-v79): EINE Morgen-Push mit allem, was eine Handlung braucht; Rückblicke separat als `digest`
+  // (Standard aus). Vorher ging jede Meldung einzeln raus — an einem Monatsersten bis zu ~10 Pushes.
   let sent = 0;
-  if (messages.length) {
+  const plan = morningPlan(messages, todayIso);
+  if (plan.remind || plan.digest) {
     const subs = await loadSubs(code);
-    for (const msg of messages) {
-      const r = await sendToSubs(subs, msg, { type: 'remind' });
-      sent += r.sent;
-    }
+    if (plan.remind) sent += (await sendToSubs(subs, plan.remind, { type: 'remind' })).sent;
+    if (plan.digest) sent += (await sendToSubs(subs, plan.digest, { type: 'digest' })).sent;
   }
   if (duel) {
     const subs = await loadSubs(code);

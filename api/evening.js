@@ -6,7 +6,7 @@
 
 const { loadSubs, sendToSubs, DB_BASE } = require('./_push');
 const { currentCode, berlinParts } = require('./_sv');
-const { eveningMessages } = require('./_wg');
+const { eveningMessages, eveningPlan } = require('./_wg');
 
 module.exports = async (req, res) => {
   const auth = req.headers && req.headers.authorization;
@@ -22,13 +22,13 @@ module.exports = async (req, res) => {
 
   const today = berlinParts().date;
   const messages = eveningMessages(wg, today);
+  // Push-Diät (wg-v79): alle Tonnen von morgen in EINER Putz-Push, der Wochenüberblick als `digest` (Standard aus)
+  const plan = eveningPlan(messages, today);
   let sent = 0;
-  if (messages.length) {
+  if (plan.putz || plan.digest) {
     const subs = await loadSubs(code);
-    for (const msg of messages) {
-      // Müllabfuhr zählt als Putz-Push, der Wochenüberblick als Erinnerung (je Gerät abschaltbar)
-      sent += (await sendToSubs(subs, msg, { type: msg.title === 'Müllabfuhr' ? 'putz' : 'remind' })).sent;
-    }
+    if (plan.putz) sent += (await sendToSubs(subs, plan.putz, { type: 'putz' })).sent;
+    if (plan.digest) sent += (await sendToSubs(subs, plan.digest, { type: 'digest' })).sent;
   }
   res.status(200).json({ today, messages: messages.map((m) => m.tag), sent });
 };

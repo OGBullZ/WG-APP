@@ -104,7 +104,8 @@ check('D1 Eintrag geht an Torben (wer den Haken setzt)', pl1[0].taskId === 'm' &
 check('D2 Tom bleibt dran (2 < 6)', m1.assignee === 'u2', m1.assignee);
 check('D3 Müll heute erledigt', m1.lastDone === dayAgo(0), m1.lastDone);
 check('D4 Stand zeigt 6 : 2', /6\s*:\s*2/.test(await row('Müll').innerText()));
-const p1 = pushes.slice(pushBefore).find(p => p.type === 'putz');
+// seit wg-v79 (Push-Diät) ist „X hat erledigt" Typ `done` (leise, Standard aus) statt `putz`
+const p1 = pushes.slice(pushBefore).find(p => p.type === 'done');
 check('D5 Push: „Torben hat … erledigt" / „Tom, du bist dran"', !!p1 && /Torben hat „Müll rausbringen" erledigt/.test(p1.title) && /Tom, du bist dran/.test(p1.body), JSON.stringify(p1));
 await page.waitForTimeout(300);
 const remotePl = JSON.stringify(await page.evaluate(() => window.__wg.remote.pl || {}));
@@ -125,7 +126,7 @@ const b1 = await task('b');
 check('F1 Bad über die Haushalt-Karte erledigt → Tom ist dran', b1.assignee === 'u2' && b1.lastDone === dayAgo(0), JSON.stringify(b1));
 check('F2 Karte verschwindet (nichts mehr fällig für mich)', await quick.count() === 0);
 check('F3 Tab-Punkt verschwindet', await dotPutz() === 0);
-const p2 = pushes.filter(p => p.type === 'putz').pop();
+const p2 = pushes.filter(p => p.type === 'done').pop();
 check('F4 Push nennt Tom als Nächsten', !!p2 && /Tom, du bist dran/.test(p2.body), p2?.body);
 await page.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).click(); await page.waitForTimeout(600);
 check('F5 Einsatz zählt Punkte: Bad = 3 → Torben 7 P.', /Torben 7 P\./.test(await heroText()), await heroText());
@@ -239,7 +240,7 @@ check('L5 Serien: Du 🔥 2, Tom 🔥 0 (hat Überfälliges)', /2/.test(await pg
 await pg.locator('[data-testid="chore-row"]', { hasText: 'Staubsaugen' }).locator('.done-btn').click(); await pg.waitForTimeout(900);
 const undoTxt = await pg.getByRole('button', { name: 'Rückgängig' }).locator('xpath=..').innerText();
 check('L6 Rückmeldung „🔥 3"', /🔥 3/.test(undoTxt), undoTxt.replace(/\n/g, ' '));
-const pp = push2.filter(p => p.type === 'putz').pop();
+const pp = push2.filter(p => p.type === 'done').pop();
 check('L7 Push nennt „🔥 3 pünktlich in Folge"', !!pp && /🔥 3 pünktlich in Folge/.test(pp.body), pp && pp.body);
 check('L8 Duell jetzt 6 : 0', /6\s*:\s*0/.test(await duelTxt()), await duelTxt());
 const ent = JSON.parse(await pg.evaluate(() => localStorage.getItem('wg_data'))).pl[0];
@@ -289,7 +290,7 @@ check('M4 kein Wochen-Duell, Einsatz + Stand bleiben', await pm.locator('[data-t
   && /Einsatz/i.test(await pm.locator('.hero').first().innerText()) && !/👑/.test(await pm.locator('.hero').first().innerText()));
 await pm.locator('[data-testid="chore-row"]', { hasText: 'Staubsaugen' }).locator('.done-btn').click(); await pm.waitForTimeout(800);
 const undo3 = await pm.getByRole('button', { name: 'Rückgängig' }).locator('xpath=..').innerText();
-const pp3 = push3.filter(p => p.type === 'putz').pop();
+const pp3 = push3.filter(p => p.type === 'done').pop();
 check('M5 Abhaken ohne 🔥 in Rückmeldung und Push', !/🔥/.test(undo3) && !!pp3 && !/🔥/.test(pp3.body), `${undo3} | ${pp3 && pp3.body}`);
 const ent3 = JSON.parse(await pm.evaluate(() => localStorage.getItem('wg_data'))).pl[0];
 check('M6 Serien-Daten werden trotzdem geschrieben (late)', ent3.late === 0, JSON.stringify(ent3));

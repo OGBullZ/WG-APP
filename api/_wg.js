@@ -268,4 +268,48 @@ function buildIcs(wg, todayIso, now = new Date()) {
   return lines.map(icsFold).join('\r\n') + '\r\n';
 }
 
-module.exports = { toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, checkinReminder, maintReminders, loanReminders, guestView, addMonthsIso, rentReminders, rentDueIso, buildIcs, icsText, icsFold, PICK_KINDS };
+/* ── Push-Diät (wg-v79, torbe: „nur die allerwichtigsten sachen per push") ──
+   Vorher ging jede Morgen-Erinnerung als eigene Push raus — an einem 1. des Monats bis zu ~10 Stück.
+   Jetzt: was eine Handlung braucht, landet in EINER Morgen-Push; reine Rückblicke/Überblicke sind
+   Typ `digest` (Standard aus, in der App einschaltbar). */
+
+// Reine Info ohne Handlung — kommt nur als Push, wer „Rückblicke" eingeschaltet hat
+const DIGEST_TITLES = /^(Monats-Rückblick|Jahresrückblick|Wochenüberblick|Monats-Check-in)/;
+// Reihenfolge in der Sammel-Push: was heute wirklich drängt zuerst
+const MORNING_ORDER = ['Miete', 'Putzplan', 'Abrechnung', 'Kühlschrank', 'Growbox', 'Budget', 'Ausleihe', 'Reparatur', 'Wartung', 'Zählerstände', 'Abo'];
+const rankOf = (m) => { const i = MORNING_ORDER.findIndex((p) => String(m.title || '').startsWith(p)); return i < 0 ? MORNING_ORDER.length : i; };
+
+// Viele Meldungen → eine. Bei genau einer bleibt sie unverändert (eigener Titel liest sich besser).
+function bundleMessages(msgs, { tag, title, max = 3, limit = 240 } = {}) {
+  const list = (msgs || []).filter(Boolean).slice().sort((a, b) => rankOf(a) - rankOf(b));
+  if (list.length <= 1) return list[0] || null;
+  const shown = list.slice(0, max).map((m) => m.body);
+  const rest = list.length - shown.length;
+  let body = shown.join(' · ') + (rest > 0 ? ` · +${rest} weitere in der App` : '');
+  if (body.length > limit) body = body.slice(0, limit - 1).trimEnd() + '…';
+  return { title: title || `☀️ Heute: ${list.length} Dinge`, body, tag };
+}
+
+// Morgen: Handlungs-Meldungen gebündelt (Typ remind), Rückblicke getrennt (Typ digest)
+function morningPlan(msgs, todayIso) {
+  const all = (msgs || []).filter(Boolean);
+  const digest = all.filter((m) => DIGEST_TITLES.test(m.title || ''));
+  const act = all.filter((m) => !DIGEST_TITLES.test(m.title || ''));
+  return {
+    remind: bundleMessages(act, { tag: `morning-${todayIso}` }),
+    digest: bundleMessages(digest, { tag: `digest-${todayIso}`, title: '📊 Rückblick' }),
+  };
+}
+
+// Abend: alle Tonnen von morgen in EINE Push (Typ putz); Wochenüberblick ist Typ digest
+function eveningPlan(msgs, todayIso) {
+  const all = (msgs || []).filter(Boolean);
+  const bins = all.filter((m) => m.title === 'Müllabfuhr');
+  const digest = all.filter((m) => DIGEST_TITLES.test(m.title || ''));
+  return {
+    putz: bundleMessages(bins, { tag: `pick-${todayIso}`, title: '🚛 Morgen Müllabfuhr', max: 4 }),
+    digest: bundleMessages(digest, { tag: `week-${todayIso}`, title: '🗓️ Wochenüberblick' }),
+  };
+}
+
+module.exports = { toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, checkinReminder, maintReminders, loanReminders, guestView, addMonthsIso, rentReminders, rentDueIso, buildIcs, icsText, icsFold, PICK_KINDS, bundleMessages, morningPlan, eveningPlan };

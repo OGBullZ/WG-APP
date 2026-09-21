@@ -43,10 +43,21 @@ function berlinHour() {
   return h === 24 ? 0 : h;
 }
 
-// Will dieses Gerät Pushes vom Typ `type` bekommen? Abwärtskompatibel: fehlt
-// das Pref-Feld (altes/kein Merge), gilt der Typ als gewünscht.
+/* Push-Diät (wg-v79): diese Arten sind reine Info und kommen standardmäßig NUR in der App.
+   Muss zu PUSH_LEISE in wgapp.html passen. */
+const LEISE = new Set(['exp', 'shop', 'board', 'away', 'repair', 'game', 'done', 'digest']);
+// Stand der Einstellungen, ab dem ein Gerät die leisen Arten bewusst gewählt hat
+const PREFS_VERSION = 2;
+
+// Will dieses Gerät Pushes vom Typ `type` bekommen?
+// - ohne Typ (Login-Code, direkte Übergaben): immer
+// - Gerät mit alten Einstellungen (pv < 2): die hatten „alles an" nur als Voreinstellung, nie gewählt →
+//   leise Arten aus, bis das Gerät die neue App einmal geöffnet hat. Ein bewusstes „aus" bei wichtigen bleibt.
+// - fehlt das Feld: wichtig = an, leise = aus
 function subWants(sub, type) {
   if (!type) return true;
+  if ((Number(sub.pv) || 0) < PREFS_VERSION && LEISE.has(type)) return false;
+  if (sub[type] === undefined) return !LEISE.has(type);
   return sub[type] !== false;
 }
 
