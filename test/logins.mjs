@@ -106,6 +106,10 @@ await A.page.getByRole('button', { name: /Per Push an Tom/ }).click();
 await A.page.waitForTimeout(400);
 const codePush = A.pushes.find(p => /Netflix/.test(p.title || ''));
 check('A9 Push an Tom enthält den Code', !!codePush && (codePush.body || '').includes(code));
+// wg-v80: notifyOthers schreibt jedes Ereignis in den geteilten Verlauf `ak` — der Code darf dort NIE landen
+await A.page.waitForTimeout(900);   // Flush durchlassen
+const nachPush = JSON.stringify(await A.page.evaluate(() => ({ r: window.__wg.remote, u: window.__wg.updates, l: localStorage.getItem('wg_data') })));
+check('A9b Einmal-Code auch nach dem Push-Versand nirgends gespeichert (Verlauf, Server, Writes)', ![code, rawCode].some(c => nachPush.includes(c)));
 await A.page.getByRole('button', { name: 'Fertig', exact: true }).click();
 await A.page.waitForTimeout(300);
 check('A10 Karte zeigt „wartet auf Tom"', /wartet auf Tom/.test(await card(A.page).innerText()));

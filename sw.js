@@ -3,7 +3,7 @@
    App-Shell + Bibliotheken (React/Babel/Firebase-SDK, selbst gehostet unter vendor/) + Schriften (fonts/)
    werden gecacht. Der Firebase-Realtime-Sync läuft weiter übers Netz (nie gecacht).
    Cache-Name bei jedem Deploy mit relevanter Änderung hochzählen. */
-const CACHE = 'wg-v79';
+const CACHE = 'wg-v80';
 /* Stabiler Cache OHNE Versions-Suffix, überlebt Deploys. Hier liegen nur Dateien, deren Name sich bei jeder
    inhaltlichen Änderung mitändert (vendor/ mit Version, fonts/ mit Inhalts-Hash). Vorher wurden solche Dateien beim activate-Cleanup jedes Deploys mitgelöscht: bis zum
    nächsten vollen Online-Load war die App offline ein weißer Screen (HTML da, Skripte weg). */
@@ -81,13 +81,15 @@ const cacheFirst = (req, cacheName = CACHE) =>
 self.addEventListener('push', e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch {}
-  e.waitUntil(self.registration.showNotification(d.title || 'WG-App', {
+  // wg-v80: zusätzlich ein Punkt am App-Symbol (Badging API, ohne Zahl) — die App setzt beim Öffnen die echte Zahl
+  const dot = (self.navigator && 'setAppBadge' in self.navigator) ? self.navigator.setAppBadge().catch(() => {}) : Promise.resolve();
+  e.waitUntil(Promise.all([dot, self.registration.showNotification(d.title || 'WG-App', {
     body: d.body || '',
     icon: './icon.svg',
     badge: './icon.svg',
     tag: d.tag || 'wg-push',
     data: { url: d.url || './' },
-  }));
+  })]));
 });
 
 self.addEventListener('notificationclick', e => {

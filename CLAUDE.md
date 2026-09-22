@@ -414,6 +414,16 @@ Vorher ging fast alles als Push raus: jede neue Ausgabe, jeder Listeneintrag, je
   - **Leise-Liste steht zweimal** (`PUSH_LEISE` in der App, `LEISE` im Server) — Test C2 hält beide gleich.
 - Nebenbei: Push-Aktivieren aus dem Start-Hinweis schrieb keine `uid` — jetzt wie unter „Mehr".
 
+## Seit du zuletzt da warst (wg-v80, 22.09. — torbe: „weiter ausbauen" nach der Push-Diät)
+
+Seit vieles nur noch leise kommt, braucht es eine Stelle zum Nachlesen.
+- **Verlauf `ak`** `{id, ts, by, t, b, k}` — geschrieben in **`notifyOthers`**, also bei allen ~44 Ereignissen auf einmal, auch leise Arten und offline (Daten syncen später, die Push entfällt). Warum dort: die meisten Einträge haben nur ein Tagesdatum, keine Uhrzeit; jede Liste einzeln nachzurüsten wären 40 Stellen. Grenze: `AK_MAX` 80 Einträge, `AK_TAGE` 14 Tage, beim Schreiben per Funktions-Updater gekappt.
+- **🔒 Nie die Login-Freigabe** (`tag 'wg-login'`, ohne Typ): deren Push-Text enthält den Einmal-Code = Schlüssel zum Chiffretext in `ls`. Test: `logins.mjs` A9b prüft **nach** dem Push-Versand Verlauf, Server und Writes.
+- **Karte „🕘 Seit du zuletzt da warst"** auf Heute (`NewsCard`): Ereignisse der anderen seit dem letzten Besuch dieses Geräts, neueste zuerst, 5 + „weitere anzeigen", „✓ Gelesen". `SEEN_AT` = Stand beim Start und bleibt die Sitzung über gleich (sonst verschwände die Karte sofort); gespeichert wird `wg_seen` erst bei `visibilitychange→hidden`/`pagehide` oder per „Gelesen". Erster Start ohne Stand: letzte 24 Stunden.
+- **Zähler am App-Symbol** (`AppBadge`, Badging API): Anzahl ungelesener Ereignisse; der Service Worker setzt bei einer echten Push einen Punkt. Ohne Unterstützung passiert nichts.
+- **Bekannte Grenze:** Titel stehen in der Sprache des Absenders (werden beim Senden übersetzt) — auf Englisch erscheinen Toms deutsche Einträge deutsch.
+- **Tests:** `neu.mjs` 18 Checks (echter Weg: Tom trägt eine Ausgabe ein → Verlauf → Torbens Heute), `logins.mjs` A9b; Gegenprobe `scratchpad/gegenprobe-neu.mjs`, 7 Sabotagen rot.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -449,6 +459,7 @@ node test/ux.mjs          # Alltagstauglich: Build (vorab übersetzt, ohne Babel
 node test/extra.mjs       # Extra: Schnell-Eingabe, Preis-Gedächtnis, Gesamtbudget, Einkaufs-Reihenfolge, Heute, Zähler, Kalender-Abo, Hell/Dunkel + Schrift
 node test/laden.mjs      # Laden & Essen: Preise je Laden, Laden am Posten, Reste-Rezepte (Reihenfolge, auf die Liste, einplanen), Touren, Mängelanzeige + Frist, Notfall-Infos
 node test/english.mjs    # Englisch: Umschalter, Kern-Texte, Datum/Zahlen, Leck-Test über die Hauptseiten, Deutsch unverändert
+node test/neu.mjs        # „Seit du zuletzt da warst": Verlauf aus notifyOthers, Karte auf Heute, Gelesen, Obergrenze, App-Symbol-Zähler
 node test/push_diaet.mjs # Push-Diät: Server-Filter (alte Geräte leise), Morgen-/Abend-Bündelung, Typ-/Regel-/Listen-Wächter, Umstellung in der App
 node test/fair.mjs       # Fair: Auslage-Rotation, Abrechnungs-Wächter (Grenzen), Budget-Hochrechnung, Aufgabe abgeben/übernehmen, Belegung & Ruhezeiten (Überschneidung)
 node test/gross.mjs      # Größere WGs: Verrechnungsplan (3 und 4 Personen), Zeilen/Knöpfe je Rolle, Heute, Abrechnungs-Beleg, Übersicht, Übergabe-Seite; 2 Personen unverändert

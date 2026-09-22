@@ -280,6 +280,18 @@ const remoteHs = page => page.evaluate(() => Object.values(window.__wg.remote.hs
 
 check('F keine Konsolen-/Seitenfehler', errors.length === 0);
 
+// ── Z) Wächter (wg-v80): der Datenstand wechselt NUR über commitD ──
+// Ein React-Updater mit Nebenwirkungen (dataRef/wg_data) läuft verspätet, sobald zwei Updates in einem Durchgang
+// kommen — und überschrieb dann den gerade zusammengeführten Erst-Read (A5 war 4/4 rot). setD_ darf daher genau
+// einmal vorkommen: in commitD, mit fertigem Wert.
+{
+  const { readFileSync } = await import('fs');
+  const src = readFileSync(new URL('../wgapp.html', import.meta.url), 'utf8');
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '');   // Kommentare raus, dort darf setD_ erwähnt werden
+  const calls = code.match(/\bsetD_\(/g) || [];
+  check('Z1 setD_ nur noch in commitD (keine Updater mit Nebenwirkungen)', calls.length === 1 && /setD_\(next\);/.test(code), `${calls.length} Aufrufe`);
+}
+
 console.log(pass.map(p => '  OK  ' + p).join('\n'));
 if (fail.length) console.log(fail.map(f => '  FAIL ' + f).join('\n'));
 if (errors.length) console.log('\nFEHLER:\n' + errors.join('\n'));
