@@ -139,6 +139,16 @@ check('D2 deutsche Beträge (Komma)', /20,00|40,00/.test(await D1.page.locator('
 check('D3 keine Seitenfehler', D1.errs.length === 0, D1.errs.join(' | '));
 await D1.ctx.close();
 
+// E4 (wg-v86): HTML-Entities gehören nicht in einen TT-Text. In JSX-Text wandelt der Übersetzer `&nbsp;` um,
+// in einem JS-String escaped React ihn und der Nutzer liest buchstäblich „&nbsp;". Stand zweimal lange live,
+// ohne dass eine Prüfung anschlug — hier beide Seiten abdecken: Quelltext und Wörterbuch.
+const quelle = readFileSync(new URL('../wgapp.html', import.meta.url), 'utf8');
+const jsxTeil = quelle.slice(quelle.indexOf('<script type="text/jsx-src"'));
+const ttEntities = [...jsxTeil.matchAll(/\bTT\("((?:[^"\\]|\\.)*)"/g)].map(m => m[1]).filter(k => /&[a-zA-Z]+;|&#\d+;/.test(k));
+const dictEntities = Object.entries(DICT).filter(([k, v]) => /&[a-zA-Z]+;|&#\d+;/.test(k) || /&[a-zA-Z]+;|&#\d+;/.test(v)).map(([k]) => k);
+check('E4 keine HTML-Entities in Texten (Quelltext und Wörterbuch)', ttEntities.length === 0 && dictEntities.length === 0,
+  [...ttEntities, ...dictEntities].slice(0, 4).join(' | '));
+
 await browser.close();
 for (const p of pass) console.log('✓ ' + p);
 for (const f of fail) console.log('FAIL ' + f.replace(/\s*\n\s*/g, ' ⏎ '));
