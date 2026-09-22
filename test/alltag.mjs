@@ -211,7 +211,10 @@ await M.ctx.close();
 
 // ── K: App-Kürzel ──
 const mf = JSON.parse(readFileSync(new URL('../manifest.json', import.meta.url), 'utf8'));
-check('K1 Manifest: 4 Kürzel', (mf.shortcuts || []).map(s => s.url).join() === './?a=ausgabe,./?a=muell,./?a=liste,./?a=waesche');
+// seit wg-v85 sechs Kürzel (Putzplan + Suchen dazu); jedes braucht Name und Symbol, sonst zeigt Android es nicht an
+const kuerzel = mf.shortcuts || [];
+check('K1 Manifest: sechs Kürzel mit Name und Symbol', kuerzel.map(s => s.url).join() === './?a=ausgabe,./?a=muell,./?a=liste,./?a=waesche,./?a=putz,./?a=suche'
+  && kuerzel.every(s => s.name && s.short_name && (s.icons || []).length), JSON.stringify(kuerzel.map(s => s.url)));
 {
   const K = await open({ users: USERS }, 'u1', { query: '?a=ausgabe', tab: 'stats' });
   check('K2 ?a=ausgabe → Haushalt + Ausgaben-Formular offen, Adresse bereinigt', /Ausgabe/i.test(await K.page.locator('.sheet-title').innerText().catch(() => '')) && !K.page.url().includes('?a='), K.page.url());

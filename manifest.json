@@ -79,6 +79,39 @@
           "type": "image/png"
         }
       ]
+    },
+    {
+      "name": "Putzplan",
+      "short_name": "Putzplan",
+      "url": "./?a=putz",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Suchen",
+      "short_name": "Suchen",
+      "url": "./?a=suche",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
-  ]
+  ],
+  "share_target": {
+    "action": "./",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }

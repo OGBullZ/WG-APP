@@ -451,6 +451,14 @@ Plan: v81 Fundament (Messung, Bausteine, Tab-Leiste) · v82 Heute aufräumen + L
 - **CI-Nachtrag (v84):** Die CI von v81 war **rot** (T1: 2 Tap-Ziele < 40 px) — lokal grün, weil die Kopf-Aktionen mit ihrer unsichtbaren Fläche auf ~41 px kamen und die Linux-Schriften der CI etwas kleiner sind. v82/v83 waren nur **zufällig** grün: Die betroffenen Karten standen im Testdatensatz leer → Chips. Behoben mit mehr Reserve (`.section-hdr .hit::after` −15 px), `a11y.mjs` bekommt Karten mit Kopf-Aktionen in den Datensatz, `A11Y_MIN=44` prüft die Reserve. **Nach jedem Ship die CI abwarten** — bei v81 übersprungen.
 - **Tests:** `breite.mjs` 21 Checks (Seitenleiste, Spalten, kein seitliches Herausragen, Tablet/Handy unverändert, Rückmeldung, Reduced Motion); Gegenprobe `scratchpad/gegenprobe-breite.mjs`, 5 Sabotagen rot.
 
+## Komfort + Suche (wg-v85, 22.09. — torbe: „weitere ideen", alle 12 gewählt; das hier ist Teil 1 von 3)
+
+- **Suche über alles** (`SearchSheet`, 🔍 in jeder Kopfzeile, Kurzbefehl `?a=suche`): Ausgaben Haushalt + Growbox **inkl. Archiv**, Einkaufsliste, Aufgaben, Regeln, Reparaturen, Kühlschrank, Ankündigungen, Essensplan, Inventar, Ausleihe, Wartung. Ohne Umlaut-/Groß-Klein-Fehler (`suchNorm`), „12,50" findet auch den Betrag. Bereich „Ausgaben" = Filter Person/Zeitraum/Kategorie + Summe. Treffer springt in den Tab (Ereignis `wg-tab`, AppInner hört zu; Modul aus → Haushalt/Mehr). Die Ideen „Globale Suche" und „Ausgaben suchen & filtern" bewusst als **eine** Suche. Filterzeilen wischbar (`.tool-chips.chips-x` — doppelte Klasse nötig, sonst gewinnt das spätere `flex-wrap:wrap`).
+- **Kurzbefehle am App-Symbol gab es schon** (Ausgabe, Müll, Liste, Timer) — mein Vorschlag war das nicht geprüft. Ergänzt: Putzplan (`?a=putz`), Suchen (`?a=suche`).
+- **Teilen aus anderen Apps** (`share_target` im Manifest, GET `?title&text&url`) → „Wohin damit?": Einkaufsliste (eine Zeile/Komma = ein Artikel, Aufzählungszeichen und Links raus, Doppelte nicht) oder Ausgabe (erste Zeile **unverändert** in die Schnellzeile — die Listen-Zerlegung trennte an Kommas und machte aus „12,50 Pizza" nur „Pizza"; Hinweis nennt die Quelle „Teilen" statt „Sprache").
+- **Offline-Warteschlange sichtbar:** Pille „OFFLINE · 3" = Einträge, die vom letzten vom Server **bestätigten** Stand (`wg_confirmed`) abweichen — nicht `lastPushed`, sonst zählten offline gesendete, unbestätigte Änderungen als erledigt. „✓ Alles angekommen" nur, wenn wirklich offline etwas gewartet hat.
+- **Tests:** `komfort.mjs` 23 Checks (echte Oberfläche; offline über `holdWrites` + `setOffline`), Gegenprobe `scratchpad/gegenprobe-komfort.mjs` 7 Sabotagen rot.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -486,6 +494,7 @@ node test/ux.mjs          # Alltagstauglich: Build (vorab übersetzt, ohne Babel
 node test/extra.mjs       # Extra: Schnell-Eingabe, Preis-Gedächtnis, Gesamtbudget, Einkaufs-Reihenfolge, Heute, Zähler, Kalender-Abo, Hell/Dunkel + Schrift
 node test/laden.mjs      # Laden & Essen: Preise je Laden, Laden am Posten, Reste-Rezepte (Reihenfolge, auf die Liste, einplanen), Touren, Mängelanzeige + Frist, Notfall-Infos
 node test/english.mjs    # Englisch: Umschalter, Kern-Texte, Datum/Zahlen, Leck-Test über die Hauptseiten, Deutsch unverändert
+node test/komfort.mjs    # Suche + Ausgaben-Filter, Kurzbefehle putz/suche, Teilen aus anderen Apps, Offline-Warteschlange
 node test/breite.mjs     # ab 1024 px Seitenleiste + Heute zweispaltig, Tablet/Handy unverändert, Rückmeldung (Leuchten/Vibration), Weniger Bewegung
 node test/heute.mjs      # Heute aufgeräumt: Chips statt leerer Karten, Chip öffnet Karte, Zonen-Reihenfolge, unsichtbar eingehängt, CLS beim Start, EN
 node test/a11y.mjs       # Kontrast (hell+dunkel), Tap-Ziele inkl. ::after, Fokus-Ring, Tab-Beschriftung 390/360 px; --bericht listet jede Stelle
