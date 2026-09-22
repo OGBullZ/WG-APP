@@ -28,6 +28,9 @@ async function open(seed, { lang = 'de' } = {}) {
   await page.route(/firebase-(app|database)-compat[-\d.]*\.js/, r => r.fulfill({ status: 200, contentType: 'application/javascript', body: /firebase-app-compat/.test(r.request().url()) ? STUB : '' }));
   await page.addInitScript(([s, d, l]) => {
     window.__wgSeed = s;
+    // Layout-Verschiebungen beim Start mitzählen (CLS): springt Inhalt, während Daten nachkommen?
+    window.__cls = 0;
+    try { new PerformanceObserver(list => { for (const e of list.getEntries()) if (!e.hadRecentInput) window.__cls += e.value; }).observe({ type: 'layout-shift', buffered: true }); } catch {}
     if (localStorage.getItem('wg_code')) return;
     localStorage.setItem('wg_code', JSON.stringify('TEST-LOKAL-HEUTE'));
     localStorage.setItem('wg_me', JSON.stringify('u1'));
@@ -52,6 +55,9 @@ check('A1 leere WG: alle 11 Werkzeuge als Chips', TOOLS.every(k => cA.includes(k
 check('A2 leere WG: keine leere Werkzeug-Karte', tA.length === 0, `Karten: ${tA.join(',')}`);
 const hoehe = await A.page.evaluate(() => document.querySelector('.scroll').scrollHeight);
 check('A3 Heute ist kurz (≤ 1,6 Bildschirmhöhen)', hoehe <= 844 * 1.6, `${hoehe} px`);
+// Leere Werkzeuge bleiben unsichtbar eingehängt (LoginShare räumt abgelaufene Freigaben auf, WashCard öffnet ?a=waesche)
+const leer = await A.page.locator('[data-tool-leer]').evaluateAll(els => els.map(e => ({ k: e.getAttribute('data-tool-leer'), sichtbar: e.offsetParent !== null })));
+check('A4 jedes Chip-Werkzeug ist unsichtbar eingehängt (Nebenaufgaben laufen weiter)', TOOLS.every(k => leer.some(x => x.k === k && !x.sichtbar)), JSON.stringify(leer.map(x => x.k)));
 // B: Chip öffnet die Karte
 await A.page.locator('[data-chip="fridge"]').click();
 await A.page.waitForTimeout(400);
@@ -67,6 +73,12 @@ const C = await open({ users: USERS,
   hs: map([{ id: 'h1', name: 'Rewe', price: 40, paidBy: 'u2', date: T, settled: false }]),
   ak: map([{ id: 'a1', ts: Date.now() - 600e3, by: 'u2', t: '💸 Tom hat 40,00 € eingetragen', b: 'Rewe', k: 'exp' }]) });
 const tC = await tools(C.page), cC = await chips(C.page);
+// Ladezustand: die App startet aus dem lokalen Speicher — gemessen statt vermutet, ob beim Start etwas springt
+// Gegenprobe (HEUTE_SABOTAGE=1): nachträglich 200 px oben einschieben — C0 MUSS dann rot werden.
+// (Erste Fassung schob per Init-Skript zeitgesteuert ein und traf nie — Messung sah immer 0, obwohl sie funktioniert.)
+if (process.env.HEUTE_SABOTAGE) { await C.page.evaluate(() => { const d = document.createElement('div'); d.style.height = '200px'; document.querySelector('.content').prepend(d); }); await C.page.waitForTimeout(800); }
+const cls = await C.page.evaluate(() => window.__cls);
+check('C0 Start ohne Springen (Layout-Verschiebung CLS < 0,1)', cls < 0.1, `CLS ${cls.toFixed(3)}`);
 check('C1 Kühlschrank mit Eintrag: Karte da, kein Chip', tC.includes('fridge') && !cC.includes('fridge'), `Karten ${tC} · Chips ${cC}`);
 check('C2 offene Reparatur: Karte da, kein Chip', tC.includes('repair') && !cC.includes('repair'));
 check('C3 leere Werkzeuge bleiben Chips', cC.includes('meal') && cC.includes('poll'));

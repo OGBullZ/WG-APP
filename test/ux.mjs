@@ -7,6 +7,7 @@ import { readFileSync, readdirSync, mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { STUB } from './_fbstub.mjs';
+import { openTool } from './_heute.mjs';   // leere Werkzeuge auf Heute sind seit wg-v82 Chips
 
 const url = 'http://localhost:8099/wgapp.html';
 const z = n => String(n).padStart(2, '0');
@@ -90,9 +91,10 @@ const SEED = {
 const M = await open(SEED);
 const { page, data, tabTo } = M;
 check('B1 neue App startet auf „Heute“ (erster Tab)', await page.locator('.tabbar .tabitem.on').innerText() === 'Heute' && await page.locator('.tabbar .tabitem').first().innerText() === 'Heute');
-check('B2 Heute: Ankündigungen, Nachrichten, Timer, Reparaturen, Logins', true &&
-  await page.locator('[data-testid="board-card"]').count() === 1 && await page.locator('[data-testid="quick-msgs"]').count() === 1 &&
-  await page.locator('[data-testid="wash-card"]').count() === 1 && await page.locator('[data-testid="repair-card"]').count() === 1 && await page.getByRole('button', { name: /Login freigeben/ }).count() === 1);
+// seit wg-v82 (Heute aufräumen): leere Werkzeuge stehen als Chip unter „Schnellzugriff", mit Inhalt als Karte — genau eins von beiden
+const daOderChip = async k => (await page.locator(`[data-tool="${k}"]`).count()) + (await page.locator(`[data-chip="${k}"]`).count()) === 1;
+check('B2 Heute: Ankündigungen, Nachrichten, Timer, Reparaturen, Logins (Karte oder Chip)',
+  await daOderChip('board') && await daOderChip('msg') && await daOderChip('wash') && await daOderChip('repair') && await daOderChip('login'));
 await tabTo('Haushalt');
 check('B3 Haushalt ohne Ankündigungen/Nachrichten/Timer/„Du bist dran“', await page.locator('[data-testid="board-card"], [data-testid="quick-msgs"], [data-testid="wash-card"], [data-testid="chore-quick"]').count() === 0);
 
@@ -157,6 +159,7 @@ check('G4 Abhaken räumt „Morgen“ ab, Eintrag pünktlich (late 0)', !g.snooz
 
 // ── H: Waschtimer merkt sich die Dauer je Maschine ──
 await G.tabTo('Heute');
+await openTool(G.page, 'wash');
 await G.page.locator('[data-testid="wash-open"]').click(); await G.page.waitForTimeout(300);
 await G.page.locator('.sheet button', { hasText: 'Trockner' }).click();
 await G.page.locator('.sheet button', { hasText: '30 Min.' }).click();

@@ -433,6 +433,15 @@ Plan: v81 Fundament (Messung, Bausteine, Tab-Leiste) · v82 Heute aufräumen + L
 - **Tab-Leiste:** einzeilig bei 11 px (Lesbarkeits-Entscheidung, `ux.mjs` J4), Tabs teilen sich die Breite **nach Textlänge** (`flex:1 1 auto`) statt gleich breit; „Übersicht" passte vorher nur, weil der Text unbemerkt über den Rand ragte. Erster Versuch war Schrift per `clamp` verkleinern — verworfen, weil er die 11-px-Entscheidung unterlief (J4 wurde rot). Englisch kurz über **`TTk('tab', …)`** (Wörterbuch-Schlüssel `tab|Putzplan` → „Chores", `tab|Growbox` → „Grow", `tab|Haushalt` → „Home"). `english.mjs` meldet einen nicht gefundenen Tab jetzt laut (vorher sprang die Schleife still weiter).
 - **Bausteine:** `MonthNav` für Übersicht und Privat (vorher zwei Bauarten, eine ohne Screenreader-Beschriftung; Tipp auf den Monat = zurück zum aktuellen). Aktionen im Abschnittskopf überall gleiche Schrift/Größe/Schreibweise (vorher u. a. „BEENDEN" gesperrt in Großbuchstaben), Farbe bleibt vom Modul.
 
+## Optik, Release 2 von 3 (wg-v82): Heute aufräumen, Leer- und Ladezustände
+
+- **Heute in fünf Zonen:** Jetzt dran (Wer bist du, Push-Hinweis, deine Aufgabe, Müll/Zahlung/Miete, fällige Wartung, Übergaben, Check-in) → Neu (Verlauf) → Eingeben (Schnellzeile) → Werkzeuge mit Inhalt → **Schnellzugriff-Chips**.
+- **Leere Werkzeuge = Chips** (`heuteWerkzeuge`, 11 Stück: Status, Maschine, Kühlschrank, Essensplan, Ankündigung, Kurz Bescheid, Belegung, WG-Regeln, Umfrage, Kaputt, Login teilen). `has` spiegelt die Filter der jeweiligen Karte (gleiche Zeitfenster) — ändert sich dort etwas, dort mitziehen. Ein per Chip geöffnetes Werkzeug bleibt **unter** den Chips (sonst springt es beim ersten Eintrag nach oben). Leere WG: Heute 706 px statt mehrerer Bildschirme.
+- **🪤 Falle beim Umbau:** Leere Karten erst ganz weggelassen → zwei Funktionen fielen still aus, weil die Karten nebenbei arbeiten: **LoginShare räumt abgelaufene Freigaben beim Server weg** (logins C6), **WashCard öffnet den Kurzlink `?a=waesche`** (alltag K4). Deshalb bleiben leere Werkzeuge **unsichtbar eingehängt** (`hidden`, `data-tool-leer`); Sheets kommen per Portal trotzdem. Wächter: heute.mjs A4. Test-Helfer für ältere Suiten: `test/_heute.mjs` → `openTool(page, k)`.
+- **„Du bist dran":** „Morgen"/„Kann nicht" rutschen bei Enge in eine eigene Zeile (vorher brach „Bad / putzen" um).
+- **Leerzustände:** `.empty` blendete den ganzen Block mit `opacity:.45` ab → Text nur **2,2–2,7 : 1**. Gefunden erst, nachdem `a11y.mjs` die Deckkraft der Vorfahren mitrechnet (dritte Messlücke). Jetzt Text voll, nur Symbol gedämpft. Keine zusätzlichen Knöpfe — jeder Leerzustand steht schon direkt unter seinem Hauptknopf.
+- **Ladezustand gemessen statt gebaut:** Start aus dem lokalen Speicher, Layout-Verschiebung **CLS 0,000** (heute.mjs C0; Gegenprobe `HEUTE_SABOTAGE=1` → 0,132 rot). Ein Skelett wäre überflüssig. Die erste Gegenprobe (zeitgesteuert per Init-Skript) traf nie und hätte die Messung für blind erklärt, obwohl sie funktioniert.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -468,6 +477,7 @@ node test/ux.mjs          # Alltagstauglich: Build (vorab übersetzt, ohne Babel
 node test/extra.mjs       # Extra: Schnell-Eingabe, Preis-Gedächtnis, Gesamtbudget, Einkaufs-Reihenfolge, Heute, Zähler, Kalender-Abo, Hell/Dunkel + Schrift
 node test/laden.mjs      # Laden & Essen: Preise je Laden, Laden am Posten, Reste-Rezepte (Reihenfolge, auf die Liste, einplanen), Touren, Mängelanzeige + Frist, Notfall-Infos
 node test/english.mjs    # Englisch: Umschalter, Kern-Texte, Datum/Zahlen, Leck-Test über die Hauptseiten, Deutsch unverändert
+node test/heute.mjs      # Heute aufgeräumt: Chips statt leerer Karten, Chip öffnet Karte, Zonen-Reihenfolge, unsichtbar eingehängt, CLS beim Start, EN
 node test/a11y.mjs       # Kontrast (hell+dunkel), Tap-Ziele inkl. ::after, Fokus-Ring, Tab-Beschriftung 390/360 px; --bericht listet jede Stelle
 node test/neu.mjs        # „Seit du zuletzt da warst": Verlauf aus notifyOthers, Karte auf Heute, Gelesen, Obergrenze, App-Symbol-Zähler
 node test/push_diaet.mjs # Push-Diät: Server-Filter (alte Geräte leise), Morgen-/Abend-Bündelung, Typ-/Regel-/Listen-Wächter, Umstellung in der App

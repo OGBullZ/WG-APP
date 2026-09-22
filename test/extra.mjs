@@ -3,6 +3,7 @@
    Heute-Seite · Zählerstände (+ Besuch) · Kalender-Abo (Vercel abgefangen) · Darstellung (Hell/Dunkel, Schrift). */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { openTool } from './_heute.mjs';   // leere Werkzeuge auf Heute sind seit wg-v82 Chips
 
 const url = 'http://localhost:8099/wgapp.html';
 const z = n => String(n).padStart(2, '0');
@@ -170,6 +171,7 @@ await tabTo('Heute');
 check('I1 Begrüßung mit Name', /Torben/.test(await page.locator('[data-testid="today-hello"]').innerText()));
 check('I2 Abholung morgen', /Papier morgen früh/.test(await page.locator('[data-testid="today-pick-papier"]').innerText().catch(() => '')));
 check('I3 Zahlung zum Bestätigen', /Tom hat €5,00 bezahlt – bitte bestätigen/.test(await page.locator('[data-testid="today-pay-pr1"]').innerText().catch(() => '')));
+await openTool(page, 'msg');   // ohne Nachricht der letzten 12 Std. ist „Kurz Bescheid" ein Chip (wg-v82)
 check('I4 Ankündigungen, Nachrichten, Reparaturen, Logins als Karten auf Heute', /Eltern/.test(await page.locator('[data-testid="board-card"]').innerText().catch(() => '')) && /Bin gleich da/.test(await page.locator('[data-testid="quick-msgs"]').innerText().catch(() => '')) && await page.locator('[data-testid="repair-card"]').count() === 1);
 check('I5 Einkauf: 1 offen · bald leer: Kaffee', /1 auf der Einkaufsliste · bald leer: Kaffee/.test(await page.locator('[data-testid="today-shop"]').innerText().catch(() => '')));
 check('I6 Saldo-Zeile', await page.locator('[data-testid="today-bal"]').count() === 1);

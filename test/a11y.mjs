@@ -67,9 +67,14 @@ const MESSEN = ({ minTap }) => {
     const fg = parse(cs.color); const bgs = bgsOf(el);
     if (!fg || !bgs || !bgs.length) { ohneHg++; continue; }
     gemessen++;
+    // Deckkraft der Vorfahren mitnehmen: `.empty` blendet z. B. den ganzen Block auf .45 ab — der Text wirkt dann
+    // blasser als seine Farbe sagt (erste Fassung übersah das)
+    let deck = 1;
+    for (let e = el; e && e !== document.body; e = e.parentElement) deck *= Number(getComputedStyle(e).opacity) || 1;
     // schlechtester Kontrast über alle möglichen Hintergrundfarben
     const ratio = Math.min(...bgs.map(bg => {
-      const eff = fg.a < 1 ? mix(fg, bg) : fg;
+      const fa = { ...fg, a: fg.a * deck };
+      const eff = fa.a < 1 ? mix(fa, bg) : fa;
       const L1 = lum(eff), L2 = lum(bg);
       return (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
     }));

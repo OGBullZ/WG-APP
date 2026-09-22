@@ -1,0 +1,24 @@
+import { chromium } from 'playwright';
+import { STUB } from '../test/_fbstub.mjs';
+const b = await chromium.launch();
+const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+await ctx.routeWebSocket(/./, () => {});
+const p = await ctx.newPage();
+await p.route('**/*', r => /firebasedatabase|firebaseio|vercel/.test(r.request().url()) ? r.abort() : r.continue());
+await p.route(/firebase-(app|database)-compat[-\d.]*\.js/, r => r.fulfill({ status: 200, contentType: 'application/javascript', body: /firebase-app-compat/.test(r.request().url()) ? STUB : '' }));
+await p.addInitScript(() => {
+  window.__wgSeed = { users: [{ id: 'u1', name: 'Torben', color: '#38bdf8' }, { id: 'u2', name: 'Tom', color: '#fbbf24' }] };
+  window.__cls = 0; window.__n = 0;
+  new PerformanceObserver(l => { for (const e of l.getEntries()) { window.__cls += e.value; window.__n++; } }).observe({ type: 'layout-shift', buffered: true });
+  localStorage.setItem('wg_code', JSON.stringify('TEST-LOKAL-CLS')); localStorage.setItem('wg_me', JSON.stringify('u1'));
+  localStorage.setItem('wg_start_shown', JSON.stringify(new Date().toISOString().slice(0, 10)));
+});
+await p.goto('http://localhost:8099/wgapp.html', { waitUntil: 'domcontentloaded' });
+await p.locator('.tabbar').waitFor({ timeout: 30000 });
+await p.waitForTimeout(1500);
+const vor = await p.evaluate(() => ({ cls: window.__cls, n: window.__n }));
+await p.evaluate(() => { const c = document.querySelector('.content'); const d = document.createElement('div'); d.style.height = '200px'; d.id = 'sab'; c.prepend(d); });
+await p.waitForTimeout(800);
+const nach = await p.evaluate(() => ({ cls: window.__cls, n: window.__n, da: !!document.getElementById('sab') }));
+console.log(JSON.stringify({ vor, nach }));
+await b.close();

@@ -5,6 +5,7 @@
    Login nach Ablauf noch auf dem Gerät. Pushes werden abgefangen, nie echt verschickt. */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { openTool } from './_heute.mjs';   // „Login teilen" ist ohne Freigabe seit wg-v82 ein Chip auf Heute
 
 const url = 'http://localhost:8099/wgapp.html';
 const USERS = [{ id: 'u1', name: 'Torben', color: '#38bdf8' }, { id: 'u2', name: 'Tom', color: '#fbbf24' }];
@@ -74,6 +75,7 @@ const card = page => page.locator('.group', { has: page.getByText('Login freigeb
 
 // ── A) Ersteller legt eine Freigabe an ───────────────────────────────────────────
 const A = await device({ me: 'u1' });
+await openTool(A.page, 'login');
 await A.page.getByRole('button', { name: /Login freigeben/ }).click();
 await A.page.waitForTimeout(300);
 check('A0 Button „Code erzeugen" ist ohne Eingaben gesperrt', await A.page.getByRole('button', { name: 'Code erzeugen' }).isDisabled());
@@ -171,6 +173,7 @@ await A.page.waitForTimeout(800);
 check('C1 Ersteller sieht „Tom hat ihn … geöffnet"', /Tom hat ihn um \d\d:\d\d geöffnet/.test(await card(A.page).innerText()));
 
 // Zweite Freigabe mit gemerktem Login (Chip) anlegen und zurückziehen
+await openTool(A.page, 'login');
 await A.page.getByRole('button', { name: /Login freigeben/ }).click();
 await A.page.waitForTimeout(300);
 await A.page.locator('.sheet').getByRole('button', { name: 'Netflix', exact: true }).click();

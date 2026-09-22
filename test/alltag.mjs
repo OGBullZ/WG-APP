@@ -5,6 +5,7 @@
 import { chromium } from 'playwright';
 import { readFileSync } from 'fs';
 import { STUB } from './_fbstub.mjs';
+import { openTool } from './_heute.mjs';   // leere Werkzeuge auf Heute sind seit wg-v82 Chips
 
 const url = 'http://localhost:8099/wgapp.html';
 const z = n => String(n).padStart(2, '0');
@@ -112,6 +113,7 @@ check('D2 je Gerät nur einmal gemeldet (ein Merker-Schlüssel)', await page.eva
 check('D2b vor 5 Std. fertig → keine Push mehr, aber sichtbar', !pushes.some(p => p.tag === 'wt-w0') && /Spülmaschine ist fertig/.test(await page.locator('[data-testid="wash-card"]').innerText()));
 await page.locator('[data-testid="wash-run"]', { hasText: 'Waschmaschine' }).getByRole('button', { name: 'Ausgeräumt ✓' }).click(); await page.waitForTimeout(400);
 check('D3 „Ausgeräumt" entfernt den Lauf', !(await data()).wt.some(r => r.id === 'w1'));
+await openTool(page, 'wash');
 await page.locator('[data-testid="wash-open"]').click(); await page.waitForTimeout(300);
 await page.locator('.sheet button', { hasText: 'Trockner' }).click();
 await page.locator('.sheet button', { hasText: '30 Min.' }).click();
@@ -121,6 +123,7 @@ check('D4 Trockner 30 Min. gestartet', !!run && run.mins === 30 && Math.abs(run.
 check('D5 Anzeige „noch 30 Min." + Start-Push', /noch 30 Min\./.test(await page.locator('[data-testid="wash-run"]').first().innerText()) && pushes.some(p => /Trockner gestartet/.test(p.title)));
 
 // ── E: Schnell-Nachrichten ──
+await openTool(page, 'msg');
 await page.locator('[data-testid="qm-preset"]', { hasText: 'Paket für dich' }).click(); await page.waitForTimeout(400);
 check('E1 Preset → Push + Eintrag sichtbar', pushes.some(p => p.type === 'msg' && /Paket für dich angenommen/.test(p.body)) && /Paket für dich/.test(await page.locator('[data-testid="qm-row"]').first().innerText()));
 await page.getByLabel('Eigene Nachricht').fill('Bringe Brötchen mit'); await page.getByRole('button', { name: 'Senden', exact: true }).click(); await page.waitForTimeout(400);
