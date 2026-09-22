@@ -440,7 +440,15 @@ Plan: v81 Fundament (Messung, Bausteine, Tab-Leiste) · v82 Heute aufräumen + L
 - **🪤 Falle beim Umbau:** Leere Karten erst ganz weggelassen → zwei Funktionen fielen still aus, weil die Karten nebenbei arbeiten: **LoginShare räumt abgelaufene Freigaben beim Server weg** (logins C6), **WashCard öffnet den Kurzlink `?a=waesche`** (alltag K4). Deshalb bleiben leere Werkzeuge **unsichtbar eingehängt** (`hidden`, `data-tool-leer`); Sheets kommen per Portal trotzdem. Wächter: heute.mjs A4. Test-Helfer für ältere Suiten: `test/_heute.mjs` → `openTool(page, k)`.
 - **„Du bist dran":** „Morgen"/„Kann nicht" rutschen bei Enge in eine eigene Zeile (vorher brach „Bad / putzen" um).
 - **Leerzustände:** `.empty` blendete den ganzen Block mit `opacity:.45` ab → Text nur **2,2–2,7 : 1**. Gefunden erst, nachdem `a11y.mjs` die Deckkraft der Vorfahren mitrechnet (dritte Messlücke). Jetzt Text voll, nur Symbol gedämpft. Keine zusätzlichen Knöpfe — jeder Leerzustand steht schon direkt unter seinem Hauptknopf.
-- **Ladezustand gemessen statt gebaut:** Start aus dem lokalen Speicher, Layout-Verschiebung **CLS 0,000** (heute.mjs C0; Gegenprobe `HEUTE_SABOTAGE=1` → 0,132 rot). Ein Skelett wäre überflüssig. Die erste Gegenprobe (zeitgesteuert per Init-Skript) traf nie und hätte die Messung für blind erklärt, obwohl sie funktioniert.
+- **Ladezustand gemessen statt gebaut:** heute.mjs C0 misst die Layout-Verschiebung (CLS) beim Start; Gegenprobe `HEUTE_SABOTAGE=1`. Die erste Gegenprobe (zeitgesteuert per Init-Skript) traf nie und hätte die Messung für blind erklärt, obwohl sie funktioniert. **Korrektur in v83:** Das „CLS 0,000" aus v82 galt für den falschen Fall — alle Daten kamen erst vom Server (frisch verbundenes Gerät), und ob der Browser das Rutschen zählte, hing an der Seitenstruktur. Jetzt misst C0 den normalen Start (Daten schon lokal, `lokal:true`) — und fand dabei einen echten Sprung, siehe Release 3.
+
+## Optik, Release 3 von 3 (wg-v83): Breite + Rückmeldung
+
+- **Ab 1024 px:** Tab-Leiste als Seitenleiste links (`--rail` 96 px), Kopfzeile daneben. **Heute zweispaltig mit festen Zonen** (`heute-grid`: links Jetzt dran/Neu/Eingeben, rechts Werkzeuge + Schnellzugriff) — bewusst kein `column-count`, fließende Spalten schieben Karten beim Aufklappen zwischen den Spalten hin und her. Übrige Seiten einspaltig 760 px (vorher 640). `NBar wide` richtet den Titel über der 1120-px-Heute-Spalte aus. Tablet (834) und Handy bleiben wie sie waren.
+- **Rückmeldung:** Schnell-Eintragen leuchtet kurz auf (`.ok-flash`) + Tick; Einkaufsliste-Haken tickt; Verlauf-Einträge blenden gestaffelt ein. `haptik()` = `navigator.vibrate` nur ohne „Weniger Bewegung" (iPhone ignoriert es still). Putzplan-Haken hatte Häkchen, Partikel und Vibration schon.
+- **Sprung beim Start behoben:** Der Push-Hinweis „Benachrichtigungen sind blockiert" (104 px) erschien erst nach dem ersten Bild, weil auch die synchron bestimmbaren Fälle (blockiert, nicht unterstützt, iPhone ohne Home-Bildschirm) im Effekt liefen → **bei jedem Start** eines Handys mit blockierten Benachrichtigungen rutschte Heute nach unten (CLS 0,051). Jetzt `pushStatusSofort()` als Startwert, nur das Abo wird noch asynchron geprüft → CLS 0,000. C0-Grenze auf 0,02 verschärft (0,051 lag unter Googles 0,1 und wäre nie aufgefallen).
+- **„Weniger Bewegung"-Lücke gefunden:** `.rise` — die überall genutzte Einblend-Animation — stand nicht in der Reduced-Motion-Liste. Jetzt drin.
+- **Tests:** `breite.mjs` 21 Checks (Seitenleiste, Spalten, kein seitliches Herausragen, Tablet/Handy unverändert, Rückmeldung, Reduced Motion); Gegenprobe `scratchpad/gegenprobe-breite.mjs`, 5 Sabotagen rot.
 
 ## Live & Deploy
 
@@ -477,6 +485,7 @@ node test/ux.mjs          # Alltagstauglich: Build (vorab übersetzt, ohne Babel
 node test/extra.mjs       # Extra: Schnell-Eingabe, Preis-Gedächtnis, Gesamtbudget, Einkaufs-Reihenfolge, Heute, Zähler, Kalender-Abo, Hell/Dunkel + Schrift
 node test/laden.mjs      # Laden & Essen: Preise je Laden, Laden am Posten, Reste-Rezepte (Reihenfolge, auf die Liste, einplanen), Touren, Mängelanzeige + Frist, Notfall-Infos
 node test/english.mjs    # Englisch: Umschalter, Kern-Texte, Datum/Zahlen, Leck-Test über die Hauptseiten, Deutsch unverändert
+node test/breite.mjs     # ab 1024 px Seitenleiste + Heute zweispaltig, Tablet/Handy unverändert, Rückmeldung (Leuchten/Vibration), Weniger Bewegung
 node test/heute.mjs      # Heute aufgeräumt: Chips statt leerer Karten, Chip öffnet Karte, Zonen-Reihenfolge, unsichtbar eingehängt, CLS beim Start, EN
 node test/a11y.mjs       # Kontrast (hell+dunkel), Tap-Ziele inkl. ::after, Fokus-Ring, Tab-Beschriftung 390/360 px; --bericht listet jede Stelle
 node test/neu.mjs        # „Seit du zuletzt da warst": Verlauf aus notifyOthers, Karte auf Heute, Gelesen, Obergrenze, App-Symbol-Zähler

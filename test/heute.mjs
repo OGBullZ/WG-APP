@@ -18,7 +18,8 @@ const map = arr => Object.fromEntries(arr.map((x, i) => [x.id, { seq: 100 - i, .
 // alle Werkzeuge, die leer zu Chips werden
 const TOOLS = ['status', 'wash', 'fridge', 'meal', 'board', 'msg', 'book', 'rules', 'poll', 'repair', 'login'];
 
-async function open(seed, { lang = 'de' } = {}) {
+// lokal: Daten liegen schon im Gerätespeicher (echter Start einer genutzten App) — sonst kommen sie erst per Server
+async function open(seed, { lang = 'de', lokal = false } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
   await ctx.routeWebSocket(/./, () => {});
   const page = await ctx.newPage();
@@ -26,8 +27,10 @@ async function open(seed, { lang = 'de' } = {}) {
   page.on('pageerror', e => errs.push(e.message));
   await page.route('**/*', r => { const u = r.request().url(); if (u.includes('/api/notify')) return r.fulfill({ status: 200, body: '{}' }); return /firebasedatabase|firebaseio|vercel/.test(u) ? r.abort() : r.continue(); });
   await page.route(/firebase-(app|database)-compat[-\d.]*\.js/, r => r.fulfill({ status: 200, contentType: 'application/javascript', body: /firebase-app-compat/.test(r.request().url()) ? STUB : '' }));
-  await page.addInitScript(([s, d, l]) => {
+  await page.addInitScript(([s, d, l, lok]) => {
     window.__wgSeed = s;
+    // Gerätespeicher vorbelegen wie bei einer schon genutzten App (Listen als Arrays, wie wg_data sie hält)
+    if (lok && !localStorage.getItem('wg_data')) localStorage.setItem('wg_data', JSON.stringify(Object.fromEntries(Object.entries(s).map(([k, v]) => [k, Array.isArray(v) || k === 'users' ? v : Object.values(v)]))));
     // Layout-Verschiebungen beim Start mitzählen (CLS): springt Inhalt, während Daten nachkommen?
     window.__cls = 0;
     try { new PerformanceObserver(list => { for (const e of list.getEntries()) if (!e.hadRecentInput) window.__cls += e.value; }).observe({ type: 'layout-shift', buffered: true }); } catch {}
@@ -38,7 +41,7 @@ async function open(seed, { lang = 'de' } = {}) {
     localStorage.setItem('wg_tab', JSON.stringify('heute'));
     localStorage.setItem('wg_lang', JSON.stringify(l));
     localStorage.setItem('wg_push_nudge', JSON.stringify({ until: Date.now() + 864e5 * 30 }));   // Push-Hinweis „Später" (Form wie PUSH_NUDGE_KEY)
-  }, [seed, T, lang]);
+  }, [seed, T, lang, lokal]);
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   await page.locator('.tabbar').waitFor({ timeout: 30000 });
   await page.evaluate(() => window.__wg.fire());
@@ -71,14 +74,19 @@ const C = await open({ users: USERS,
   kf: map([{ id: 'k1', name: 'Joghurt', exp: IN3, owner: 'u1' }]),
   rp: map([{ id: 'r1', text: 'Duschkopf', status: 'offen', ts: Date.now(), by: 'u2' }]),
   hs: map([{ id: 'h1', name: 'Rewe', price: 40, paidBy: 'u2', date: T, settled: false }]),
-  ak: map([{ id: 'a1', ts: Date.now() - 600e3, by: 'u2', t: '💸 Tom hat 40,00 € eingetragen', b: 'Rewe', k: 'exp' }]) });
+  ak: map([{ id: 'a1', ts: Date.now() - 600e3, by: 'u2', t: '💸 Tom hat 40,00 € eingetragen', b: 'Rewe', k: 'exp' }]) }, { lokal: true });
 const tC = await tools(C.page), cC = await chips(C.page);
-// Ladezustand: die App startet aus dem lokalen Speicher — gemessen statt vermutet, ob beim Start etwas springt
+// Ladezustand: die App startet aus dem lokalen Speicher — gemessen statt vermutet, ob beim Start etwas springt.
+// lokal:true ist entscheidend: Ohne lagen ALLE Daten erst beim Server (frisch verbundenes Gerät) — dann rutscht Inhalt
+// zwangsläufig, und ob der Browser das mitzählt, hing an der Seitenstruktur (v82: 0,000, v83 mit Spalten-Gruppen: 0,151).
+// Die frühere Aussage „CLS 0" galt also für den falschen Fall; gemessen wird jetzt der normale Start.
 // Gegenprobe (HEUTE_SABOTAGE=1): nachträglich 200 px oben einschieben — C0 MUSS dann rot werden.
 // (Erste Fassung schob per Init-Skript zeitgesteuert ein und traf nie — Messung sah immer 0, obwohl sie funktioniert.)
 if (process.env.HEUTE_SABOTAGE) { await C.page.evaluate(() => { const d = document.createElement('div'); d.style.height = '200px'; document.querySelector('.content').prepend(d); }); await C.page.waitForTimeout(800); }
 const cls = await C.page.evaluate(() => window.__cls);
-check('C0 Start ohne Springen (Layout-Verschiebung CLS < 0,1)', cls < 0.1, `CLS ${cls.toFixed(3)}`);
+// Grenze 0,02 statt Googles 0,1: der Push-Hinweis-Sprung (0,051 bei jedem Start mit blockierten Benachrichtigungen)
+// lag unter 0,1 und wäre sonst nie aufgefallen
+check('C0 Start ohne Springen (Layout-Verschiebung CLS < 0,02)', cls < 0.02, `CLS ${cls.toFixed(3)}`);
 check('C1 Kühlschrank mit Eintrag: Karte da, kein Chip', tC.includes('fridge') && !cC.includes('fridge'), `Karten ${tC} · Chips ${cC}`);
 check('C2 offene Reparatur: Karte da, kein Chip', tC.includes('repair') && !cC.includes('repair'));
 check('C3 leere Werkzeuge bleiben Chips', cC.includes('meal') && cC.includes('poll'));

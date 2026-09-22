@@ -439,6 +439,10 @@ button.cell { color:var(--label); }
   transition:all .22s ease; background:transparent; color:var(--label2);
 }
 .seg-btn.on { background:rgba(255,255,255,.12); color:var(--label); box-shadow:0 4px 14px rgba(0,0,0,.25); }
+/* Eingetragen-Rückmeldung (wg-v83): die Schnellzeile leuchtet einmal kurz in Minze auf */
+.ok-flash .field { animation:okFlash .9s ease; }
+@keyframes okFlash { 0% { box-shadow:0 0 0 0 rgba(94,234,212,.55); border-color:var(--mint); } 100% { box-shadow:0 0 0 14px rgba(94,234,212,0); } }
+.ok-flash .field { border-color:var(--mint); }
 /* Schnellzugriff-Chips auf Heute (wg-v82): leere Werkzeuge als eine Reihe statt je einer Karte */
 .tool-chips { display:flex; flex-wrap:wrap; gap:8px; }
 .tool-chip { min-height:40px; padding:0 14px; border-radius:999px; border:1px solid var(--border); background:var(--card); color:var(--label); font-family:inherit; font-size:13.5px; font-weight:700; cursor:pointer; transition:transform .15s ease, background .2s ease; }
@@ -593,6 +597,28 @@ button.cell { color:var(--label); }
 }
 @keyframes sheetPop { from { opacity:0; transform:translateY(20px) scale(.97); } }
 
+/* ── Breite Bildschirme ab 1024 px (wg-v83, Optik „Desktop & Tablet nutzen die Breite") ──
+   Vorher eine 640-px-Spalte: auf 1366 px blieben 53 % leer, die Tab-Leiste lag unten wie am Handy.
+   - Tab-Leiste wird Seitenleiste links, Kopfzeile rückt daneben
+   - Heute zweispaltig mit FESTEN Zonen (links Jetzt dran/Neu/Eingeben, rechts Werkzeuge) — bewusst kein
+     column-count: fließende Spalten schieben Karten beim Aufklappen zwischen den Spalten hin und her
+   - übrige Seiten einspaltig, aber breiter (760 px) */
+@media (min-width:1024px) {
+  :root { --rail:96px; --wide:1120px; }
+  .screen { padding-bottom:0; padding-left:var(--rail); }
+  /* +16px = Innenabstand von .content, damit der Titel bündig über den Karten steht */
+  .navbar { left:var(--rail); padding-left:max(24px, calc((100vw - var(--rail) - 760px) / 2 + 16px)) !important; padding-right:max(24px, calc((100vw - var(--rail) - 760px) / 2 + 16px)) !important; }
+  .tabbar { top:0; bottom:0; left:0; right:auto; width:var(--rail); height:auto; flex-direction:column; justify-content:center; align-items:stretch; gap:4px; padding:16px 0 !important; border-top:none; border-right:1px solid rgba(255,255,255,.05); }
+  [data-theme="light"] .tabbar { border-right-color:rgba(0,0,0,.08); }
+  .tabitem { flex:0 0 auto; padding:12px 4px; }
+  .content { max-width:760px; padding-bottom:60px; }
+  .content.heute-grid { max-width:var(--wide); display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); column-gap:28px; row-gap:20px; align-items:start; }
+  .heute-grid > .heute-kopf { grid-column:1 / -1; }
+  .navbar.navbar-wide { padding-left:max(24px, calc((100vw - var(--rail) - var(--wide)) / 2 + 16px)) !important; padding-right:max(24px, calc((100vw - var(--rail) - var(--wide)) / 2 + 16px)) !important; }
+}
+/* Heute-Spalten: auf dem Handy nur zwei gestapelte Gruppen mit demselben Abstand wie vorher */
+.heute-col { display:flex; flex-direction:column; gap:20px; min-width:0; }
+
 /* ── Firebase setup card ── */
 .setup-card { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:16px; }
 .setup-step { display:flex; gap:10px; margin-bottom:10px; align-items:flex-start; }
@@ -718,7 +744,8 @@ button.cell { color:var(--label); }
   .fly-chip, .tp-check, .tp-check path, .tp-particle, .hero-pulse, .settle-stamp,
   .assignee-swap, .sl-leaving, .sl-leaving .cell-title::after, .flash,
   .due-chip.overdue, .tab-view.tab-in-r, .tab-view.tab-in-l, .tabitem.on svg,
-  .plant-slot > svg, .odo-d, .sl-alldone {
+  .plant-slot > svg, .odo-d, .sl-alldone,
+  .rise, .ok-flash {   /* wg-v83: .rise (überall genutzt) fehlte hier — beim Einbau der neuen Animationen aufgefallen */
     animation:none !important;
   }
   .fly-chip, .tp-check, .tp-particle, .settle-stamp { display:none !important; }
@@ -872,6 +899,9 @@ const flyExpense = (amount, color, targetEl) => {
   chip.addEventListener('animationend', done, { once:true });
   setTimeout(done, 820);
 };
+
+/* Kurzes Tick fürs Handy (wg-v83): Android vibriert, iPhone/Desktop ignorieren es still. „Weniger Bewegung" = aus. */
+const haptik = (ms = 12) => { try { if (!REDUCE()) navigator.vibrate?.(ms); } catch {} };
 
 /* 2 · Putz-Task erledigt: Häkchen-Draw + Emoji-Partikel + Vibration (Übergabe-Crossfade macht React) */
 const celebrateTask = (btnEl, emoji, color) => {
@@ -2171,7 +2201,8 @@ function MonthNav({ label, onPrev, onNext, nextDisabled, onToday, tid }) {
   );
 }
 
-function NBar({ title, color, status }) {
+// wide (wg-v83): Kopfzeile bündig über dem breiten, zweispaltigen Heute (1120 px) statt über der 760-px-Spalte
+function NBar({ title, color, status, wide }) {
   const { online } = useD();
   const live = online && status==='synced';
   // 'privat' = privater Bereich: bewusst nicht gesynct, Online-Status daher irrelevant.
@@ -2179,7 +2210,7 @@ function NBar({ title, color, status }) {
   const pillColor = status==='moved' ? 'var(--red)' : status==='privat' ? 'var(--violet)' : !online ? 'var(--amber)' : status==='synced' ? 'var(--lime)' : status==='connecting' ? 'var(--amber)' : status==='error' ? 'var(--red)' : null;
   const pillText  = status==='moved' ? 'CODE ALT' : status==='privat' ? 'LOKAL'         : !online ? 'OFFLINE'     : status==='synced' ? 'LIVE'        : status==='connecting' ? 'SYNC…'        : status==='error' ? 'FEHLER'     : null;
   return (
-    <div className="navbar">
+    <div className={wide ? 'navbar navbar-wide' : 'navbar'}>
       <span className="navbar-title" style={{color}}>{title}</span>
       {pillText && (
         <div className="live-pill" style={{color:pillColor,borderColor:pillColor+'44',background:live?'rgba(163,230,53,.07)':'transparent'}}>
@@ -3251,20 +3282,29 @@ function PushJump() {
   return null;
 }   // Heute → Mehr: Benachrichtigungen aufklappen und hinscrollen
 const PUSH_NUDGE_KEY = 'wg_push_nudge';
+/* Was sich ohne Warten sagen lässt (wg-v83): nicht unterstützt / iPhone ohne Home-Bildschirm / blockiert.
+   Vorher lief auch das erst im Effekt — die Karte (104 px) erschien nach dem ersten Bild und schob Heute nach unten:
+   bei jedem Start eines Handys mit blockierten Benachrichtigungen (gemessen: CLS 0,051, heute.mjs C0). */
+const pushStatusSofort = () => {
+  try {
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent||'');
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (!('Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window)) return ios && !standalone ? 'install' : 'na';
+    if (Notification.permission === 'denied') return 'denied';
+  } catch { return 'na'; }
+  return null;   // unbekannt → Abo asynchron prüfen
+};
 function PushNudge({ goTab }) {
   const { D, me, status, listPushDevices, pushPrefsUpdate } = useD();
   const users = D.users || [];
-  const [mine,setMine] = useState(null);   // 'on' | 'off' | 'denied' | 'install' | 'na'
+  const [mine,setMine] = useState(pushStatusSofort);   // 'on' | 'off' | 'denied' | 'install' | 'na'
   const [devs,setDevs] = useState(null);
   const [later,setLater] = useState(()=>{ const n = ls(PUSH_NUDGE_KEY, null); return !!(n && n.until > Date.now()); });
   useEffect(()=>{
     let alive = true;
+    if (mine) return;   // schon beim ersten Bild bekannt
     (async ()=>{
       try {
-        const ios = /iphone|ipad|ipod/i.test(navigator.userAgent||'');
-        const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-        if (!('Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window)) { if (alive) setMine(ios && !standalone ? 'install' : 'na'); return; }
-        if (Notification.permission === 'denied') { if (alive) setMine('denied'); return; }
         // ohne aktiven Service Worker (z. B. erster Aufruf) lieber nichts behaupten → nach 3 s „unbekannt"
         const reg = await Promise.race([navigator.serviceWorker.ready, new Promise(r=>setTimeout(()=>r(null), 3000))]);
         if (!reg) { if (alive) setMine('na'); return; }
@@ -4627,6 +4667,10 @@ const parseQuick = txt => {
 const SHOP_RE = /einkauf|lidl|aldi|rewe|edeka|netto|penny|kaufland|supermarkt|lebensmittel/i;
 function QuickExpense({ onFull }) {
   const { D, setFn, me, notifyOthers, undo } = useD();
+  // kurzes Aufleuchten nach dem Eintragen (wg-v83); Timer beim Verlassen aufräumen
+  const [ok, setOk] = useState(false);
+  const okTimer = useRef(null);
+  useEffect(() => () => clearTimeout(okTimer.current), []);
   // Sprach-Kurzbefehl: Text einmal übernehmen (nur die Schnell-Zeile im Haushalt hat onFull)
   const [voice] = useState(() => !!(onFull && SHORTCUT_TEXT && me));
   const [txt,setTxt] = useState(() => { if (!onFull || !SHORTCUT_TEXT || !me) return '';   /* ohne „me“ übernimmt das Formular */ const t = SHORTCUT_TEXT; SHORTCUT_TEXT = null; return t; });
@@ -4641,9 +4685,11 @@ function QuickExpense({ onFull }) {
     notifyOthers(TT("💸 {0} hat {1} € eingetragen", nameOfU(users, me), fmt(q.price)), q.name, "wg-exp", "exp");
     undo(TT("💸 „{0}\" €{1} eingetragen", q.name, fmt(q.price)), ()=>setFn('hs', cur=>cur.filter(i=>i.id!==it.id)));
     setTxt('');
+    // Rückmeldung (wg-v83): Zeile leuchtet kurz auf + Tick — vorher kam nur der Undo-Hinweis ganz unten
+    haptik(); setOk(true); clearTimeout(okTimer.current); okTimer.current = setTimeout(()=>setOk(false), 900);
   };
   return (
-    <form className="rise" data-testid="quick-expense" onSubmit={e=>{e.preventDefault();save();}} style={{display:'flex',flexDirection:'column',gap:6}}>
+    <form className={`rise${ok?' ok-flash':''}`} data-testid="quick-expense" onSubmit={e=>{e.preventDefault();save();}} style={{display:'flex',flexDirection:'column',gap:6}}>
       <div style={{display:'flex',gap:8}}>
         <input className="field" maxLength={80} placeholder={TT("⚡ Schnell: „12,50 Pizza“")} aria-label={TT("Ausgabe in einem Satz")} value={txt} onChange={e=>setTxt(e.target.value)} style={{flex:1}}/>
         <button type="submit" className="btn" style={{width:'auto',padding:'0 14px',flexShrink:0,background:(q||onFull)?'var(--mint)':'var(--bg3)',color:(q||onFull)?'var(--ink)':'var(--label2)'}}>{q || !onFull ? TT("Eintragen") : TT("+ Ausgabe hinzufügen")}</button>
@@ -4833,8 +4879,9 @@ function NewsCard() {
         <button type="button" className="hit" data-testid="news-read" onClick={gelesen} style={{background:'none',border:'none',color:'var(--mint)',fontFamily:'inherit',fontSize:13,fontWeight:800,cursor:'pointer',letterSpacing:0,textTransform:'none'}}>{TT("✓ Gelesen")}</button>
       </div>
       <div className="group">
-        {shown.map(x => (
-          <div key={x.id} className="cell" data-testid="news-item" style={{padding:'10px 16px'}}>
+        {shown.map((x, i) => (
+          /* neue Einträge blenden weich nacheinander ein (wg-v83; „Weniger Bewegung" schaltet .rise aus) */
+          <div key={x.id} className="cell rise" data-testid="news-item" style={{padding:'10px 16px', animationDelay:`${Math.min(i, 6) * 45}ms`}}>
             <div className="cell-content">
               <span className="cell-title" style={{fontSize:14.5}}>{x.t}</span>
               <span className="cell-sub">{x.b ? `${x.b} · ` : ''}{agoTxt(x.ts)}</span>
@@ -4942,12 +4989,15 @@ function Heute({ goTab }) {
   ].filter(Boolean);
   return (
     <div className="screen">
-      <NBar title={TT("Heute")} color="var(--mint)" status={status}/>
-      <div className="scroll"><div className="content">
-        <div className="rise" data-testid="today-hello" style={{padding:'4px 4px 0'}}>
+      <NBar title={TT("Heute")} color="var(--mint)" status={status} wide/>
+      {/* heute-grid: ab 1024 px zwei feste Spalten (wg-v83), darunter zwei gestapelte Gruppen wie bisher */}
+      <div className="scroll"><div className="content heute-grid">
+        <div className="rise heute-kopf" data-testid="today-hello" style={{padding:'4px 4px 0'}}>
           <div style={{fontSize:22,fontWeight:800}}>{hello}{meU?`, ${meU.name}`:''}</div>
           <div style={{fontSize:13,color:'var(--label2)'}}>{wgInfo ? `${wgInfo.em||'🏠'} ${wgInfo.name} · ` : ''}{new Date().toLocaleDateString(LOC(),{ weekday:'long', day:'numeric', month:'long' })}</div>
         </div>
+        {/* Linke Spalte (Desktop): Zonen 1–3 */}
+        <div className="heute-col heute-a" data-testid="heute-a">
         {/* ── Zone 1: Jetzt dran (wg-v82) — was dich heute betrifft oder eine Handlung braucht ── */}
         <WhoAmI/>
         <PushNudge goTab={goTab}/>
@@ -4962,6 +5012,9 @@ function Heute({ goTab }) {
         <NewsCard/>
         {/* ── Zone 3: Eingeben ── */}
         <QuickExpense/>
+        </div>
+        {/* Rechte Spalte (Desktop): Zonen 4–5 */}
+        <div className="heute-col heute-b" data-testid="heute-b">
         {/* ── Zone 4: Werkzeuge mit Inhalt (leere werden unten zu Chips) ── */}
         <RecipeCard/>
         {werkzeuge.filter(w => w.has && !offen.includes(w.k)).map(w => <div key={w.k} data-tool={w.k}><w.C/></div>)}
@@ -4979,6 +5032,7 @@ function Heute({ goTab }) {
             LoginShare räumt abgelaufene Freigaben beim Server weg, WashCard öffnet den Kurzlink ?a=waesche (Sheet per Portal,
             also trotz hidden sichtbar). Beim ersten Wurf (nur Chip, Karte weg) fielen genau diese zwei aus: logins C6, alltag K4. */}
         {chipListe.map(w => <div key={'leer-'+w.k} hidden data-tool-leer={w.k}><w.C/></div>)}
+        </div>
       </div></div>
     </div>
   );
@@ -5554,7 +5608,7 @@ function Haushalt({goGrow, goPutz}) {
     setFn('sl', cur=>(cur||[]).map(i=>i.id===id?{...i,done:!it.done}:i));
   };
   /* Abhaken mit Wisch-Strich + Kollaps, dann erst in den Wagen wandern. Uncheck (done→offen) sofort. */
-  const checkL    = i => { if(leaving===i.id) return; /* Doppel-Tap während der Abhak-Animation würde sonst doppelt togglen */ if(i.done||REDUCE()){ toggleL(i.id); return; } setLeaving(i.id); setTimeout(()=>{ toggleL(i.id); setLeaving(l=>l===i.id?null:l); }, 600); };
+  const checkL    = i => { if(leaving===i.id) return; /* Doppel-Tap während der Abhak-Animation würde sonst doppelt togglen */ if(!i.done) haptik(); /* wg-v83: kurzes Tick beim Abhaken */ if(i.done||REDUCE()){ toggleL(i.id); return; } setLeaving(i.id); setTimeout(()=>{ toggleL(i.id); setLeaving(l=>l===i.id?null:l); }, 600); };
   const delL      = id => { const it=list.find(i=>i.id===id); set('sl',list.filter(i=>i.id!==id)); undo(TT("„{0}\" gelöscht", it?.name||'Eintrag'), ()=>setFn('sl', cur => cur.some(i=>i.id===id)?cur:[it,...cur])); };
   const clearDone = async () => { if(await askConfirm({title:TT("Erledigte leeren"),body:TT("{0} erledigte Einträge aus dem Wagen entfernen?", doneL),okLabel:TT("Leeren"),danger:true})) set('sl',list.filter(i=>!i.done)); };
   const convert   = d => { add(d); delL(convItem.id); };
