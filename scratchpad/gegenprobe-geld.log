@@ -1,0 +1,26 @@
+✓ rot   Frage wird nicht gespeichert
+✓ rot   leere Frage geht trotzdem durch
+✓ rot   Fragesteller wird nicht vermerkt
+✓ rot   Zahler darf sich selbst fragen
+✓ rot   zweite Frage zum selben Posten möglich
+✗ GRÜN  abgerechneter Posten bleibt in den Einzelposten
+✓ rot   Frage steht nicht in der Zeile
+✓ rot   Antwort steht nicht in der Zeile
+✓ rot   Frage kommt leise statt als Push
+✓ rot   Preis-Streuung wird ignoriert
+✓ rot   zwei Monate reichen schon
+✓ rot   Ablehnung wird nicht gemerkt
+✓ rot   abgelehnte Posten kommen wieder
+✓ rot   Abo startet immer im laufenden Monat
+✓ rot   Abo startet immer im Folgemonat
+✓ rot   Wiederkehrender Posten entsteht gar nicht
+✓ rot   keine Rückmeldung nach dem Eintragen
+✓ rot   Archiv fehlt in der Jahresübersicht
+✓ rot   Growbox landet in der Haushalts-Spalte
+✓ rot   Getragen-Anteil wird nicht geteilt
+✓ rot   Miete wird nicht gezählt
+✓ rot   Druck-Knopf druckt nicht
+✓ rot   Druck blendet die App nicht aus
+✓ rot   Blatt lässt sich nicht schließen
+
+Mindestens eine Sabotage blieb unbemerkt.

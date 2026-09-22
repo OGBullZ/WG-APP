@@ -459,6 +459,14 @@ Plan: v81 Fundament (Messung, Bausteine, Tab-Leiste) · v82 Heute aufräumen + L
 - **Offline-Warteschlange sichtbar:** Pille „OFFLINE · 3" = Einträge, die vom letzten vom Server **bestätigten** Stand (`wg_confirmed`) abweichen — nicht `lastPushed`, sonst zählten offline gesendete, unbestätigte Änderungen als erledigt. „✓ Alles angekommen" nur, wenn wirklich offline etwas gewartet hat.
 - **Tests:** `komfort.mjs` 23 Checks (echte Oberfläche; offline über `holdWrites` + `setOffline`), Gegenprobe `scratchpad/gegenprobe-komfort.mjs` 7 Sabotagen rot.
 
+## Geld (wg-v86, 22.09. — Teil 2 von 3 der 12 Ideen)
+
+- **Rückfrage zu einer Ausgabe** (`FrageBtn`): ❓ am fremden, offenen Posten → Frage landet **am Posten** (Felder `q`/`qBy`/`a`), nicht in einem Chat — so steht die Antwort dort, wo die Frage entstand. Nur wer *nicht* bezahlt hat, darf fragen; nur der Zahler darf antworten; abgerechnete Posten sind raus. Beides geht als Push-Art **`msg`** raus (wichtig, richtet sich an genau eine Person — siehe Push-Diät), nicht leise.
+- **Abo-Erkennung** (`aboKandidaten` + `AboVorschlag`, über dem Knopf „Wiederkehrenden Posten einrichten"): gleicher Name (`suchNorm`), **≥ 3 verschiedene Monate** in den letzten 250 Tagen, Preise **± 15 %** um den Schnitt. Raus: schon wiederkehrend (`rec`), schon Abo (`ab`), einmal abgelehnt. **Ablehnung liegt in `cf` (`{id:'aboNo', namen:'a|b'}`)**, nicht in `localStorage` — sonst fragt das zweite Handy dieselbe Sache nochmal. „Automatisch eintragen" legt eine `rec`-Vorlage an; **Start erst im Folgemonat, wenn der laufende Monat schon einen Posten hat** — sonst stünde er doppelt da.
+- **Jahresübersicht zum Drucken** (`JahresBlatt`, Knopf in `YearReview`): Portal über die ganze Seite, `@media print` blendet alles außer `.print-sheet` aus. Tabellen: Monate (Haushalt · Growbox · zusammen), Kategorien, je Person bezahlt/getragen/Differenz/Miete. **Archivierte Posten sind enthalten** (`arcExpenses` fließt in `all`), laufende Abrechnungen werden nicht verrechnet — steht als Fußnote auf dem Blatt.
+- **Keine neuen DB-Regeln nötig:** `hs`, `cf` und `rec` erlauben pro Eintrag beliebige Feldnamen (`$f`, String ≤ 500) — anders als `push/$dev`, wo `$other:false` steht. Trotzdem live gegengeprüft.
+- **Tests:** `geld.mjs` 39 Checks über die echte Oberfläche, Gegenprobe `scratchpad/gegenprobe-geld.mjs` 23 Sabotagen rot. 🪤 Lokal liegen die Listen als **Array**, die Map-Form (`{id: {...}}`) ist die Firebase-Seite — im Test immer über die `id` suchen, sonst prüft man `undefined === undefined`.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -498,6 +506,7 @@ node test/komfort.mjs    # Suche + Ausgaben-Filter, Kurzbefehle putz/suche, Teil
 node test/breite.mjs     # ab 1024 px Seitenleiste + Heute zweispaltig, Tablet/Handy unverändert, Rückmeldung (Leuchten/Vibration), Weniger Bewegung
 node test/heute.mjs      # Heute aufgeräumt: Chips statt leerer Karten, Chip öffnet Karte, Zonen-Reihenfolge, unsichtbar eingehängt, CLS beim Start, EN
 node test/a11y.mjs       # Kontrast (hell+dunkel), Tap-Ziele inkl. ::after, Fokus-Ring, Tab-Beschriftung 390/360 px; --bericht listet jede Stelle
+node test/geld.mjs       # Rückfrage am Posten (fragen/antworten/Push-Art), Abo-Erkennung (Streuung, Ablehnung, Startmonat), Jahresübersicht zum Drucken
 node test/neu.mjs        # „Seit du zuletzt da warst": Verlauf aus notifyOthers, Karte auf Heute, Gelesen, Obergrenze, App-Symbol-Zähler
 node test/push_diaet.mjs # Push-Diät: Server-Filter (alte Geräte leise), Morgen-/Abend-Bündelung, Typ-/Regel-/Listen-Wächter, Umstellung in der App
 node test/fair.mjs       # Fair: Auslage-Rotation, Abrechnungs-Wächter (Grenzen), Budget-Hochrechnung, Aufgabe abgeben/übernehmen, Belegung & Ruhezeiten (Überschneidung)
