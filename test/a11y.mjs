@@ -8,7 +8,8 @@ import { chromium, devices } from 'playwright';
 import { STUB } from './_fbstub.mjs';
 
 const url = 'http://localhost:8099/wgapp.html';
-const MIN_TAP = 40;           // Apple empfiehlt 44, WCAG 2.2 AA verlangt 24 — 40 ist die Latte dieser App
+const MIN_TAP = Number(process.env.A11Y_MIN) || 40;   // Apple empfiehlt 44, WCAG 2.2 AA verlangt 24 — 40 ist die Latte dieser App
+// (A11Y_MIN=44 prüft die Reserve: Linux-Schriften der CI sind etwas kleiner, v81 kippte dort bei knapp 40)
 const BERICHT = process.argv.includes('--bericht');
 const z = n => String(n).padStart(2, '0');
 const dayAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
@@ -20,6 +21,10 @@ const SEED = {
   sl: map([{ id: 's1', name: 'Milch', done: false, date: T }]),
   pt: map([{ id: 't1', name: 'Bad putzen', em: '🚿', interval: 7, pts: 3, assignee: 'u1', lastDone: dayAgo(9) }]),
   ak: map([{ id: 'a1', ts: Date.now() - 600e3, by: 'u2', t: '💸 Tom hat 40,00 € eingetragen', b: 'Rewe', k: 'exp' }]),
+  // Karten MIT Kopf-Aktionen („+ Eintrag", Reparatur-Zeile) — seit Heute leere Werkzeuge als Chips zeigt, wären
+  // diese knappen Tippflächen sonst gar nicht mehr im Test gewesen (v81-CI war genau daran rot, v82 nur zufällig grün)
+  kf: map([{ id: 'k1', name: 'Joghurt', exp: dayAgo(-2), owner: 'u1' }]),
+  rp: map([{ id: 'r1', text: 'Duschkopf tropft', status: 'offen', ts: Date.now(), by: 'u2' }]),
 };
 const TABS = ['Heute', 'Haushalt', 'Growbox', 'Putzplan', 'Privat', 'Übersicht', 'Mehr'];
 

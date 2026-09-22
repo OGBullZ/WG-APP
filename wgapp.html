@@ -293,7 +293,8 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 /* Zellen, die selbst Knöpfe sind (Code wechseln, Backups): Textfarbe erben statt Browser-Schwarz */
 button.cell { color:var(--label); }
 .hit::after { content:''; position:absolute; inset:-12px -4px; }
-.section-hdr .hit::after { inset:-13px -6px; }   /* spezifischer als „.section-hdr button::after" (-8px → nur 31px) */
+.section-hdr .hit::after { inset:-15px -6px; }   /* spezifischer als „.section-hdr button::after" (-8px → nur 31px).
+   wg-v83: -13 → -15 — mit den Linux-Schriften der CI lag die Fläche bei knapp unter 40 px (v81-CI rot, lokal grün) */
 /* Übergabe-Seite (Auszug): eigenes helles Blatt; beim Drucken wird nur dieses ausgegeben */
 /* ── Einrichtungs-Assistent (wg-v72): Vollbild-Karte, Schritte gleiten herein, Fortschrittsbalken, Konfetti ── */
 .overlay.onb { align-items:stretch; justify-content:center; padding:0; background:rgba(0,0,0,.82); }
