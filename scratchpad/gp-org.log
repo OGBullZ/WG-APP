@@ -1,0 +1,29 @@
+✓ rot   Geburtstag speichert das volle Datum
+✓ rot   Eintrag ohne Datum geht durch
+✓ rot   kein Alter, obwohl Jahrgang bekannt
+✓ rot   „heute" fehlt am Geburtstag
+✓ rot   Datum wird nicht ausgeschrieben
+✓ rot   Liste nicht nach Nähe sortiert
+✓ rot   Pinnwand-Eintrag ohne Titel geht durch
+✓ rot   Angeheftetes steht nicht oben
+✓ rot   Anheften wird nicht geteilt
+✓ rot   Hinweis auf unverschlüsselte Ablage fehlt
+✓ rot   leere Pinnwand erklärt sich nicht
+✗ GRÜN  Kaufdaten werden gar nicht gemerkt
+✓ rot   zu wenige Käufe ergeben trotzdem einen Rhythmus
+✓ rot   Mittelwert statt Median (ein Ausreißer kippt alles)
+✓ rot   alles gilt als fällig
+✓ rot   was auf der Liste steht, wird nochmal vorgeschlagen
+✓ rot   Vorschlag landet als schon erledigt auf der Liste
+✓ rot   Rhythmus wird nicht angezeigt
+✓ rot   Geburtstage fehlen im Kalender
+✓ rot   Essensplan fehlt im Kalender
+✓ rot   Ausleih-Rückgabe fehlt im Kalender
+✓ rot   Abwesenheit nur am ersten Tag
+✓ rot   Müllabfuhr wiederholt sich nicht
+✓ rot   Monat hat immer 31 Felder
+✓ rot   Tag antippen zeigt nichts
+✓ rot   Blättern wechselt den Monat nicht
+✗ GRÜN  ausgewählter Tag überlebt den Monatswechsel
+
+Mindestens eine Sabotage blieb unbemerkt.

@@ -469,6 +469,15 @@ Plan: v81 Fundament (Messung, Bausteine, Tab-Leiste) · v82 Heute aufräumen + L
 - **🪤 HTML-Entities in `TT("…")`:** `&nbsp;` wirkt in JSX-**Text**, in einem JS-String escaped React ihn → der Nutzer liest buchstäblich `&nbsp;`. Drei Stellen standen so live (`Mehr&nbsp;→&nbsp;Personen`, Unterschriftenzeile, `Wochen-Duell &amp; Serie`), **keine Prüfung schlug an** — die erste fand ich auf einem Screenshot, der für etwas anderes gemacht war. Jetzt `english.mjs` **E4**: kein TT-Schlüssel und kein Wörterbucheintrag enthält eine Entity (Gegenprobe rot). Wer einen Schlüssel ändert, muss den EN-Eintrag mitziehen, sonst fällt der Text still aufs Deutsche zurück.
 - **🪤 Zwei Sabotagen blieben grün** und zeigten Prüflücken, nicht Codefehler: (1) die Druck-CSS-Prüfung sah den ganzen `@media print`-Block statt der einen Regel — ein fremdes `display:none` hielt sie grün; (2) der `item.settled`-Riegel in `FrageBtn` ist unerreichbar (die Liste zeigt nur offene Posten), er bleibt als zweite Sicherung, geprüft wird stattdessen „abgerechnet = raus aus den Einzelposten".
 
+## Organisation (wg-v88, 22.09. — Teil 3 von 3 der 12 Ideen)
+
+- **Monatskalender** (`MonatsKalender` + `kalenderTermine`, oben in der Übersicht): Raster Mo–So mit Emoji-Punkten, Tag antippen zeigt die Termine im Klartext. Er ist eine **Ansicht, keine Datenquelle** — geändert wird dort, wo der Eintrag entstand, sonst gäbe es zwei Pflegewege und irgendwann zwei Wahrheiten. Quellen: Geburtstage, Müllabfuhr (`mk`, Start + n × `every` Wochen **vorwärts gezählt**, nicht per Modulo), Abwesenheit (jeder Tag des Zeitraums), Ankündigungen, Essensplan, Belegungen, Ausleih-Rückgabe, fällige Putzaufgaben.
+- **Geburtstage** (Key `gb`): `{id, name, tag 'MM-TT', jahr?}`. Bewusst **ohne Pflicht-Jahrgang** — die meisten kennen den Tag, nicht das Jahr; ein Pflichtfeld hätte Einträge verhindert. Steht ein Jahr da, zeigt die Karte das kommende Alter. Eigene Liste statt Feld an `users`, damit auch Eltern/Freunde reinpassen. Der 29.02. rutscht in Nicht-Schaltjahren auf den 01.03.
+- **WG-Infos-Pinnwand** (Key `pw`): `{id, t, b, by, ts, oben}` — WLAN, Hausmeister, Sicherungskasten, Zählernummer. Angeheftetes zuerst, Kopierknopf je Eintrag. **`oben` liegt in den geteilten Daten**, nicht lokal — sonst hätte jedes Handy eine andere Reihenfolge. ⚠️ Die Karte sagt ausdrücklich, dass der Inhalt **unverschlüsselt** in der WG-Datenbank steht und echte Zugangsdaten in die Login-Freigabe (`ls`) gehören.
+- **Einkauf nach Rhythmus** (`rhythmusFaellig`): `slh` merkt sich jetzt zusätzlich `ds` = die letzten 8 Kaufdaten, kommagetrennt als **String** (wie `vr.outs`) — so bleibt die DB-Regel „jedes Feld ist String/Zahl" gültig und es braucht keine neue Regel. Gewertet wird der **Median** der Abstände, nicht der Mittelwert: ein Urlaub oder Hamsterkauf verschöbe den Schnitt sonst dauerhaft. Fällig ab 85 % des Rhythmus, erst ab 3 Käufen, nur zwischen 2 und 120 Tagen, und nie, was schon offen auf der Liste steht.
+- **Neue Regeln zuerst:** `gb` und `pw` mussten vor der App in `database.rules.json` live sein (`$other: false` auf WG-Ebene lehnt unbekannte Keys ab). `slh.ds` brauchte keine Regel.
+- **Tests:** `organisation.mjs` 34 Checks, Gegenprobe `scratchpad/gegenprobe-organisation.mjs`.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -509,6 +518,7 @@ node test/breite.mjs     # ab 1024 px Seitenleiste + Heute zweispaltig, Tablet/H
 node test/heute.mjs      # Heute aufgeräumt: Chips statt leerer Karten, Chip öffnet Karte, Zonen-Reihenfolge, unsichtbar eingehängt, CLS beim Start, EN
 node test/a11y.mjs       # Kontrast (hell+dunkel), Tap-Ziele inkl. ::after, Fokus-Ring, Tab-Beschriftung 390/360 px; --bericht listet jede Stelle
 node test/geld.mjs       # Rückfrage am Posten (fragen/antworten/Push-Art), Abo-Erkennung (Streuung, Ablehnung, Startmonat), Jahresübersicht zum Drucken
+node test/organisation.mjs # Monatskalender (alle Quellen, Blättern), Geburtstage, Pinnwand (Anheften geteilt), Einkauf nach Rhythmus (Median, nichts doppelt)
 node test/neu.mjs        # „Seit du zuletzt da warst": Verlauf aus notifyOthers, Karte auf Heute, Gelesen, Obergrenze, App-Symbol-Zähler
 node test/push_diaet.mjs # Push-Diät: Server-Filter (alte Geräte leise), Morgen-/Abend-Bündelung, Typ-/Regel-/Listen-Wächter, Umstellung in der App
 node test/fair.mjs       # Fair: Auslage-Rotation, Abrechnungs-Wächter (Grenzen), Budget-Hochrechnung, Aufgabe abgeben/übernehmen, Belegung & Ruhezeiten (Überschneidung)
