@@ -95,9 +95,13 @@ for (let i = 0; i < 5; i++) {
   await page.waitForTimeout(80);
 }
 await page.waitForTimeout(400); // CountUp-Animation abwarten
-const shownYm = await page.evaluate(() => document.querySelector('.seg span')?.textContent || '');
+// seit wg-v81 ist der Monat ein Knopf im gemeinsamen Baustein MonthNav (vorher ein <span> in .seg)
+const shownYm = await page.evaluate(() => document.querySelector('[data-testid="stats-month"] .month-label')?.textContent || '');
+const MONATE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const erwartetYm = `${MONATE[Number(oldYm.slice(5, 7)) - 1]} ${oldYm.slice(0, 4)}`;
 const heroLabel = await page.locator('.hero-big .odo').getAttribute('aria-label').catch(() => null);
-check('Monatswähler steht im alten Monat (5 Monate zurück)', shownYm.length > 0);
+// vorher nur „irgendein Text da" — jetzt der genaue Monat
+check('Monatswähler steht im alten Monat (5 Monate zurück)', shownYm === erwartetYm);
 check('Hero-Total im alten Monat zeigt die archivierten 15,00 €', heroLabel === '15,00');
 
 console.log(`oldDate=${oldDate} oldYm=${oldYm} shownYm="${shownYm}" heroLabel="${heroLabel}" archiveCount-sub="${subText}"`);

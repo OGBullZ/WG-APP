@@ -58,8 +58,8 @@ async function run(prefix, ctxOpts, scheme, voll) {
   await page.waitForTimeout(1500);
 
   await shot('today');
-  await tab('Household'); await shot('household');
-  await tab('Cleaning plan'); await shot('cleaning');
+  await tab('Home'); await shot('household');
+  await tab('Chores'); await shot('cleaning');
   await tab('Overview'); await shot('overview');
   await tab('More');
   await page.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click()));
@@ -67,7 +67,7 @@ async function run(prefix, ctxOpts, scheme, voll) {
 
   if (voll) {
     // Formular mit offener Tastatur (headless hat keine echte — die App hebt das Sheet über --kb)
-    await tab('Household');
+    await tab('Home');
     const add = page.getByText('+ Add expense').first();
     if (await add.count()) {
       await add.click(); await page.waitForTimeout(450);

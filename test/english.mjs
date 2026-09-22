@@ -73,7 +73,7 @@ const B = await open({ lang: 'en' });
 const heute = await B.page.locator('.content').innerText();
 check('B1 „Heute" heißt Today, Begrüßung auf Englisch', /Today|Good morning|Hello|Good evening/i.test(heute), heute.slice(0, 60));
 check('B2 Datum im englischen Format (Wochentag ausgeschrieben)', /(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/.test(heute), heute.slice(0, 120));
-await B.tabTo('Household');
+await B.tabTo('Home');   // Tab heißt auf Englisch seit wg-v81 „Home" (einzeilig)
 const haus = await B.page.locator('.content').innerText();
 // nicht nur „ein Punkt-Betrag kommt vor" — sonst reicht eine einzige Stelle (CountUp) und der Rest darf deutsch bleiben
 check('B3 Haushalt heißt Household, KEIN Betrag mit Komma', /Your balance|You owe/i.test(haus) && /20\.00|40\.00/.test(haus) && !/\d,\d{2}\b/.test(haus), haus.slice(0, 160));
@@ -85,8 +85,11 @@ await B.ctx.close();
 // ── C: Leck-Test über die Hauptseiten ──
 const C = await open({ lang: 'en' });
 const leaks = [], wortLeaks = [];
-for (const tab of ['Today', 'Household', 'Cleaning plan', 'Overview', 'More']) {
-  if (tab !== 'Today') { const t = C.page.locator('.tabbar .tabitem', { hasText: tab }); if (await t.count()) { await t.click(); await C.page.waitForTimeout(700); } else continue; }
+const fehlendeTabs = [];
+// seit wg-v81 kurze Tab-Namen („Chores" statt „Cleaning plan", „Grow" statt „Grow box")
+for (const tab of ['Today', 'Home', 'Chores', 'Overview', 'More']) {
+  // fehlt ein Tab, wird das LAUT gemeldet — vorher sprang die Schleife still weiter, die Seite blieb ungeprüft
+  if (tab !== 'Today') { const t = C.page.locator('.tabbar .tabitem', { hasText: tab }); if (await t.count()) { await t.click(); await C.page.waitForTimeout(700); } else { fehlendeTabs.push(tab); continue; } }
   if (tab === 'More') { await C.page.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click())); await C.page.waitForTimeout(500); }
   const ganz = await C.page.locator('.content').innerText();
   ganz.split('\n').forEach(line => { const l = line.replace(/Torben|Tom|Rewe|Milch|Bad putzen/g, ''); if (GERMAN.test(l)) leaks.push(`${tab}: ${line.slice(0, 70)}`); });
@@ -94,6 +97,9 @@ for (const tab of ['Today', 'Household', 'Cleaning plan', 'Overview', 'More']) {
   const ohneDaten = ganz.replace(/Torben|Tom|Rewe|Milch|Bad putzen|Küche putzen/g, '');
   for (const de of DE_TEXTE) if (ohneDaten.includes(de)) wortLeaks.push(`${tab}: „${de.slice(0, 60)}"`);
 }
+check('C0 alle geprüften Tabs gefunden (kurze EN-Namen, einzeilig)', fehlendeTabs.length === 0, `fehlt: ${fehlendeTabs.join(', ')}`);
+const tabTexte = await C.page.locator('.tabbar .tabitem span').evaluateAll(els => els.map(e => ({ t: e.textContent, eine: e.scrollHeight <= 18 && e.scrollWidth <= e.clientWidth + 1 })));
+check('C4 Tab-Beschriftungen einzeilig und ungekürzt', tabTexte.every(x => x.eine), JSON.stringify(tabTexte.filter(x => !x.eine)));
 check('C1 keine deutschen Reste auf den Hauptseiten', leaks.length === 0, leaks.slice(0, 6).join(' | '));
 check('C3 kein Wörterbuch-Eintrag steht unübersetzt auf der Seite', wortLeaks.length === 0, [...new Set(wortLeaks)].slice(0, 6).join(' | '));
 check('C2 keine Seitenfehler', C.errs.length === 0, C.errs.join(' | '));

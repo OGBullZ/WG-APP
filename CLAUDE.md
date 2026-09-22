@@ -424,6 +424,15 @@ Seit vieles nur noch leise kommt, braucht es eine Stelle zum Nachlesen.
 - **Bekannte Grenze:** Titel stehen in der Sprache des Absenders (werden beim Senden übersetzt) — auf Englisch erscheinen Toms deutsche Einträge deutsch.
 - **Tests:** `neu.mjs` 18 Checks (echter Weg: Tom trägt eine Ausgabe ein → Verlauf → Torbens Heute), `logins.mjs` A9b; Gegenprobe `scratchpad/gegenprobe-neu.mjs`, 7 Sabotagen rot.
 
+## Optik, Release 1 von 3 (wg-v81, 22.09. — torbe: „optische verbesserungen planen", alle 7 Pakete gewählt)
+
+Plan: v81 Fundament (Messung, Bausteine, Tab-Leiste) · v82 Heute aufräumen + Leer-/Ladezustände · v83 Desktop-Breite + Rückmeldung/Animation.
+- **Messung zuerst — `test/a11y.mjs`:** Kontrast (WCAG AA, hell + dunkel, alle Hauptseiten), Tap-Ziele ≥ 40 px, Fokus-Ring, Tab-Beschriftung einzeilig bei 390 und 360 px. Ergebnis: **Kontrast und Fokus waren schon in Ordnung**, Tap-Ziele bis auf einen neuen Knopf auch.
+  - **Zwei Mess-Fallen, beide selbst gefunden:** (1) Texte auf Farbverlauf wurden übersprungen — 389 von 668 ungeprüft, K1 trotzdem grün. Jetzt zählt jede Farbstufe (schlechtester Wert), und **K0 bricht laut ab, wenn weniger als 80 % gemessen werden**. (2) Die App vergrößert kleine Knöpfe unsichtbar per `::after` (CSS „Größere Tippflächen ohne sichtbare Änderung"); die erste Messung sah nur den Kasten und meldete 88 Stellen. Mein daraufhin geschriebenes CSS hätte An/Aus-Schalter sichtbar vergrößert — zurückgenommen, stattdessen misst der Test die echte Trefferfläche.
+  - Gegenproben eingebaut: `A11Y_SABOTAGE=kontrast` → K1 rot (62), `A11Y_SABOTAGE=tap` → T1 rot (88).
+- **Tab-Leiste:** einzeilig bei 11 px (Lesbarkeits-Entscheidung, `ux.mjs` J4), Tabs teilen sich die Breite **nach Textlänge** (`flex:1 1 auto`) statt gleich breit; „Übersicht" passte vorher nur, weil der Text unbemerkt über den Rand ragte. Erster Versuch war Schrift per `clamp` verkleinern — verworfen, weil er die 11-px-Entscheidung unterlief (J4 wurde rot). Englisch kurz über **`TTk('tab', …)`** (Wörterbuch-Schlüssel `tab|Putzplan` → „Chores", `tab|Growbox` → „Grow", `tab|Haushalt` → „Home"). `english.mjs` meldet einen nicht gefundenen Tab jetzt laut (vorher sprang die Schleife still weiter).
+- **Bausteine:** `MonthNav` für Übersicht und Privat (vorher zwei Bauarten, eine ohne Screenreader-Beschriftung; Tipp auf den Monat = zurück zum aktuellen). Aktionen im Abschnittskopf überall gleiche Schrift/Größe/Schreibweise (vorher u. a. „BEENDEN" gesperrt in Großbuchstaben), Farbe bleibt vom Modul.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -459,6 +468,7 @@ node test/ux.mjs          # Alltagstauglich: Build (vorab übersetzt, ohne Babel
 node test/extra.mjs       # Extra: Schnell-Eingabe, Preis-Gedächtnis, Gesamtbudget, Einkaufs-Reihenfolge, Heute, Zähler, Kalender-Abo, Hell/Dunkel + Schrift
 node test/laden.mjs      # Laden & Essen: Preise je Laden, Laden am Posten, Reste-Rezepte (Reihenfolge, auf die Liste, einplanen), Touren, Mängelanzeige + Frist, Notfall-Infos
 node test/english.mjs    # Englisch: Umschalter, Kern-Texte, Datum/Zahlen, Leck-Test über die Hauptseiten, Deutsch unverändert
+node test/a11y.mjs       # Kontrast (hell+dunkel), Tap-Ziele inkl. ::after, Fokus-Ring, Tab-Beschriftung 390/360 px; --bericht listet jede Stelle
 node test/neu.mjs        # „Seit du zuletzt da warst": Verlauf aus notifyOthers, Karte auf Heute, Gelesen, Obergrenze, App-Symbol-Zähler
 node test/push_diaet.mjs # Push-Diät: Server-Filter (alte Geräte leise), Morgen-/Abend-Bündelung, Typ-/Regel-/Listen-Wächter, Umstellung in der App
 node test/fair.mjs       # Fair: Auslage-Rotation, Abrechnungs-Wächter (Grenzen), Budget-Hochrechnung, Aufgabe abgeben/übernehmen, Belegung & Ruhezeiten (Überschneidung)
