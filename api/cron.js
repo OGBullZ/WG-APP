@@ -13,7 +13,7 @@
 
 const { loadSubs, sendToSubs, DB_BASE } = require('./_push');
 const { hasKey, currentCode, writeSnapshot, listSnapshots, pruneSnapshots, berlinParts } = require('./_sv');
-const { taskDueIn, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, checkinReminder, maintReminders, loanReminders, rentReminders, isoOf, morningPlan } = require('./_wg');
+const { taskDueIn, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, checkinReminder, maintReminders, loanReminders, rentReminders, birthdayReminders, isoOf, morningPlan } = require('./_wg');
 
 function berlinTodayParts() {
   const fmt = new Intl.DateTimeFormat('en-CA', {
@@ -316,6 +316,10 @@ module.exports = async (req, res) => {
   // Miete (wg-v73): 2 Tage vorher, am Stichtag, danach montags
   const rentMsg = rentReminders(wg, todayIso);
   if (rentMsg) messages.push(rentMsg);
+  // Geburtstage (wg-v89): am Tag und 3 Tage vorher. Die Karte in der App versprach das schon seit v88 —
+  // erinnert hat bis hierhin aber nichts.
+  const gebMsg = birthdayReminders(wg, todayIso);
+  if (gebMsg) messages.push(gebMsg);
 
   // Growbox: Gießen fällig + Phase rechnerisch durch
   const growMsgs = growCycleMessages(wg, todayMid);

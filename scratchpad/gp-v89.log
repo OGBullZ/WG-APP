@@ -1,0 +1,14 @@
+✓ rot   29.02. wieder per Stringbau im Kalender
+✓ rot   „Jahrgang unbekannt" wird ignoriert
+✓ rot   Geburtstag fehlt auf Heute
+✓ rot   Suche liest Ankündigungen wieder mit den Belegungs-Feldern
+✓ rot   feste Infos fehlen in der Suche
+✓ rot   WLAN-Passwort landet in der Trefferliste
+✓ rot   Kalender rechnet Putz-Fälligkeit wieder selbst
+✓ rot   Pinnwand ohne feste Infos
+✓ rot   WLAN-Knopf kopiert den Netznamen statt des Passworts
+✓ rot   Passwort im Klartext auf der Pinnwand
+✓ rot   leere Notfall-Felder erscheinen
+✓ rot   Geburtstagszeile auf Heute ohne Übersetzung
+
+Alle Sabotagen wurden erkannt.

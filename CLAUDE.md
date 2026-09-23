@@ -476,7 +476,22 @@ Plan: v81 Fundament (Messung, Bausteine, Tab-Leiste) · v82 Heute aufräumen + L
 - **WG-Infos-Pinnwand** (Key `pw`): `{id, t, b, by, ts, oben}` — WLAN, Hausmeister, Sicherungskasten, Zählernummer. Angeheftetes zuerst, Kopierknopf je Eintrag. **`oben` liegt in den geteilten Daten**, nicht lokal — sonst hätte jedes Handy eine andere Reihenfolge. ⚠️ Die Karte sagt ausdrücklich, dass der Inhalt **unverschlüsselt** in der WG-Datenbank steht und echte Zugangsdaten in die Login-Freigabe (`ls`) gehören.
 - **Einkauf nach Rhythmus** (`rhythmusFaellig`): `slh` merkt sich jetzt zusätzlich `ds` = die letzten 8 Kaufdaten, kommagetrennt als **String** (wie `vr.outs`) — so bleibt die DB-Regel „jedes Feld ist String/Zahl" gültig und es braucht keine neue Regel. Gewertet wird der **Median** der Abstände, nicht der Mittelwert: ein Urlaub oder Hamsterkauf verschöbe den Schnitt sonst dauerhaft. Fällig ab 85 % des Rhythmus, erst ab 3 Käufen, nur zwischen 2 und 120 Tagen, und nie, was schon offen auf der Liste steht.
 - **Neue Regeln zuerst:** `gb` und `pw` mussten vor der App in `database.rules.json` live sein (`$other: false` auf WG-Ebene lehnt unbekannte Keys ab). `slh.ds` brauchte keine Regel.
-- **Tests:** `organisation.mjs` 34 Checks, Gegenprobe `scratchpad/gegenprobe-organisation.mjs`.
+- **Tests:** `organisation.mjs` 39 Checks, Gegenprobe `scratchpad/gegenprobe-organisation.mjs` 27 Sabotagen rot.
+
+## Verzahnung + Fehlersuche (wg-v89, 23.09. — torbe: „weiter ausbauen … und fehlersuche … lieber bestehende sachen verbessern")
+
+Kein neues Feature, sondern: das Neue aus v85–v88 in den Bestand einhängen und Fehler finden. Der Workflow `bug-hunt` ließ sich nicht starten (siehe unten), die Suche lief deshalb zentral — 11 echte Funde:
+
+- **Versprochen, nicht gehalten:** die Geburtstags-Karte sagte „die App erinnert dann rechtzeitig" — es erinnerte nichts. Jetzt `birthdayReminders` in `api/_wg.js` (am Tag + 3 Tage vorher, in der Morgen-Nachricht ganz oben, über den Jahreswechsel) **und** eine Zeile auf Heute für alle, die Push aus haben. Der Leerzustand nennt jetzt genau das.
+- **29.02. verschwand im Kalender** (Nicht-Schaltjahr): Liste und Kalender rechneten das Datum getrennt — die Liste nahm den 28.02., der Kalender baute „2027-02-29" (liegt hinter dem Monatsende). Jetzt **eine** Regel `gebDatum` in App und Server.
+- **Datumsfeld erzwang einen Jahrgang:** wer ihn nicht kennt, musste einen erfinden und sah ein falsches „wird 57". Häkchen „Jahrgang unbekannt".
+- **Suche fand keine einzige Ankündigung:** sie las `bo` mit `note || from` — das sind die Felder der **Belegungen** (`bk`). Text war immer leer → herausgefiltert. Seit v85 so.
+- **Kalender rechnete Putz-Fälligkeiten selbst** (`lastDone + interval`) und lag bei Schlummern, Müll-Kopplung (`pk`) und nie erledigten Aufgaben daneben. Jetzt `choreDueIn` wie der Putzplan.
+- **Pinnwand doppelte Vorhandenes:** WLAN (Gast-Link `ga`), Notfall-Infos (`cf` `notfall`) und Vermieter (`cf` `vermieter`) werden längst strukturiert gepflegt — die leere Pinnwand schlug vor, genau das nochmal einzutippen. Jetzt zeigt sie diese **automatisch** oben (`pinnwandFest`, nur lesen + kopieren, „dort bearbeiten"); beim WLAN kopiert der Knopf das **Passwort**, angezeigt wird es maskiert. Dieselbe Quelle speist die Suche — **ohne** Passwort in der Trefferliste. Notfall-Felder stehen jetzt einmal in `notfallFelder()`.
+- **Abo-Vorschlag schrieb mit dem Stand vom letzten Zeichnen** (`set('rec', [tp, ...D.rec])`) → Funktions-Updater. Als einzige Stelle dieser Art im Code seit v84 per `git diff` nachgeprüft. *Ohne eigenen Test* — die Lücke zwischen Zeichnen und Tippen lässt sich in der Oberfläche nicht gezielt herstellen.
+- **Übersetzungslücken** (deutsch in der englischen App): „Miete … bis", „heute" in der Müll-Zeile, „bald leer" (alle auf **Heute**), Umfrage-Ergebnis („Keine Stimmen", „Gleichstand", „x von n"), Kühlschrank („bis …", „Tag/Tagen"), Garantie, Kaution („Alles ausgeglichen", „schuldet"), die lokale Tages-Erinnerung, dazu zwei Notfall-Beschriftungen ohne `TT()`. Der Browser-Leck-Test sah sie nicht, weil seine Testdaten nie dorthin führten → **`english.mjs` E5 durchsucht jetzt den Quelltext** nach deutschen Template-Strings ohne `TT()` (Ausnahmen mit Begründung: Vermieter-Brief, gespeicherte Buchungstexte, Teilen-Text, Push). Gegenprobe rot.
+- **Tests:** `verzahnung.mjs` 27 Checks, `cron_alltag.mjs` +11 (G1–G11), `english.mjs` +E5. Gegenprobe `scratchpad/gegenprobe-verzahnung.mjs`.
+- 🪤 **Workflow `bug-hunt` startete nicht** („script contains control characters that would be hidden in the approval dialog"). Das Skript hatte CRLF und im Kommentar einen alten Windows-Pfad mit Backslash-t; beides entfernt, die Datei ist nachweislich sauber — **der Start scheitert trotzdem**. Ursache liegt im Freigabe-Mechanismus, nicht im Skript. Nicht weiter verfolgt.
 
 ## Live & Deploy
 
@@ -519,6 +534,7 @@ node test/heute.mjs      # Heute aufgeräumt: Chips statt leerer Karten, Chip ö
 node test/a11y.mjs       # Kontrast (hell+dunkel), Tap-Ziele inkl. ::after, Fokus-Ring, Tab-Beschriftung 390/360 px; --bericht listet jede Stelle
 node test/geld.mjs       # Rückfrage am Posten (fragen/antworten/Push-Art), Abo-Erkennung (Streuung, Ablehnung, Startmonat), Jahresübersicht zum Drucken
 node test/organisation.mjs # Monatskalender (alle Quellen, Blättern), Geburtstage, Pinnwand (Anheften geteilt), Einkauf nach Rhythmus (Median, nichts doppelt)
+node test/verzahnung.mjs # Geburtstag ohne Jahrgang + auf Heute, 29.02. im Kalender, Putz-Fälligkeit wie Putzplan, Suche (Ankündigungen, Pinnwand, feste Infos ohne Passwort), Pinnwand zeigt WLAN/Notfall/Vermieter
 node test/neu.mjs        # „Seit du zuletzt da warst": Verlauf aus notifyOthers, Karte auf Heute, Gelesen, Obergrenze, App-Symbol-Zähler
 node test/push_diaet.mjs # Push-Diät: Server-Filter (alte Geräte leise), Morgen-/Abend-Bündelung, Typ-/Regel-/Listen-Wächter, Umstellung in der App
 node test/fair.mjs       # Fair: Auslage-Rotation, Abrechnungs-Wächter (Grenzen), Budget-Hochrechnung, Aufgabe abgeben/übernehmen, Belegung & Ruhezeiten (Überschneidung)

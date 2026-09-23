@@ -63,6 +63,7 @@ jobs:
           node test/komfort.mjs
           node test/geld.mjs
           node test/organisation.mjs
+          node test/verzahnung.mjs
           node test/csp_hash.mjs
           node test/visual.mjs
           kill $SRV 2>/dev/null || true

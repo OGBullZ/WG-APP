@@ -1,0 +1,19 @@
+{
+ " · bald leer: {0}": " · running low: {0}",
+ "{0} ({1} von {2})": "{0} ({1} of {2})",
+ "{0} hat heute Geburtstag": "It's {0}'s birthday today",
+ "{0} hat in {1} Tagen Geburtstag": "{0}'s birthday is in {1} days",
+ "{0} hat morgen Geburtstag": "{0}'s birthday is tomorrow",
+ "{0} schuldet {1} €{2}": "{0} owes {1} €{2}",
+ "🔄 {0} Abo(s) bald fällig: {1}": "🔄 {0} subscription(s) due soon: {1}",
+ "🧹 {0} Putzaufgabe(n) fällig: {1}": "🧹 {0} chore(s) due: {1}",
+ "🧹 {0} Putzaufgabe(n) für dich fällig: {1}": "🧹 {0} chore(s) due for you: {1}",
+ "Alles ausgeglichen": "All settled",
+ "bis {0}": "until {0}",
+ "Garantie bis {0}": "Warranty until {0}",
+ "Gleichstand: {0}": "Tie: {0}",
+ "Keine Stimmen": "No votes",
+ "Miete €{0} bis {1}": "Rent €{0} due by {1}",
+ "Tagen": "days",
+ "WG — Erinnerung": "Flat — reminder"
+}

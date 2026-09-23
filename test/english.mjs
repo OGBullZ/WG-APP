@@ -149,6 +149,33 @@ const dictEntities = Object.entries(DICT).filter(([k, v]) => /&[a-zA-Z]+;|&#\d+;
 check('E4 keine HTML-Entities in Texten (Quelltext und Wörterbuch)', ttEntities.length === 0 && dictEntities.length === 0,
   [...ttEntities, ...dictEntities].slice(0, 4).join(' | '));
 
+// E5 (wg-v89): deutscher Text in Template-Strings ohne TT(). Der Leck-Test im Browser sieht nur, wohin seine
+// Testdaten führen — „Miete … bis", „Garantie bis", „Gleichstand", „Keine Stimmen" und die lokale Erinnerung
+// standen deshalb lange auf Deutsch in der englischen App. Hier wird der Quelltext selbst durchsucht.
+// Ausnahmen mit Grund: was an einen deutschen Empfänger geht oder als Datensatz gespeichert wird.
+const GEWOLLT_DEUTSCH = [
+  'bitten Sie',              // Mängel-Schreiben an den Vermieter — geht an einen deutschen Empfänger
+  ': bezahlt €',             // Abrechnungstext zum Teilen — in der Sprache des Absenders
+  'Kaution zurück: Anteil',  // wird als Buchung gespeichert, beide Seiten sehen denselben Namen
+  'aufgelöst: Einzahlung',   // dito (Sparziel aufgelöst)
+  'holt noch auf',           // Push-Text — Push-Titel sind bewusst in der Sprache des Absenders
+];
+const DEUTSCH = /\b(heute|morgen|bis|fällig|Tage|Tagen|leer|noch|schuldet|bezahlt|zurück|Miete|seit|von|für|und|oder|nicht|keine?)\b/;
+const templLecks = [];
+jsxTeil.split('\n').forEach(z => {
+  if (/^\s*(\/\/|\/\*|\*)/.test(z)) return;
+  for (const m of z.matchAll(/`([^`]*)`/g)) {
+    if (m[1].includes('TT(')) continue;                                  // Worte stammen aus TT-Aufrufen im ${…}
+    const roh = m[1].replace(/\$\{[^}]*\}/g, '');
+    if (!DEUTSCH.test(roh)) continue;
+    if (/TT\($/.test(z.slice(Math.max(0, m.index - 4), m.index))) continue;
+    if (/notifyOthers|console\.|data-|className|aria-|http|\.ics|mailto/.test(z.slice(Math.max(0, m.index - 60), m.index))) continue;
+    if (GEWOLLT_DEUTSCH.some(g => m[1].includes(g))) continue;
+    templLecks.push(roh.trim().slice(0, 60));
+  }
+});
+check('E5 kein deutscher Template-String ohne TT() (Quelltext, datenunabhängig)', templLecks.length === 0, templLecks.slice(0, 4).join(' | '));
+
 await browser.close();
 for (const p of pass) console.log('✓ ' + p);
 for (const f of fail) console.log('FAIL ' + f.replace(/\s*\n\s*/g, ' ⏎ '));

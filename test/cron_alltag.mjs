@@ -201,6 +201,22 @@ check('55 Morgen-Job: Miete verdrahtet', /rentReminders\(wg, todayIso\)/.test(cr
 
 check('49 Morgen-Job: Wartung + Ausleihe', /maintReminders\(wg, todayIso\)/.test(cron) && /loanReminders\(wg, todayIso\)/.test(cron));
 
+// ── Geburtstage (wg-v89): die Karte versprach seit v88 eine Erinnerung, der Server kannte `gb` gar nicht ──
+check('G1 29.02. im Schaltjahr bleibt 29.02.', W.gebDatum('02-29', 2028) === '2028-02-29');
+check('G2 29.02. im Nicht-Schaltjahr → 28.02. (bleibt im Februar)', W.gebDatum('02-29', 2027) === '2027-02-28', W.gebDatum('02-29', 2027));
+check('G3 ungültige Eingabe → null statt kaputtem Datum', W.gebDatum('2-9', 2027) === null && W.gebDatum('', 2027) === null);
+const gbWg = { gb: { a: { id: 'a', name: 'Mama', tag: '09-23' }, b: { id: 'b', name: 'Lena', tag: '09-26' }, c: { id: 'c', name: 'Weit', tag: '12-01' } } };
+const gbHeute = W.birthdayReminders(gbWg, '2026-09-23');
+check('G4 am Geburtstag selbst', !!gbHeute && /Mama hat heute Geburtstag/.test(gbHeute.body), JSON.stringify(gbHeute));
+check('G5 drei Tage vorher (Zeit fürs Geschenk)', !!gbHeute && /Lena hat in 3 Tagen Geburtstag/.test(gbHeute.body));
+check('G6 fernere Geburtstage schweigen', !!gbHeute && !/Weit/.test(gbHeute.body));
+check('G7 an einem Tag ohne Anlass: nichts', W.birthdayReminders(gbWg, '2026-09-24') === null);
+// Jahreswechsel: am 29.12. liegt der 01.01. drei Tage voraus — aber im Folgejahr
+check('G8 Vorwarnung über den Jahreswechsel', /Neujahr hat in 3 Tagen/.test((W.birthdayReminders({ gb: { n: { id: 'n', name: 'Neujahr', tag: '01-01' } } }, '2026-12-29') || {}).body || ''));
+check('G9 29.02.-Kind wird im Nicht-Schaltjahr am 28.02. erinnert', /Hüpf hat heute/.test((W.birthdayReminders({ gb: { h: { id: 'h', name: 'Hüpf', tag: '02-29' } } }, '2027-02-28') || {}).body || ''));
+check('G10 Geburtstag steht in der Morgen-Nachricht ganz oben', /'Geburtstag', 'Miete'/.test(readFileSync(new URL('../api/_wg.js', import.meta.url), 'utf8')));
+check('G11 Morgen-Job: Geburtstage verdrahtet', /birthdayReminders\(wg, todayIso\)/.test(cron));
+
 console.log(pass.map(p => '  OK  ' + p).join('\n'));
 if (fail.length) console.log(fail.map(f => '  FAIL ' + f).join('\n'));
 console.log(`\n${pass.length} ok, ${fail.length} fehlgeschlagen`);

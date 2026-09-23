@@ -57,6 +57,27 @@ function maintReminders(wg, todayIso) {
   return { title: 'Wartung', body: `🔧 Fällig: ${due.slice(0, 5).map((t) => t.name).join(', ')}`, tag: `wa-${todayIso}` };
 }
 // Morgens: Ausleihe — Rückgabetag, danach montags
+/* Geburtstag „MM-TT" als Datum im Jahr `jahr` (wg-v89). Der 29.02. landet in Nicht-Schaltjahren auf dem 28.02.
+   — er bleibt im Februar, wo man ihn sucht. EINE Regel für App und Server: vorher rechnete die Liste 28.02.,
+   der Kalender baute „2027-02-29" und verlor den Tag ganz (das Datum liegt hinter dem Monatsende). */
+function gebDatum(tag, jahr) {
+  const m = /^(\d{2})-(\d{2})$/.exec(String(tag || ''));
+  if (!m) return null;
+  const letzter = new Date(Date.UTC(jahr, +m[1], 0)).getUTCDate();
+  return `${jahr}-${m[1]}-${String(Math.min(+m[2], letzter)).padStart(2, '0')}`;
+}
+// Geburtstage (wg-v89): am Tag selbst und 3 Tage vorher (Zeit für ein Geschenk) — in die Morgen-Nachricht
+function birthdayReminders(wg, todayIso) {
+  const jahr = +todayIso.slice(0, 4), in3 = shiftIso(todayIso, 3);
+  const treffer = toArray(wg.gb).filter((g) => g && g.name && g.tag).map((g) => {
+    // Jahreswechsel: am 29.12. liegt „in 3 Tagen" schon im Folgejahr
+    const d = [gebDatum(g.tag, jahr), gebDatum(g.tag, jahr + 1)].find((x) => x && (x === todayIso || x === in3));
+    return d ? { g, heute: d === todayIso } : null;
+  }).filter(Boolean);
+  if (!treffer.length) return null;
+  const txt = ({ g, heute }) => heute ? `🎉 ${g.name} hat heute Geburtstag` : `🎁 ${g.name} hat in 3 Tagen Geburtstag`;
+  return { title: 'Geburtstag', body: treffer.map(txt).join(' · '), tag: `gb-${todayIso}` };
+}
 function loanReminders(wg, todayIso) {
   const due = toArray(wg.lh).filter((l) => l.what && l.due && (l.due === todayIso || (l.due < todayIso && isMonday(todayIso))));
   if (!due.length) return null;
@@ -276,7 +297,7 @@ function buildIcs(wg, todayIso, now = new Date()) {
 // Reine Info ohne Handlung — kommt nur als Push, wer „Rückblicke" eingeschaltet hat
 const DIGEST_TITLES = /^(Monats-Rückblick|Jahresrückblick|Wochenüberblick|Monats-Check-in)/;
 // Reihenfolge in der Sammel-Push: was heute wirklich drängt zuerst
-const MORNING_ORDER = ['Miete', 'Putzplan', 'Abrechnung', 'Kühlschrank', 'Growbox', 'Budget', 'Ausleihe', 'Reparatur', 'Wartung', 'Zählerstände', 'Abo'];
+const MORNING_ORDER = ['Geburtstag', 'Miete', 'Putzplan', 'Abrechnung', 'Kühlschrank', 'Growbox', 'Budget', 'Ausleihe', 'Reparatur', 'Wartung', 'Zählerstände', 'Abo'];
 const rankOf = (m) => { const i = MORNING_ORDER.findIndex((p) => String(m.title || '').startsWith(p)); return i < 0 ? MORNING_ORDER.length : i; };
 
 // Viele Meldungen → eine. Bei genau einer bleibt sie unverändert (eigener Titel liest sich besser).
@@ -312,4 +333,4 @@ function eveningPlan(msgs, todayIso) {
   };
 }
 
-module.exports = { toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, checkinReminder, maintReminders, loanReminders, guestView, addMonthsIso, rentReminders, rentDueIso, buildIcs, icsText, icsFold, PICK_KINDS, bundleMessages, morningPlan, eveningPlan };
+module.exports = { toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, checkinReminder, maintReminders, loanReminders, gebDatum, birthdayReminders, guestView, addMonthsIso, rentReminders, rentDueIso, buildIcs, icsText, icsFold, PICK_KINDS, bundleMessages, morningPlan, eveningPlan };

@@ -3,7 +3,7 @@
    App-Shell + Bibliotheken (React/Babel/Firebase-SDK, selbst gehostet unter vendor/) + Schriften (fonts/)
    werden gecacht. Der Firebase-Realtime-Sync läuft weiter übers Netz (nie gecacht).
    Cache-Name bei jedem Deploy mit relevanter Änderung hochzählen. */
-const CACHE = 'wg-v88';
+const CACHE = 'wg-v89';
 /* Stabiler Cache OHNE Versions-Suffix, überlebt Deploys. Hier liegen nur Dateien, deren Name sich bei jeder
    inhaltlichen Änderung mitändert (vendor/ mit Version, fonts/ mit Inhalts-Hash). Vorher wurden solche Dateien beim activate-Cleanup jedes Deploys mitgelöscht: bis zum
    nächsten vollen Online-Load war die App offline ein weißer Screen (HTML da, Skripte weg). */
