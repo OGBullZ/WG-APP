@@ -64,6 +64,9 @@ jobs:
           node test/geld.mjs
           node test/organisation.mjs
           node test/verzahnung.mjs
+          node test/push_versand.mjs
+          node test/ruhezeit.mjs
+          node test/namen.mjs
           node test/csp_hash.mjs
           node test/visual.mjs
           kill $SRV 2>/dev/null || true

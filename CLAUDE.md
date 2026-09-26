@@ -493,6 +493,16 @@ Kein neues Feature, sondern: das Neue aus v85–v88 in den Bestand einhängen un
 - **Tests:** `verzahnung.mjs` 27 Checks, `cron_alltag.mjs` +11 (G1–G11), `english.mjs` +E5. Gegenprobe `scratchpad/gegenprobe-verzahnung.mjs`.
 - 🪤 **Workflow `bug-hunt` startete nicht** („script contains control characters that would be hidden in the approval dialog"). Das Skript hatte CRLF und im Kommentar einen alten Windows-Pfad mit Backslash-t; beides entfernt, die Datei ist nachweislich sauber — **der Start scheitert trotzdem**. Ursache liegt im Freigabe-Mechanismus, nicht im Skript. Nicht weiter verfolgt.
 
+## Fehlerprüfung (wg-v90, 26.09. — torbe: „fehlerprüfung")
+
+- v89 selbst gegengelesen: Datumsrechnung (UTC, Monatsende, Jahreswechsel), Push-Art der Morgen-Nachricht, neue Suchquellen — hält. Kleinigkeit: die Cron-Antwort zählte Geburtstage nicht mit (`geb` ergänzt, fürs Vercel-Log).
+- **🔴 Morgen-Nachricht im Winter still verworfen.** Der Morgen-Job läuft `0 6 * * *` UTC = Sommer 8 Uhr, **Winter 7 Uhr** Berlin. Mit der Standard-Ruhezeit 22–8 lag er ab der Zeitumstellung (25.10.) jeden Tag in der Ruhezeit — und Ruhezeit hieß im Code **verwerfen**: keine Miete, kein Putzplan, keine Geburtstage, ohne jede Meldung. Verschieben geht nicht (Vercel-Cron einmal täglich). Jetzt `LAUTLOS_NACHHOLEN = {'remind'}` in `api/_push.js`: die Morgen-Nachricht kommt in der Ruhezeit **lautlos** (`silent: true`, `sw.js` reicht es an `showNotification` weiter); alles andere bleibt in der Ruhezeit aus. Die App erklärt das jetzt unter den Ruhezeiten.
+- **`sendToSubs` war nie getestet:** `notify_api.mjs` ersetzt das ganze Modul durch eine Attrappe. `test/push_versand.mjs` fährt den echten Filter (nur `web-push` nachgebildet, Stunde über `opts.hour` steuerbar).
+- **Push-Bereich nie gemessen:** er erscheint nur mit erlaubten Benachrichtigungen + Push-Abo, im Testbrowser immer blockiert. Nachbildung per `Notification.permission`-Getter + `navigator.serviceWorker.ready` → `pushManager.getSubscription` (siehe `test/ruhezeit.mjs`). Befund: Uhrzeit-Auswahlen **29 px** hoch (jetzt 40). Der An/Aus-Knopf war nur *sichtbar* klein — Tippfläche über `.cell > button::after` schon 42 px; ich hatte ihn erst fälschlich vergrößert und das zurückgenommen.
+- **35 Knöpfe ohne verständlichen Namen** für Bildschirmleser: 13 Push-Schalter, 8 Modul-Schalter, Ruhezeit, Push-Hauptschalter, lokale Erinnerungen, Spielelemente (je nur „An"/„Aus"), 4 Pflanzen-/Gieß-Stepper („−"/„+"), 6 „+"-Knöpfe zum Hinzufügen. Alle mit `aria-label`, Schalter zusätzlich `aria-pressed`. Neuer Test `test/namen.mjs` über alle Hauptseiten und alle Gruppen unter „Mehr".
+- 🪤 **Die Namens-Messung war zuerst blind:** sie öffnete die Gruppen unter „Mehr" nicht und meldete „0" — die Gegenprobe (Label entfernt) blieb grün. Dann traf `hasText: 'Benachrichtigungen'` einen Knopf *in einer anderen Gruppe*. Jetzt exakte Gruppentitel mit Symbol und **N0**: ohne erreichten Push-Bereich schlägt der Test laut fehl.
+- **Tests:** `push_versand.mjs` 12, `ruhezeit.mjs` 9, `namen.mjs` 3. Gegenproben: Versand 4/4, Namen 4/4 rot, R7 ohne Fix rot.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -534,6 +544,9 @@ node test/heute.mjs      # Heute aufgeräumt: Chips statt leerer Karten, Chip ö
 node test/a11y.mjs       # Kontrast (hell+dunkel), Tap-Ziele inkl. ::after, Fokus-Ring, Tab-Beschriftung 390/360 px; --bericht listet jede Stelle
 node test/geld.mjs       # Rückfrage am Posten (fragen/antworten/Push-Art), Abo-Erkennung (Streuung, Ablehnung, Startmonat), Jahresübersicht zum Drucken
 node test/organisation.mjs # Monatskalender (alle Quellen, Blättern), Geburtstage, Pinnwand (Anheften geteilt), Einkauf nach Rhythmus (Median, nichts doppelt)
+node test/push_versand.mjs # echter Push-Filter (Art, Ruhezeit, Morgen-Nachricht lautlos statt verworfen) — ohne Netz
+node test/ruhezeit.mjs   # Ruhezeit-Bereich mit nachgebildetem Push-Abo: Tippflächen inkl. ::after, Namen, Hinweis
+node test/namen.mjs      # kein Knopf nur „An"/„Aus"/„+"/„−" ohne Namen — alle Seiten, alle Gruppen unter „Mehr"
 node test/verzahnung.mjs # Geburtstag ohne Jahrgang + auf Heute, 29.02. im Kalender, Putz-Fälligkeit wie Putzplan, Suche (Ankündigungen, Pinnwand, feste Infos ohne Passwort), Pinnwand zeigt WLAN/Notfall/Vermieter
 node test/neu.mjs        # „Seit du zuletzt da warst": Verlauf aus notifyOthers, Karte auf Heute, Gelesen, Obergrenze, App-Symbol-Zähler
 node test/push_diaet.mjs # Push-Diät: Server-Filter (alte Geräte leise), Morgen-/Abend-Bündelung, Typ-/Regel-/Listen-Wächter, Umstellung in der App

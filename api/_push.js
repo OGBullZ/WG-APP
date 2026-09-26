@@ -73,24 +73,36 @@ function inQuiet(sub, hour) {
 // Bei HTTP 404/410 vom Push-Service gilt die Subscription als tot und wird
 // per REST aus der RTDB entfernt. `type` steuert die Typ-/Ruhezeit-Filterung
 // (subWants/inQuiet) — ungesetzt ⇒ keine Filterung (z.B. Ad-hoc-Pushes ohne Typ).
-async function sendToSubs(subs, payloadObj, { excludeDevice, type } = {}) {
+/* Arten, die in der Ruhezeit LAUTLOS zugestellt statt verworfen werden (wg-v90).
+   Anlass: der Morgen-Job läuft um 6 Uhr UTC — im Sommer 8 Uhr Berlin, im Winter 7 Uhr. Mit der Standard-Ruhezeit
+   22–8 fiel die Morgen-Nachricht im Winter JEDEN Tag in die Ruhezeit und wurde still verworfen: keine Miete, kein
+   Putzplan, keine Geburtstage. Sie kommt nur einmal am Tag, verschieben geht nicht (Vercel-Cron einmal täglich).
+   Lautlos heißt: Benachrichtigung liegt da, aber ohne Ton und Vibration (sw.js setzt `silent`).
+   Alles andere bleibt in der Ruhezeit aus — es steht ohnehin im Verlauf „Seit du zuletzt da warst". */
+const LAUTLOS_NACHHOLEN = new Set(['remind']);
+
+// `hour` nur für Tests (test/push_versand.mjs) — im Betrieb immer die aktuelle Berliner Stunde
+async function sendToSubs(subs, payloadObj, { excludeDevice, type, hour = berlinHour() } = {}) {
   configureVapid();
   const payload = JSON.stringify(payloadObj);
-  let sent = 0, removed = 0, skipped = 0;
+  const payloadLeise = JSON.stringify({ ...payloadObj, silent: true });
+  let sent = 0, removed = 0, skipped = 0, silent = 0;
   const errors = [];
-  const hour = berlinHour();
 
   await Promise.all(subs
     .filter(s => {
       if (s.deviceId === excludeDevice) return false;
-      if (!subWants(s, type) || inQuiet(s, hour)) { skipped++; return false; }
+      if (!subWants(s, type)) { skipped++; return false; }
+      if (inQuiet(s, hour) && !LAUTLOS_NACHHOLEN.has(type)) { skipped++; return false; }
       return true;
     })
     .map(async (s) => {
       const pushSub = { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } };
+      const leise = inQuiet(s, hour);   // hier nur noch Arten aus LAUTLOS_NACHHOLEN
       try {
-        await webpush.sendNotification(pushSub, payload);
+        await webpush.sendNotification(pushSub, leise ? payloadLeise : payload);
         sent++;
+        if (leise) silent++;
       } catch (err) {
         const status = err && err.statusCode;
         if (status === 404 || status === 410) {
@@ -102,7 +114,7 @@ async function sendToSubs(subs, payloadObj, { excludeDevice, type } = {}) {
       }
     }));
 
-  return { sent, removed, skipped, errors };
+  return { sent, removed, skipped, silent, errors };
 }
 
-module.exports = { loadSubs, sendToSubs, removeSub, berlinHour, subWants, inQuiet, DB_BASE };
+module.exports = { loadSubs, sendToSubs, removeSub, berlinHour, subWants, inQuiet, LAUTLOS_NACHHOLEN, DB_BASE };

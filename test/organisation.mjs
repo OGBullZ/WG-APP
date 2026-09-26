@@ -184,7 +184,18 @@ const tage = await F.page.locator('[data-testid="kal-tag"]').count();
 const imMonat = new Date(+YM.slice(0, 4), +YM.slice(5), 0).getDate();
 check('F2 so viele Tage wie der Monat hat', tage === imMonat, `${tage} statt ${imMonat}`);
 check('F3 Kopf nennt Monat und Jahr', new RegExp(YM.slice(0, 4)).test(await F.page.locator('[data-testid="kal-monat"]').innerText()));
-const tagInhalt = t => F.page.locator(`[data-tag="${t}"]`).innerText();
+/* Tagesfeld lesen — auch wenn der Tag im Nachbarmonat liegt. Bis zum 26.09. las der Test nur das Raster des
+   laufenden Monats: „in 5 Tagen" war am Monatsende der 01.10., das Feld fehlte, der Test hing (datumsabhängig rot).
+   Danach wieder in den laufenden Monat zurück, weil die folgenden Prüfungen davon ausgehen. */
+async function tagInhalt(t) {
+  const loc = F.page.locator(`[data-tag="${t}"]`);
+  if (await loc.count()) return loc.innerText();
+  const [hin, zurueck] = t > T ? ['kal-vor', 'kal-zurueck'] : ['kal-zurueck', 'kal-vor'];
+  await F.page.locator(`[data-testid="${hin}"]`).click(); await F.page.waitForTimeout(300);
+  const txt = await F.page.locator(`[data-tag="${t}"]`).innerText().catch(() => '');
+  await F.page.locator(`[data-testid="${zurueck}"]`).click(); await F.page.waitForTimeout(300);
+  return txt;
+}
 check('F4 Geburtstag steht im Raster', /🎂/.test(await tagInhalt(`${YM}-15`)), await tagInhalt(`${YM}-15`));
 check('F5 Essensplan steht am heutigen Tag', /🍝/.test(await tagInhalt(T)), await tagInhalt(T));
 check('F6 Abwesenheit füllt alle Tage des Zeitraums', /✈️/.test(await tagInhalt(inTagen(2))) && /✈️/.test(await tagInhalt(inTagen(3))) && /✈️/.test(await tagInhalt(inTagen(4))));

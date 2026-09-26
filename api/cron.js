@@ -343,7 +343,7 @@ module.exports = async (req, res) => {
     sent += (await sendToSubs(subs, duel, { type: 'game' })).sent;
   }
 
-  res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, budWarns, grow: growMsgs.length, duel: duel ? 1 : 0, repairs: repairMsgs.length, year: yearMsg ? 1 : 0, meter: meterMsg ? 1 : 0, fridge: fridgeMsg ? 1 : 0, checkin: ciMsg ? 1 : 0, maint: maintMsg ? 1 : 0, loan: loanMsg ? 1 : 0, rent: rentMsg ? 1 : 0, sent, backup, pruned });
+  res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, budWarns, grow: growMsgs.length, duel: duel ? 1 : 0, repairs: repairMsgs.length, year: yearMsg ? 1 : 0, meter: meterMsg ? 1 : 0, fridge: fridgeMsg ? 1 : 0, checkin: ciMsg ? 1 : 0, maint: maintMsg ? 1 : 0, loan: loanMsg ? 1 : 0, rent: rentMsg ? 1 : 0, geb: gebMsg ? 1 : 0, sent, backup, pruned });
 };
 
 // Für test/cron_grow.mjs — der Handler selbst bleibt der Default-Export (Vercel).

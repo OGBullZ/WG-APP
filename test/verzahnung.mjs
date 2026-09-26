@@ -114,7 +114,16 @@ const D_ = await open({ tab: 'stats', seed: { pt: map([
   { id: 't1', name: 'Nie gemacht', em: '🆕', interval: 7, pts: 2 },                                   // Putzplan: sofort fällig
   { id: 't2', name: 'Geschlummert', em: '😴', interval: 7, pts: 2, lastDone: vorTagen(10), snooze: inTagen(2) },
 ]) } });
-const tagTxt = t => D_.page.locator(`[data-tag="${t}"]`).innerText().catch(() => '');
+// Tag auch im Nachbarmonat lesen (am Monatsende liegt „in 2 Tagen" schon im nächsten) — wie in organisation.mjs
+async function tagTxt(t) {
+  const loc = D_.page.locator(`[data-tag="${t}"]`);
+  if (await loc.count()) return loc.innerText();
+  const [hin, zurueck] = t > T ? ['kal-vor', 'kal-zurueck'] : ['kal-zurueck', 'kal-vor'];
+  await D_.page.locator(`[data-testid="${hin}"]`).click(); await D_.page.waitForTimeout(300);
+  const txt = await D_.page.locator(`[data-tag="${t}"]`).innerText().catch(() => '');
+  await D_.page.locator(`[data-testid="${zurueck}"]`).click(); await D_.page.waitForTimeout(300);
+  return txt;
+}
 // Nur „heute" zählt: dass sie in 7 Tagen WIEDER dasteht, ist richtig (Intervall). Der alte Code setzte den
 // ersten Termin auf heute + 7 — heute stand sie gar nicht im Kalender, obwohl der Putzplan „sofort fällig" sagte.
 check('D1 nie erledigte Aufgabe steht schon HEUTE im Kalender', /🆕/.test(await tagTxt(T)), `heute: ${(await tagTxt(T)).replace(/\n/g, ' ')}`);
