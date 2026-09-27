@@ -1,0 +1,16 @@
+✓ rot   Funktionen gar nicht in der Suche
+✓ rot   Stichwörter zählen nicht mit (nur der Titel)
+✗ GRÜN  Wortanfang egal — „bin" findet wieder „Verbindung"
+✓ rot   der Weg fehlt beim Treffer
+✓ rot   Gruppe steht nicht dabei
+✓ rot   Inhaltsverzeichnis ohne Suchtext leer
+✓ rot   Funktionen drängen sich auch ohne Suchtext auf
+✓ rot   Sprung wechselt nur den Tab, klappt nichts auf
+✓ rot   Ziel wird nicht hervorgehoben
+✓ rot   Hervorhebung bleibt für immer
+✓ rot   nicht zum Ziel gescrollt (Karte bleibt außer Sicht)
+✓ rot   Einstieg unter „Mehr" fehlt
+✓ rot   Einstieg öffnet die Suche ohne Inhaltsverzeichnis
+✓ rot   Startbereich bleibt hängen (nächste Suche startet falsch)
+
+Mindestens eine Sabotage blieb unbemerkt.

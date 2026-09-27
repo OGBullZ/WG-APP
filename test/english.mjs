@@ -176,6 +176,17 @@ jsxTeil.split('\n').forEach(z => {
 });
 check('E5 kein deutscher Template-String ohne TT() (Quelltext, datenunabhängig)', templLecks.length === 0, templLecks.slice(0, 4).join(' | '));
 
+// E6 (wg-v91): Texte, die als Liste stehen und erst über TT(variable) übersetzt werden. Der Lücken-Prüfer
+// von i18n-dict sucht nur nach TT("…") im Quelltext und sieht sie deshalb NICHT — „Funktionen" stand so
+// unübersetzt in der englischen App, während `--luecken` 0 meldete.
+const listenTexte = new Set();
+for (const m of jsxTeil.matchAll(/\[\s*'[a-z0-9_]+'\s*,\s*"([^"]{3,60})"\s*\]/g)) {
+  const t = m[1];
+  if (/[A-ZÄÖÜ]/.test(t[0])) listenTexte.add(t);
+}
+const listenFehlt = [...listenTexte].filter(t => DICT[t] === undefined);
+check('E6 auch Texte aus Listen (TT(variable)) sind übersetzt', listenFehlt.length === 0, listenFehlt.slice(0, 5).join(' | '));
+
 await browser.close();
 for (const p of pass) console.log('✓ ' + p);
 for (const f of fail) console.log('FAIL ' + f.replace(/\s*\n\s*/g, ' ⏎ '));

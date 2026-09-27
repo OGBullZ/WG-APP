@@ -503,6 +503,19 @@ Kein neues Feature, sondern: das Neue aus v85–v88 in den Bestand einhängen un
 - 🪤 **Die Namens-Messung war zuerst blind:** sie öffnete die Gruppen unter „Mehr" nicht und meldete „0" — die Gegenprobe (Label entfernt) blieb grün. Dann traf `hasText: 'Benachrichtigungen'` einen Knopf *in einer anderen Gruppe*. Jetzt exakte Gruppentitel mit Symbol und **N0**: ohne erreichten Push-Bereich schlägt der Test laut fehl.
 - **Tests:** `push_versand.mjs` 12, `ruhezeit.mjs` 9, `namen.mjs` 3. Gegenproben: Versand 4/4, Namen 4/4 rot, R7 ohne Fix rot.
 
+## Funktionen finden (wg-v91, 27.09. — torbe: „weiter ausbauen, es muss intuitiver werden")
+
+**Gemessen statt geraten.** Zwei Messungen vorab: (1) Seitendichte mit einer realistisch befüllten WG — unauffällig, nichts erschlägt (Übersicht am vollsten mit 2,7 Bildschirmen). (2) Frische WG, 18 Funktionsnamen in die Suche getippt („müll", „kaution", „abrechnen", „wlan", „zähler", …): **18 von 18 gaben NULL Treffer.** Die App kann rund 40 Dinge — wer nicht wusste, wo sie liegen, fand sie nicht. Das war der Hebel.
+
+- **Die Suche kennt jetzt die App selbst** (`ORTE()`, 48 Einträge: `[anker, tab, fold, Titel, Stichwörter]`). Stichwörter sind Alltagswörter, nicht die App-Namen — „waschmaschine" statt „Waschtimer", „geliehen" statt „Ausleihe". Ergebnis: **0 von 18** ins Leere.
+- **Der Weg steht beim Treffer** („Heute", „Mehr → Wohnung") — damit man ihn sich merken kann, statt jedes Mal zu suchen.
+- **Tippen springt wirklich hin:** Tab wechseln, Gruppe aufklappen, zur Karte scrollen, 2,2 s grün umranden (`.ziel`). Die Gruppe wird **vor** dem Tab-Wechsel in den Speicher geschrieben — ein Ereignis liefe ins Leere, weil die `Fold`-Komponente noch gar nicht existiert. Der Rahmen bleibt auch bei „Weniger Bewegung" stehen; nur das Pulsieren entfällt.
+- **Bereich „Funktionen" ohne Suchtext = Inhaltsverzeichnis** zum Stöbern. Einstieg dorthin ganz oben unter „Mehr" („🧭 Was kann die App?") — dort landet man, wenn man etwas nicht findet.
+- **🪤 Wortanfang statt „irgendwo enthalten"** bei Funktionen: „bin" fand sonst „Ver**bin**dung" statt der Mülltonne. Bei echten Einträgen bleibt Teiltreffer richtig (man sucht Wortteile).
+- **🪤 `useState(startBereich)` kam nie an:** die Suche ist immer gerendert, nur `open` schaltet sie sichtbar — der Startwert wird also einmal ganz am Anfang ausgewertet. Jetzt `useEffect` auf `open`.
+- **🪤 Übersetzungslücke, die `--luecken` nicht sieht:** Texte in Listen (`[['ort', "Funktionen"]]`) laufen über `TT(variable)`; der Extraktor sucht nur `TT("…")`. „Funktionen" stand unübersetzt in der englischen App, während die Prüfung 0 Lücken meldete. Neu: `english.mjs` **E6** prüft diese Listen-Texte gegen das Wörterbuch.
+- **Tests:** `orte.mjs` 21 Checks (Alltagswörter, Weg, Sprung inkl. Aufklappen + Hervorhebung, Inhaltsverzeichnis, Englisch), Gegenprobe `scratchpad/gegenprobe-orte.mjs` **14 von 14 rot** — eine blieb zuerst grün: der Test prüfte nur, DASS „bin" etwas findet, nicht WAS (jetzt A4/A5/E1 auf das Ziel).
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -546,6 +559,7 @@ node test/geld.mjs       # Rückfrage am Posten (fragen/antworten/Push-Art), Abo
 node test/organisation.mjs # Monatskalender (alle Quellen, Blättern), Geburtstage, Pinnwand (Anheften geteilt), Einkauf nach Rhythmus (Median, nichts doppelt)
 node test/push_versand.mjs # echter Push-Filter (Art, Ruhezeit, Morgen-Nachricht lautlos statt verworfen) — ohne Netz
 node test/ruhezeit.mjs   # Ruhezeit-Bereich mit nachgebildetem Push-Abo: Tippflächen inkl. ::after, Namen, Hinweis
+node test/orte.mjs       # Suche findet auch FUNKTIONEN (Alltagswörter), Weg steht dabei, Sprung klappt Gruppe auf + hebt Karte hervor, Inhaltsverzeichnis
 node test/namen.mjs      # kein Knopf nur „An"/„Aus"/„+"/„−" ohne Namen — alle Seiten, alle Gruppen unter „Mehr"
 node test/verzahnung.mjs # Geburtstag ohne Jahrgang + auf Heute, 29.02. im Kalender, Putz-Fälligkeit wie Putzplan, Suche (Ankündigungen, Pinnwand, feste Infos ohne Passwort), Pinnwand zeigt WLAN/Notfall/Vermieter
 node test/neu.mjs        # „Seit du zuletzt da warst": Verlauf aus notifyOthers, Karte auf Heute, Gelesen, Obergrenze, App-Symbol-Zähler
