@@ -516,6 +516,15 @@ Kein neues Feature, sondern: das Neue aus v85–v88 in den Bestand einhängen un
 - **🪤 Übersetzungslücke, die `--luecken` nicht sieht:** Texte in Listen (`[['ort', "Funktionen"]]`) laufen über `TT(variable)`; der Extraktor sucht nur `TT("…")`. „Funktionen" stand unübersetzt in der englischen App, während die Prüfung 0 Lücken meldete. Neu: `english.mjs` **E6** prüft diese Listen-Texte gegen das Wörterbuch.
 - **Tests:** `orte.mjs` 21 Checks (Alltagswörter, Weg, Sprung inkl. Aufklappen + Hervorhebung, Inhaltsverzeichnis, Englisch), Gegenprobe `scratchpad/gegenprobe-orte.mjs` **14 von 14 rot** — eine blieb zuerst grün: der Test prüfte nur, DASS „bin" etwas findet, nicht WAS (jetzt A4/A5/E1 auf das Ziel).
 
+## Optik (wg-v92, 27.09. — torbe: „optisch eleganter soll es auch werden es soll beeindrucken")
+
+Zwei Eingriffe, bewusst wenige: Material und ein Blickfang. Beides ändert **keine** Schrift, keine Textfarbe, keine Größen — das Kontrast-Netz (`a11y.mjs`) blieb unangetastet grün.
+
+- **Lichtkante an allen Karten** (`--kante`, `box-shadow: var(--shadow), var(--kante)`): Die Karten waren 5,5 % Weiß auf Schwarz — sehr flach. Eine 1-px-Innenkante oben macht aus dem „grauen Kasten" eine Fläche mit Tiefe. Der Hellmodus braucht einen **eigenen, kräftigen** Wert (90 % statt 8 %), sonst erbt er den dunklen und die Kante ist auf Weiß unsichtbar.
+- **Kopfkarte auf „Heute"** (`.hero-tag`): Die Startseite begann mit nacktem Text zwischen gleich grauen Kästen. Jetzt große Tageszahl als Anker, Begrüßung, Datum, WG-Name — und ein **Schimmer nach Tageszeit** (morgens Amber, tagsüber Mint, abends Indigo). Zahl und Schimmer teilen sich die Farbe, damit die Karte wie aus einem Guss wirkt. Der Ton liegt als `::before` **hinter** dem Inhalt (`pointer-events:none`), die Schrift behält ihre normale Farbe.
+- **Tests:** `optik.mjs` 12 Checks mit **gestellter Uhr** (`Date` überschrieben) — sonst prüfte jeder Lauf nur die gerade aktuelle Tageszeit. Gegenprobe `scratchpad/gegenprobe-optik.mjs` 10 von 10 rot.
+- 🪤 **Zwei eigene Fehler in der Prüfung, beide von der Gegenprobe gefunden:** (1) `D2` gab immer `true` zurück (`return !!c && (!l.trim() || true)`) — ein wertloser Haken; jetzt echter Farbvergleich, und die Begrüßung wird über ihren Text gegriffen statt über `querySelectorAll('div')[1]` (das war der Flex-Container). (2) `C2` prüfte nur „`inset` kommt vor" — weil CSS-Variablen vererben, blieb das auch ohne Hellmodus-Wert grün; jetzt wird die Deckkraft geprüft.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -559,6 +568,7 @@ node test/geld.mjs       # Rückfrage am Posten (fragen/antworten/Push-Art), Abo
 node test/organisation.mjs # Monatskalender (alle Quellen, Blättern), Geburtstage, Pinnwand (Anheften geteilt), Einkauf nach Rhythmus (Median, nichts doppelt)
 node test/push_versand.mjs # echter Push-Filter (Art, Ruhezeit, Morgen-Nachricht lautlos statt verworfen) — ohne Netz
 node test/ruhezeit.mjs   # Ruhezeit-Bereich mit nachgebildetem Push-Abo: Tippflächen inkl. ::after, Namen, Hinweis
+node test/optik.mjs      # Kopfkarte „Heute" (Tageszahl, Tageszeit-Ton, gestellte Uhr), Lichtkante der Karten in hell + dunkel
 node test/orte.mjs       # Suche findet auch FUNKTIONEN (Alltagswörter), Weg steht dabei, Sprung klappt Gruppe auf + hebt Karte hervor, Inhaltsverzeichnis
 node test/namen.mjs      # kein Knopf nur „An"/„Aus"/„+"/„−" ohne Namen — alle Seiten, alle Gruppen unter „Mehr"
 node test/verzahnung.mjs # Geburtstag ohne Jahrgang + auf Heute, 29.02. im Kalender, Putz-Fälligkeit wie Putzplan, Suche (Ankündigungen, Pinnwand, feste Infos ohne Passwort), Pinnwand zeigt WLAN/Notfall/Vermieter

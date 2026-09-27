@@ -68,6 +68,7 @@ jobs:
           node test/ruhezeit.mjs
           node test/namen.mjs
           node test/orte.mjs
+          node test/optik.mjs
           node test/csp_hash.mjs
           node test/visual.mjs
           kill $SRV 2>/dev/null || true
