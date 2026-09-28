@@ -565,6 +565,19 @@ Zwei Eingriffe, bewusst wenige: Material und ein Blickfang. Beides ändert **kei
 - 🪤 **Ein Haken, der nichts prüfen konnte.** Der erste `CountUp`-Test las die Zahl im Ruhezustand. Dort ist `from === to`, der Effekt läuft gar nicht — die Sabotage blieb grün. Es **muss** eine echte Wertänderung ausgelöst werden.
 - 🪤 **Zweiter Fall von „grüne Sabotage klagt nicht die Prüfung an"** (nach der Warnkarte in v94): „Doppeltipp-Schutz weg" blieb grün. Nachgemessen (`scratchpad/diag-doppeltipp.mjs`): Der Klick-Handler läuft **mit und ohne** Riegel zweimal, das Ergebnis ist beide Male gleich — Löschen ist idempotent, und `undo()` hält ohnehin nur eine Rückgängig-Funktion. Also keine prüfbare Zusicherung. Der Riegel bleibt trotzdem (zweiter Zeitgeber, und der nächste Aufrufer ist vielleicht nicht idempotent — die Einkaufsliste hat ihn genau deshalb), aber die Sabotage wurde **entfernt statt den Test künstlich passend zu machen**.
 
+## „Weiter" sagt, was fehlt (wg-v96, 28.09. — torbe: „weiter ausbauen")
+
+**Gefunden durch Aufwand-Messung, nicht durch Suchen nach Fehlern.** `scratchpad/aufwand-messen.mjs` spielt die häufigsten Handgriffe durch und zählt Tipps und Tastenanschläge. Beim Anlegen einer Putzaufgabe meldete es **10 „Weiter"-Schritte** — was nicht stimmte: Das Skript prüft mit, ob sich der Blattinhalt je Schritt ÄNDERT, und der blieb ab Schritt 2 gleich. Das Formular hing.
+
+- **Ursache in der zentralen `Wiz`-Komponente:** `const next=()=>{ if(!ok)return; … }` — ein stiller Ausstieg. Nachgemessen war der Knopf `disabled:false`, ohne `aria-disabled`, Deckkraft 1, `pointer-events:auto`: er **sah klickbar aus, war es auch, und tat nichts**. Weder Auge noch Bildschirmleser erfuhren, warum es nicht weitergeht.
+- **Jetzt beantwortet der Tipp sich selbst:** `.wiz-hint` erscheint auf den Klick hin und nennt den offenen Schritt („Dafür fehlt noch: Wie oft?"). Der Schritt-Titel ist die Frage — damit wird der Hinweis präzise, ohne dass jeder Schritt einen eigenen Text braucht.
+- **Erst auf den Tipp, nicht vorsorglich.** Ein dauerhaft sichtbarer Hinweis stünde da, bevor der Nutzer angefangen hat. `useEffect` setzt ihn bei jedem Schrittwechsel zurück.
+- 🪤 **Bewusst KEIN `aria-disabled`.** Erster Entwurf hatte es — und Playwright hielt den Knopf danach für nicht klickbar („element is not enabled"), wartete 30 s und lief in einen Timeout. Manche Hilfstechnik verhält sich genauso. Der Tipp wäre nie angekommen, und damit auch die Erklärung nicht. Inhaltlich wäre es ohnehin falsch: Der Knopf **ist** nicht deaktiviert, er antwortet nur anders. Stattdessen `aria-describedby` auf den Hinweis, sobald er da ist, plus `role="status"` — der Bildschirmleser liest die Erklärung vor, ohne den Fokus zu verlieren.
+- **Der Fix sitzt in `Wiz` und gilt damit für jedes Formular der App** — der Test belegt das am Putz- **und** am Ausgabe-Formular.
+- **Tests:** `formular.mjs` **16 Checks** (inkl. Kontrast hell+dunkel, weil Blätter als Portal außerhalb von `.screen` liegen und `a11y.mjs` sie nicht sieht). Gegenprobe `scratchpad/gegenprobe-formular.mjs` **9 von 9 rot**.
+- 🪤 **Halb übersetzt, vom eigenen Test gefangen:** „Dafür fehlt noch: How often?" — `lang/en.json` ist nur die Quelle, die App liest das Wörterbuch aus dem `<script id="wg-en">`-Block. **Nach jedem neuen Text `node scripts/i18n-dict.mjs --write`**, sonst bleibt der Rahmen deutsch.
+- 🪤 **Ein blinder Haken, den die Gegenprobe fand:** „Hinweis verschwindet beim Schrittwechsel" prüfte den Wechsel auf „Wie aufwendig?" — der ist **vorbelegt**, ein stehengebliebener Hinweis wäre dort ohnehin unsichtbar. Gemessen (`scratchpad/diag-wiz-schritte.mjs`): In beiden Formularen sind **Schritt 1 und 2 offen**, genau dort zeigt es sich. B3 prüft jetzt diesen Wechsel.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -609,6 +622,7 @@ node test/organisation.mjs # Monatskalender (alle Quellen, Blättern), Geburtsta
 node test/push_versand.mjs # echter Push-Filter (Art, Ruhezeit, Morgen-Nachricht lautlos statt verworfen) — ohne Netz
 node test/ruhezeit.mjs   # Ruhezeit-Bereich mit nachgebildetem Push-Abo: Tippflächen inkl. ::after, Namen, Hinweis
 node test/optik.mjs      # Kopfkarte „Heute" (Tageszahl, Tageszeit-Ton, gestellte Uhr), Lichtkante der Karten in hell + dunkel
+node test/formular.mjs   # „Weiter" erklärt, was fehlt (jedes Wizard-Formular), nicht als deaktiviert ausgezeichnet, Kontrast hell+dunkel, EN
 node test/abgang.mjs     # Abgang mit Ansage: Animation läuft wirklich, Aktion folgt danach, „Weniger Bewegung" sofort, CountUp springt
 node test/fuer_andere.mjs # Putzaufgabe für jemand anderen abhaken: Gutschrift, Umbuchen ohne Doppel, Verlauf, Auswahl ab 3 Personen, Abbrechen, Kontrast der Portale (hell+dunkel)
 node test/orte.mjs       # Suche findet auch FUNKTIONEN (Alltagswörter), Weg steht dabei, Sprung klappt Gruppe auf + hebt Karte hervor, Inhaltsverzeichnis

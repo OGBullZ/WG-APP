@@ -634,6 +634,7 @@
  "Das bin ich ✓": "That's me ✓",
  "Das bist du": "This is you",
  "Das gesamte JSON-Objekt unten einfügen": "Paste the whole JSON object below",
+ "Dafür fehlt noch: {0}": "Still needed: {0}",
  "Daten & Backup": "Data & backup",
  "Datum ändern": "Change date",
  "Davon eingezahlt (leer = gleich verteilt)": "Of which paid in (leave empty to split evenly)",
