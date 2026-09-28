@@ -525,6 +525,22 @@ Zwei Eingriffe, bewusst wenige: Material und ein Blickfang. Beides ändert **kei
 - **Tests:** `optik.mjs` 12 Checks mit **gestellter Uhr** (`Date` überschrieben) — sonst prüfte jeder Lauf nur die gerade aktuelle Tageszeit. Gegenprobe `scratchpad/gegenprobe-optik.mjs` 10 von 10 rot.
 - 🪤 **Zwei eigene Fehler in der Prüfung, beide von der Gegenprobe gefunden:** (1) `D2` gab immer `true` zurück (`return !!c && (!l.trim() || true)`) — ein wertloser Haken; jetzt echter Farbvergleich, und die Begrüßung wird über ihren Text gegriffen statt über `querySelectorAll('div')[1]` (das war der Flex-Container). (2) `C2` prüfte nur „`inset` kommt vor" — weil CSS-Variablen vererben, blieb das auch ohne Hellmodus-Wert grün; jetzt wird die Deckkraft geprüft.
 
+## Für jemand anderen abhaken (wg-v93, 28.09. — torbe: „putzplan zb jetzt müll bearbeitbar zb ich habs zwar rausgebracht aber für ihn abghaken wollen")
+
+**Ein echter Alltagsfehler, kein Schönheitsfehler.** Die Gutschrift ging beim Abhaken **immer** an den, der tippt (`me`). Wer für den Mitbewohner mit abhakte, verfälschte damit die Fairness-Rechnung, den Punktestand und die Serie — geradebiegen ging nur über Rückgängig und das andere Gerät.
+
+- **Die Korrektur steht dort, wo der Fehler passiert:** im Rückgängig-Balken, direkt nach dem Abhaken. Er nennt jetzt **den Namen** der gutgeschriebenen Person („🗑️ „Müll rausbringen" erledigt · Torben") und bietet einen zweiten Knopf. Bei zwei Bewohnern heißt der **„War Tom"** und bucht mit einem Tipp um; bei mehr heißt er „War jemand anderes" und öffnet die Auswahl (`askWer`, `[data-testid="wer-sheet"]`).
+- **`machen(t, btnEl, wer)`** — `wer` ist optional, ohne Angabe bleibt alles wie vorher (`const by = wer || (users.some(u=>u.id===me) ? me : t.assignee)`). Kein Umbau der Abhaken-Logik, nur ein dritter Parameter.
+- **Umbuchen = zurücknehmen + neu eintragen** (`zurueck()`, dann `setTimeout(… 60)`). Der Umweg über den nächsten Durchgang ist nötig, weil `zurueck` über dieselben Listen schreibt — sonst überschreibt der zweite Update den ersten ([[feedback-react-zustand-fallen]]).
+- **Der Rückgängig-Balken hält 8 statt 5 Sekunden**, wenn ein Zusatzknopf drin steht — zwei Knöpfe zu lesen und zu treffen dauert länger.
+- 🪤 **Der falsche Verlaufseintrag muss mit weg.** `notifyOthers` gibt jetzt die id des `ak`-Eintrags zurück, `akRef` hält sie, `zurueck()` löscht sie mit. Ohne das stünden in „Seit du zuletzt da warst" nach der Korrektur **zwei widersprüchliche Zeilen** („Torben hat …" und „Tom hat …").
+- 🪤 **`werReq is not defined`:** der Dialog gehört zu `GlobalUI` (Portal an `document.body`), nicht in die Komponente, die ihn auslöst. Werte laufen über den Kontext.
+- 🪤 **Weiß auf Gelb.** Die Namensknöpfe tragen die Nutzerfarbe als Hintergrund. `var(--ink)` ist im **Hellmodus weiß** — „Tom" war unlesbar. Jetzt fest `#0a120c` wie bei `.pick-btn`. **Im Bild aufgefallen, nicht im Test** → siehe nächster Punkt.
+- 🪤 **`a11y.mjs` sieht keine Dialoge.** Sein Baumdurchlauf beginnt bei `.screen`; Rückgängig-Balken und Auswahl-Blatt hängen als **Portal an `document.body`** und wurden nie gemessen. Deshalb misst `fuer_andere.mjs` **F1/F2** den Kontrast dieser beiden Teile selbst, hell und dunkel. Wer künftig ein Sheet baut: es ist ungemessen, bis es jemand misst.
+- 🪤 **Der Balken schnitt den Namen ab** (`white-space:nowrap`). `.undo-toast.zwei` bricht jetzt um, der Text bekommt eine eigene Zeile.
+- **Tests:** `fuer_andere.mjs` **22 Checks** (Gutschrift, Umbuchen ohne Doppeleintrag, Push-Text, Verlauf, Auswahl bei 3 Personen, Abbrechen, Rückgängig, Kontrast hell+dunkel), Gegenprobe `scratchpad/gegenprobe-fuer-andere.mjs` **11 von 11 rot**.
+- 🪤 **„Abbrechen" blieb in der Gegenprobe grün,** weil der Test nur die Person prüfte: ohne den Riegel `if (!ziel) return;` wird der Eintrag gelöscht und neu angelegt — **dieselbe Person, anderer Eintrag**. `D1` vergleicht jetzt die `id`.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -569,6 +585,7 @@ node test/organisation.mjs # Monatskalender (alle Quellen, Blättern), Geburtsta
 node test/push_versand.mjs # echter Push-Filter (Art, Ruhezeit, Morgen-Nachricht lautlos statt verworfen) — ohne Netz
 node test/ruhezeit.mjs   # Ruhezeit-Bereich mit nachgebildetem Push-Abo: Tippflächen inkl. ::after, Namen, Hinweis
 node test/optik.mjs      # Kopfkarte „Heute" (Tageszahl, Tageszeit-Ton, gestellte Uhr), Lichtkante der Karten in hell + dunkel
+node test/fuer_andere.mjs # Putzaufgabe für jemand anderen abhaken: Gutschrift, Umbuchen ohne Doppel, Verlauf, Auswahl ab 3 Personen, Abbrechen, Kontrast der Portale (hell+dunkel)
 node test/orte.mjs       # Suche findet auch FUNKTIONEN (Alltagswörter), Weg steht dabei, Sprung klappt Gruppe auf + hebt Karte hervor, Inhaltsverzeichnis
 node test/namen.mjs      # kein Knopf nur „An"/„Aus"/„+"/„−" ohne Namen — alle Seiten, alle Gruppen unter „Mehr"
 node test/verzahnung.mjs # Geburtstag ohne Jahrgang + auf Heute, 29.02. im Kalender, Putz-Fälligkeit wie Putzplan, Suche (Ankündigungen, Pinnwand, feste Infos ohne Passwort), Pinnwand zeigt WLAN/Notfall/Vermieter
@@ -641,6 +658,7 @@ Bewusst **außerhalb** des Sync-Datensatzes — die einzigen Daten der App, die 
 
 - **WG-Code-Persistenz:** `useState(()=>ls('wg_code', genCode()))` muss den Auto-Code SOFORT via `ss()` persistieren, sonst neuer Code bei jedem Neustart → Desync.
 - **createPortal + Desktop:** Sheets werden per `ReactDOM.createPortal(...,document.body)` gerendert (sonst malt die fixed Tabbar drüber). Desktop-Zentrierung des Modals braucht `justify-content:center` auf `.overlay` (≥700px) — `align-items:center` allein lässt es links kleben.
+- **Portale sind für Prüfungen unsichtbar:** was per `createPortal` an `document.body` hängt (Sheets, Rückgängig-Balken, Bestätigungen), liegt **außerhalb von `.screen`** — und `a11y.mjs` durchläuft nur `.screen`. Kontrast und Tippflächen dort sind ungemessen, bis eine Prüfung sie selbst aufruft (Vorbild: `fuer_andere.mjs` F1/F2). Genauso gilt: **`var(--ink)` ist im Hellmodus weiß** — auf einer hellen Nutzerfarbe unlesbar, deshalb dort fest `#0a120c`.
 - **Tastatur:** `--kb` (aus visualViewport) hebt das Sheet; Geldfelder `type="text" inputMode="decimal"`, `parseNum` akzeptiert „8,50" und „8.50".
 - **ID-Vergleiche:** Items aus demselben Datensatz — Typ konsistent. Bei geräteübergreifenden Vergleichen aufpassen (string/number).
 - **Datum:** lokale Tagesmitte (`T12:00:00`) statt `new Date('YYYY-MM-DD')` (UTC) gegen Off-by-one.

@@ -34,7 +34,29 @@ const opts = Function(`return (${optsLit})`)();
 const babelFile = loader[1].match(/b\.src = 'vendor\/(babel-standalone-[\d.]+\.min\.js)'/)[1];
 globalThis.window = globalThis;
 const Babel = require(join(repo, 'vendor', babelFile));
-const code = Babel.transform(jsxBlock[1], opts).code;
+/* Syntaxfehler lesbar melden (wg-v93): Babel wirft hier ein Objekt, dessen Ausgabe den kompletten
+   Babel-Quelltext mitschleppt — rund 3 MB Rauschen, in dem Zeile und Ursache untergehen. Dreimal an
+   derselben Falle verloren (gerades " in einem TT("…„…")-Text beendet die Zeichenkette mitten im Satz).
+   Jetzt: Zeile, Spalte, die betroffene Quellzeile und ein Hinweis, wenn das Muster passt. */
+let code;
+try {
+  code = Babel.transform(jsxBlock[1], opts).code;
+} catch (err) {
+  const pos = err && err.loc;
+  const zeilenVorJsx = htmlSrc.slice(0, htmlSrc.indexOf(jsxBlock[1])).split('\n').length - 1;
+  const zeile = pos ? zeilenVorJsx + pos.line : null;
+  const text = pos ? (jsxBlock[1].split('\n')[pos.line - 1] || '') : '';
+  console.error('\n✗ build: JSX lässt sich nicht übersetzen');
+  console.error(`  ${String(err.message || err).split('\n')[0]}`);
+  if (zeile) {
+    console.error(`  wgapp.html:${zeile}${pos.column != null ? ':' + pos.column : ''}`);
+    console.error(`  ${text.trim().slice(0, 160)}`);
+    // Häufigste Ursache zuerst nennen, statt sie jedes Mal neu zu suchen
+    if (/„[^"]*[^\\]"/.test(text)) console.error('  ↳ Verdacht: gerades " in einem Text mit „…" — typografisches “ benutzen.');
+    if (/\{\/\*/.test(text) && /=/.test(text)) console.error('  ↳ Verdacht: {/* … */} zwischen Attributen eines Tags — gehört VOR das Element.');
+  }
+  process.exit(1);
+}
 const hash = createHash('sha256').update(code).digest('hex').slice(0, 10);
 const app = `/* WG-App ${hash} — vorab übersetzt von scripts/build.mjs, nicht von Hand ändern */
 window.__wgBuild = ${JSON.stringify(hash)}; window.__wgPre = true;
