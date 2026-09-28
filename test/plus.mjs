@@ -103,7 +103,11 @@ await sheet.getByRole('button', { name: 'Torben' }).click();
 await sheet.getByRole('button', { name: 'Speichern' }).click(); await page.waitForTimeout(500);
 d = await data();
 check('K3 neuer Eintrag: +3 Tage, gehört mir', d.kf.some(k => k.name === 'Joghurt' && k.exp === dayAgo(-3) && k.owner === 'u1'), JSON.stringify(d.kf));
-await page.getByRole('button', { name: 'Käse ist weg' }).click(); await page.waitForTimeout(400);
+// wg-v95: Die Zeile gleitet erst weg (420 ms), erst danach wird entfernt.
+// Der Abgang wird eigens geprüft, damit das längere Warten keinen echten Fehler zudeckt.
+await page.getByRole('button', { name: 'Käse ist weg' }).click(); await page.waitForTimeout(120);
+check('K3b Entfernen zeigt sich erst als Abgang', await page.locator('[data-testid="fridge-row"].geht').count() === 1);
+await page.waitForTimeout(700);
 check('K4 „Weg ✓" entfernt', !(await data()).kf.some(k => k.name === 'Käse'));
 
 // ── E: Essensplan ──

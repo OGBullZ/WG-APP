@@ -70,6 +70,7 @@ jobs:
           node test/orte.mjs
           node test/optik.mjs
           node test/fuer_andere.mjs
+          node test/abgang.mjs
           node test/csp_hash.mjs
           node test/visual.mjs
           kill $SRV 2>/dev/null || true

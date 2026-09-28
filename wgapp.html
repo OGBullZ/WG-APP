@@ -768,6 +768,20 @@ button.cell { color:var(--label); }
 .assignee-swap { display:inline-block; animation:assigneeIn .4s cubic-bezier(.22,1,.36,1); }
 @keyframes assigneeIn { from { opacity:0; transform:translateX(7px); } }
 
+/* ── Abgang mit Ansage (wg-v95) ──
+   Gemessen (scratchpad/bewegung-messen.mjs): Die App lässt alles sanft KOMMEN (rise, tab-in, popIn),
+   aber nichts sanft GEHEN — fast jede Änderung ohne Bewegung war ein entferntes Element. React nimmt
+   den Eintrag sofort aus dem DOM, also gibt es keinen Moment, in dem er noch zu sehen wäre.
+   Nur dort eingesetzt, wo der Nutzer SELBST etwas wegtippt: dann bestätigt die Bewegung seinen Tipp
+   („das war meins"). Bei Tab- oder Monatswechsel wäre sie bloß Verzögerung.
+   Vorbild ist `.sl-leaving` der Einkaufsliste, hier ohne den Wisch-Strich und etwas kürzer. */
+.geht { animation:abgang .42s cubic-bezier(.4,0,1,1) forwards; overflow:hidden; transform-origin:top; pointer-events:none; }
+@keyframes abgang {
+  0%   { transform:translateX(0) scaleY(1); opacity:1; }
+  35%  { transform:translateX(10px) scaleY(1); opacity:.75; }
+  100% { transform:translateX(38px) scaleY(0); opacity:0; }
+}
+
 /* 3 · Einkaufsliste abhaken — Wisch-Strich + Kollaps + Empty-Pop */
 .sl-leaving { animation:slLeave .6s ease forwards; overflow:hidden; transform-origin:top; }
 @keyframes slLeave {
@@ -849,7 +863,7 @@ button.cell { color:var(--label); }
   .assignee-swap, .sl-leaving, .sl-leaving .cell-title::after, .flash,
   .due-chip.overdue, .tab-view.tab-in-r, .tab-view.tab-in-l, .tabitem.on svg,
   .plant-slot > svg, .odo-d, .sl-alldone,
-  .rise, .ok-flash, .ziel {   /* wg-v83: .rise (überall genutzt) fehlte hier — beim Einbau der neuen Animationen aufgefallen */
+  .rise, .ok-flash, .ziel, .geht {   /* wg-v83: .rise (überall genutzt) fehlte hier — beim Einbau der neuen Animationen aufgefallen */
     animation:none !important;
   }
   .fly-chip, .tp-check, .tp-particle, .settle-stamp { display:none !important; }
@@ -989,6 +1003,29 @@ const genCode = () => `${pick(ADJS)}-${pick(NUNS)}-${rnd(6)}`;
 
 /* ── Animations-Helfer (Paket A) ── */
 const REDUCE = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
+/* Abgang mit Ansage (wg-v95): `weg(id, fn)` lässt den Eintrag erst weggleiten und führt die Änderung
+   danach aus. Gibt die id zurück, die gerade geht — die Liste hängt daran die Klasse `.geht`.
+   Drei Dinge, die die Einkaufsliste schon richtig macht und die hier nicht verloren gehen dürfen:
+   - Doppeltipp während der Animation darf die Aktion NICHT zweimal auslösen,
+   - bei „Weniger Bewegung" läuft sie sofort und ohne Verzögerung,
+   - der Zeitgeber wird beim Verlassen aufgeräumt, sonst schreibt er in eine tote Komponente.
+   🪤 Zum Doppeltipp-Riegel, nachgemessen (scratchpad/diag-doppeltipp.mjs): Bei den heutigen drei Aufrufern
+   ist er VORSORGE, kein heute sichtbarer Schutz — der Klick-Handler läuft mit und ohne ihn zweimal, das
+   Ergebnis bleibt gleich, weil Löschen idempotent ist und `undo()` ohnehin nur eine Rückgängig-Funktion
+   hält. Er bleibt trotzdem: Er verhindert einen zweiten Zeitgeber, und der nächste Aufrufer ist vielleicht
+   nicht idempotent (die Einkaufsliste hat ihn genau deshalb — zweimal `toggleL` schaltet wieder ein). */
+function useAbgang(dauer = 420) {
+  const [geht, setGeht] = useState(null);
+  const laeuft = useRef(null), timer = useRef(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const weg = useCallback((id, fn) => {
+    if (laeuft.current === id) return;
+    if (REDUCE()) { fn(); return; }
+    laeuft.current = id; setGeht(id);
+    timer.current = setTimeout(() => { laeuft.current = null; setGeht(g => (g === id ? null : g)); fn(); }, dauer);
+  }, [dauer]);
+  return [geht, weg];
+}
 /* Hex → rgba (für Remote-Flash-Tint in User-Farbe) */
 const hexRgba = (hex, a=.22) => {
   try {
@@ -2055,6 +2092,10 @@ function CountUp({ value, dec=2, prefix='', suffix='' }) {
     const from = prev.current, to = value;
     prev.current = value;
     if (from === to) return;
+    /* wg-v95: „Weniger Bewegung" schaltete bisher nur den Roll-Effekt der Ziffern ab (`.odo-d` in der
+       reduce-Regel) — der Wert lief trotzdem 650 ms lang hoch. Ein hochzählender Betrag IST Bewegung.
+       Jetzt springt er sofort auf den Zielwert. Gefunden beim Durchgehen der Animationen, nicht von einem Test. */
+    if (REDUCE()) { setV(to); return; }
     const t0 = performance.now(), dur = 650;
     let raf;
     const step = t => {
@@ -4549,7 +4590,9 @@ function FridgeCard() {
     setFn('kf', cur=>[{ id:uid(), name:f.name.trim().slice(0,40), exp:f.exp, owner:f.owner||null }, ...(cur||[])]);
     setF(null);
   };
-  const gone = it => { setFn('kf', cur=>cur.filter(x=>x.id!==it.id)); undo(TT("🧊 {0} entfernt", it.name), ()=>setFn('kf', cur=>[it, ...cur])); };
+  // wg-v95: erst weggleiten lassen, dann entfernen — der Tipp bekommt eine sichtbare Antwort
+  const [geht, weg] = useAbgang();
+  const gone = it => weg(it.id, () => { setFn('kf', cur=>cur.filter(x=>x.id!==it.id)); undo(TT("🧊 {0} entfernt", it.name), ()=>setFn('kf', cur=>[it, ...cur])); });
   return (
     <div className="rise" data-testid="fridge-card">
       <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
@@ -4562,7 +4605,7 @@ function FridgeCard() {
             const d = -daysSince(it.exp), u = users.find(x=>x.id===it.owner);
             const col = d<0 ? 'var(--red)' : d<=1 ? 'var(--amber)' : 'var(--label2)';
             return (
-              <div key={it.id} className="cell" data-testid="fridge-row">
+              <div key={it.id} className={`cell${geht===it.id?' geht':''}`} data-testid="fridge-row">
                 <div className="cell-content">
                   <span className="cell-title">{it.name}{u?<span style={{color:u.color,fontWeight:700,fontSize:13}}> · {u.id===me?'deins':u.name}</span>:''}</span>
                   <span className="cell-sub" style={{color:col,fontWeight:d<=1?700:500}}>{d<0?(-d===1?TT("seit 1 Tag abgelaufen"):TT("seit {0} Tagen abgelaufen", -d)):d===0?TT("läuft heute ab"):d===1?TT("läuft morgen ab"):TT("bis {0}", fmtDM(it.exp))}</span>
@@ -6203,11 +6246,14 @@ function RepairCard() {
     setFn('rp', cur=>cur.map(x=>x.id===r.id?{...x,...next}:x));
     undo(next.status==='gemeldet'?'🔧 Als gemeldet markiert':'🔧 Erledigt', ()=>setFn('rp', cur=>cur.map(x=>x.id===r.id?r:x)));
   };
-  const del = r => { setFn('rp', cur=>cur.filter(x=>x.id!==r.id)); undo(TT("🔧 Eintrag gelöscht"), ()=>setFn('rp', cur=>[r, ...cur])); };
+  // wg-v95: Löschen ist der einzige Schritt, bei dem die Zeile wirklich verschwindet — also gleitet sie weg.
+  // `step` bleibt ohne Abgang: der Eintrag bleibt stehen und ändert nur seinen Stand.
+  const [geht, weg] = useAbgang();
+  const del = r => weg(r.id, () => { setFn('rp', cur=>cur.filter(x=>x.id!==r.id)); undo(TT("🔧 Eintrag gelöscht"), ()=>setFn('rp', cur=>[r, ...cur])); });
   const row = r => {
     const age = r.md ? daysSince(r.md) : null, late = r.status==='gemeldet' && age>=14;
     return (
-      <div key={r.id} className="cell" data-testid="repair-row">
+      <div key={r.id} className={`cell${geht===r.id?' geht':''}`} data-testid="repair-row">
         <div className="cell-content">
           <span className="cell-title">{r.text}</span>
           <span className="cell-sub" style={late?{color:'var(--red)',fontWeight:700}:null}>
@@ -6531,7 +6577,9 @@ function Haushalt({goGrow, goPutz}) {
   };
   const save   = d => set('hs',items.map(i=>i.id===editItem.id?{...i,name:d.name||i.name,price:parseNum(d.price)||i.price,paidBy:d.paidBy||i.paidBy,date:d.date||i.date,owedBy:d.owedBy||null,cat:d.cat||null}:i));
   const toggle = id => set('hs',items.map(i=>i.id===id?{...i,settled:!i.settled,settledAt:!i.settled?todayISO():null}:i));
-  const del    = id => { const it=items.find(i=>i.id===id); set('hs',items.filter(i=>i.id!==id)); undo(TT("„{0}\" gelöscht", it?.name||'Ausgabe'), ()=>setFn('hs', cur => cur.some(i=>i.id===id)?cur:[it,...cur])); };
+  // wg-v95: Der Posten gleitet weg, bevor er verschwindet — hier wird am häufigsten gelöscht
+  const [geht, weg] = useAbgang();
+  const del    = id => weg(id, () => { const it=items.find(i=>i.id===id); set('hs',items.filter(i=>i.id!==id)); undo(TT("„{0}\" gelöscht", it?.name||'Ausgabe'), ()=>setFn('hs', cur => cur.some(i=>i.id===id)?cur:[it,...cur])); });
 
   /* Einkaufsliste */
   const addL      = () => { const n=newName.trim(); if(!n){ listInput.current?.focus(); return; } set('sl',[{id:uid(),name:n,addedBy:me||null,date:todayISO(),done:false},...list]); setNewName(''); listInput.current?.focus(); notifyOthers(TT("🛒 {0} braucht {1}", meName, n), '', "wg-shop", "shop"); };
@@ -6844,7 +6892,7 @@ function Haushalt({goGrow, goPutz}) {
                     const payer=users.find(u=>u.id===item.paidBy);
                     const fl=flashIds.has(item.id);
                     return(
-                      <div key={item.id} className={`cell${fl?' flash':''}`} style={fl?{'--flash-c':hexRgba(payer?.color||'#5eead4')}:undefined}>
+                      <div key={item.id} className={`cell${fl?' flash':''}${geht===item.id?' geht':''}`} style={fl?{'--flash-c':hexRgba(payer?.color||'#5eead4')}:undefined}>
                         <button className="chk-btn" style={{border:'1.5px solid var(--sep)',background:'none'}} title={TT("Als abgerechnet markieren")} onClick={()=>toggle(item.id)}/>
                         <div className="cell-content" style={{cursor:'pointer'}} onClick={()=>setEditItem(item)}>
                           <span className="cell-title">{item.name}</span>

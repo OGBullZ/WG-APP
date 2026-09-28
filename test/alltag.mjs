@@ -136,7 +136,11 @@ const hz = page.locator('[data-testid="repair-row"]', { hasText: 'Heizung Bad' }
 check('F2 neu: „noch nicht gemeldet" + Push', /noch nicht gemeldet/.test(await hz.innerText()) && pushes.some(p => /Kaputt: Heizung Bad/.test(p.title)));
 await hz.getByRole('button', { name: 'Gemeldet ✓' }).click(); await page.waitForTimeout(400);
 await page.getByLabel('Kaputtes eintragen').fill('Vertipt'); await page.getByLabel('Kaputtes eintragen').press('Enter'); await page.waitForTimeout(300);
-await page.getByRole('button', { name: '„Vertipt" löschen' }).click(); await page.waitForTimeout(300);
+// wg-v95: Die Zeile gleitet erst weg (420 ms), danach wird gelöscht — deshalb länger warten.
+// Vorher wird bewusst geprüft, dass der Abgang läuft: sonst würde ein längeres Warten nur den Fehler verdecken.
+await page.getByRole('button', { name: '„Vertipt" löschen' }).click(); await page.waitForTimeout(120);
+check('F2a Löschen zeigt sich erst als Abgang', await page.locator('[data-testid="repair-row"].geht').count() === 1);
+await page.waitForTimeout(700);
 check('F2b offener Eintrag löschbar', !(await data()).rp.some(r => r.text === 'Vertipt'));
 check('F3 gemeldet mit Datum', (await data()).rp.some(r => r.text === 'Heizung Bad' && r.status === 'gemeldet' && r.md === T));
 

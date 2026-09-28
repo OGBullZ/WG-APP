@@ -553,6 +553,18 @@ Zwei Eingriffe, bewusst wenige: Material und ein Blickfang. Beides ändert **kei
 - **Tests:** `optik.mjs` jetzt **21 Checks** (E1–E7 sind die vier neuen Eingriffe, jeder hell **und** dunkel). Gegenprobe `scratchpad/gegenprobe-optik.mjs` **18 von 18 rot**.
 - 🪤 **Eine Sabotage blieb grün — und die Antwort war, den Code zurückzunehmen, nicht den Test zu verschärfen.** Ich hatte der Warnkarte reflexhaft einen eigenen dunklen Hellmodus-Ton gegeben (`rgba(154,74,6,…)`), nach derselben Regel wie oben. Die Gegenprobe „Override weg" blieb grün. Der Vergleich beider Fassungen im Bild (`scratchpad/warn-hell-vergleich.mjs`) zeigte warum: **ohne** Override ist die Karte ein warmes Creme, **mit** ein stumpfes Braun. Die Regel „Hellmodus braucht eigene dunkle Werte" gilt für Schrift und für feine Verläufe, die sich weglöschen — **eine flächige Tönung darf hell sein**. Merksatz: Bleibt eine Sabotage grün, ist die erste Frage nicht „wie prüfe ich schärfer", sondern „richtet sie überhaupt Schaden an".
 
+## Abgang mit Ansage (wg-v95, 28.09. — torbe: „sinnvolle animationen etc ausdenken")
+
+**Nicht mehr Bewegung, sondern die fehlende Hälfte.** Die App hatte schon 30 Keyframes. Gemessen wurde deshalb zuerst, *wo* ein Zustand ohne jede Bewegung umspringt: `scratchpad/bewegung-messen.mjs` löst echte Alltagsaktionen aus, schreibt per MutationObserver mit, was sich ändert, und sieht für jede Änderung nach, ob das Element überhaupt eine Übergangsregel hat. Ergebnis: **fast jede bewegungslose Änderung war ein entferntes Element.** Alles kommt sanft (`rise`, `tab-in`, `popIn`) — nichts geht sanft, weil React den Eintrag sofort aus dem DOM nimmt.
+
+- **`useAbgang(dauer)`** liefert `[geht, weg]`. `weg(id, fn)` setzt `geht`, die Liste hängt daran `.geht`, und nach der Animation läuft `fn()`. Vorbild ist `.sl-leaving` der Einkaufsliste — daraus jetzt ein wiederverwendbarer Baustein statt dreimal dasselbe Muster.
+- **Nur wo der Nutzer selbst etwas wegtippt:** Kühlschrank („Weg ✓"), Reparatur löschen, Ausgabenposten löschen. Dort bestätigt die Bewegung seinen Tipp. Bei Tab- oder Monatswechsel wäre sie bloß Verzögerung — deshalb dort **nicht**.
+- **`CountUp` respektiert jetzt „Weniger Bewegung".** Die reduce-Regel schaltete nur den Roll-Effekt der Ziffern ab (`.odo-d`); der Wert lief trotzdem 650 ms hoch. Ein hochzählender Betrag **ist** Bewegung → springt jetzt sofort auf den Zielwert.
+- **Tests:** `abgang.mjs` **14 Checks** — und zwar auf das, was zählt: läuft die Animation wirklich (`animationName`, nicht nur die Klasse), steht der Eintrag währenddessen noch in den Daten, ist er danach wirklich weg, wirkt der Tipp bei „Weniger Bewegung" sofort. Gegenprobe `scratchpad/gegenprobe-abgang.mjs` **8 von 8 rot**.
+- 🪤 **Ein Selektor, der die falsche Zeile traf.** `.del-btn:visible` griff irgendwo auf der Seite — und erwischte die **Reparatur**-Zeile, die seit v95 ebenfalls weggleitet. „Gleitet weg" war grün, „ist gelöscht" rot, und das völlig zu Recht. Jetzt über die Einzelposten-Liste eingegrenzt. Nebenbei: der Tab-Schlüssel für Geld heißt `haus`, nicht `hh` — `hh` landete stumm auf einer ganz anderen Seite.
+- 🪤 **Ein Haken, der nichts prüfen konnte.** Der erste `CountUp`-Test las die Zahl im Ruhezustand. Dort ist `from === to`, der Effekt läuft gar nicht — die Sabotage blieb grün. Es **muss** eine echte Wertänderung ausgelöst werden.
+- 🪤 **Zweiter Fall von „grüne Sabotage klagt nicht die Prüfung an"** (nach der Warnkarte in v94): „Doppeltipp-Schutz weg" blieb grün. Nachgemessen (`scratchpad/diag-doppeltipp.mjs`): Der Klick-Handler läuft **mit und ohne** Riegel zweimal, das Ergebnis ist beide Male gleich — Löschen ist idempotent, und `undo()` hält ohnehin nur eine Rückgängig-Funktion. Also keine prüfbare Zusicherung. Der Riegel bleibt trotzdem (zweiter Zeitgeber, und der nächste Aufrufer ist vielleicht nicht idempotent — die Einkaufsliste hat ihn genau deshalb), aber die Sabotage wurde **entfernt statt den Test künstlich passend zu machen**.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -597,6 +609,7 @@ node test/organisation.mjs # Monatskalender (alle Quellen, Blättern), Geburtsta
 node test/push_versand.mjs # echter Push-Filter (Art, Ruhezeit, Morgen-Nachricht lautlos statt verworfen) — ohne Netz
 node test/ruhezeit.mjs   # Ruhezeit-Bereich mit nachgebildetem Push-Abo: Tippflächen inkl. ::after, Namen, Hinweis
 node test/optik.mjs      # Kopfkarte „Heute" (Tageszahl, Tageszeit-Ton, gestellte Uhr), Lichtkante der Karten in hell + dunkel
+node test/abgang.mjs     # Abgang mit Ansage: Animation läuft wirklich, Aktion folgt danach, „Weniger Bewegung" sofort, CountUp springt
 node test/fuer_andere.mjs # Putzaufgabe für jemand anderen abhaken: Gutschrift, Umbuchen ohne Doppel, Verlauf, Auswahl ab 3 Personen, Abbrechen, Kontrast der Portale (hell+dunkel)
 node test/orte.mjs       # Suche findet auch FUNKTIONEN (Alltagswörter), Weg steht dabei, Sprung klappt Gruppe auf + hebt Karte hervor, Inhaltsverzeichnis
 node test/namen.mjs      # kein Knopf nur „An"/„Aus"/„+"/„−" ohne Namen — alle Seiten, alle Gruppen unter „Mehr"
