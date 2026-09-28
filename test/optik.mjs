@@ -107,6 +107,94 @@ const farben = await C.page.locator('[data-testid="today-hello"]').evaluate(e =>
 check('D2 die Begrüßung behält die normale Textfarbe (nur die Zahl ist farbig)',
   farben.gruss !== farben.zahl && farben.gruss === farben.normal, JSON.stringify(farben));
 
+/* ── E (wg-v94): die vier Stellen aus dem Bild-Rundgang „was geht schöner" ──
+   Jede war vorher gemessen worden, jede Prüfung hält den Zustand NACH der Änderung fest. Der rote Faden:
+   ein heller Farbton auf weißem Grund ist keine Farbe. Deshalb wird überall der Hellmodus mitgeprüft. */
+const EIG = (sel, was) => document.querySelector(sel) && getComputedStyle(document.querySelector(sel))[was];
+
+// E1: Der Tageszeit-Ton war in BEIDEN Themen dieselbe helle Farbe. Prüfen, dass der Hellmodus einen eigenen hat.
+const tonDunkel = await C.page.evaluate(() => getComputedStyle(document.querySelector('.hero-tag')).getPropertyValue('--zeit-ton').trim());
+const tonHell = await hell.page.evaluate(() => getComputedStyle(document.querySelector('.hero-tag')).getPropertyValue('--zeit-ton').trim());
+check('E1 der Tageszeit-Ton ist im Hellmodus ein eigener (nicht der geerbte helle)',
+  !!tonHell && tonHell !== tonDunkel, `hell ${tonHell} · dunkel ${tonDunkel}`);
+// … und er muss dunkel genug sein, um auf Weiß überhaupt zu wirken. Ein Ton heller als die Karte färbt nichts.
+const tonWirkt = await hell.page.evaluate(() => {
+  const roh = getComputedStyle(document.querySelector('.hero-tag')).getPropertyValue('--zeit-ton');
+  const p = (roh.match(/rgba?\(([^)]+)\)/) || [])[1];
+  if (!p) return null;
+  const [r, g, b] = p.split(/[ ,/]+/).filter(Boolean).map(Number);
+  const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  return Math.round((0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)) * 1000) / 1000;
+});
+check('E2 … und dunkel genug, dass man ihn auf der weißen Karte sieht', tonWirkt !== null && tonWirkt < 0.25, `Helligkeit ${tonWirkt}`);
+
+// E3: Die Tageszahl sitzt auf einer eigenen Fläche — sie trug die Karte im Hellmodus sonst nicht.
+for (const [name, seite] of [['dunkel', C], ['hell', hell]]) {
+  const feld = await seite.page.locator('.hero-tag-num').evaluate(e => {
+    const cs = getComputedStyle(e);
+    const p = (cs.backgroundColor.match(/rgba?\(([^)]+)\)/) || [])[1];
+    const a = p ? (p.split(/[ ,/]+/).filter(Boolean).map(Number)[3] ?? 1) : 0;
+    return { deckkraft: a, rundung: parseFloat(cs.borderRadius) || 0 };
+  });
+  check(`E3 ${name}: die Tageszahl hat eine eigene, sichtbare Fläche`, feld.deckkraft > 0.05 && feld.rundung >= 8, JSON.stringify(feld));
+}
+
+// E4: Warnkarte gegen gewöhnliche Karte — vorher waren Fläche UND Rand identisch.
+for (const [name, seite] of [['dunkel', C], ['hell', hell]]) {
+  const v = await seite.page.evaluate(() => {
+    const alle = [...document.querySelectorAll('.screen .group, .screen .card')];
+    const warn = alle.find(e => e.classList.contains('warn'));
+    const normal = alle.find(e => e !== warn && !e.classList.contains('warn') && !e.classList.contains('hero-tag'));
+    if (!warn || !normal) return null;
+    const f = e => getComputedStyle(e);
+    return { randGleich: f(warn).borderColor === f(normal).borderColor,
+      flaecheGleich: f(warn).backgroundImage === f(normal).backgroundImage,
+      warnRand: f(warn).borderColor };
+  });
+  check(`E4 ${name}: die Warnkarte setzt sich ab (eigener Rand UND eigene Fläche)`,
+    v && !v.randGleich && !v.flaecheGleich, JSON.stringify(v));
+}
+
+// E5: Gruppen unter „Mehr" — vorher 31 Karten mit EINER Flächenvariante, unterschieden nur durch ein Emoji im Text.
+await C.page.locator('.tabbar .tabitem', { hasText: 'Mehr' }).first().click();
+await C.page.waitForTimeout(700);
+const gruppen = await C.page.evaluate(() => {
+  const k = [...document.querySelectorAll('.screen [data-fold] .fold-icon, .screen [data-fold].fold-icon, .screen button[data-fold] .fold-icon')];
+  const toene = new Set(k.map(e => getComputedStyle(e).backgroundColor));
+  return { felder: k.length, verschiedeneToene: toene.size };
+});
+check('E5 jede Gruppe unter „Mehr" hat ein Farbfeld, und die Töne sind verschieden',
+  gruppen.felder >= 6 && gruppen.verschiedeneToene >= 6, JSON.stringify(gruppen));
+// Auch im Hellmodus müssen es EIGENE Töne sein — geerbte helle wären auf Weiß wieder unsichtbar
+await hell.page.locator('.tabbar .tabitem', { hasText: 'Mehr' }).first().click();
+await hell.page.waitForTimeout(700);
+const akzHell = await hell.page.evaluate(() => {
+  const el = document.querySelector('.screen [data-fold="home"]');
+  return el ? getComputedStyle(el).getPropertyValue('--akz').trim() : null;
+});
+const akzDunkel = await C.page.evaluate(() => {
+  const el = document.querySelector('.screen [data-fold="home"]');
+  return el ? getComputedStyle(el).getPropertyValue('--akz').trim() : null;
+});
+check('E6 … und der Hellmodus hat eigene Akzentwerte', !!akzHell && akzHell !== akzDunkel, `hell ${akzHell} · dunkel ${akzDunkel}`);
+
+// E7: Platzhalter der Schnell-Eingabe passte auf „Haushalt" nicht ins Feld (179 px gebraucht, 128 da).
+await C.page.locator('.tabbar .tabitem', { hasText: 'Haushalt' }).first().click();
+await C.page.waitForTimeout(700);
+const ueberlauf = await C.page.evaluate(() => {
+  const raus = [];
+  for (const i of document.querySelectorAll('.screen input[placeholder]')) {
+    const s = document.createElement('span'); const cs = getComputedStyle(i);
+    s.style.cssText = `position:absolute;visibility:hidden;white-space:pre;font:${cs.font}`;
+    s.textContent = i.placeholder; document.body.appendChild(s);
+    const noetig = s.getBoundingClientRect().width; s.remove();
+    const platz = i.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    if (noetig > platz + 1) raus.push({ text: i.placeholder, noetig: Math.round(noetig), platz: Math.round(platz) });
+  }
+  return raus;
+});
+check('E7 kein Platzhalter wird abgeschnitten (auch wenn der Knopf daneben lang ist)', ueberlauf.length === 0, JSON.stringify(ueberlauf));
+
 const alleErrs = [...A.errs, ...C.errs, ...hell.errs].filter(e => !/ResizeObserver/.test(e));
 check('Z1 keine Seitenfehler', alleErrs.length === 0, alleErrs.slice(0, 2).join(' | '));
 

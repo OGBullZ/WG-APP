@@ -14,6 +14,27 @@ const proben = [
   ['Schimmer liegt über dem Inhalt', 'background:radial-gradient(120% 100% at 0% 0%, var(--zeit-ton), transparent 62%);', 'background:radial-gradient(120% 100% at 0% 0%, var(--zeit-ton), transparent 62%); pointer-events:auto; z-index:5;'],
   ['Begrüßung in der Tageszeit-Farbe', "<div style={{fontSize:20,fontWeight:800,letterSpacing:'-.02em'}}>{hello}", "<div style={{fontSize:20,fontWeight:800,letterSpacing:'-.02em',color:'var(--zeit-farbe)'}}>{hello}"],
   ['WG-Name fehlt in der Kopfkarte', '{wgInfo && <div style={{fontSize:12.5,color:\'var(--label3)\',marginTop:3}}>{wgInfo.em||\'🏠\'} {wgInfo.name}</div>}', ''],
+  // ── wg-v94: jeder der vier neuen Eingriffe einzeln zurückgedreht ──
+  ['Tageszeit-Ton im Hellmodus wieder der geerbte helle (alter Zustand)',
+    '[data-theme="light"] .hero-tag[data-zeit="tag"]    { --zeit-ton:rgba(15,118,110,.15); }', ''],
+  ['Ton im Hellmodus gesetzt, aber zu hell zum Sehen',
+    '[data-theme="light"] .hero-tag[data-zeit="tag"]    { --zeit-ton:rgba(15,118,110,.15); }',
+    '[data-theme="light"] .hero-tag[data-zeit="tag"]    { --zeit-ton:rgba(214,252,247,.15); }'],
+  ['Tageszahl wieder ohne eigene Fläche',
+    '  padding:12px 10px; border-radius:16px; background:var(--zeit-ton);', ''],
+  ['Warnkarte sieht wieder aus wie jede Karte',
+    '.group.warn { border-color:rgba(251,191,36,.34); background:linear-gradient(160deg, rgba(251,191,36,.10), rgba(251,191,36,.035)); }', ''],
+  /* Hier stand einmal „Warnkarte nur im Dunkeln abgesetzt, im Hellmodus nicht" — die Sabotage entfernte einen
+     Hellmodus-Override. Sie blieb GRÜN, und das Nachsehen zeigte den Grund: der Override war selbst der Fehler
+     (stumpfes Braun statt warmem Creme). Also wurde nicht der Test verschärft, sondern der Code zurückgenommen.
+     Merksatz: Bleibt eine Sabotage grün, ist die erste Frage nicht „wie prüfe ich schärfer", sondern
+     „richtet sie überhaupt Schaden an". */
+  ['Gruppen unter „Mehr" wieder ohne Farbfeld', '{icon && <span className="fold-icon" aria-hidden="true">{icon}</span>}', '{icon}'],
+  ['Farbfelder da, aber alle im selben Ton', '  background:rgba(var(--akz, 148,163,184), .16);', '  background:rgba(148,163,184, .16);'],
+  ['Akzente im Hellmodus wieder die geerbten hellen',
+    '[data-theme="light"] [data-fold="home"]   { --akz:154,74,6; }', ''],
+  ['Schnell-Feld wieder ohne Mindestbreite (Platzhalter abgeschnitten)',
+    "style={{flex:'1 1 190px'}}", 'style={{flex:1}}'],
 ];
 const orig = readFileSync(F, 'utf8');
 let alleRot = true;

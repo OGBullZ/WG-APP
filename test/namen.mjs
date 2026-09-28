@@ -53,10 +53,13 @@ let pushSchalter = 0, gruppenFehlen = [];
 for (let i = 0; i < tabs.length; i++) {
   await page.locator('.tabbar .tabitem').nth(i).click(); await page.waitForTimeout(700);
   if (i === tabs.length - 1) {
-    // Gruppen exakt nach Titel mit Symbol öffnen — „Benachrichtigungen" allein steht auch in Knöpfen anderer Gruppen
-    for (const titel of ['🔗 WG-Code', '🎨 Ansicht', '💾 Daten', '🏠 Wohnung', '👥 Personen', '🔔 Benachrichtigungen']) {
-      try { await page.locator('button:visible').filter({ hasText: titel }).first().click({ timeout: 1500 }); await page.waitForTimeout(300); }
-      catch { gruppenFehlen.push(titel); }
+    /* Über `data-fold` öffnen, nicht über den Titeltext: Die Titel wurden früher mit Symbol gesucht
+       („🔔 Benachrichtigungen"), weil das Wort allein auch in Knöpfen anderer Gruppen steht. Seit wg-v94
+       sitzt das Symbol in einem eigenen Element — der Suchtext mit Leerzeichen traf danach nichts mehr,
+       und N0 wurde laut. Die Gruppen-id ist der stabile Anker; sie ändert sich nicht mit der Optik. */
+    for (const id of ['wg', 'look', 'data', 'home', 'people', 'push']) {
+      try { await page.locator(`[data-fold="${id}"] > button:visible`).first().click({ timeout: 1500 }); await page.waitForTimeout(300); }
+      catch { gruppenFehlen.push(id); }
     }
     pushSchalter = await page.locator('[data-testid^="push-pref-"]:visible').count();
   }

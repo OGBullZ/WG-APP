@@ -391,6 +391,45 @@ button.cell { color:var(--label); }
 .section-hdr button, .section-hdr a { font-family:var(--mono) !important; font-size:12px !important; font-weight:800 !important; letter-spacing:.02em !important; text-transform:none !important; background:none; border:none; cursor:pointer; white-space:nowrap; }
 .section-ftr { font-size:12.5px; color:var(--label3); padding:9px 2px 0; line-height:1.5; }
 
+/* ── Gruppen unter „Mehr" (wg-v94) ──
+   Gemessen: 31 Gruppenkarten, EINE einzige Flächenvariante — sieben gleich große weiße bzw. graue Kästen
+   untereinander, unterschieden nur durch ein Emoji mitten im Fließtext. Zum Wiederfinden taugt das nicht,
+   und schön ist es auch nicht. Jetzt steht das Emoji in einem farbig getönten Feld, und jede Gruppe hat
+   ihren eigenen Ton — das Auge merkt sich die Farbe, nicht die Position.
+   Die Töne sind je Thema eigen: helle Farben auf Weiß wären wieder unsichtbar (siehe Kopfkarte). */
+.fold-icon {
+  width:36px; height:36px; border-radius:12px; flex-shrink:0;
+  display:inline-flex; align-items:center; justify-content:center; font-size:18px; line-height:1;
+  background:rgba(var(--akz, 148,163,184), .16);
+  box-shadow:inset 0 0 0 1px rgba(var(--akz, 148,163,184), .24);
+}
+[data-fold="wg"]     { --akz:56,189,248; }
+[data-fold="look"]   { --akz:196,181,253; }
+[data-fold="data"]   { --akz:94,234,212; }
+[data-fold="home"]   { --akz:251,191,36; }
+[data-fold="people"] { --akz:129,140,248; }
+[data-fold="push"]   { --akz:74,222,128; }
+[data-fold="index"]  { --akz:251,113,133; }
+[data-theme="light"] [data-fold="wg"]     { --akz:3,105,161; }
+[data-theme="light"] [data-fold="look"]   { --akz:109,40,217; }
+[data-theme="light"] [data-fold="data"]   { --akz:15,118,110; }
+[data-theme="light"] [data-fold="home"]   { --akz:154,74,6; }
+[data-theme="light"] [data-fold="people"] { --akz:67,56,202; }
+[data-theme="light"] [data-fold="push"]   { --akz:22,101,52; }
+[data-theme="light"] [data-fold="index"]  { --akz:190,18,60; }
+
+/* ── Warnkarte (wg-v94) ──
+   Die Push-Warnung sah aus wie jede Infokarte: gleiche Fläche, gleicher Rand (nachgemessen, identisch).
+   Sie steht gleich unter der Kopfkarte und ist die einzige Karte, die etwas VON DIR will — also bekommt
+   sie einen eigenen Ton statt nur eines Glocken-Emojis. Bewusst Amber und nicht Rot: es ist ein Hinweis,
+   kein Fehler.
+   🪤 Hier gilt die „Hellmodus braucht eigene dunkle Werte"-Regel AUSDRÜCKLICH NICHT. Ich hatte sie reflexhaft
+   angewandt (rgba(154,74,6,…)) — im Bild wurde die Karte davon stumpf-bräunlich. Der helle Amber-Ton ergibt
+   auf Weiß ein warmes Creme und liest sich viel klarer als Hinweis. Die Regel gilt für SCHRIFT und für feine
+   Verläufe, die sich weglöschen; eine flächige Tönung darf hell sein. Gefunden hat das die Gegenprobe:
+   „Hellmodus-Override weg" blieb grün — und der Blick aufs Bild zeigte, dass die Fassung ohne ihn besser ist. */
+.group.warn { border-color:rgba(251,191,36,.34); background:linear-gradient(160deg, rgba(251,191,36,.10), rgba(251,191,36,.035)); }
+
 /* ── Kopfkarte „Heute" (wg-v92) ── */
 .hero-tag {
   display:flex; align-items:center; gap:15px; padding:17px 18px;
@@ -415,8 +454,19 @@ button.cell { color:var(--label); }
   font-family:var(--mono); font-size:42px; font-weight:800; line-height:.9;
   font-variant-numeric:tabular-nums; letter-spacing:-.04em;
   color:var(--zeit-farbe); flex-shrink:0; min-width:56px; text-align:center;
+  /* wg-v94: eigene Fläche statt frei stehender Zahl. Im Dunkeln trug die Zahl die Karte allein, weil sie
+     gegen Schwarz leuchtet (14,2 : 1) — im Hellmodus kam sie auf 3,84 und die Karte war die blasseste der
+     Seite. Das Feld verankert sie in beiden Themen und nimmt den Tageszeit-Ton mit auf. */
+  padding:12px 10px; border-radius:16px; background:var(--zeit-ton);
 }
-[data-theme="light"] .hero-tag::before { opacity:.8; }
+/* 🪤 wg-v94: Der Schimmer war in BEIDEN Themen dieselbe helle Farbe — auf Weiß praktisch unsichtbar
+   (gemessen: die Kopfkarte hob sich im Hellmodus mit 1,05 vom Hintergrund ab, der Ton trug nichts bei).
+   Genau die Falle, die `--kante` in v92 schon hatte: die Zahlfarbe kam aus den Themenvariablen, der TON
+   aber aus festen Werten. Halbe Arbeit an derselben Karte. Jetzt hat der Hellmodus eigene, dunkle Töne. */
+[data-theme="light"] .hero-tag::before { opacity:.9; }
+[data-theme="light"] .hero-tag[data-zeit="morgen"] { --zeit-ton:rgba(154,74,6,.16); }
+[data-theme="light"] .hero-tag[data-zeit="tag"]    { --zeit-ton:rgba(15,118,110,.15); }
+[data-theme="light"] .hero-tag[data-zeit="abend"]  { --zeit-ton:rgba(67,56,202,.15); }
 
 /* ── Hero card ── */
 .hero {
@@ -3683,7 +3733,7 @@ function PushNudge({ goTab }) {
   const jump = () => { ss('wg_fold_push', true); PUSH_JUMP = true; goTab('set'); };
   const snooze = () => { ss(PUSH_NUDGE_KEY, { until: Date.now() + 7*864e5 }); setLater(true); };
   return (
-    <div className="group rise" data-testid="push-nudge">
+    <div className="group rise warn" data-testid="push-nudge">
       {own && (
         <div className="cell" data-testid="push-nudge-own" style={{gap:10,flexWrap:'wrap'}}>
           <span style={{fontSize:20}}>🔔</span>
@@ -5183,6 +5233,9 @@ function WhoAmI() {
 
 /* Aufklappbare Gruppe (Mehr): Zustand je Gerät; `alert` = roter Punkt + automatisch offen (Backup-/Fehler-Warnung).
    Inhalt bleibt gerendert (nur versteckt), damit Zustände darin (z. B. Push-Abfrage) nicht bei jedem Aufklappen neu starten. */
+/* Führendes Emoji eines Gruppentitels („🏠 Wohnung") — es soll in ein eigenes Farbfeld statt in den Fließtext.
+   `Extended_Pictographic` erwischt auch Zeichenfolgen mit Variantenwähler (️) und Verbinder (‍). */
+const EMOJI_VORN = /^(\p{Extended_Pictographic}[️‍\p{Extended_Pictographic}]*)\s+([\s\S]+)$/u;
 function Fold({ id, title, sub, alert, children }) {
   const [open,setOpen] = useState(()=>!!ls('wg_fold_'+id, false));
   const [dismissed,setDismissed] = useState(false);   // Warnung gesehen und bewusst zugeklappt
@@ -5194,12 +5247,16 @@ function Fold({ id, title, sub, alert, children }) {
   }, [id]);
   const shown = open || (!!alert && !dismissed);
   const toggle = () => { const v = !shown; if (!v && alert) setDismissed(true); if (v) setDismissed(false); setOpen(v); ss('wg_fold_'+id, v); };
+  // Emoji abtrennen, falls der Titel eins voranstellt — ohne Emoji bleibt der Titel unverändert
+  const teile = typeof title === 'string' ? title.match(EMOJI_VORN) : null;
+  const icon = teile ? teile[1] : null, titelText = teile ? teile[2] : title;
   return (
     <div className="rise" data-fold={id}>
       <button className="group fold-hdr" aria-expanded={shown} onClick={toggle}
-        style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'14px 16px',textAlign:'left',fontFamily:'inherit',cursor:'pointer',color:'var(--label)'}}>
+        style={{width:'100%',display:'flex',alignItems:'center',gap:12,padding:'14px 16px',textAlign:'left',fontFamily:'inherit',cursor:'pointer',color:'var(--label)'}}>
+        {icon && <span className="fold-icon" aria-hidden="true">{icon}</span>}
         <span style={{flex:1,minWidth:0}}>
-          <span style={{display:'block',fontSize:15,fontWeight:800}}>{title}{alert && <span className="fold-dot" aria-label={TT("Hinweis")} style={{display:'inline-block',width:8,height:8,borderRadius:4,background:'var(--red)',marginLeft:8,verticalAlign:'middle'}}/>}</span>
+          <span style={{display:'block',fontSize:15,fontWeight:800}}>{titelText}{alert && <span className="fold-dot" aria-label={TT("Hinweis")} style={{display:'inline-block',width:8,height:8,borderRadius:4,background:'var(--red)',marginLeft:8,verticalAlign:'middle'}}/>}</span>
           {sub && <span style={{display:'block',fontSize:12.5,color:'var(--label2)',marginTop:2}}>{sub}</span>}
         </span>
         <span aria-hidden="true" style={{color:'var(--label2)',fontSize:18,transform:shown?'rotate(90deg)':'none',transition:'transform .2s'}}>›</span>
@@ -5374,8 +5431,11 @@ function QuickExpense({ onFull }) {
   };
   return (
     <form className={`rise${ok?' ok-flash':''}`} data-testid="quick-expense" onSubmit={e=>{e.preventDefault();save();}} style={{display:'flex',flexDirection:'column',gap:6}}>
-      <div style={{display:'flex',gap:8}}>
-        <input className="field" maxLength={80} placeholder={TT("⚡ Schnell: „12,50 Pizza“")} aria-label={TT("Ausgabe in einem Satz")} value={txt} onChange={e=>setTxt(e.target.value)} style={{flex:1}}/>
+      {/* wg-v94: Auf „Haushalt" heißt der Knopf „+ Ausgabe hinzufügen" und drückte das Feld auf 128 px —
+          der Platzhalter braucht 179 px und wurde mitten im Wort abgeschnitten. Mit einer Mindestbreite
+          rutscht der Knopf dann selbst in die nächste Zeile; auf „Heute" („Eintragen") bleibt alles wie bisher. */}
+      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+        <input className="field" maxLength={80} placeholder={TT("⚡ Schnell: „12,50 Pizza“")} aria-label={TT("Ausgabe in einem Satz")} value={txt} onChange={e=>setTxt(e.target.value)} style={{flex:'1 1 190px'}}/>
         <button type="submit" className="btn" style={{width:'auto',padding:'0 14px',flexShrink:0,background:(q||onFull)?'var(--mint)':'var(--bg3)',color:(q||onFull)?'var(--ink)':'var(--label2)'}}>{q || !onFull ? TT("Eintragen") : TT("+ Ausgabe hinzufügen")}</button>
       </div>
       {voice && txt.trim() && <div data-testid="quick-voice" style={{fontSize:12.5,color:'var(--amber)',fontWeight:700,padding:'0 4px'}}>{quelle === 'teilen' ? TT("📥 Aus dem Teilen übernommen – prüfen und „Eintragen“ tippen") : TT("🎙️ Per Sprache übernommen – prüfen und „Eintragen“ tippen")}</div>}
@@ -8533,10 +8593,11 @@ function Einstellungen() {
 
         {/* Einstieg ins Inhaltsverzeichnis (wg-v91): „Mehr" ist der Ort, an dem man landet, wenn man etwas nicht
             findet — hier gehört der Weg hin, der alles zeigt. Öffnet die Suche direkt im Bereich „Funktionen". */}
-        <button type="button" className="group rise" data-testid="was-kann-die-app"
+        <button type="button" className="group rise" data-testid="was-kann-die-app" data-fold="index"
           onClick={()=>window.dispatchEvent(new CustomEvent('wg-suche', { detail: { bereich: 'ort' } }))}
           style={{width:'100%',display:'flex',alignItems:'center',gap:12,padding:'14px 16px',textAlign:'left',fontFamily:'inherit',cursor:'pointer',color:'var(--label)',border:'none'}}>
-          <span style={{fontSize:19,lineHeight:1}}>🧭</span>
+          {/* dasselbe Farbfeld wie die Gruppen darunter (wg-v94) — sonst ist ausgerechnet die erste Karte die einzige ohne */}
+          <span className="fold-icon" aria-hidden="true">🧭</span>
           <span style={{flex:1,minWidth:0}}>
             <span style={{display:'block',fontSize:15,fontWeight:800}}>{TT("Was kann die App?")}</span>
             <span style={{display:'block',fontSize:12.5,color:'var(--label2)',marginTop:2}}>{TT("Alle Funktionen auf einen Blick — tippen führt direkt hin")}</span>

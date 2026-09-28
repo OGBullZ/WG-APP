@@ -1,0 +1,1672 @@
+
+> wg-app@1.0.0 ship
+> node scripts/ship.mjs feat(putzplan): fuer jemand anderen abhaken - die Gutschrift ging immer an den Tippenden
+
+▶ 0/6 CSP-Hashes …
+✓ CSP-Hashes unverändert
+▶ 1/6 Test-Gate …
+   • test/split.mjs
+=== PASS ===
+Wizard hat 3 Schritte (statt 4)
+Datum ist eingeklappt (Heute-Toggle)
+Letzter Schritt zeigt Zusammenfassung Name+Preis
+Posten zeigt "Tom zahlt alles"
+Hero zeigt "Gemischter Split"
+Schuld = €20,00 (voller Betrag, nicht 10)
+50/50-Posten zeigt "je €4,00"
+
+=== FAIL ===
+(none)
+
+=== CONSOLE ERRORS ===
+(none)
+
+--- Banner-Auszug ---
+Tom | Torben | € | 16,00 | 16,07
+   • test/persist.mjs
+code1=FERN-LICHT-P6MT8T code2=FERN-LICHT-P6MT8T code3=FERN-LICHT-P6MT8T
+=== PASS ===
+Erststart persistiert wg_code sofort in localStorage
+Code überlebt Neustart (identisch)
+Neue Page im Context zeigt denselben Code
+
+=== FAIL ===
+(none)
+
+=== CONSOLE ERRORS ===
+Failed to load resource: net::ERR_FAILED
+Failed to load resource: net::ERR_FAILED
+Failed to load resource: net::ERR_FAILED
+Failed to load resource: net::ERR_FAILED
+   • test/paybtn.mjs
+TOM: {"txt":"Tom\nTorben\n€\n24,00\n24,00 || €24,00 an Torben per PayPal","href":"https://paypal.me/TorbenSteen/24.00EUR"}
+TORBEN: {"txt":"Tom\nTorben\n€\n24,00\n24,00 || Zahlungslink an Tom teilen","href":null}
+NOPP: {"txt":"Tom\nTorben\n€\n24,00\n24,00 || Per Klick zahlen geht, sobald Torben unter Mehr → Personen PayPal oder eine IBAN hinterlegt.","href":null}
+
+=== PASS ===
+Tom sieht Bezahl-Button "an Torben per PayPal"
+Link = paypal.me/TorbenSteen/24.00EUR
+Torben sieht "Zahlungslink an Tom teilen"
+Torben sieht KEINEN paypal.me-Bezahllink
+Ohne PayPal-Name: Hinweis sichtbar
+
+=== FAIL ===
+(none)
+   • test/archive.mjs
+oldDate=2026-04-01 oldYm=2026-04 shownYm="April 2026" heroLabel="15,00" archiveCount-sub="3 Posten älter als 3 Monate"
+=== PASS ===
+Kandidaten-Zähler zeigt 3 Posten älter als 3 Monate
+Bestätigungsdialog "Archivieren?" erscheint
+Aktive Haushalt-Liste enthält weiterhin das frische Item
+Aktive Haushalt-Liste hat die 2 alten Items NICHT mehr
+arc hat 3 Einträge
+Aktive stl-Liste hat den alten Abrechnungs-Eintrag NICHT mehr
+Monatswähler steht im alten Monat (5 Monate zurück)
+Hero-Total im alten Monat zeigt die archivierten 15,00 €
+
+=== FAIL ===
+(none)
+
+=== CONSOLE ERRORS ===
+(none)
+   • test/privat.mjs
+PASS:
+  ✓ 1 Tab "Privat" sichtbar (Migration schlägt gespeichertes fin:false)
+  ✓ 1b Migration persistiert fin:true in wg_modules (überlebt Neustart)
+  ✓ 2 Sperrbildschirm mit PIN-Pad
+  ✓ 2b Titel "PIN festlegen"
+  ✓ 2c Buchungen NICHT sichtbar solange gesperrt
+  ✓ 3 Nach 1. Eingabe: Wiederholung verlangt
+  ✓ 4 Abweichende Wiederholung wird abgelehnt
+  ✓ 5 Nach PIN-Anlage entsperrt (Monatsübersicht da)
+  ✓ 5b Hinweis "nur auf diesem Gerät"
+  ✓ 5c NBar-Pille LOKAL
+  ✓ 6 Fixkosten "Miete" angelegt
+  ✓ 6b Fälligkeitstag angezeigt
+  ✓ 7 Einnahme exakt in Monatsbilanz (1.450,00 statt 1,4K)
+  ✓ 7b Fixkosten/Mo. korrekt
+  ✓ 7c "bleibt" = 1450-480,50 = 969,50
+  ✓ 8 wg_priv enthält Miete + Gehalt
+  ✓ 8b wg_data (gesynct) enthält KEINE privaten Daten
+  ✓ 8c PIN nur als Hash+Salt gespeichert (kein Klartext "1234")
+  ✓ 9 Sperren schließt den Bereich wieder ab
+  ✓ 10 Falsche PIN abgewiesen
+  ✓ 10b Richtige PIN entsperrt
+  ✓ 11 Nach Reload wieder gesperrt
+  ✓ 11b Kein erneutes Anlegen, sondern Abfrage
+  ✓ 11c Daten nach Reload erhalten
+
+24/24 bestanden
+   • test/grow.mjs
+  OK  1 Kopfzeile zählt den Zyklus-Tag (Tag 40)
+  OK  1b Kopfzeile trägt das Phasen-Emoji
+  OK  2 vier Phasen-Chips
+  OK  2b Vegetativ ist aktiv markiert
+  OK  2c aktiver Chip ist als gedrückt annotiert (a11y)
+  OK  3 Fortschritt nennt Tag in der Phase
+  OK  3b typische Dauer sichtbar
+  OK  3c Überschreitung wird beziffert + nächste Phase vorgeschlagen
+  OK  3d Balken kappt bei 100 % statt überzulaufen
+  OK  4 Gieß-Zeile meldet 2 Tage überfällig
+  OK  4b Untertitel nennt Abstand, Person, Intervall und Zähler
+  OK  5 lastW steht auf heute
+  OK  5b lastWBy ist das eigene Gerät (u1)
+  OK  5c Gieß-Zähler hochgezählt (7 → 8)
+  OK  6 Anzeige springt auf „Gießen in 3 Tagen"
+  OK  6b Untertitel sagt „Zuletzt heute"
+  OK  7 Phase gewechselt auf blu
+  OK  7b pAt neu gesetzt (Phasen-Uhr startet heute)
+  OK  7c Zyklus-Start unverändert
+  OK  8 Fortschritt zeigt Tag 1 der Blüte (typisch 63)
+  OK  8b kein „drüber"-Hinweis mehr
+  OK  9 Trocknung blendet den Gieß-Block aus
+  OK  9b Hinweis erklärt warum
+  OK  10 Ernte gespeichert
+  OK  10b Zyklus auf das Ernte-Datum beendet
+  OK  10c Ernte ist mit dem Zyklus verknüpft
+  OK  11 ohne offenen Zyklus erscheint der Start-Button
+  OK  11b Zyklus-Karte ist weg
+  OK  11c gelöschte Ernte öffnet den Zyklus wieder
+  OK  11d Zyklus behält Phase und Startdatum
+  OK  11e Zyklus-Karte ist wieder da
+  OK  11f Rückgängig holt die Ernte zurück
+  OK  11g Rückgängig beendet den Zyklus wieder
+  OK  12 Intervall-Stepper startet beim Standard 3
+  OK  13 neuer Zyklus angelegt
+  OK  13b Phase aus dem Wizard übernommen
+  OK  13c Intervall 5 aus dem Stepper übernommen
+  OK  13d frisch = noch nicht gegossen
+  OK  14 alter Zyklus bleibt als beendeter Eintrag erhalten
+  OK  15 Anzeige nennt „Noch nicht gegossen"
+  OK  15b nie gegossen zeigt keine absurde Überfällig-Zahl
+  OK  15c Phasen-Überschreitung wird trotzdem beziffert
+  OK  16 leerer Grow-Tab zeigt den Start-Button statt einer leeren Karte
+  OK  16b Grow-Tab rendert trotzdem den Split-Hero
+  OK  17 keine Konsolen-/Seitenfehler
+
+45 ok, 0 fehlgeschlagen
+   • test/cron_grow.mjs
+  OK  1 kein Push wenn gestern gegossen (iv 3)
+  OK  2 kein Push am Tag vor der Fälligkeit
+  OK  3 Push genau bei Fälligkeit
+  OK  3b Fälligkeits-Text nennt den Abstand
+  OK  4 überfällig zählt die Tage
+  OK  5 Singular bei 1 Tag
+  OK  6 gestern-Formulierung wenn iv=1
+  OK  7 nie gegossen: sagt, dass nichts eingetragen ist
+  OK  7b nie gegossen: keine Überfällig-Tageszahl
+  OK  8 frisch gestartet, nie gegossen → kein Push
+  OK  9 Trocknung pusht kein Gießen
+  OK  10 beendeter Zyklus schweigt
+  OK  11 kein Zyklus → keine Nachricht
+  OK  12 gz als Array (Alt-Format) wird verstanden
+  OK  13 vor Ablauf der Phase kein Hinweis
+  OK  14 Hinweis am Tag danach
+  OK  15 Hinweis genau einmal, danach still
+  OK  16 letzte gießende Phase verweist aufs Ernten … 
+  OK  17 Trocknung durch → „Zeit zu ernten?"
+  OK  18 Gießen + Phase ergeben 2 Nachrichten
+  OK  19 Tags sind unterschiedlich
+  OK  20 Gieß-Tag ist stabil je Zyklus (ersetzt die Vortags-Meldung)
+  OK  21 unbekannte Phase fällt auf Keimung zurück (kein Crash)
+  OK  22 wiv 0 fällt auf den Standard 3 zurück
+  OK  22b negatives wiv wird auf 1 gehoben statt täglich zu spammen
+  OK  23 Zyklus ohne start wird ignoriert
+
+26 ok, 0 fehlgeschlagen
+   • test/cron_duel.mjs
+  OK  1 Punkte nur Mo–So der Vorwoche, Fallbacks wie in der App — 👑 Tom gewinnt die Woche — Torben 4 : 5 Tom. Neue Woche, neues Glück!
+  OK  2 Sieger mit Krone
+  OK  3 Tag enthält den Wochenbeginn (einmal je Woche) — duel-2026-09-14
+  OK  4 Gleichstand → Unentschieden, keine Krone — 🤝 Unentschieden — Torben 2 : 2 Tom. Neue Woche, neues Glück!
+  OK  5 niemand hat etwas getan → keine Push
+  OK  6 nur eine Person → keine Push
+  OK  7 Mittwoch → ebenfalls Vorwoche 14.–20.09. — 👑 Torben gewinnt die Woche — Torben 3 : 0 Tom. Neue Woche, neues Glück!
+  OK  8 Handler ruft weekDuel nur montags auf
+  OK  9 Push-Typ „game" (Standard an, abschaltbar)
+
+9 ok, 0 fehlgeschlagen
+   • test/privquota.mjs
+  OK  1 Bereich ist trotz Schreibfehler bedienbar
+  OK  2 vor der ersten Änderung KEINE Warnung
+  OK  3 Fehlgeschlagenes Speichern wird gemeldet
+  OK  3b Meldung nennt die Ursache
+  OK  3c Meldung sagt, was zu tun ist (Sichern)
+  OK  4 Warnung ist nicht wegklickbar (kein Schließen-Knopf)
+  OK  5 wirklich nichts geschrieben (Annahme des Tests gilt)
+  OK  6 Normalfall: keine Warnung
+  OK  6b Normalfall: Buchung liegt im Speicher
+  OK  7 keine Konsolen-/Seitenfehler
+
+10 ok, 0 fehlgeschlagen
+   • test/sync.mjs
+  OK  A1 Erst-Read läuft noch (Aufbau stimmt)
+  OK  A2 Server hatte den Eintrag beim Antworten nicht
+  OK  A3 Eingabe überlebt den Erst-Read
+  OK  A4 Eingabe steht in der UI
+  OK  A5 Fremd-Eintrag vom Server kam dazu
+  OK  A6 Eingabe ist beim Server angekommen
+  OK  B1 Flush hat den Eintrag rausgeschickt
+  OK  B2 Eingabe überlebt auch hier
+  OK  B3 Fremd-Eintrag ist da
+  OK  C1 Server-Stand gewinnt beim normalen Start
+  OK  C2 veralteter lokaler Posten ist weg (kein Wiederauferstehen)
+  OK  C3 nichts Lokales an den Server zurückgeschrieben
+  OK  D1 „WG übernehmen" bringt den fremden Stand
+  OK  D2 alter lokaler Stand ist verworfen
+  OK  D3 auch die Eingabe während des Beitritts ist verworfen
+  OK  E1 beide Server-Posten sind da
+  OK  E2 Posten ist lokal gelöscht
+  OK  E3 gelöschter Posten bleibt gelöscht (kein Zombie)
+  OK  E4 UI zeigt ihn auch nicht wieder
+  OK  E5 Löschung ist beim Server angekommen
+  OK  E6 lokal weiterhin nur ein Posten
+  OK  G1 während des eigenen Writes wird die Fremd-Änderung zurückgehalten
+  OK  G2 die eigene Eingabe steht unverändert da
+  OK  G3 Fremd-Änderung kommt nach der Bestätigung an
+  OK  G4 eigene Eingabe ist weiterhin da
+  OK  G5 Server hat beides
+  OK  H1 jeder LIST_KEY ist ein Sync-Key
+  OK  H2 Ankündigung vom Server kommt beim Start an
+  OK  H3 Fremd-Ankündigung wird live übernommen
+  OK  H4a Ankündigung ist in der UI sichtbar (×-Knopf da)
+  OK  H4 gelöschte Ankündigung ist auch beim Server weg
+  OK  F keine Konsolen-/Seitenfehler
+  OK  Z1 setD_ nur noch in commitD (keine Updater mit Nebenwirkungen)
+
+33 ok, 0 fehlgeschlagen
+   • test/logins.mjs
+  OK  A0 Button „Code erzeugen" ist ohne Eingaben gesperrt
+  OK  A1 Code hat das Format XXXX-XXXX ohne Verwechsel-Zeichen
+  OK  A2 genau eine Freigabe beim Server
+  OK  A3 Freigabe hat Chiffretext + Salt + IV, Dienst im Klartext
+  OK  A4 Ablauf ≈ 24 Std, Sichtdauer 5 Min, Ersteller u1
+  OK  A5 kein Klartext-Login beim Server (Stand + alle Writes)
+  OK  A6 kein Klartext-Login im gesyncten Datensatz (wg_data)
+  OK  A7 Einmal-Code wird nirgends gespeichert (Server, Writes, localStorage)
+  OK  A8 Login auf dem Ersteller-Gerät gemerkt (lokal, wg_lg)
+  OK  A9 Push an Tom enthält den Code
+  OK  A9b Einmal-Code auch nach dem Push-Versand nirgends gespeichert (Verlauf, Server, Writes)
+  OK  A10 Karte zeigt „wartet auf Tom"
+  OK  B1 Empfänger sieht die Freigabe von Torben
+  OK  B2 falscher Code → „Code stimmt nicht"
+  OK  B3 nach falschem Code bleibt die Freigabe unangetastet
+  OK  B4 Eingabe wird normalisiert (Großbuchstaben + Bindestrich)
+  OK  B5 Login-Name sichtbar
+  OK  B6 Passwort zunächst verdeckt
+  OK  B7 Passwort nach Tipp auf 👁 lesbar
+  OK  B8 „Kopieren" legt das Passwort in die Zwischenablage
+  OK  B9 beim Server nur noch ein Grabstein (kein Chiffretext mehr)
+  OK  B10 Ersteller bekommt „geöffnet"-Push
+  OK  B11 sichtbarer Login lokal mit Ablauf ≈ 5 Min
+  OK  B12 Karte zeigt „noch … sichtbar" statt „Code eingeben"
+  OK  B13 nach Neustart: Login bleibt bis Ablauf erreichbar
+  OK  B14 nach Neustart: kein erneutes Einlösen angeboten
+  OK  B15 kurz vor Ablauf noch sichtbar
+  OK  B16 nach Ablauf aus der UI verschwunden
+  OK  B17 nach Ablauf lokal gelöscht (wg_lg_view)
+  OK  B18 Klartext nirgends mehr im localStorage
+  OK  C1 Ersteller sieht „Tom hat ihn … geöffnet"
+  OK  C2 Chip füllt gemerkten Login ein
+  OK  C3 zweite Freigabe beim Server
+  OK  C4 zurückgezogene Freigabe ist beim Server weg
+  OK  C5 abgelaufene Freigabe wird nicht angeboten
+  OK  C6 abgelaufene Freigabe beim Server entfernt
+  OK  K1 richtiger Code entschlüsselt
+  OK  K2 falscher Code → null
+  OK  K3 Chiffretext unter fremder ID → null (AAD)
+  OK  K4 Codes nutzen alle 31 Zeichen
+  OK  F keine Konsolen-/Seitenfehler
+
+41 ok, 0 fehlgeschlagen
+   • test/selfhost.mjs
+  OK  1 App startet (Babel aus vendor/)
+  OK  1 Font „Hanken Grotesk" geladen — Hanken Grotesk, Spline Sans Mono, Unbounded
+  OK  1 Font „Unbounded" geladen — Hanken Grotesk, Spline Sans Mono, Unbounded
+  OK  1 Font „Spline Sans Mono" geladen — Hanken Grotesk, Spline Sans Mono, Unbounded
+  OK  1 Body-Text nutzt Hanken Grotesk
+  OK  2 Babel liegt im SW-Cache
+  OK  2 React + ReactDOM liegen im SW-Cache
+  OK  2 Firebase-SDK (app + database) liegt im SW-Cache
+  OK  2 alle 6 Font-Dateien liegen im SW-Cache — 6
+  OK  3 Zweitstart online
+  OK  4 Offline-Start mit Neu-Übersetzung klappt
+  OK  4 Fonts auch offline geladen — Hanken Grotesk, Spline Sans Mono, Unbounded
+  OK  5 Gegenprobe: ohne Babel im Cache startet sie offline NICHT (Test merkt es)
+  OK  6 keine Anfrage an unpkg / Google Fonts / gstatic
+  OK  7 keine Seiten-/Konsolenfehler
+
+15 ok, 0 fehlgeschlagen
+   • test/startflow.mjs
+  OK  0 vor dem Timer: noch kein Fenster offen — []
+  OK  1 Assistent offen, Startfenster wartet (genau ein Fenster) — ["AUSGABE Abbrechen Was wurde gekauft? 🛒 "]
+  OK  1b Knopf „Weiter" im Assistenten liegt oben (nichts verdeckt ihn)
+  OK  2 nach dem Schließen erscheint das Startfenster (Hinweis geht nicht verloren) — ["🔔 BENACHRICHTIGUNGEN Erlaube Benachrich"]
+  OK  3 keine Seitenfehler
+
+5 ok, 0 fehlgeschlagen
+   • test/backup_api.mjs
+  OK  1a Cron ohne Secret → 401
+  OK  1b Cron legt Tages-Snapshot an — {"due":0,"abos":0,"settleReminder":0,"digest":0,"budWarns":0,"grow":0,"duel":0,"repairs":0,"year":0,"meter":0,"fridge":0,"checkin":0,"maint":0,"loan":0,"rent":0,"geb":0,"sent":0,"backup":"ok","pruned":0}
+  OK  1c Snapshot enthält die Daten (hs, users)
+  OK  1d Snapshot OHNE Push-Schlüssel, Login-Freigaben, Fehlerprotokoll
+  OK  1e zweiter Lauf am selben Tag überschreibt nicht — {"due":0,"abos":0,"settleReminder":0,"digest":0,"budWarns":0,"grow":0,"duel":0,"repairs":0,"year":0,"meter":0,"fridge":0,"checkin":0,"maint":0,"loan":0,"rent":0,"geb":0,"sent":0,"backup":"exists","pruned":0}
+  OK  2a alter Snapshot gelöscht — {"due":0,"abos":0,"settleReminder":0,"digest":0,"budWarns":0,"grow":0,"duel":0,"repairs":0,"year":0,"meter":0,"fridge":0,"checkin":0,"maint":0,"loan":0,"rent":0,"geb":0,"sent":0,"backup":"exists","pruned":1}
+  OK  2b Snapshot mit frischem t bleibt trotz altem Namen
+  OK  3a falscher Code → 403
+  OK  3b ohne Code → 403
+  OK  3c Liste enthält den Tages-Snapshot — {"days":["2026-09-28"]}
+  OK  3d Snapshot abrufbar (für den Import)
+  OK  3e ungültiger Tag → 404
+  OK  3f „Jetzt sichern" legt Snapshot im 10-Min-Fenster an — {"day":"2026-09-28T11-20","result":"ok"}
+  OK  3g zweites „Jetzt sichern" im selben Fenster → exists
+  OK  4a Wechsel mit falschem alten Code → 403
+  OK  4b ungültiger neuer Code → 400
+  OK  4c gleicher Code → 400
+  OK  4d GET statt POST → 405
+  OK  4e Wechsel klappt, Server merkt sich den neuen Code — {"ok":true}
+  OK  4f danach: alter Code bekommt keine Backups mehr
+  OK  4g danach: neuer Code sieht die Backups (auch die von vorher)
+  OK  4h zweiter Wechsel mit dem ALTEN Code → 403 (Ex-Mitbewohner kann nicht zurückdrehen)
+  OK  4i Cron liest danach die WG unter dem NEUEN Code — /wg/GR%C3%9CN-WALD-XYZ789
+  OK  5a Backup-API ohne Schlüssel → 503
+  OK  5b Wechsel ohne Schlüssel → 503
+  OK  5c Cron meldet backup: no-key und nutzt WG_CODE aus der Env — {"due":0,"abos":0,"settleReminder":0,"digest":0,"budWarns":0,"grow":0,"duel":0,"repairs":0,"year":0,"meter":0,"fridge":0,"checkin":0,"maint":0,"loan":0,"rent":0,"geb":0,"sent":0,"backup":"no-key","pruned":0}
+  OK  6a leere WG → kein Snapshot (backup: leer) — {"due":0,"abos":0,"settleReminder":0,"digest":0,"budWarns":0,"grow":0,"duel":0,"repairs":0,"year":0,"meter":0,"fridge":0,"checkin":0,"maint":0,"loan":0,"rent":0,"geb":0,"sent":0,"backup":"leer","pruned":0}
+  OK  6b „Jetzt sichern" bei leerer WG → leer, kein Snapshot — {"result":"leer"}
+  OK  7a abgelehnter Snapshot (leere data) meldet Fehler, nicht exists
+  OK  7b vorhandener Snapshot meldet exists
+
+30 ok, 0 fehlgeschlagen
+   • test/rotate.mjs
+  OK  A1 neuer Code im richtigen Format und anders als der alte — HELL-SEE-G5A4E5
+  OK  A2 Gerät nutzt jetzt den neuen Code
+  OK  A3 alter Pfad enthält NUR den Umzugs-Marker (keine Daten) — {"_moved":true,"_mt":1790587491962}
+  OK  A4 Daten stehen unter dem neuen Code
+  OK  A5 nur die EIGENE Push-Registrierung zieht mit (Ex-Gerät nicht) — ["devA"]
+  OK  A6 Login-Freigaben ziehen nicht mit
+  OK  A7 vorher gesichert (Snapshot mit altem Code)
+  OK  A8 Server erfährt {old, new} — {"old":"BLAU-MOND-ABC234","new":"HELL-SEE-G5A4E5","from":"devA"}
+  OK  A9 neue Ausgabe landet unter dem neuen Code, nicht unter dem alten
+  OK  R1 Code unverändert
+  OK  R2 alte WG unangetastet (Daten da, kein Marker)
+  OK  R3 halbe Kopie wieder entfernt (nur alte WG im Baum) — ["BLAU-MOND-ABC234"]
+  OK  R4 Fehlermeldung sichtbar
+  OK  B1 Hinweis „Code geändert" sichtbar
+  OK  B2 Status-Pille zeigt CODE ALT
+  OK  B3 lokale Daten bleiben erhalten
+  OK  B4 KEIN Schreibversuch auf den alten Pfad
+  OK  B5 nach Beitritt: lokale Einträge von B sind in der neuen WG — OffenAufB, LokalVonB, Klopapier
+  OK  B6 Hinweis verschwunden
+  OK  F keine Seitenfehler
+
+20 ok, 0 fehlgeschlagen
+   • test/errlog.mjs
+  OK  0 vor dem Sync noch nichts beim Server
+  OK  1 Fehler von vor dem Sync nachgereicht — ["Uncaught Error: VorDemSync-111"]
+  OK  1b Eintrag trägt Gerät (Name) und Zeit
+  OK  2 Laufzeitfehler kommt an
+  OK  3 abgelehnte Promise kommt an
+  OK  4 Wiederholung binnen 1 Min. nicht doppelt
+  OK  5 Fehler aus Browser-Erweiterungen/fremden Skripten gefiltert
+  OK  6 roter Punkt am Tab „Mehr"
+  OK  7 Liste unter „Mehr" zeigt die Fehler — 3
+  OK  8 Punkt nach dem Ansehen weg
+  OK  9 höchstens 30 Einträge — 30
+  OK  10 Render-Absturz zeigt Notfall-Ansicht mit „Neu laden"
+  OK  10b Render-Absturz steht im Protokoll
+  OK  11a Knopf „Protokoll leeren" vorhanden
+  OK  11 „Protokoll leeren" leert auch beim Server
+
+15 ok, 0 fehlgeschlagen
+   • test/notify_api.mjs
+  OK  1 fremder Link wird entfernt (kein Phishing per Push) — {"title":"Hallo","body":"x","tag":"TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"}
+  OK  2 Tag auf 40 Zeichen gekürzt
+  OK  3 Typ „board" wird durchgereicht (Ruhezeit/Schalter greifen)
+  OK  4 sendendes Gerät ausgenommen
+  OK  5 eigener relativer Link bleibt
+  OK  6 protokoll-relativer Fremdlink („//…") fliegt ebenfalls raus
+  OK  7 der 30. geht noch durch
+  OK  8 der 31. → 429 (Bremse) — 429
+  OK  9 Zähler verrät den WG-Code nicht (nur Hash im Server-Bereich)
+  OK  10 andere WG hat eigenen Zähler
+  OK  11 Code-Wechsel klappt
+  OK  12 Hinweis geht an die alten Geräte außer dem wechselnden — ["dB","dEx"]
+  OK  13 Hinweis enthält den neuen Code NICHT
+
+13 ok, 0 fehlgeschlagen
+   • test/bkwatch.mjs
+  OK  1 Sicherung 5 Tage alt → roter Punkt am Tab „Mehr" — {"dot":1,"warn":1,"calls":1,"again":0}
+  OK  2 … und Warnung im Backup-Bereich
+  OK  3 Liste genau einmal geholt, beim Neustart nicht erneut (Drossel 6 Std.) — {"dot":1,"warn":1,"calls":1,"again":0}
+  OK  4 frische Sicherung → kein Punkt, keine Warnung — {"dot":0,"warn":0,"calls":1,"again":0}
+
+4 ok, 0 fehlgeschlagen
+   • test/update.mjs
+  OK  0 SW kontrolliert die Seite, kein Hinweis
+  OK  1 ohne neue Version kein Hinweis
+  OK  2 neue Version → Hinweis „Neue Version" erscheint
+  OK  3 mit offenem Formular kein Neuladen
+  OK  4 ohne Fenster: Zurückkehren lädt die neue Version
+  OK  5 danach: frische Seite, kein Hinweis mehr
+
+6 ok, 0 fehlgeschlagen
+   • test/putz.mjs
+  OK  A1 Gleichstand, beide nie → Einteilung bleibt — b
+  OK  A2 Gleichstand → wer länger nicht dran war — a
+  OK  A3 wer seltener → ist dran — b
+  OK  A4 Einträge älter als 90 Tage zählen nicht — a
+  OK  A5 andere Aufgaben zählen nicht mit — a
+  OK  A6 nur eine Person → immer sie — a
+  OK  A7 Fälligkeit: nie → 0, heute+3 → 3, vor 2 Tagen täglich → -1 — [0,3,-1]
+  OK  A8 Punkte: Standard 2, 3, "1"→1, Unsinn→2 — [2,3,1,2]
+  OK  B1 Haushalt-Karte sichtbar
+  OK  B2 … nur Bad (meins, fällig) — nicht Müll (Toms), nicht Küche (heute erledigt) — 🧹 DU BIST DRAN | Putzplan › | 🚿 Bad putzen | heute fällig · Stand 0:0 | Morgen | Kann nicht
+  OK  B3 Tab-Punkt am Putzplan
+  OK  C1 Müll: „Tom ist dran" + Stand 5 : 2 (alter Eintrag zählt nicht) — 🗑️ Müll rausbringen | Tom ist dran · 5:2 · alle 3 Tage | 2d ÜBERFÄLLIG | ×
+  OK  C2 Bad: „Du bist dran"
+  OK  C3 Einsatz: Torben 4 P., Tom 2 P. — HEUTE DRAN 🚿 Bad putzen Du 🗑️ Müll rausbringen Tom WOCHEN-DUELL NOCH 7 TAGE Du 🔥 0 pünktlich 0:0 Tom 🔥 0 pünktlich Gleichstand · Letzte Woche 1 : 1 · unentschieden EINSATZ · LETZTE 30 TAGE Torben 4 P. Tom 2 P. Wer den Haken setzt, bekommt die Aufgabe gutgeschrieben. Dran ist, wer sie seltener gemacht hat. Kurz zählt 1, mittel 2, groß 3 Punkte. Wer die Woche gewinnt, trägt 👑. 🔥 zählt Aufgaben, die du nicht überfällig werden lässt.
+  OK  D1 Eintrag geht an Torben (wer den Haken setzt) — {"id":"xh4rvy9r","taskId":"m","name":"Müll rausbringen","em":"🗑️","userId":"u1","date":"2026-09-28","pts":1,"late":0,"miss":"u2","seq":1790587564506}
+  OK  D2 Tom bleibt dran (2 < 6) — u2
+  OK  D3 Müll heute erledigt — 2026-09-28
+  OK  D4 Stand zeigt 6 : 2
+  OK  D5 Push: „Torben hat … erledigt" / „Tom, du bist dran" — {"code":"TEST-LOKAL-PUTZ","from":"8wd0z7i77DB2K2","title":"✅ Torben hat „Müll rausbringen\" erledigt","body":"Tom, du bist dran! (Torben 6× · Tom 2×)","tag":"wg-putz","type":"done"}
+  OK  D6 Eintrag beim Server angekommen
+  OK  E1 Rückgängig: Eintrag weg
+  OK  E2 Rückgängig: Fälligkeit + Einteilung wie vorher — {"id":"m","name":"Müll rausbringen","em":"🗑️","interval":3,"pts":1,"assignee":"u2","lastDone":"2026-09-23","seq":3,"snooze":null}
+  OK  E3 Rückgängig auch beim Server
+  OK  F1 Bad über die Haushalt-Karte erledigt → Tom ist dran — {"id":"b","name":"Bad putzen","em":"🚿","interval":7,"pts":3,"assignee":"u2","lastDone":"2026-09-28","seq":2,"snooze":null}
+  OK  F2 Karte verschwindet (nichts mehr fällig für mich)
+  OK  F3 Tab-Punkt verschwindet
+  OK  F4 Push nennt Tom als Nächsten — Tom, du bist dran! (Torben 1× · Tom 0×)
+  OK  F5 Einsatz zählt Punkte: Bad = 3 → Torben 7 P. — HEUTE DRAN 🗑️ Müll rausbringen Tom WOCHEN-DUELL NOCH 7 TAGE Du 🔥 1 pünktlich 3:0 Tom 🔥 0 pünktlich Du führst mit 3 P. · Letzte Woche 1 : 1 · unentschieden EINSATZ · LETZTE 30 TAGE Torben 7 P. Tom 2 P. Wer den Haken setzt, bekommt die Aufgabe gutgeschrieben. Dran ist, wer sie seltener gemacht hat. Kurz zählt 1, mittel 2, groß 3 Punkte. Wer die Woche gewinnt, trägt 👑. 🔥 zählt Aufgaben, die du nicht überfällig werden lässt.
+  OK  G1 Vorlagen ohne schon vorhandene Aufgaben — 📦 Altpapier | ♻️ Altglas & Pfand | 🍽️ Spülmaschine ausräumen | 🧹 Staubsaugen | 🪣 Wischen | 🧊 Kühlschrank auswischen | 🧺 Handtücher waschen | 🪟 Fenster putzen | 🌿 Pflanzen gießen | 🐾 Tier füttern | 🐈 Katzenklo | 🪴 Blumen düngen | 🐠 Aquarium
+  OK  G2 Altpapier: 📦, alle 14 Tage, 1 Punkt, Torben fängt an — {"id":"iucycciz","name":"Altpapier","em":"📦","interval":14,"pts":1,"pk":null,"assignee":"u1","lastDone":null,"seq":1790587569684}
+  OK  G3 Zeile zeigt „alle 2 Wochen"
+  OK  H1 Küche jetzt 3 Punkte, Rest unverändert
+  OK  I1 Übersicht: „Putzplan · Punkte"
+  OK  J1 Neustart ohne Fehler
+  OK  K1 Woche: nur Einträge ab Montag zählen — 2:0
+  OK  K2 Vorwoche getrennt gezählt — 1:3
+  OK  K3 👑 an den Sieger der Vorwoche — b
+  OK  K4 Gleichstand / keine Punkte → keine Krone
+  OK  K5 Serie zählt eigene pünktliche in Folge, fremde Verspätung egal, eigene bricht — 2
+  OK  K6 alte Einträge ohne late brechen die Serie — 1
+  OK  K7 vom anderen gerettet (miss) bricht die Serie — 1
+  OK  K8 eigene überfällige Aufgabe → Serie 0, fremde egal — 0/1
+  OK  L1 Haushalt-Karte zeigt eigene Serie 🔥 2 — 🧹 DU BIST DRAN🔥 2
+Putzplan ›
+  OK  L2 Duell diese Woche 4 : 0, „Du führst" — WOCHEN-DUELL NOCH 7 TAGE Du 🔥 2 pünktlich 4:0 👑Tom 🔥 0 pünktlich Du führst mit 4 P. · Letzte Woche 2 : 9 · 👑 Tom
+  OK  L3 👑 bei Tom (Vorwoche 2 : 9)
+  OK  L4 Vorwoche im Untertitel
+  OK  L5 Serien: Du 🔥 2, Tom 🔥 0 (hat Überfälliges)
+  OK  L6 Rückmeldung „🔥 3" — 🧹 „Staubsaugen" erledigt · 🔥 3 · Torben War Tom Rückgängig
+  OK  L7 Push nennt „🔥 3 pünktlich in Folge" — Tom, du bist dran! (Torben 4× · Tom 3×) · 🔥 3 pünktlich in Folge
+  OK  L8 Duell jetzt 6 : 0 — WOCHEN-DUELL NOCH 7 TAGE Du 🔥 3 pünktlich 6:0 👑Tom 🔥 0 pünktlich Du führst mit 6 P. · Letzte Woche 2 : 9 · 👑 Tom
+  OK  L9 Eintrag: late 0, keine miss — {"id":"0auwl1te","taskId":"d","name":"Staubsaugen","em":"🧹","userId":"u1","date":"2026-09-28","pts":2,"late":0,"seq":1790587580138}
+  OK  L10 Retten: late 0 für mich, miss = Tom — {"id":"b1c733jh","taskId":"o","name":"Altglas","em":"♻️","userId":"u1","date":"2026-09-28","pts":1,"late":0,"miss":"u2","seq":1790587581096}
+  OK  L11 meine Serie 🔥 4, Toms bleibt 0
+  OK  M1 Schalter unter Mehr, Standard „An"
+  OK  M2 aus → gespeichert (Gerät + Push-Einstellung game) — {"mods":{"heute":true,"haus":true,"grow":true,"putz":true,"fin":true,"abos":false,"stats":true,"game":false},"pp":{"exp":false,"shop":false,"putz":true,"settle":true,"remind":true,"board":false,"msg":true,"wash":true,"away":false,"repair":false,"game":false,"done":false,"digest":false,"quiet":false,"qs":22,"qe":8,"pv":2}}
+  OK  M3 Haushalt-Karte bleibt, aber ohne 🔥 — 🧹 DU BIST DRAN
+Putzplan ›
+  OK  M4 kein Wochen-Duell, Einsatz + Stand bleiben
+  OK  M5 Abhaken ohne 🔥 in Rückmeldung und Push — 🧹 „Staubsaugen" erledigt · Torben
+War Tom
+Rückgängig | Tom, du bist dran! (Torben 4× · Tom 3×)
+  OK  M6 Serien-Daten werden trotzdem geschrieben (late) — {"id":"eg49l1mh","taskId":"d","name":"Staubsaugen","em":"🧹","userId":"u1","date":"2026-09-28","pts":2,"late":0,"seq":1790587589237}
+  OK  M7 wieder an → Duell da, Serie zählt den Haken von eben (🔥 3)
+
+60 ok, 0 fehlgeschlagen
+   • test/alltag.mjs
+  OK  A1 Müllabfuhr rechnet wie der Server — 2026-09-17|2026-09-17|2026-10-01|2026-12-01|0|13|-2
+  OK  B1 Vorrat-Karte mit Vorlagen
+  OK  B2 „Bald leer: Kaffee" (alle 10 Tage, zuletzt vor 9)
+  OK  B3 Müllbeutel → Einkaufsliste
+  OK  B4 Meldung gespeichert (outs = heute) — [{"id":"v-müllbeutel","name":"Müllbeutel","em":"🗑️","outs":"2026-09-28","seq":1790587603202},{"seq":100,"id":"v-kaffee","name":"Kaffee","em":"☕","outs":"2026-08-30,2026-09-09,2026-09-19"}]
+  OK  B5 Push „fast leer" (Typ shop)
+  OK  B6 zweiter Tipp → kein Doppel-Eintrag
+  OK  C1 nach dem Abhaken: „1 abgehakt · Betrag eintragen"
+  OK  C2 Name vorbelegt
+  OK  C3 Ausgabe 12,50 € · Lebensmittel · ich — {"id":"hzdnjq70","name":"Einkauf: Milch","price":12.5,"paidBy":"u1","date":"2026-09-28","owedBy":null,"cat":"food","shop":null,"settled":false,"seq":1790587606198}
+  OK  C4 abgehakte Milch aus der Liste, Knopf weg
+  OK  D1 abgelaufener Lauf: „ist fertig" + Push an die anderen (Starter = ich)
+  OK  D2 je Gerät nur einmal gemeldet (ein Merker-Schlüssel)
+  OK  D2b vor 5 Std. fertig → keine Push mehr, aber sichtbar
+  OK  D3 „Ausgeräumt" entfernt den Lauf
+  OK  D4 Trockner 30 Min. gestartet — {"id":"v0ym4f4k","kind":"trock","by":"u1","start":1790587608510,"mins":30,"end":1790589408510,"seq":1790587608510}
+  OK  D5 Anzeige „noch 30 Min." + Start-Push
+  OK  E1 Preset → Push + Eintrag sichtbar
+  OK  E2 eigene Nachricht
+  OK  F1 seit 20 Tagen gemeldet → rot „nachhaken"
+  OK  F2 neu: „noch nicht gemeldet" + Push
+  OK  F2b offener Eintrag löschbar
+  OK  F3 gemeldet mit Datum
+  OK  G1 Meldung angelegt (13,75 € an Tom) + Push settle — {"id":"o13qcw7w","mod":"hs","from":"u1","to":"u2","amount":13.75,"ts":1790587612785,"status":"open","seq":1790587612785}
+  OK  G2 Schuldner sieht „wartet auf Bestätigung"
+  OK  H1 Tonne angelegt: „Papier · morgen"
+  OK  H2 gekoppelt: „vor jeder 🔵 Papier-Abholung" + heute fällig (Vorabend) — 📦 Papier raus | Du bist dran · 0:0 · vor jeder 🔵 Papier-Abholung | HEUTE | ×
+  OK  H3 pk gespeichert
+  OK  I1 Abwesenheit gespeichert + Push
+  OK  I1b vergangene Abwesenheit bleibt erhalten (Fairness-Fenster)
+  OK  I2 meine Aufgaben gehen an Tom — ["u2","u2"]
+  OK  I3 Reihenfolge überspringt mich
+  OK  I4 Einträge aus der Abwesenheit zählen nicht
+  OK  I5 Banner im Haushalt: „Du bist weg"
+  OK  J1 Jahresrückblick mit Summe (40 + 12,50) — 📅 JAHRESRÜCKBLICK | 2025 | 2026 | €52,50 ausgegeben in 2026 | J | F | M | A | M | J | J | A | S | O | N | D | Teuerster Monat | September · €52,50 | Top-Kategorie Haushalt | 🛒 Lebensmittel · €12,50 | Putz-Punkte | Torben 0 · Tom 0 | 🖨️ Jahresübersicht 2026 drucken
+  OK  J2 keine Fehler auf der Seite
+  OK  G2b gleicher Betrag → kein Abweichungs-Hinweis
+  OK  G3 Gläubiger sieht „Torben hat €20,00 bezahlt"
+  OK  G4 bestätigt → Posten abgerechnet, Meldung ok, Abrechnung erfasst — {"pr":[{"seq":100,"id":"p1","mod":"hs","from":"u1","to":"u2","amount":20,"ts":1790587618562,"status":"ok","at":1790587626602}],"stl":[{"id":"bstg3vvo","mod":"hs","date":"2026-09-28","total":40,"n":1,"fromId":"u1","toId":"u2","amount":20,"seq":1790587626603}]}
+  OK  G5a Betrag geändert → „Offen sind inzwischen €25,00"
+  OK  G5b Nachfrage erscheint
+  OK  G5c Abbrechen → nichts abgerechnet, Meldung bleibt offen
+  OK  G5 „Nicht angekommen" → Status no + Push, nichts abgerechnet
+  OK  K1 Manifest: sechs Kürzel mit Name und Symbol — ["./?a=ausgabe","./?a=muell","./?a=liste","./?a=waesche","./?a=putz","./?a=suche"]
+  OK  K2 ?a=ausgabe → Haushalt + Ausgaben-Formular offen, Adresse bereinigt — http://localhost:8099/wgapp.html
+  OK  K3 ?a=liste → Einkaufsliste
+  OK  K4 ?a=waesche → Timer-Fenster
+  OK  K5 ?a=muell → Müll abgehakt (mit Rückgängig), Putzplan offen
+  OK  K6 Neuladen hakt nicht erneut ab (Parameter weg)
+
+49 ok, 0 fehlgeschlagen
+   • test/cron_alltag.mjs
+  OK  1 nächste Abholung ab Mi 16.09. = Do 17.09.
+  OK  2 am Abholtag selbst = heute
+  OK  3 danach = 01.10.
+  OK  4 Start in der Zukunft = Start
+  OK  5 nie erledigt, Abholung morgen → heute fällig (0)
+  OK  6 gestern erledigt (Vorabend 16.09. schon vorbei?) → nächste 01.10., fällig 30.09. — 13
+  OK  7 zuletzt vor zwei Runden erledigt → überfällig — -2
+  OK  8 Aufgabe mit pk nutzt die Abholung
+  OK  9 Aufgabe ohne pk: Rhythmus
+  OK  10 Tom ist weg → Torben bringt raus
+  OK  11 nach der Abwesenheit wieder Tom
+  OK  12 Mi-Abend: Papier morgen, mit Name — [{"title":"Müllabfuhr","body":"🚛 Morgen früh: 🔵 Papier — Torben bringt raus","tag":"pick-papier-2026-09-17"}]
+  OK  12b schon rausgebracht → keine Abend-Push
+  OK  13 Restmüll (Di) nicht am Mi-Abend
+  OK  14 Mo-Abend: Restmüll morgen, ohne gekoppelte Aufgabe „Tonne raus!" — [{"title":"Müllabfuhr","body":"🚛 Morgen früh: ⚫ Restmüll — Tonne raus!","tag":"pick-rest-2026-09-22"}]
+  OK  15 Sonntag: Überblick dabei — [{"title":"Wochenüberblick","body":"🗓️ alles erledigt ✨ · diese Woche: Bad Di · Abholung: ⚫ Di · Haushalt: Tom → Torben 15,00 €","tag":"week-2026-09-20"}]
+  OK  16 Überblick nennt Saldo (Tom → Torben 15,00 €) — 🗓️ alles erledigt ✨ · diese Woche: Bad Di · Abholung: ⚫ Di · Haushalt: Tom → Torben 15,00 €
+  OK  17 Überblick nennt kommende Aufgaben und Abholungen — 🗓️ alles erledigt ✨ · diese Woche: Bad Di · Abholung: ⚫ Di · Haushalt: Tom → Torben 15,00 €
+  OK  18 Werktag ohne Abholung: keine Nachricht
+  OK  19 Tag 14 → Erinnerung
+  OK  20 Tag 15 → nichts, Tag 21 → wieder
+  OK  21 Tag 13 → nichts
+  OK  22 Jahr: Summe inkl. Archiv, ohne Abrechnungen und Folgejahr — 🎆 2025: 350,00 € ausgegeben · teuerster Monat: März (300,00 €) · Putz: Torben 3 P. · Tom 1 P.
+  OK  23 teuerster Monat März
+  OK  24 Putz-Punkte (Aufgabe 3, Eintrag 1)
+  OK  25 leeres Jahr → keine Push
+  OK  28 Zähler: Erinnerung nur mit Ablesungen, Tarif-Einträge zählen nicht
+  OK  29 CRLF, Rahmen, Name
+  OK  30 Papier: Abholungen 12 Wochen (6 × alle 2 Wochen), Restmüll wöchentlich (12) — 12
+  OK  31 Abholung mit Erinnerung am Vorabend (−300 Min.) als Ganztag
+  OK  32 Abwesenheit mit Ende+1 und Name
+  OK  33 Ankündigung: Komma/Semikolon maskiert
+  OK  34 Aufgabe mit Fälligkeit und Wer (Abwesenheit beachtet)
+  OK  35 keine Zeile über 75 Oktetts
+  OK  36 DTSTAMP UTC
+  OK  37 Falten trennt keine Mehrbyte-Zeichen
+  OK  38 POST mit richtigem Code → Schlüssel (32 Zeichen, nicht der Code) — {"token":"JFVzF_CjcDXhQnfdMTYEmZON-Lo8Zb9n"}
+  OK  39 POST mit falschem Code → 403
+  OK  40 GET mit Schlüssel → Kalender
+  OK  41 GET mit falschem/fehlendem Schlüssel → 404
+  OK  42 nach Code-Wechsel gilt der alte Schlüssel nicht mehr
+  OK  43 ohne BACKUP_KEY → 503 (laut)
+  OK  25b Sammel-Push: 2 fällig, Tom weg → Torben, verschobene Aufgabe fehlt — {"title":"Putzplan · 2 fällig","body":"🧽 Bad (Torben, 8 T. überfällig) · 🧽 Papier raus (Torben)","tag":"putz-2026-09-16"}
+  OK  25c „Morgen": nicht fällig bis zum Datum, danach normal
+  OK  25c2 ohne zugeordnete Person keine leere Klammer
+  OK  25d nichts fällig → keine Sammel-Push
+  OK  26 Morgen-Job nutzt taskDueIn + Sammel-Push, Reparaturen, Jahr am 1.1.
+  OK  26b Gesamtbudget zählt alle Posten, Zähler-Erinnerung am 1.
+  OK  27 Abend-Job in vercel.json
+  OK  28 Kühlschrank: heute + morgen, sortiert, mit Besitzer — 🧊 Läuft bald ab: Käse heute, Milch (Tom) morgen
+  OK  29 nichts fällig → keine Push
+  OK  30 Check-in nur mit zwei Personen
+  OK  31 Morgen-Job: Kühlschrank täglich, Check-in am 1.
+  OK  32 Monate addieren kappt am Monatsende
+  OK  33 Wartung: am Fälligkeitstag (nicht die überfällige/nie gemachte an einem Donnerstag) — 🔧 Fällig: Rauchmelder
+  OK  34 Wartung montags: alles Überfällige + nie gemacht — 🔧 Fällig: Rauchmelder, Entkalken, Filter
+  OK  35 Ausleihe: Rückgabetag
+  OK  36 Ausleihe montags: auch Überfälliges
+  OK  44b Gast-Ansicht enthält nie Bankdaten
+  OK  44 Gast-Ansicht: nur gültige Regeln, Müll-Termine, WLAN — kein Geld — {"date":"16.09.2026","wifi":"WG-Netz","pw":"geheim123","note":"Handtücher links","rules":["Ruhe ab 22 Uhr"],"pickups":["🔵 Papier: 17.9. (Tonne am Vorabend raus)"],"emergency":[]}
+  OK  45 Gast-Seite escaped Nutzertext
+  OK  46 Gast-Schlüssel nur mit richtigem Code, anders als der Kalender-Schlüssel
+  OK  47 GET → HTML mit WLAN, strenge CSP, kein Cache
+  OK  48 nach „ungültig machen" (v=2) ist der alte Link tot
+  OK  50 Fälligkeit wird auf die Monatslänge gekappt
+  OK  51 zwei Tage vorher: Push mit offenen Namen und Empfänger — 🏠 €1200,00 an Torben · offen: Torben, Kim
+  OK  52 am Stichtag
+  OK  53 danach nur montags (07.09.2026 = Montag, 05.09. nicht)
+  OK  54 alle bezahlt → keine Push; ohne Einstellung auch nicht
+  OK  56 Gast-Seite: Notfall-Infos ja, Vermieter-Daten nein — ["⚡ Sicherungskasten: Flur links","🚰 Wasser-Absperrhahn: unter der Spüle"]
+  OK  57 Gast-Seite rendert den Notfall-Block
+  OK  55 Morgen-Job: Miete verdrahtet
+  OK  49 Morgen-Job: Wartung + Ausleihe
+  OK  G1 29.02. im Schaltjahr bleibt 29.02.
+  OK  G2 29.02. im Nicht-Schaltjahr → 28.02. (bleibt im Februar) — 2027-02-28
+  OK  G3 ungültige Eingabe → null statt kaputtem Datum
+  OK  G4 am Geburtstag selbst — {"title":"Geburtstag","body":"🎉 Mama hat heute Geburtstag · 🎁 Lena hat in 3 Tagen Geburtstag","tag":"gb-2026-09-23"}
+  OK  G5 drei Tage vorher (Zeit fürs Geschenk)
+  OK  G6 fernere Geburtstage schweigen
+  OK  G7 an einem Tag ohne Anlass: nichts
+  OK  G8 Vorwarnung über den Jahreswechsel
+  OK  G9 29.02.-Kind wird im Nicht-Schaltjahr am 28.02. erinnert
+  OK  G10 Geburtstag steht in der Morgen-Nachricht ganz oben
+  OK  G11 Morgen-Job: Geburtstage verdrahtet
+
+84 ok, 0 fehlgeschlagen
+   • test/extra.mjs
+  OK  A1 „12,50 Pizza" — {"price":12.5,"name":"Pizza","alone":false}
+  OK  A2 „Döner 8 Euro allein" → allein, ohne „Euro" — {"price":8,"name":"Döner","alone":true}
+  OK  A3 „Pizza 12.50€" — {"price":12.5,"name":"Pizza","alone":false}
+  OK  A4 „€5 Brot" — {"price":5,"name":"Brot","alone":false}
+  OK  A5 ohne Betrag → null
+  OK  A6 erste Zahl ist der Betrag („3 Kugeln Eis 4,50" → 3) — {"price":3,"name":"Kugeln Eis 4,50","alone":false}
+  OK  A7 Vorschau
+  OK  A8 gespeichert: ich zahle, Kategorie aus dem letzten „Lidl" — {"id":"e1evevs6","name":"Lidl","price":23.4,"paidBy":"u1","date":"2026-09-28","owedBy":null,"cat":"food","settled":false,"seq":1790587668297}
+  OK  A9 Rückgängig angeboten, Feld leer
+  OK  B1 „Wie zuletzt: €10,00"
+  OK  B2 „▲ 30 % teurer als zuletzt"
+  OK  B3 Antippen übernimmt 10,00
+  OK  B4 bei gleichem Preis kein Sprung-Hinweis
+  OK  C1 Budget gespeichert (bud total)
+  OK  C2 Anzeige „€<Monat> / €100,00" — 🎯 Monatsbudget Haushalt | €97,40 / €100,00 | noch €2,60 für 2 Tage | 📈 Bei dem Tempo landet ihr bei ~€104,36 – €4,36 über dem Budget
+  OK  D1 zuletzt ich (heute), 30 Tage 3 : 1 → Tom ist dran — 🛒 Zuletzt eingekauft: du (heute) · 30 Tage 3 : 1 → Tom ist dran
+  OK  E1 Vorlagen „Tier füttern", „Katzenklo", „Blumen düngen"
+  OK  F1 erste Ablesung: noch keine Hochrechnung
+  OK  F2 Ø 10,02 kWh/Tag · ~3.656 kWh/Jahr — ⚡
+Strom · 1.300,5 kWh (28.9.)
+Ø 10,02 kWh/Tag · ~3.656 kWh/Jahr · Preis + Abschlag antippen
+  OK  F3 Hochrechnung: ~€319,63 Nachzahlung — ⚡ | Strom · 1.300,5 kWh (28.9.) | Ø 10,02 kWh/Tag · ~3.656 kWh/Jahr · ~€319,63 Nachzahlung [{"id":"cfg-strom","kind":"strom","cfg":true,"price":0.35,"abschlag":80,"seq":1790587675638},{"id":"o2wj6x54","kind":"strom","date":"2026-09-28","value":1300.5,"by":"u1","seq":1790587674752},{"id":"ieorc91u","kind":"strom","date":"2026-08-29","value":1000,"by":"u1","seq":1790587673875}]
+  OK  F4 gespeichert: 2 Ablesungen + Tarif
+  OK  F5 Besuch diesen Monat: Torben 1×
+  OK  G1 Link mit Schlüssel (nicht dem WG-Code)
+  OK  G2 „Im Kalender abonnieren" = webcal://
+  OK  G3 gemerkt für diesen Code
+  OK  H1 Hell: data-theme, heller Hintergrund, Statusleisten-Farbe — {"t":"light","z":"","m":"#f4f7f5","bg":"rgb(244, 247, 245)"}
+  OK  H2 Schrift groß → zoom 1.12
+  OK  H3 nach Neuladen sofort wieder hell + groß (Früh-Skript) — {"t":"light","z":"1.12"}
+  OK  H4 Personenfarbe Gelb als Schrift abgedunkelt — rgb(146, 64, 14)
+  OK  H5 zurück auf Dunkel + normal — {"t":"dark","z":"","m":"#060a08","bg":"rgb(6, 10, 8)"}
+  OK  I0 Heute standardmäßig an (erster Tab)
+  OK  I1 Begrüßung mit Name
+  OK  I2 Abholung morgen
+  OK  I3 Zahlung zum Bestätigen
+  OK  I4 Ankündigungen, Nachrichten, Reparaturen, Logins als Karten auf Heute
+  OK  I5 Einkauf: 1 offen · bald leer: Kaffee
+  OK  I6 Saldo-Zeile
+  OK  I7 Schnell-Eingabe auch hier
+  OK  I8 Tipp auf Einkauf → Einkaufsliste
+  OK  I9 keine Fehler
+  OK  J1 Ablehnung sichtbar, kein Link
+
+41 ok, 0 fehlgeschlagen
+   • test/ux.mjs
+  OK  A1 Build läuft — ✓ build: app.67c0aefe82.js (746 KB), wgapp.html 754 → 136 KB, Babel nicht ausgeliefert → E:\Users\torbe\AppData\Local\Temp\wg-dist-oOKHuu
+  OK  A2 dist: app.<hash>.js, kein Babel, kein Quelltext im HTML — 404.html,app.67c0aefe82.js,apple-touch-icon.png,fonts,icon-192.png,icon-512.png,icon-maskable-512.png,icon.svg,manifest.json,robots.txt,sw.js,vendor,wgapp.html
+  OK  A3 dist/sw.js: App-Datei in der Shell, Babel nicht vorab
+  OK  A4 nicht ausgeliefert: Tests, Skripte, Doku, API — 404.html,app.67c0aefe82.js,apple-touch-icon.png,fonts,icon-192.png,icon-512.png,icon-maskable-512.png,icon.svg,manifest.json,robots.txt,sw.js,vendor,wgapp.html
+  OK  A5 läuft vorab übersetzt (kein Browser-Kompilat, Build-Kennung = Datei) — {"pre":true,"build":"67c0aefe82","jsx":false}
+  OK  A6 Babel wird nicht geladen
+  OK  A7 Erststart bei 4× gedrosselter CPU unter 6 s (vorher 16,5 s) — 813 ms
+  OK  A8 keine Fehler
+  OK  B1 neue App startet auf „Heute“ (erster Tab)
+  OK  B2 Heute: Ankündigungen, Nachrichten, Timer, Reparaturen, Logins (Karte oder Chip)
+  OK  B3 Haushalt ohne Ankündigungen/Nachrichten/Timer/„Du bist dran“
+  OK  C1 leer → Knopf „+ Ausgabe hinzufügen“
+  OK  C2 ohne Betrag: Hinweis aufs volle Formular
+  OK  C3 öffnet das Formular mit „Pizza“ vorbelegt
+  OK  C4 mit Betrag → „Eintragen“
+  OK  C5 der große Extra-Knopf ist weg (nur noch einer)
+  OK  D1 Schuldner sieht Hinweis statt „Alles abrechnen“
+  OK  D2 Gläubiger sieht „Alles abrechnen“
+  OK  E1 gelernter Kauf „Hafermilch“ als Kachel
+  OK  E1b gelernte Kachel: „+ auf die Liste“ → Liste + Push „braucht“ — [{"code":"TEST-LOKAL-UX","from":"fwu0z8bvZBEXAB","title":"🛒 Torben braucht Hafermilch","body":"","tag":"wg-shop","type":"shop"}]
+  OK  E2 keine Vorschlags-Chips mehr
+  OK  E3 Reihenfolge Obst → Kühlregal → Drogerie → Sonstiges — Äpfel | Hafermilch | Milch | Klopapier | Batteriehalter
+  OK  E4 Bereich steht an der Zeile
+  OK  E5 „Mitbringen lassen“ jetzt in der Einkaufsliste
+  OK  F1 Heute zeigt „Wer bist du?“
+  OK  F2 auch im Haushalt, „+ Ausgabe hinzufügen“ bleibt erreichbar
+  OK  F3 ein Tipp setzt die Person, Hinweis verschwindet
+  OK  G1 „Morgen“ setzt snooze, Aufgabe verschwindet aus „Du bist dran“ — {"seq":100,"id":"t1","name":"Bad putzen","em":"🚿","interval":7,"pts":3,"assignee":"u1","lastDone":"2026-09-19","snooze":"2026-09-29"}
+  OK  G2 Serie bleibt heil (nicht überfällig)
+  OK  G3 Rückgängig holt sie zurück
+  OK  G4 Abhaken räumt „Morgen“ ab, Eintrag pünktlich (late 0) — {"seq":100,"id":"t1","name":"Bad putzen","em":"🚿","interval":7,"pts":3,"assignee":"u2","lastDone":"2026-09-28","snooze":null}
+  OK  H1 Trockner merkt 30 Min., Waschmaschine hat ihren Standard (90) — Starten · fertig um 12:58 / Starten · fertig um 11:58
+  OK  I1 Push-Arten: Nachricht + Wäsche an, Info-Arten leise — {"exp":false,"shop":false,"putz":true,"settle":true,"remind":true,"board":false,"msg":true,"wash":true,"away":false,"repair":false,"game":false,"done":false,"digest":false,"quiet":false,"qs":22,"qe":8,"pv":2}
+  OK  I2 Server + Regeln kennen die Arten
+  OK  J1 sechs Gruppen (seit wg-v68 + Inventar & Auszug), anfangs zu — 6
+  OK  J2 Mehr ist kurz (≤ 1,5 Bildschirme) — 763px
+  OK  J3 Aufklappen zeigt den Inhalt und merkt es sich
+  OK  J4 Tab-Beschriftung 11 px, Untertitel 12,5 px
+  OK  J5 Fehlerprotokoll-Gruppe öffnet sich bei Einträgen von selbst (roter Punkt)
+  OK  J6 ohne Person: „Personen“ offen
+  OK  L1 alter Modul-Schnappschuss (heute:false aus v64/65) → Heute kommt einmalig zurück
+  OK  L2 Laden-Bereiche: Reis/Butterkekse/Tomatenmark → Vorrat, Weißwein/Apfelsaft/Eistee → Getränke, Eis/TK → Tiefkühl — vorrat,tk,kuehl,vorrat,vorrat,drinks,kuehl,drinks,tk,obst,drinks,sonst,obst
+  OK  L3 gelernte Kachel bleibt gelernt (kein Vorrat-Eintrag, weiter „+ auf die Liste“)
+  OK  L4 Gruppe mit Warnpunkt lässt sich zuklappen
+  OK  L5 … und wieder aufklappen
+  OK  L6 Putzplan aus → Heute meldet nicht „nichts fällig“
+  OK  K1 ohne Heute: Karten im Haushalt
+
+47 ok, 0 fehlgeschlagen
+   • test/upgrade_dist.mjs
+  OK  0 Build
+  OK  1 alter Stand: SW aktiv, Browser-Übersetzung, Babel im Cache — {"ctrl":true,"pre":false,"babel":true}
+  OK  2 Update erkannt („Neue Version")
+  OK  3 neuer Stand läuft vorab übersetzt — {"pre":true,"build":"67c0aefe82","jsx":false,"babel":false,"keep":true,"tabs":["Heute","Haushalt","Growbox","Putzplan","Privat","Übersicht","Mehr"]}
+  OK  4 alte Browser-Kompilate weg, Babel aus dem Cache geräumt — {"pre":true,"build":"67c0aefe82","jsx":false,"babel":false,"keep":true,"tabs":["Heute","Haushalt","Growbox","Putzplan","Privat","Übersicht","Mehr"]}
+  OK  5 Daten erhalten
+  OK  6 neue Oberfläche („Heute" vorhanden) — Heute,Haushalt,Growbox,Putzplan,Privat,Übersicht,Mehr
+  OK  7 Offline-Start nach dem Update — {"pre":true,"tabbar":true}
+  OK  8 keine Seitenfehler
+
+9 ok, 0 fehlgeschlagen
+   • test/plus.mjs
+✓ C1 Check-in-Karte sichtbar (Tom hat schon geantwortet)
+✓ C2 Toms Wunsch vor der eigenen Antwort verborgen
+✓ C3 Antwort gespeichert (id = Monat-Person) — [{"id":"2026-09-u1","ym":"2026-09","userId":"u1","score":4,"wish":"Weiter so","ts":1790587825959,"seq":1790587825959},{"seq":100,"id":"2026-09-u2","ym":"2026-09","userId":"u2","score":3,"wish":"Mehr lüften","ts":1}]
+✓ C4 danach beide Antworten sichtbar — Torben 🙂 – „Weiter so“
+Tom 😐 – „Mehr lüften“
+✓ C4b letzte Antwort → Push „Alle haben geantwortet"
+✓ K1 sortiert nach Datum, Abgelaufenes zuerst — ["Käse\nseit 1 Tag abgelaufen\nWeg ✓","Milch · Tom\nläuft morgen ab\nWeg ✓"]
+✓ K2 „läuft morgen ab" + Besitzer — Milch · Tom
+läuft morgen ab
+Weg ✓
+✓ K3 neuer Eintrag: +3 Tage, gehört mir — [{"id":"qze7ppmh","name":"Joghurt","exp":"2026-10-01","owner":"u1","seq":1790587826997},{"seq":100,"id":"k1","name":"Milch","exp":"2026-09-29","owner":"u2"},{"seq":99,"id":"k2","name":"Käse","exp":"2026-09-27"}]
+✓ K4 „Weg ✓" entfernt
+✓ E1 Fairness-Zeile zählt nur vergangene 30 Tage
+✓ E2 🛒 fügt nur Fehlendes hinzu (Tomaten stehen schon drauf, Groß/klein egal) — ["Nudeln","Brot","Bier","Tomaten","Chips","Saft","Wasser"]
+✓ E3 Push „Zutaten für …" (Typ shop)
+✓ E4 Vorschlag: Tom kocht (hat seltener gekocht)
+✓ E5 erster freier Tag vorbelegt (heute ist belegt → morgen)
+✓ E6 Gericht gespeichert — [{"id":"nl9mst6j","date":"2026-09-29","dish":"Chili","cook":"u2","ings":"Bohnen, Mais","seq":1790587828992},{"seq":100,"id":"e1","date":"2026-09-25","dish":"Pizza","cook":"u1"},{"seq":99,"id":"e2","date":"2026-09-20","dish":"Curry","cook":"u1"},{"seq":98,"id":"e0","date":"2026-08-19","dish":"Suppe","cook":"u2"},{"seq":97,"id":"e3","date":"2026-09-28","dish":"Nudelauflauf","cook":"u1","ings":"Nudeln, tomaten"}]
+✓ E7 Wochenliste zeigt beide Gerichte
+✓ R1 fremder Vorschlag: „Einverstanden" angeboten
+✓ R2 nach Zustimmung gilt die Regel
+✓ R3 eigener Vorschlag: ich stimme zu, Tom noch nicht — {"id":"icrle720","text":"Ruhe ab 22 Uhr","by":"u1","ts":1790587829975,"ok_u1":true,"seq":1790587829975}
+✓ R4 „wartet auf Tom" + nur „Zurückziehen" — Ruhe ab 22 Uhr
+wartet auf Tom
+Zurückziehen
+✓ R5 Push an Tom
+✓ S1 Ziel mit Summe — 🐷 GEMEINSAM SPAREN
++ Ziel
+Mikrowelle · €120,00 / €120,00
+Torben €60,00 · Tom €60,00 · Geld bei Torben
+Einzahlen
+Gekauft
+✓ S2 Einzahlung addiert (c_u1 60 → 65)
+✓ S3 Rückgängig nimmt sie zurück
+✓ S4 Kaufpreis = Ziel vorbelegt
+✓ S5 zwei Posten: Kauf (ich zahle, 50/50) + Toms Einzahlung an mich — [{"id":"uavy7nnv","date":"2026-09-28","settled":false,"name":"🐷 Mikrowelle","price":120,"paidBy":"u1","owedBy":null,"cat":"home","sg":"g1","seq":1790587832714},{"id":"yv9szong","date":"2026-09-28","settled":false,"name":"🐷 Mikrowelle: Einzahlung Tom","price":60,"paidBy":"u2","owedBy":"u1","sg":"g1","seq":1790587832713}]
+✓ S6 beide je 60 eingezahlt → niemand schuldet etwas
+✓ S7 Ziel erledigt, Karte leer
+✓ S8 neues Ziel, ich verwalte
+✓ G1 Artikel zur Auswahl
+✓ G2 Vorschau „Gemeinsam €15 (je €7,50) · nur du €5" — Gemeinsam €15,00 (je €7,50) · nur du €5,00
+✓ G3 gemeinsamer Teil 15 € (50/50) — {"id":"mb8x1zl3","name":"Einkauf: Brot","price":15,"paidBy":"u1","date":"2026-09-28","owedBy":null,"cat":"food","shop":null,"settled":false,"seq":1790587836994}
+✓ G4 eigener Teil 5 € trage ich selbst — {"id":"twhbtvff","date":"2026-09-28","settled":false,"name":"Einkauf nur Torben: Bier","price":5,"paidBy":"u1","owedBy":"u1","cat":"food","seq":1790587836996}
+✓ G5 Tom schuldet nur 7,50 aus dem Einkauf
+✓ G6 Abgehaktes aus der Liste
+✓ G7 Tom zahlt: mein Teil 4 € trage ich, Rest 6 € 50/50 — [{"id":"ygqoso9w","date":"2026-09-28","settled":false,"name":"Einkauf nur Torben: Chips","price":4,"paidBy":"u2","owedBy":"u1","cat":"food","seq":1790587840308},{"id":"0ytn60gm","name":"Einkauf: Saft","price":6,"paidBy":"u2","date":"2026-09-28","owedBy":null,"cat":"food","shop":null,"settled":false,"seq":1790587840306}]
+✓ G8 → ich schulde Tom 7 €
+✓ G9 „Tom zahlt alles" bleibt, wie gewählt (keine Aufteilung) — [{"id":"yu72p9hm","name":"Einkauf: Wasser","price":8,"paidBy":"u1","date":"2026-09-28","owedBy":"u2","cat":"food","shop":null,"settled":false,"seq":1790587843343}]
+✓ N1 Vorschau nach Anteil 60/40 — Torben €180,00 · Tom €120,00
+✓ N2 Nachzahlung: je Person ein Posten, ich habe bezahlt — [{"id":"bmy9hvs1","date":"2026-09-28","settled":false,"name":"🏠 Nebenkosten 2025 – Nachzahlung (Torben)","price":180,"paidBy":"u1","owedBy":"u1","cat":"fix","nk":true,"seq":1790587845213},{"id":"4iiqzcr4","date":"2026-09-28","settled":false,"name":"🏠 Nebenkosten 2025 – Nachzahlung (Tom)","price":120,"paidBy":"u1","owedBy":"u2","cat":"fix","nk":true,"seq":1790587845212}]
+✓ N3 Tom schuldet 120
+✓ N4 Guthaben bei Tom → Tom schuldet mir meine Hälfte (40) — [{"id":"vbw7pc2c","date":"2026-09-28","settled":false,"name":"🏠 Nebenkosten 2025 – Guthaben-Anteil Torben","price":40,"paidBy":"u1","owedBy":"u2","cat":"fix","nk":true,"seq":1790587846305}]
+✓ N5 Liste zeigt die Abrechnungen
+✓ V1 Sprach-Vorlage
+✓ I1 gespeichert mit Besitzer
+✓ I2 gruppiert + Garantie-Warnung — 🛋️ INVENTAR · WEM GEHÖRT WAS
++ Gegenstand
+Torben · 1
+Sofa
+€250,00 · Garantie noch 10 Tage
+×
+✓ A1 Übergabe-Seite: Zähler, Mangel, Inventar — Drucken / als PDF speichern
+Schließen
+Übergabe WG · 28.9.2026
+
+Torben & Tom
+
+Zählerstände
+⚡ Strom	12.345,6 kWh	26.9.2026
+💧 Wasser	– bitte ablesen –	
+🔥 Gas	– bitte ablesen –	
+Offene Mängel (1)
+Heizung tropft – gemeldet am 24.9.2026
+Inventar
+Sofa	Torben	€250,00
+Offene Beträge
+
+Tom schuldet Torben €1
+✓ A2 offene Beträge = Bilanz — Tom schuldet Torben €168,50 / 168.5
+✓ A3 Druckansicht: nur die Seite, ohne Knöpfe und Tab-Leiste
+✓ A4 Schließen
+✓ Z1 keine Seitenfehler
+✓ V2 Haushalt offen, Schnell-Zeile vorbelegt
+✓ V3 Hinweis „per Sprache" + kein Formular
+✓ V4 Adresse bereinigt
+✓ V5 eingetragen
+✓ V6 keine Seitenfehler
+✓ V7 ohne Text → Formular
+✓ V8 ohne „Wer bist du" → Formular mit „Pizza" vorbelegt
+✓ V9 keine Seitenfehler
+✓ N6 drei Personen: kein Anteil-Schieber
+✓ N7 gleich verteilt, Cent-Rest an die Letzte — Torben €33,33 · Tom €33,33 · Kim €33,34
+✓ N8 drei Posten, Summe 100 — [33.33,33.33,33.34]
+✓ N9 keine Seitenfehler
+✓ N10 zwei Personen 100,01 → 50,01 + 50,00 — Torben €50,01 · Tom €50,00
+✓ C5 eigene Antwort da, Tom fehlt → „warten auf Tom", kein Ergebnis — Danke! Deine Antwort (😄) ist gespeichert – wir warten auf Tom.
+✓ C6 keine Seitenfehler
+✓ R6 gültige Regel aufgehoben → Push
+✓ S9 Auflösen: Ziel weg, Toms 30 € als Schuld des Verwalters — [{"id":"0oa8ps6b","date":"2026-09-28","settled":false,"name":"🐷 Grill aufgelöst: Einzahlung Tom zurück","price":30,"paidBy":"u2","owedBy":"u1","sg":"g2","seq":1790587884186}]
+✓ I3 Besitzer nicht mehr in der WG → Gruppe „Ehemalige"
+✓ D1 Regeln für sg/ep/kf/inv/rg/ci
+
+70 ok, 0 fehlgeschlagen
+   • test/mehr.mjs
+✓ S1 Toms Status sichtbar
+✓ S2 eigener Status gespeichert, gilt bis Mitternacht — {"id":"u1","text":"📚 Lerne – bitte leise","back":"","until":1790632799000,"seq":1790587892042}
+✓ S3 Anzeige „Du: …" + Zurück-Knopf
+✓ S4 „Zurück" entfernt den Status
+✓ F1 Heute: Rauchmelder fällig, Entkalken nicht — 🚨
+Rauchmelder testen
+Wartung fällig · alle 12 Mon.
+Erledigt ✓
+🤝
+Bohrmaschine von Nachbar zurückholen
+über der Zeit
+Zurück ✓
+✓ F2 Heute: Bohrmaschine zurückholen (überfällig), Beamer nicht — 🚨
+Rauchmelder testen
+Wartung fällig · alle 12 Mon.
+Erledigt ✓
+🤝
+Bohrmaschine von Nachbar zurückholen
+über der Zeit
+Zurück ✓
+✓ F3 „Erledigt" setzt last = heute
+✓ P1 Ergebnis vor der eigenen Stimme verborgen
+✓ P2 Stimme gespeichert
+✓ P3 alle gestimmt → entschieden + Push
+✓ P4 neue Umfrage (| im Text entschärft, anonym, Frist +3) — {"id":"ncdjsjhr","q":"Pizza oder Sushi?","opts":"Pizza|Su/shi","by":"u1","ts":1790587894238,"until":"2026-10-01","anon":true,"seq":1790587894238}
+✓ P5 Push „Umfrage"
+✓ W1 Wartung: Vorlagen ohne schon Angelegtes
+✓ W2 Vorlage → Aufgabe alle 3 Monate, noch nie gemacht
+✓ W3 Anzeige „noch nie – jetzt fällig"
+✓ L1 Ausleihe: überfällig rot markiert
+✓ L2 geliehen, Rückgabe in 14 Tagen — {"id":"g40ps0tc","what":"Leiter","person":"Frau Meier","dir":"in","since":"2026-09-28","due":"2026-10-12","by":"u1","seq":1790587896417}
+✓ L3 „Zurück" entfernt
+✓ K1 Kaution, leer = gleich verteilt — {"id":"k","total":1000,"c_u1":500,"c_u2":500,"seq":1790587897651}
+✓ K2 Rückzahlung 900 auf mein Konto → Tom bekommt 40 % = 360 von mir — [{"id":"baolfomt","date":"2026-09-28","settled":false,"name":"🔑 Kaution zurück: Anteil Tom","price":360,"paidBy":"u2","owedBy":"u1","cat":"fix","seq":1790587899296}]
+✓ K3 Kaution als zurück markiert
+✓ G1 Angaben gespeichert (v = 1)
+✓ G2 Link mit Schlüssel, nicht mit dem Code
+✓ G3 ungültig machen: v = 2, Link weg
+✓ A1 Übergabe-Seite: Kaution — €1000,00 · Torben €600,00 · Tom €400,00 · zurück €900,00
+✓ V1 Monatsverbrauch interpoliert (Jan 31 T., Feb 28 T. von 200) — 2025-01:105.08 2025-02:94.92 2025-03:100.00
+✓ V2 Juni 200 > 1,3 × Schnitt → Hinweis; ohne Vorjahr kein Vergleich — Vorjahresvergleich ab einem Jahr Ablesungen · ⚠️ deutlich über dem Schnitt (100 kWh)
+✓ R1 Monatsbericht: Summe des Monats (ohne Kaution nur heutige Posten) — Gesamt: €470,00 · 4 Posten
+✓ R2 pro Person bezahlt/Anteil — Torben	bezahlt €50,00	Anteil €425,00	−€375,00
+Tom	bezahlt €420,00	Anteil €45,00	+€375,00
+✓ B1 Korb: nur Fehlendes zählen (Brot steht schon drauf)
+✓ B2 Milch auf der Liste, Brot nicht doppelt
+✓ B3 danach „Alles schon auf der Liste"
+✓ Z1 keine Seitenfehler
+✓ X1 offene Beträge → gesperrt
+✓ X2 Hinweis: Kautions-Anteil geht über
+✓ X3 Kim ersetzt Tom (neue id, Einzug heute, alle mit joined) — [{"id":"u1","name":"Torben","color":"#38bdf8","joined":"2026-09-28"},{"id":"a7w587qj","name":"Kim","color":"#a78bfa","joined":"2026-09-28"}]
+✓ X4 Toms Aufgabe geht an Kim
+✓ X5 Kautions-Anteil übernommen
+✓ X6 Toms Status weg
+✓ X7 Putz-Zählung beginnt am Einzug (alte Einträge zählen nicht) — {"u1":0,"a7w587qj":0}
+✓ X8 Push „zieht ein"
+✓ X9 keine Seitenfehler
+✓ S5 abgelaufener Status verschwindet
+✓ Q1 Heute: Gesamt 66,25 mit Aufschlüsselung — 💸
+Du schuldest Tom €66,25 (Haushalt €58,25 + Growbox €8,00)
+›
+✓ Q2 Übersicht „insgesamt" = dieselbe Zahl (Growbox nach Pflanzen, nicht 50/50) — schuldet Tom insgesamt €66,25
+✓ Q3 Start-Pop-up rechnet gleich — -66.25
+✓ Q4 keine Seitenfehler
+✓ N1 eigenes Gerät ohne Push → „Benachrichtigungen sind aus"
+✓ N2 Tom hat ein Gerät (uid) → kein Hinweis zu Tom
+✓ N3 „Einschalten" → Mehr, Benachrichtigungen aufgeklappt
+✓ N8 blockiert → Hinweis auf Einstellungen, kein Knopf — 🔔
+Benachrichtigungen sind blockiert
+In den Handy-Einstellungen für diese App bzw. Seite erlauben – sonst kommen Müll, Putzplan und Zahlungen nicht an.
+✓ N4 Tom ohne Push → Hinweis mit WhatsApp-Link
+✓ N5 ohne Service Worker kein Eigen-Hinweis (nichts behaupten)
+✓ N6 „Später" blendet 7 Tage aus
+✓ N7 keine Seitenfehler
+✓ K1 falsche IBAN (Prüfziffer) → Warnung
+✓ K2 gültige IBAN → ✓ in 4er-Blöcken
+✓ K3 Inhaber + IBAN gespeichert (Anzeigename bleibt) — [{"id":"u1","name":"Torben","color":"#38bdf8"},{"id":"u2","name":"Tom","color":"#fbbf24","holder":"Tom-Luca Beispiel","iban":"de89 3704 0044 0532 0130 00"}]
+✓ L1 fremdes Profil: Felder schreibgeschützt + Hinweis
+✓ L2 Tippen in fremde IBAN ändert nichts
+✓ L3 „Das bin ich" für eine andere Person fragt nach
+✓ L4 abgebrochen → weiter Tom
+✓ K8 als Gläubiger: „Bankdaten an Torben schicken"
+✓ K7 keine Seitenfehler
+✓ K4 ich schulde Tom → Überweisung an den Kontoinhaber
+✓ K5 IBAN kopiert (ohne Leerzeichen)
+✓ K6 „Alles kopieren": Empfänger, IBAN, Betrag, Zweck — Empfänger: Tom-Luca Beispiel
+IBAN: DE89 3704 0044 0532 0130 00
+Betrag: 20,00 €
+Verwendungszweck: WG-Ausgleich Torben
+✓ V10 Haushalt zeigt den verrechneten Betrag 58,25 — Torben
+Tom
+€
+58,25
+58,25
+✓ V11 Aufschlüsselung Haushalt −66,25 · Growbox +8,00
+✓ V12 PayPal/IBAN-Betrag = 58,25 (Tom hat PayPal? nein → Hinweis; Zahlungsmeldung mit 58,25)
+✓ V13 Heute: dieselbe Zahl
+✓ V14 Abrechnen schließt Haushalt UND Growbox — [[{"seq":100,"id":"v1","name":"Einkauf","price":132.5,"paidBy":"u2","date":"2026-09-28","settled":true,"settledAt":"2026-09-28","settlementId":"qeb397e2"}],[{"seq":100,"id":"g1","name":"Erde","price":16,"paidBy":"u1","date":"2026-09-28","settled":true,"settledAt":"2026-09-28","settlementId":"bkowqp9n"}]]
+✓ V15 Abrechnung: 58,25 von Torben an Tom; Growbox-Eintrag mit 0 (über Haushalt) — [{"id":"qeb397e2","mod":"hs","date":"2026-09-28","total":132.5,"n":1,"fromId":"u1","toId":"u2","amount":58.25,"withGi":true,"seq":1790588008610},{"id":"bkowqp9n","mod":"gi","date":"2026-09-28","total":16,"n":1,"fromId":"u1","toId":"u2","amount":0,"viaHs":"qeb397e2","seq":1790588008609}]
+✓ V16 Rückgängig öffnet beide wieder
+✓ V17 keine Seitenfehler
+✓ D1 Regeln für st/vo/lh/wa/kt/wk/ga
+
+76 ok, 0 fehlgeschlagen
+   • test/onboarding.mjs
+✓ A1 frisches Gerät → Assistent mit Willkommen
+✓ A2 Weiter gesperrt ohne eigenen Namen
+✓ A3 Personen ersetzen die Vorgabe (kein Torben/Tom), ich bin Lena — [{"id":"t4u93hj2","name":"Lena","color":"#38bdf8","joined":"2026-09-28"},{"id":"img24rlo","name":"Max","color":"#fbbf24","joined":"2026-09-28"},{"id":"i7nk8h6r","name":"Kim","color":"#a78bfa","joined":"2026-09-28"}]
+✓ A4 WG-Name gespeichert
+✓ A5 Bereiche: Growbox aus (gilt für dieses Gerät)
+✓ A6 Putzplan-Schritt mit vorausgewählten Aufgaben
+✓ A7 Aufgaben angelegt und reihum verteilt — [["Müll rausbringen","t4u93hj2"],["Bad putzen","img24rlo"],["Küche putzen","i7nk8h6r"],["Staubsaugen","t4u93hj2"],["Fenster putzen","img24rlo"]]
+✓ A8 Müllabfuhr Papier alle 2 Wochen — [{"id":"mk-papier","kind":"papier","start":"2026-10-03","every":2,"seq":1790588023007}]
+✓ A9 falsche IBAN hält an
+✓ A10 PayPal, Inhaber, IBAN gespeichert — {"id":"t4u93hj2","name":"Lena","color":"#38bdf8","joined":"2026-09-28","pp":"lena-m","holder":"Lena-Marie Beispiel","iban":"DE89370400440532013000"}
+✓ A11 Push-Schritt erklärt, was kommt
+✓ A12 Einladen: Code + WhatsApp-Link mit ?join= — https://wa.me/?text=Hey!%20Ich%20hab%20unsere%20WG-App%20eingerichtet%20%F0%9F%8F%A0%20Tipp%20auf%20den%20Link%2C%20dann%20bist%20du%20direkt%20drin%3A%20http%3A%2F%2Flocalhost%3A8099%2F%3Fjoin%3DWILD-STEIN-VSDJNF
+✓ A13 Fertig-Seite mit Namen
+✓ A14 Assistent zu, gemerkt, frisch-Marker weg
+✓ A15 Heute: „Hallo, Lena" + WG-Name — 28
+Hallo, Lena
+Montag, 28. September
+🌿 WG Sonnenallee
+✓ A16 kein Start-Fenster direkt danach
+✓ A17 nach Neuladen kein Assistent mehr
+✓ A18 keine Seitenfehler
+✓ B1 Link öffnet den Beitreten-Schritt, Code vorbelegt
+✓ B2 Code aus der Adresse entfernt
+✓ B3 verbunden: Code gewechselt, Personen vom Server
+✓ B4 keine Putzplan-/Einladen-Schritte beim Beitreten
+✓ B5 Fertig, Ben
+✓ B6 ich bin Ben, Daten der WG da (Pizza)
+✓ B7 keine Seitenfehler
+✓ C1 unbekannter Code → Meldung, Code bleibt
+✓ C2 „Ich bin neu hier": neue Person, Farbe frei, ich bin sie — [{"id":"x1","name":"Anna","color":"#38bdf8"},{"id":"x2","name":"Ben","color":"#fbbf24"},{"id":"rq47dnnw","name":"Chris","color":"#a78bfa","joined":"2026-09-28"}]
+✓ D1 Gerät mit Code: kein Assistent
+✓ D2 Einladungslink mit fremdem Code auf bestehendem Gerät: ignoriert, Code bleibt
+✓ E1 „Mein Profil einrichten" → Assistent ab „Das bist du"
+✓ E2 Name geändert
+✓ E3 Schließen jederzeit möglich
+✓ E4 keine Seitenfehler
+
+33 ok, 0 fehlgeschlagen
+   • test/miete.mjs
+✓ A1 Einstellung gespeichert (Tag, Modus, Sammler, Anteil Kim) — {"id":"cfg","total":1200,"day":3,"mode":"holder","holder":"u1","s_u1":null,"s_u2":null,"s_u3":500,"seq":1790588083786}
+✓ A2 Rest gleich verteilt: 350 / 350 / 500 — ["Torben · €350,00\noffen – überfällig\nBezahlt ✓","Tom · €350,00\noffen – überfällig\nErhalten ✓","Kim · €500,00\noffen – überfällig\nErhalten ✓"]
+✓ A3 Kopfzeile: Monat, 0 von 3, Fälligkeit, Empfänger
+✓ A4 Sammler darf alle abhaken
+✓ A5 Zahlung vermerkt (Monat, Person, Betrag, wer eingetragen hat) — {"id":"2026-09-u2","ym":"2026-09","userId":"u2","amount":350,"ts":1790588084404,"by":"u1","seq":1790588084404}
+✓ A6 Push nennt die noch Offenen — ["Offen: Torben, Kim"]
+✓ A7 Zeile zeigt „bezahlt … (vermerkt von Torben)"
+✓ A8 Zähler 1/3
+✓ A9 „Zurück" nimmt die Zahlung wieder raus
+✓ A10 Monatswechsel zeigt den Vormonat, wieder 0/3
+✓ A11 keine Seitenfehler
+✓ B1 ohne Sammler-Rolle nur die eigene Zeile abhakbar
+✓ B2 eigene Zahlung eingetragen (400 = 1200/3)
+✓ B3 keine Seitenfehler
+✓ C1 Heute: eigene Miete mit Betrag und Datum — 🏠
+Miete €300,00 war am 1.9. fällig
+›
+✓ C2 offene Zeilen ab dem Stichtag als überfällig markiert — 🏠 MIETE
+Ändern
+‹
+September 2026 · 0/3 bezahlt
+€900,00 gesamt · fällig am 1.9.2026
+›
+Torben · €300,00
+offen – überfällig
+Bezahlt ✓
+Tom · €300,00
+offen – überfällig
+Kim · €300,00
+offen – überfällig
+✓ C3 nach dem Bezahlen keine Heute-Zeile mehr
+✓ C4 keine Seitenfehler
+✓ D1 gleich verteilt, Rest-Cent bei der letzten Person (1000/3) — {"a":333.33,"b":333.33,"c":333.34}
+✓ D2 fester Anteil zieht ab, Rest gleich (1200, a=600 → 300/300) — {"a":600,"b":300,"c":300}
+✓ D3 Fälligkeit wird auf die Monatslänge gekappt — 2026-02-28 / 2026-09-03
+
+21 ok, 0 fehlgeschlagen
+   • test/gross.mjs
+✓ A1 zwei Schuldner an einen Gläubiger — B→A:34 C→A:22
+✓ A2 vier Personen: höchstens n−1 Überweisungen, größte zuerst — C→A:25 D→A:5 D→B:10
+✓ A3 ausgeglichen → keine Überweisung
+✓ B1 zwei Zeilen: Tom → dir 34, Kim → dir 22 — ["Tom → dir €34,00\nwartet auf Tom","Kim → dir €22,00\nwartet auf Kim"]
+✓ B2 als Gläubiger keine Bezahl-Knöpfe
+✓ B3 alte Zwei-Personen-Anzeige bleibt aus
+✓ B4 Heute: eine Zeile je offener Überweisung — ["💰\nTom schuldet dir €34,00\n›","💰\nKim schuldet dir €22,00\n›"]
+✓ B5 keine Seitenfehler
+✓ C1 eigene Zeile zuerst: Du → Torben 34 — Du → Torben €34,00
+Zahlen
+🏦 Überweisung an Torben
+DE89 3704 0044 0532 0130 00
+📋 IBAN
+📋 €34,00
+📋 Alles
+✓ C2 Bezahl-Knopf (PayPal) nur bei der eigenen Zeile
+✓ C3 IBAN-Box an der eigenen Zeile
+✓ C4 Schuldner sieht Hinweis statt Abrechnen-Knopf
+✓ C5 Heute: nur die eigene Überweisung — ["💸\nDu schuldest Torben €34,00\n›"]
+✓ C6 keine Seitenfehler
+✓ D1 alle Posten abgerechnet
+✓ D2 Beleg: Summe 56, kein festes Paar, Plan als Text — {"id":"ydxwrpap","mod":"hs","date":"2026-09-28","total":102,"n":2,"fromId":null,"toId":null,"amount":56,"plan":"Tom→Torben:34,00 · Kim→Torben:22,00","seq":1790588132254}
+✓ D3 Übersicht zeigt den Plan (jetzt ausgeglichen)
+✓ D4 keine Seitenfehler
+✓ E1 Übersicht: „Tom → Torben · Kim → Torben"
+✓ E2 Übergabe-Seite listet alle Überweisungen
+✓ E3 keine Seitenfehler
+✓ F1 zwei Personen: weiter das bekannte Banner, keine Plan-Liste
+✓ F2 PayPal-Knopf wie gehabt
+✓ F3 keine Seitenfehler
+
+24 ok, 0 fehlgeschlagen
+   • test/fair.mjs
+✓ A1 Vorschlag: Tom legt aus (du hast 80 vorgestreckt, Tom 10) — 💡 Diesmal wäre Tom mit Auslegen dran – du hast zuletzt €80,00 vorgestreckt, Tom €10,00.
+✓ B1 Wächter: Summe über 50 € und ältester Posten 40 Tage alt — ⏳ Zeit zum Abrechnen
+Offen sind €95,00 (eure Grenze: €50,00). Der älteste offene Posten ist 40 Tage alt (Grenze: 30).
+Grenzen ändern
+✓ B2 Grenzen gespeichert
+✓ B3 unter den neuen Grenzen ist der Hinweis weg
+✓ B4 keine Seitenfehler
+✓ A2 fast gleich vorgestreckt → kein Hinweis
+✓ C1 Hochrechnung aufs Monatsende (ab dem 5.) — 📈 Bei dem Tempo landet ihr bei ~€214,29 – passt / erwartet 214,29 (Tag 28)
+✓ C2 keine Seitenfehler
+✓ D1 Abgabe gespeichert, Aufgabe bleibt vorerst bei mir — [{"id":"t2s8x4b0","taskId":"t1","by":"u1","ts":1790588176851,"note":"","seq":1790588176851}]
+✓ D2 Push an die anderen — ["🤝 Torben kann „Bad putzen\" nicht"]
+✓ D3 eigene Abgabe: „Doch selbst"
+✓ D4 Angebot sichtbar mit Name
+✓ D5 übernommen: Aufgabe gehört Tom, Angebot weg
+✓ D6 Push „übernimmt"
+✓ D7 keine Seitenfehler
+✓ E1 fremder Eintrag sichtbar, ohne Löschknopf
+✓ E2 Überschneidung wird abgelehnt
+✓ E3 Ende vor Start wird abgelehnt
+✓ E4 Ruhezeit gespeichert (anderer Bereich → keine Überschneidung) — {"id":"dt41g5v8","kind":"ruhe","date":"2026-09-28","from":"20:00","to":"22:00","by":"u1","note":"Prüfung lernen","seq":1790588193493}
+✓ E5 Push mit Zeitfenster — ["🤫 Ruhe bitte: heute 20:00–22:00"]
+✓ E6 eigener Eintrag löschbar
+✓ E7 keine Seitenfehler
+✓ F1 Regeln für tb und bk
+
+23 ok, 0 fehlgeschlagen
+   • test/laden.mjs
+✓ A1 günstigster Laden zuerst — [{"shop":"Lidl","price":0.99,"date":"2026-09-08"},{"shop":"Rewe","price":1.19,"date":"2026-09-25"}]
+✓ A2 Hinweis: zuletzt Rewe 1,19
+✓ A3 günstigster Laden wird genannt
+✓ A4 Laden am Posten gespeichert — {"id":"7o2ryj15","name":"Milch","price":1.09,"paidBy":"u1","date":"2026-09-28","owedBy":null,"cat":null,"shop":"Aldi","settled":false,"seq":1790588202804}
+✓ A5 keine Seitenfehler
+✓ B0 Reihenfolge: das mit dem Ablaufenden zuerst — ["🍝 Nudeln mit Tomatensoße · nutzt Ablauf","🌿 Pasta mit Pesto · nutzt Ablaufendes n","🥔 Kartoffelauflauf kartoffeln, sahne, k"]
+✓ B1 Vorschlag „Nudeln mit Tomatensoße" mit Hinweis auf Ablaufendes — 🍝
+Nudeln mit Tomatensoße · nutzt Ablaufendes
+nudeln, tomaten, zwiebel da · fehlt: knoblauch
+🛒 1
+Einplanen
+✓ B2 zeigt, was da ist und was fehlt
+✓ B3 Fehlendes steht auf der Einkaufsliste — [{"id":"eekay46i","name":"Knoblauch","addedBy":"u1","date":"2026-09-28","done":false,"seq":1790588210116}]
+✓ B4 Push „Für Nudeln mit Tomatensoße"
+✓ B5 Gericht im Essensplan (heute, ich koche, Zutaten drin) — [{"id":"4rv1ulr7","date":"2026-09-28","dish":"Nudeln mit Tomatensoße","cook":"u1","ings":"nudeln, tomaten, zwiebel, knoblauch","seq":1790588210687}]
+✓ B6 keine Seitenfehler
+✓ B7 zu wenig da → keine Vorschläge
+✓ C1 Tour-Chips je Laden mit Anzahl — ["🧭 Lidl · 2","🧭 dm · 1"]
+✓ C2 Tour übernommen: beide Lidl-Einträge gehören mir
+✓ C3 Push „geht zu Lidl" — ["🧭 Torben geht zu Lidl"]
+✓ C4 „Nur meine Tour" blendet fremde Einträge aus — ["Brot","Milch"]
+✓ C5 Laden je Eintrag zuweisbar — [["Milch","Lidl"],["Brot","Lidl"],["Shampoo","dm"],["Bananen","Rewe"]]
+✓ C6 keine Seitenfehler
+✓ D1 Karte nennt Vermieter und offene Mängel — 📮 VERMIETER & MÄNGEL
+Ändern
+Hausverwaltung Meier
+2 offene Mangel-Einträge – Schreiben mit 14 Tagen Frist · meier@example.com
+Mängelanzeige erzeugen …
+🆘 NOTFALL-INFOS
++ Eintragen
+Wo ist der Sicherungskasten, wo der Absperrhahn? Einmal eintragen – steht dann auch im Gast-Link.
+✓ D2 Schreiben: Empfänger, beide Mängel, Frist +14 Tage, Unterschriften — Hausverwaltung Meier
+Musterweg 1
+
+28.9.2026
+
+Mängelanzeige – WG Sonnenallee
+
+Sehr geehrte Damen und Herren,
+
+in unserer Wohnung sind folgende Mängel aufgetreten:
+
+1. Heizung tropft
+2. Fenster undicht 
+✓ D3 E-Mail-Link an den Vermieter mit Betreff — mailto:meier%40example.com?subject=M%C3%A4ngelanzeige%20%E2%80%93%20WG%20Sonnena
+✓ D4 „Abgeschickt": beide gemeldet, Frist gesetzt — [["Heizung tropft","gemeldet","2026-10-12"],["Fenster undicht","gemeldet","2026-10-12"]]
+✓ D5 Frist steht an der Reparatur
+✓ D6 Notfall-Infos gespeichert und sichtbar
+✓ D7 keine Seitenfehler
+
+26 ok, 0 fehlgeschlagen
+   • test/english.mjs
+✓ A1 Standard ist Deutsch
+✓ A2 Umschalten merkt sich die Sprache und lädt neu
+✓ A3 Tab-Leiste auf Englisch
+✓ B1 „Heute" heißt Today, Begrüßung auf Englisch — 28
+Hello, Torben
+Monday 28 September
+🔔
+Notifications are bl
+✓ B2 Datum im englischen Format (Wochentag ausgeschrieben) — 28
+Hello, Torben
+Monday 28 September
+🔔
+Notifications are blocked
+Allow them in your phone settings for this app or site
+✓ B3 Haushalt heißt Household, KEIN Betrag mit Komma — 💶 Expenses
+🛒 Shopping list (1)
+YOUR BALANCE
+€
+20.00
+20.00
+I OWE
+Household
+100%
+€20.00
+Grow box
+0%
+€0.00
+›
+Household + grow box · settled per area · total spen
+✓ B4 „Mehr" zeigt englische Gruppen
+✓ B5 keine Seitenfehler
+✓ C0 alle geprüften Tabs gefunden (kurze EN-Namen, einzeilig) — fehlt: 
+✓ C4 Tab-Beschriftungen einzeilig und ungekürzt — []
+✓ C1 keine deutschen Reste auf den Hauptseiten
+✓ C3 kein Wörterbuch-Eintrag steht unübersetzt auf der Seite
+✓ C2 keine Seitenfehler
+✓ E1 Ausgaben-Formular heißt auf Englisch „+ Add expense"
+✓ E2 Formular durchgehend englisch — EXPENSE ⏎ Cancel ⏎ What did you buy? ⏎ 🛒 Groceries ⏎ 🧴 Household ⏎ 🎉 Leisure ⏎ 📄 Fixed costs ⏎ 📦 Other ⏎ Next
+✓ E3 Ersteinrichtung englisch — Today ⏎ TODAY ⏎ SYNC… ⏎ 28 ⏎ Hello ⏎ Monday 28 September ⏎ 👋 WHO ARE YOU ON THIS PHONE? ⏎ Torben ⏎ Tom ⏎ Only needed once. Without it, clea
+✓ D1 auf Deutsch weiterhin deutsch, Beträge mit Komma
+✓ D2 deutsche Beträge (Komma)
+✓ D3 keine Seitenfehler
+✓ E4 keine HTML-Entities in Texten (Quelltext und Wörterbuch)
+✓ E5 kein deutscher Template-String ohne TT() (Quelltext, datenunabhängig)
+✓ E6 auch Texte aus Listen (TT(variable)) sind übersetzt
+
+22 ok, 0 fehlgeschlagen
+   • test/push_diaet.mjs
+✓ A1 altes Gerät: neue Ausgabe kommt NICHT mehr
+✓ A2 altes Gerät: Einkaufsliste, Ankündigung, erledigt, Rückblick leise
+✓ A3 altes Gerät: Geld, Putz, Morgen, Nachricht, Wäsche kommen weiter
+✓ A4 bewusstes „aus" bei einer wichtigen Art bleibt
+✓ A5 ohne Typ (Login-Code) immer
+✓ A6 neues Gerät (pv 2) darf leise Arten wieder einschalten
+✓ A7 neues Gerät: fehlendes Feld → wichtig an, leise aus
+✓ B1 morgens genau EINE Handlungs-Push statt sieben — ☀️ Heute: 5 Dinge
+✓ B2 Miete steht vorn, Abo hinten — 🏠 €900 · offen: Tom · 🧹 Bad (Torben), Küche (Tom) · 🧊 Läuft bald ab: Milch · +2 weitere in der App
+✓ B3 Rest als „+2 weitere in der App" — 🏠 €900 · offen: Tom · 🧹 Bad (Torben), Küche (Tom) · 🧊 Läuft bald ab: Milch · +2 weitere in der App
+✓ B4 Rückblick + Check-in getrennt als eine digest-Push
+✓ B5 Tag ersetzt sich (eine Push je Morgen)
+✓ B6 nur eine Meldung → bleibt mit eigenem Titel
+✓ B7 nichts zu melden → keine Push
+✓ B8 Text bleibt kurz (≤ 240 Zeichen)
+✓ B9 abends zwei Tonnen → EINE Müll-Push
+✓ B10 Wochenüberblick ist digest, nicht putz
+✓ C1 jeder Push-Typ der App ist in notify.js bekannt (sonst ginge er IMMER raus) — unbekannt:  · gefunden 46
+✓ C2 leise Arten in App und Server gleich — away,board,digest,done,exp,game,repair,shop | away,board,digest,done,exp,game,repair,shop
+✓ C3 DB-Regeln erlauben jedes Einstellungs-Feld (sonst scheitert „Push aktivieren") — fehlt: 
+✓ C5 Morgen-Cron schickt über morningPlan, nicht je Meldung
+✓ C6 Abend-Cron schickt über eveningPlan, nicht je Meldung
+✓ C4 Standard: leise Arten aus, wichtige an
+✓ D1 alte Einstellungen: leise Arten einmalig aus, pv 2 — {"exp":false,"shop":false,"putz":true,"settle":false,"remind":true,"board":false,"msg":true,"wash":true,"away":false,"repair":false,"game":false,"done":false,"digest":false,"quiet":true,"qs":23,"qe":7,"pv":2}
+✓ D2 Ruhezeit und bewusstes „aus" bleiben erhalten
+✓ D3 schon umgestellt: eigene Wahl (Ausgaben an) wird NICHT überschrieben — {"exp":true,"shop":true,"putz":true,"settle":true,"remind":true,"board":true,"msg":true,"wash":true,"away":true,"repair":true,"game":true,"pv":2}
+✓ D4 keine Seitenfehler
+
+27 ok, 0 fehlgeschlagen
+   • test/neu.mjs
+✓ A1 Ausgabe auf Toms Gerät landet im Verlauf (by u2, Typ exp) — [{"id":"cuz71dkc","ts":1790588312086,"by":"u2","t":"💸 Tom hat 12,50 € eingetragen","b":"Pizza","k":"exp","seq":1790588312087}]
+✓ A2 Verlauf wird zum Server geschrieben (geteilt, nicht nur lokal)
+✓ A3 eigener Eintrag zählt auf Toms Gerät NICHT als neu (keine Karte)
+✓ A4 keine Seitenfehler
+✓ B1 Karte „Seit du zuletzt da warst" erscheint
+✓ B2 zeigt die zwei neuen Ereignisse von Tom, neuestes zuerst — 🕘 SEIT DU ZULETZT DA WARST ⏎ ✓ Gelesen ⏎ 💸 Tom hat 12,50 € eingetragen ⏎ Pizza · vor 5 Min. ⏎ 🛒 Bitte bring Milch mit ⏎ — Tom · vor 3 Std.
+✓ B3 eigener Eintrag (Torben) steht NICHT drin
+✓ B4 Ereignis von vor dem letzten Besuch steht NICHT drin
+✓ B5 Zeitangabe lesbar („vor 5 Min.", „vor 3 Std.")
+✓ B6 App-Symbol zeigt die Zahl der ungelesenen (2) — [0,2]
+✓ B7 „✓ Gelesen" blendet die Karte aus
+✓ B8 „✓ Gelesen" merkt sich den Zeitpunkt
+✓ B9 App-Symbol wird geleert
+✓ B10 nach dem Neuladen bleibt es gelesen
+✓ B11 keine Seitenfehler
+✓ C1 erst 5 sichtbar
+✓ C2 „+7 weitere anzeigen" klappt alle auf
+✓ C3 Verlauf bleibt auf höchstens AK_MAX Einträgen, neuester vorn — 80 / 80
+
+18 ok, 0 fehlgeschlagen
+   • test/a11y.mjs
+✓ K0 Kontrast wirklich gemessen (≥ 80 % der Textstellen) — 722 gemessen, 0 übersprungen
+✓ K1 jede Textfarbe erreicht WCAG-AA-Kontrast (hell + dunkel, alle Hauptseiten) — 0 Stellen (node test/a11y.mjs --bericht)
+✓ T1 jedes Tap-Ziel mindestens 40 px — 0 Stellen (node test/a11y.mjs --bericht)
+✓ T2 Tab-Beschriftungen einzeilig und ungekürzt (390 und 360 px) — gekürzt: 
+✓ F1 Tastatur-Fokus sichtbar (dunkel) — {"tag":"BUTTON","outline":true,"shadow":false}
+✓ F2 Tastatur-Fokus sichtbar (hell) — {"tag":"BUTTON","outline":true,"shadow":false}
+✓ E1 keine Seitenfehler
+
+7 ok, 0 fehlgeschlagen
+   • test/heute.mjs
+✓ A1 leere WG: alle 11 Werkzeuge als Chips — Chips: status,wash,fridge,meal,board,msg,book,rules,poll,repair,login
+✓ A2 leere WG: keine leere Werkzeug-Karte — Karten: 
+✓ A3 Heute ist kurz (≤ 1,6 Bildschirmhöhen) — 706 px
+✓ A4 jedes Chip-Werkzeug ist unsichtbar eingehängt (Nebenaufgaben laufen weiter) — ["status","wash","fridge","meal","board","msg","book","rules","poll","repair","login"]
+✓ B1 Chip „Kühlschrank" öffnet die Karte
+✓ B2 geöffnete Karte steht direkt unter den Chips
+✓ B3 keine Seitenfehler
+✓ C0 Start ohne Springen (Layout-Verschiebung CLS < 0,02) — CLS 0.002
+✓ C1 Kühlschrank mit Eintrag: Karte da, kein Chip — Karten fridge,repair · Chips status,wash,meal,board,msg,book,rules,poll,login
+✓ C2 offene Reparatur: Karte da, kein Chip
+✓ C3 leere Werkzeuge bleiben Chips
+✓ D1 Reihenfolge: Jetzt dran → Neu → Eingeben → Werkzeuge → Chips — {"rows":334,"news":410,"quick":516,"werkzeug":590,"chips":928}
+✓ D2 keine Seitenfehler
+✓ E1 Chips auf Englisch — ➕ QUICK ACCESS · 🙋 Status · 🧺 Machine · 🧊 Fridge · 🍝 Meal plan · 🗓️ Announcement · 💬 Quick note · 🛁 Bookings · 📜 House rules · 🗳️ Poll · 🔧 Broken · 🔑 Share login
+
+14 ok, 0 fehlgeschlagen
+   • test/breite.mjs
+✓ A1 Tab-Leiste ist Seitenleiste links (hoch statt breit) — {"x":0,"y":0,"w":96,"h":900}
+✓ A2 Kopfzeile beginnt rechts der Seitenleiste — {"x":96,"y":0,"w":1270,"h":54}
+✓ A3 Heute zweispaltig nebeneinander — {"a":{"x":187,"y":171,"w":530,"h":436},"b":{"x":745,"y":171,"w":530,"h":288}}
+✓ A4 Heute nutzt die Breite (Inhalt ≥ 1000 px) — 1120 px
+✓ A5 nichts ragt seitlich heraus — 0 px
+✓ C1 Übersicht am Desktop einspaltig, höchstens 760 px — 760 px
+✓ A6 keine Seitenfehler
+✓ B1 Tablet: Tab-Leiste unten, volle Breite — {"x":0,"y":1028,"w":834,"h":84}
+✓ B2 Tablet: Heute einspaltig (rechte Gruppe unter der linken) — {"a":{"x":113,"y":171,"w":608,"h":436},"b":{"x":113,"y":627,"w":608,"h":288}}
+✓ B3 Tablet: nichts ragt seitlich heraus — 0 px
+✓ B1 Handy: Tab-Leiste unten, volle Breite — {"x":0,"y":760,"w":390,"h":84}
+✓ B2 Handy: Heute einspaltig (rechte Gruppe unter der linken) — {"a":{"x":16,"y":171,"w":358,"h":453},"b":{"x":16,"y":644,"w":358,"h":336}}
+✓ B3 Handy: nichts ragt seitlich heraus — 0 px
+✓ D1 Schnell-Eintragen: Zeile leuchtet auf
+✓ D2 Schnell-Eintragen: kurzes Vibrieren
+✓ D3 Aufleuchten endet wieder
+✓ D4 Verlauf-Eintrag blendet ein — rise
+✓ D5 Einkaufsliste abhaken vibriert kurz
+✓ D6 keine Seitenfehler
+✓ E1 „Weniger Bewegung": keine Einblend-Animation — none
+✓ E2 „Weniger Bewegung": keine Vibration
+
+21 ok, 0 fehlgeschlagen
+   • test/komfort.mjs
+✓ A1 Suche findet eine Reparatur (klein geschrieben, ohne Umlaut-Fehler) — 🔧
+Heizung Bad kalt
+Kaputt & Vermieter
+›
+✓ A2 Ausgabe gefunden, mit Betrag und Zahlendem
+✓ A3 Treffer antippen springt in den Haushalt — Haushalt
+✓ A4 Betrag „12,50" findet die Pizza
+✓ A5 Aufgabe antippen springt in den Putzplan — Putzplan
+✓ B1 „Klopapier letztes Jahr": 3 Posten inkl. Archiv, Summe €18,75 — 3 Treffer · Ausgaben zusammen €18,75
+✓ B2 Archiv-Posten ist gekennzeichnet
+✓ B3 Filter „Tom zahlte": nur sein Posten (€7,25)
+✓ B4 ohne Suchtext, nur Kategorie „Freizeit": die Pizza
+✓ A6 keine Seitenfehler
+✓ C1 Manifest: Kurzbefehle Putzplan + Suchen, Teilen-Ziel
+✓ C2 ?a=putz öffnet den Putzplan
+✓ C3 ?a=suche öffnet die Suche
+✓ D1 geteilter Text öffnet „Wohin damit?"
+✓ D2 drei Artikel erkannt (Link und Aufzählungszeichen raus)
+✓ D3 Eier + Brot neu auf der Liste, Milch nicht doppelt — Eier,Brot,Milch
+✓ D4 danach Haushalt mit Einkaufsliste
+✓ D5 Adresse wieder sauber (kein erneutes Teilen beim Neuladen)
+✓ D6 „Als Ausgabe": Schnellzeile vorausgefüllt, Hinweis „Aus dem Teilen" — 12,50 Pizza | 📥 Aus dem Teilen übernommen – prüfen und „Eintragen“ tippen
+✓ E1 offline: Pille zeigt wartende Änderungen — OFFLINE · 2
+✓ E2 wieder online und bestätigt: keine Zahl mehr — LIVE
+✓ E3 Meldung „✓ Alles angekommen"
+✓ E4 keine Seitenfehler
+
+23 ok, 0 fehlgeschlagen
+   • test/geld.mjs
+  ✓ A1 genau ein Fragen-Knopf: nur beim fremden, offenen Posten — gefunden: 1
+  ✓ A2 Blatt zeigt den Posten — ❓ WAS WAR DAS?
+Abbrechen
+Pizza · €12,50 · 28.9.2026
+Fragen
+  ✓ A3 leere Frage speichert nichts
+  ✓ A4 Frage hängt am Posten, mit Fragestellerin — {"seq":100,"id":"h1","name":"Pizza","price":12.5,"paidBy":"u2","date":"2026-09-28","settled":false,"cat":"food","q":"Wofür genau war die?","qBy":"u1"}
+  ✓ A5 Frage steht in der Zeile
+  ✓ A6 Push geht als wichtige Art `msg` raus — {"code":"TEST-LOKAL-GELD","from":"2s227uxp74V5KA","title":"❓ Torben fragt zu „Pizza“","body":"Wofür genau war die?","tag
+  ✓ A7 nach der Frage kein Fragen-Knopf mehr
+  ✓ A8 Torben darf seine eigene Frage nicht beantworten
+  ✓ A9 Tom bekommt den Antwort-Knopf, keinen Fragen-Knopf — antworten=1 fragen=0
+  ✓ A10 Antwort-Blatt zeigt die Frage
+  ✓ A11 Antwort steht in der Zeile
+  ✓ A12 Antwort-Push ist ebenfalls `msg` — {"code":"TEST-LOKAL-GELD","from":"oxt0bacq863H6D","title":"💬 Tom antwortet zu „Pizza“","body":"Für den Filmabend am Fre
+  ✓ A13 beantwortete Frage zeigt keinen Knopf mehr
+  ✓ A14 abgerechneter Posten verlässt die Einzelposten und hat keinen Fragen-Knopf — EINZELPOSTEN Kino 28.9.2026 · Torben €20,00 je €10,00 ×
+  ✓ C1 Vorschlag da und nennt den richtigen Posten — 💡 Kommt „Netflix“ jeden Monat?
+3× in verschiedenen Monaten · zuletzt €12,99
+🔁 Automatisch eintragen
+Nein danke
+  ✓ C2 schwankende Preise ergeben keinen Vorschlag
+  ✓ C3 zwei Monate reichen nicht
+  ✓ C4 Vorschlag zeigt Anzahl und Schnittpreis — 💡 Kommt „Netflix“ jeden Monat?
+3× in verschiedenen Monaten · zuletzt €12,99
+🔁 Automatisch eintragen
+Nein danke
+  ✓ C5 Wiederkehrender Posten entsteht mit Name, Preis und Zahler — {"id":"1o4w4rvj","name":"Netflix","price":12.99,"paidBy":"u1","owedBy":null,"cat":null,"since":"2026-09","seq":1790588522523}
+  ✓ C6 Start ist dieser Monat, weil er noch keinen Netflix-Posten hat — 2026-09 statt 2026-09
+  ✓ C7 Rückmeldung nennt Posten und Startmonat — 🔁 „Netflix“ läuft jetzt automatisch ab 2026-09
+Rückgängig
+  ✓ C8 Vorschlag ist danach weg
+  ✓ C9 läuft dieser Monat schon, startet das Abo im nächsten — 2026-10 statt 2026-10
+  ✓ C10 nach „Nein danke" ist der Vorschlag weg
+  ✓ C11 Ablehnung liegt geteilt in `cf` (gilt auf allen Geräten) — [{"id":"aboNo","namen":"netflix","seq":1790588540317}]
+  ✓ C12 Ablehnung hält den Neustart aus
+  ✓ F1 Knopf zur Jahresübersicht ist da
+  ✓ F2 Blatt öffnet sich
+  ✓ F3 Jahr und Namen stehen im Kopf — Drucken / PDF
+Schließen
+Jahresübersicht 2026
+
+Torben, Tom · erstellt am 28.9.2026
+
+Ausgaben je Monat
+Januar	€150,00	–	€1
+  ✓ F4 Januar zählt beide Posten zusammen (150) — Januar	€150,00	–	€150,00
+  ✓ F5 Februar enthält den archivierten Posten (40) — Februar	€40,00	–	€40,00
+  ✓ F6 März trennt Haushalt (30) und Growbox (20) und summiert 50 — März	€30,00	€20,00	€50,00
+  ✓ F7 Gesamtsumme 240 — Gesamt			€240,00
+  ✓ F8 Torben: 130 bezahlt, 120 getragen, +10 Differenz, 2× Miete — Torben	€130,00	€120,00	€10,00	2×
+  ✓ F9 Tom: 110 bezahlt, 120 getragen, −10 Differenz, keine Miete — Tom	€110,00	€120,00	−€10,00	–
+  ✓ F10 Kategorien tauchen auf — 	–	–
+November	–	–	–
+Dezember	–	–	–
+Gesamt			€240,00
+
+Spalten: Haushalt · Growbox · zusammen
+
+Nach Kategorie
+Lebensmittel	€170,00
+Haushalt	€50,00
+Ohne Kategorie	€20,00
+Je Person
+Person	bezahlt	getragen	Differenz	Miete bezahlt
+Torben	€130,00	€120,00	€10,00	2×
+Tom	€110,00	€120,00	−€10,00	–
+
+„getragen“ = Anteil nach Aufteilung. Archivierte Posten sind enthalten; laufende Abrechnungen nicht verrechnet.
+  ✓ F11 Drucken-Knopf löst den Druckdialog aus
+  ✓ F12 Druck-CSS blendet alles außer dem Blatt aus
+  ✓ F13 Blatt lässt sich schließen
+  ✓ Z1 keine Seitenfehler
+
+40 von 40 Prüfungen bestanden
+   • test/organisation.mjs
+  ✓ A1 Geburtstags-Karte ist da
+  ✓ A2 leer erklärt sich selbst
+  ✓ A3 nur Tag und Monat gespeichert, Jahr getrennt — {"id":"84txj4ef","name":"Mama","tag":"12-24","jahr":1970,"seq":1790588560045}
+  ✓ A4 Zeile nennt Datum, Abstand und kommendes Alter — 🎂 Mama 24. Dezember · in 87 Tagen · wird 56 ×
+  ✓ A5 ohne Datum wird nichts gespeichert
+  ✓ A6 Geburtstag heute wird als heute gezeigt — 🎉 Heute 28. September · heute 🎉 ×
+  ✓ A7 nächster Geburtstag steht oben, weitester unten — 🎉 → 🎂 → 🎂
+  ✓ C1 Pinnwand ist da und erklärt sich leer
+  ✓ C2 Hinweis auf unverschlüsselte Ablage steht im Formular
+  ✓ C3 Eintrag steht auf der Pinnwand
+  ✓ C4 zweiter Eintrag, neuester zuerst
+  ✓ C5 Angeheftetes steht oben — 📌 WLAN Fritzbox-7590 Torben ⧉ 📌 ×
+  ✓ C6 „oben" liegt in den geteilten Daten, nicht nur lokal — {"id":"w4r00tls","t":"WLAN","b":"Fritzbox-7590","by":"u1","ts":1790588579203,"oben":true,"seq":1790588579203}
+  ✓ C7 ohne Titel entsteht gar kein Eintrag — ["Hausmeister","WLAN"]
+  ✓ D1 Rhythmus-Karte erscheint — 💶 Ausgaben
+🛒 Einkaufsliste
+🛒 Unterwegs? Mitbringen lassen (mit Push)
+🔁 Wiede
+  ✓ D2 Klopapier ist fällig — Milch
+alle ~7 Tage · zuletzt vor 10 Tagen
+Auf die Liste | Klopapier
+alle ~14 Tage · zuletzt vor 15 Tagen
+Auf die Liste
+  ✓ D3 der Rhythmus steht dabei (~14 Tage) — Milch
+alle ~7 Tage · zuletzt vor 10 Tagen
+Auf die Liste | Klopapier
+alle ~14 Tage · zuletzt vor 15 Tagen
+Auf die Liste
+  ✓ D4 gerade Gekauftes ist nicht fällig — Milch
+alle ~7 Tage · zuletzt vor 10 Tagen
+Auf die Liste | Klopapier
+alle ~14 Tage · zuletzt vor 15 Tagen
+Auf die Liste
+  ✓ D5 zwei Käufe ergeben noch keinen Rhythmus — Milch
+alle ~7 Tage · zuletzt vor 10 Tagen
+Auf die Liste | Klopapier
+alle ~14 Tage · zuletzt vor 15 Tagen
+Auf die Liste
+  ✓ D5b gewertet wird der Median, nicht der Mittelwert (ein Ausreißer kippt ihn sonst) — Milch
+alle ~7 Tage · zuletzt vor 10 Tagen
+Auf die Liste | Klopapier
+alle ~14 Tage · zuletzt vor 15 Tagen
+Auf die Liste
+  ✓ D6 Vorschlag landet auf der Einkaufsliste — [{"id":"emngripb","name":"Klopapier","done":false,"date":"2026-09-28","by":"u1","seq":1790588590487}]
+  ✓ D7 danach ist der Vorschlag weg (steht ja auf der Liste)
+  ✓ D8 nichts doppelt vorschlagen
+  ✓ D9 Abhaken schreibt das Kaufdatum fort, ohne die alten zu verlieren — {"seq":100,"id":"butter","name":"Butter","n":2,"ds":"2026-09-08,2026-09-28"}
+  ✓ F1 Kalender ist da
+  ✓ F2 so viele Tage wie der Monat hat — 30 statt 30
+  ✓ F3 Kopf nennt Monat und Jahr
+  ✓ F4 Geburtstag steht im Raster — 15
+🎂
+  ✓ F5 Essensplan steht am heutigen Tag — 28
+⚫🍝
+  ✓ F6 Abwesenheit füllt alle Tage des Zeitraums
+  ✓ F7 Ausleih-Rückgabe steht am Fälligkeitstag
+  ✓ F8 Müllabfuhr wiederholt sich im Zweiwochentakt
+  ✓ F9 Tag antippen zeigt die Termine im Klartext — 28.9.2026 ⚫ Restmüll 🍝 Lasagne
+  ✓ F10 Blättern wechselt den Monat — OKTOBER 2026
+  ✓ F11 nach dem Blättern vorwärts ist kein Tag mehr ausgewählt
+  ✓ F11b ausgewählter Tag ist da, solange man im Monat bleibt
+  ✓ F11c auch rückwärts fällt die Auswahl weg
+  ✓ F12 zurück in den Vormonat, ohne Absturz — 31
+  ✓ Z1 keine Seitenfehler
+
+39 von 39 Prüfungen bestanden
+   • test/verzahnung.mjs
+  ✓ A0 Leerzustand nennt die echte Erinnerung
+  ✓ A1 „Jahrgang unbekannt" verwirft das Jahr — {"id":"ayk7jr5c","name":"Oma","tag":"11-03","jahr":null,"seq":1790588633845}
+  ✓ A2 ohne Jahrgang kein erfundenes Alter
+  ✓ A3 Häkchen ist nach dem Speichern wieder aus
+  ✓ A4 mit Jahrgang wird das Alter weiter angezeigt
+  ✓ B1 Geburtstag heute steht auf Heute
+  ✓ B2 in 2 Tagen ebenfalls (Vorwarnung wie die Morgen-Nachricht)
+  ✓ B3 in 20 Tagen noch nicht
+  ✓ C0 Februar eines Nicht-Schaltjahres erreicht — FEBRUAR 2027
+  ✓ C1 der 29.02.-Geburtstag erscheint am 28.02. — 2027-02-28
+  ✓ D1 nie erledigte Aufgabe steht schon HEUTE im Kalender — heute: 28 🆕
+  ✓ D2 „Morgen" gedrückt → Termin am Schlummer-Datum, nicht vorher — 2026-09-30: 30 😴
+  ✓ E1 Ankündigung ist per Suche auffindbar (vorher: nie) — 🛋️
+Spieleabend mit Nachbarn
+Ankündigung · 29.9.
+›
+  ✓ E2 Pinnwand-Text wird mitdurchsucht — 📌
+Paketstation
+WG-Infos · Packstation 142 am Bahnhof
+›
+  ✓ E3 WLAN aus dem Gast-Link ist auffindbar — 📶
+WLAN
+Gast-Link · WG-Netz
+›
+  ✓ E4 das WLAN-Passwort steht NICHT in der Trefferliste
+  ✓ E5 Notfall-Infos sind auffindbar — 🚰
+Wasser-Absperrhahn
+Notfall-Infos · Keller, rotes Ventil
+›
+  ✓ F1 WLAN, Notfall-Infos und Vermieter stehen automatisch auf der Pinnwand — 5: 📶 · ⚡ · 🔥 · 🧰 · 🏢
+  ✓ F2 leere Notfall-Felder erscheinen nicht
+  ✓ F3 jede feste Zeile sagt, wo sie bearbeitet wird
+  ✓ F4 das Passwort steht nicht im Klartext da
+  ✓ F5 Kopieren beim WLAN kopiert das Passwort (das braucht man zum Verbinden) — geheim-123
+  ✓ F6 feste Zeilen sind nicht löschbar (gepflegt wird an der Quelle)
+  ✓ F7 der Leerzustand schlägt nichts mehr vor, das es schon gibt
+  ✓ G1 Geburtstag auf Englisch — 28 Hello, Torben Monday 28 September 🔔 Notifications are blocked Allow them in your phone settings for this app or site – otherwise bins, cleaning and payments
+  ✓ G2 kein „hat heute Geburtstag" in der englischen App
+  ✓ Z1 keine Seitenfehler
+
+27 von 27 Prüfungen bestanden
+   • test/push_versand.mjs
+  OK  1 Morgen-Nachricht im Winter erreicht das Gerät mit Ruhezeit (vorher: verworfen) — ruhig,offen
+  OK  2 … aber lautlos
+  OK  3 Gerät ohne Ruhezeit bekommt sie normal (nicht lautlos)
+  OK  4 wer „remind" abgeschaltet hat, bekommt nichts — auch nicht lautlos
+  OK  5 Zählung: 2 gesendet, 1 davon lautlos, 1 übersprungen — {"sent":2,"removed":0,"skipped":1,"silent":1,"errors":[]}
+  OK  6 Sommer 8 Uhr: normal, nicht lautlos
+  OK  7 Nachricht um 23 Uhr erreicht das ruhige Gerät NICHT — offen,ohne-remind
+  OK  8 Abrechnung nachts: Ruhezeit greift weiter
+  OK  9 nur die Morgen-Nachricht steht auf der Nachhol-Liste
+  OK  10 inQuiet 22–8: 7 Uhr ja, 8 Uhr nein, 22 Uhr ja, 21 Uhr nein
+  OK  11 Ruhezeit aus → nie ruhig
+  OK  12 sw.js reicht `silent` an showNotification weiter
+
+12 ok, 0 fehlgeschlagen
+   • test/ruhezeit.mjs
+  ✓ R0 Ruhezeit-Bereich ist mit nachgebildetem Push-Abo erreichbar — sonst misst dieser Test nichts
+  ✓ R1 Tippfläche mindestens 40 px hoch (inkl. unsichtbarem Rand) — 53×42, sichtbar 26 px hoch
+  ✓ R2 Knopf sagt Bildschirmlesern, was er schaltet
+  ✓ R3 ohne Ruhezeit kein Hinweis
+  ✓ R4 eingeschaltet: aria-pressed wechselt
+  ✓ R5 Hinweis erklärt, dass die Morgen-Nachricht lautlos kommt
+  ✓ R6 beide Uhrzeit-Auswahlen sind beschriftet
+  ✓ R7 Uhrzeit-Auswahl mindestens 40 px hoch — 40
+  ✓ Z1 keine Seitenfehler
+
+9 von 9 Prüfungen bestanden
+   • test/namen.mjs
+  ✓ N0 alle Gruppen unter „Mehr" geöffnet und Push-Bereich erreicht (sonst misst N1 dort nichts) — Push-Schalter 13
+  ✓ N1 jeder Knopf hat einen verständlichen Namen (alle Hauptseiten)
+  ✓ Z1 keine Seitenfehler
+
+3 von 3 Prüfungen bestanden
+   • test/orte.mjs
+  ✓ A1 Alltagswörter führen zur passenden Funktion
+  ✓ A2 der Weg steht dabei („Heute") — ➜
+Müllabfuhr
+Heute
+›
+  ✓ A3 bei Karten unter „Mehr" steht auch die Gruppe dabei — ➜
+Kaution
+Mehr → Wohnung
+›
+  ✓ A4 Funktionen greifen nur am Wortanfang („bin" ≠ „Verbindung")
+  ✓ A5 Wortmitte trifft nicht („ung" findet nichts)
+  ✓ B1 ohne Suchtext listet „Funktionen" die ganze App — 48 Einträge
+  ✓ B2 darunter Dinge aus allen Ecken
+  ✓ B3 „Alles" ohne Suchtext bleibt leer (Funktionen drängen sich nicht auf) — 0
+  ✓ C1 der eingetragene Posten steht vor der Funktion — 💸 Miete September €400,00 · Torben · 28.9.2026 ›
+  ✓ C2 die Funktion ist trotzdem dabei — 💸
+Miete September
+€400,00 · Torben · 28.9.2026
+› | ➜
+Miete
+Haushalt
+›
+  ✓ D1 Tab gewechselt (Mehr)
+  ✓ D2 die Gruppe wurde aufgeklappt und die Karte ist sichtbar
+  ✓ D3 das Ziel ist hervorgehoben (man sieht, wo man gelandet ist)
+  ✓ D4 die Hervorhebung verschwindet wieder
+  ✓ D5 auch ohne Gruppe: Karte sichtbar und hervorgehoben
+  ✓ F1 Einstieg steht ganz oben unter „Mehr"
+  ✓ F2 … und zwar vor den Gruppen — 70 vs 174
+  ✓ F3 öffnet die Suche direkt im Inhaltsverzeichnis — 48
+  ✓ F4 der Bereich „Funktionen" ist dabei aktiv
+  ✓ F5 normal geöffnet startet die Suche wieder bei „Alles"
+  ✓ E1 englische Stichwörter führen zur Müllabfuhr („bin" → Bin collection) — ➜
+Bin collection
+Today
+›
+  ✓ E2 der Weg steht auf Englisch dabei — ➜
+Bin collection
+Today
+›
+  ✓ E3 „wifi" findet die WG-Infos — ➜
+Flat notes
+More → Home
+› | ➜
+guest link
+More → Home
+›
+  ✓ Z1 keine Seitenfehler
+
+24 von 24 Prüfungen bestanden
+   • test/optik.mjs
+  ✓ A1 Kopfkarte ist eine eigene Fläche, kein loser Text
+  ✓ A2 Tageszahl, Begrüßung, Datum und WG-Name stehen drin — 28 · Guten Morgen, Torben · Montag, 28. September · 🏠 Nordstadt
+  ✓ A3 die Tageszahl ist groß genug, um Anker zu sein — 42px
+  ✓ A4 Zahl und Fläche tragen dieselbe Farbe
+  ✓ B1 morgens, tagsüber und abends sind es drei verschiedene Stimmungen — 7h=morgen 13h=tag 21h=abend
+  ✓ B2 … und drei verschiedene Farben — rgb(251, 191, 36) | rgb(94, 234, 212) | rgb(129, 140, 248)
+  ✓ C1 Karten haben eine Lichtkante (Tiefe statt flacher Kasten) — rgba(0, 0, 0, 0.4) 0px 24px 56px 0px, rgba(255, 255, 255, 0.08) 0px 1px 0px 0px inset
+  ✓ C2 im Hellmodus eine eigene, sichtbare Kante (nicht die geerbte dunkle) — 0.9 · rgba(0, 0, 0, 0.08) 0px 12px 32px 0px, rgba(255, 255, 255, 0.9) 0px 1px 0px 0px 
+  ✓ C3 die Kopfkarte ist mitversorgt
+  ✓ D1 der Schimmer liegt hinter dem Inhalt, nicht darüber
+  ✓ D2 die Begrüßung behält die normale Textfarbe (nur die Zahl ist farbig) — {"zahl":"rgb(94, 234, 212)","gruss":"rgb(242, 246, 243)","normal":"rgb(242, 246, 243)"}
+  ✓ Z1 keine Seitenfehler
+
+12 von 12 Prüfungen bestanden
+   • test/fuer_andere.mjs
+  ✓ A1 ein Eintrag, gutgeschrieben an den, der tippt — ["u1"]
+  ✓ A2 der Rückgängig-Balken nennt jetzt den Namen — 🗑️ „Müll rausbringen" erledigt · Torben
+War Tom
+Rückgängig
+  ✓ A3 … und bietet an, die Person zu wechseln
+  ✓ A4 die Zusatzaktion nennt die andere Person beim Namen — War Tom
+  ✓ B1 danach GENAU EIN Eintrag (kein Doppel) — ["u2/2026-09-28"]
+  ✓ B2 … und der gehört Tom — u2
+  ✓ B3 die Aufgabe gilt als heute erledigt — 2026-09-28
+  ✓ B4 Tom war eingeteilt und hat es gemacht → er ist pünktlich (late bleibt gezählt) — {"id":"rjl4fdy1","taskId":"t1","name":"Müll rausbringen","em":"🗑️","userId":"u2","date":"2026-09-28","pts":2,"late":0,"seq":1790588825542}
+  ✓ B5 der Push nennt Tom als Erlediger — ["✅ Torben hat „Müll rausbringen\" erledigt","✅ Tom hat „Müll rausbringen\" erledigt"]
+  ✓ B6 im Verlauf steht nur die korrigierte Zeile — ["✅ Tom hat „Müll rausbringen\" erledigt"]
+  ✓ C1 bei drei Personen heißt es nicht „War Tom" — War jemand anderes
+  ✓ C2 eine Auswahl erscheint
+  ✓ C3 sie zeigt die anderen, nicht den Tippenden
+  ✓ C4 die gewählte Person bekommt es gutgeschrieben — ["u3"]
+  ✓ D1 abgebrochen: der Eintrag bleibt unangetastet — ["u1"] · id gleich
+  ✓ E1 Rückgängig löscht den Eintrag
+  ✓ E2 … und stellt die Aufgabe wieder her — null
+  ✓ F1 dark: Rückgängig-Balken erreicht AA — 3 gemessen · []
+  ✓ F2 dark: Personenauswahl erreicht AA (Namen auf Nutzerfarbe) — 4 gemessen · []
+  ✓ F1 light: Rückgängig-Balken erreicht AA — 3 gemessen · []
+  ✓ F2 light: Personenauswahl erreicht AA (Namen auf Nutzerfarbe) — 4 gemessen · []
+  ✓ Z1 keine Seitenfehler
+
+22 von 22 Prüfungen bestanden
+   • test/csp_hash.mjs
+  OK  1 Hashes in firebase.json passen zur aktuellen wgapp.html — ✓ CSP-Hashes passen zu wgapp.html
+  OK  2 script-src ohne unsafe-inline
+  OK  3 fünf Hashes (4 Inline-Skripte + Kompilat)
+  OK  4 Gegenprobe: geändertes Inline-Skript wird erkannt
+  OK  5 Gegenprobe: geänderter App-Code wird erkannt
+  OK  6 --write trägt die neuen Hashes ein, danach passt --check
+
+6 ok, 0 fehlgeschlagen
+▶ 2/6 SW-Version bumpen …
+   wg-v92 → wg-v93
+▶ 3/6 commit …
+warning: in the working copy of '.github/workflows/ci.yml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'CLAUDE.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lang/en.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scratchpad/ship-v92.log', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scripts/build.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scripts/ship.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scratchpad/en-v93.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scratchpad/gegenprobe-fuer-andere.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scratchpad/shot-andere.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'test/fuer_andere.mjs', LF will be replaced by CRLF the next time Git touches it
+[main 9831bd8] feat(putzplan): fuer jemand anderen abhaken - die Gutschrift ging immer an den Tippenden
+ 14 files changed, 2067 insertions(+), 23 deletions(-)
+ create mode 100644 scratchpad/en-v93.json
+ create mode 100644 scratchpad/gegenprobe-fuer-andere.mjs
+ create mode 100644 scratchpad/ship-v93.log
+ create mode 100644 scratchpad/shot-andere.mjs
+ create mode 100644 test/fuer_andere.mjs
+▶ 4/6 push …
+To https://github.com/OGBullZ/WG-APP.git
+   4817bd4..9831bd8  main -> main
+▶ 5/6 build + firebase deploy …
+✓ build: app.67c0aefe82.js (746 KB), wgapp.html 754 → 136 KB, Babel nicht ausgeliefert → E:\Users\torbe\projects\WG-APP\dist
+
+[1m[37m===[39m Deploying to 'wgapp-65484'...[22m
+
+[36m[1mi [22m[39m deploying [1mhosting[22m
+[36m[1mi  hosting[wgapp-65484]:[22m[39m beginning deploy...
+[36m[1mi  hosting[wgapp-65484]:[22m[39m found 22 files in [1mdist[22m
+[36m[1mi  hosting:[22m[39m uploading new files [0/3] ([1m[32m0%[39m[22m)
+[36m[1mi  hosting:[22m[39m upload complete
+[32m[1m+  hosting[wgapp-65484]:[22m[39m file upload complete
+[36m[1mi  hosting[wgapp-65484]:[22m[39m finalizing version...
+[32m[1m+  hosting[wgapp-65484]:[22m[39m version finalized
+[36m[1mi  hosting[wgapp-65484]:[22m[39m releasing new version...
+[32m[1m+  hosting[wgapp-65484]:[22m[39m release complete
+
+[32m[1m+ [22m[39m [1m[4mDeploy complete![24m[22m
+
+[1mProject Console:[22m https://console.firebase.google.com/project/wgapp-65484/overview
+[1mHosting URL:[22m https://wgapp-65484.web.app
+▶ 6/6 Live-Smoke …
+✓ Live: wg-v93 (9831bd8)
+✓ Header: / no-cache + CSP
+✓ Vorab übersetzt: app.67c0aefe82.js
