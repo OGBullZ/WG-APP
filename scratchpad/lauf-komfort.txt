@@ -1,0 +1,28 @@
+✓ A1 Suche findet eine Reparatur (klein geschrieben, ohne Umlaut-Fehler) — 🔧
+Heizung Bad kalt
+Kaputt & Vermieter
+›
+✓ A2 Ausgabe gefunden, mit Betrag und Zahlendem
+✓ A3 Treffer antippen springt in den Haushalt — Haushalt
+✓ A4 Betrag „12,50" findet die Pizza
+✓ A5 Aufgabe antippen springt in den Putzplan — Putzplan
+✓ B1 „Klopapier letztes Jahr": 3 Posten inkl. Archiv, Summe €18,75 — 3 Treffer · Ausgaben zusammen €18,75
+✓ B2 Archiv-Posten ist gekennzeichnet
+✓ B3 Filter „Tom zahlte": nur sein Posten (€7,25)
+✓ B4 ohne Suchtext, nur Kategorie „Freizeit": die Pizza
+✓ A6 keine Seitenfehler
+✓ C1 Manifest: Kurzbefehle Putzplan + Suchen, Teilen-Ziel
+✓ C2 ?a=putz öffnet den Putzplan
+✓ C3 ?a=suche öffnet die Suche
+✓ D1 geteilter Text öffnet „Wohin damit?"
+✓ D2 drei Artikel erkannt (Link und Aufzählungszeichen raus)
+✓ D3 Eier + Brot neu auf der Liste, Milch nicht doppelt — Eier,Brot,Milch
+✓ D4 danach Haushalt mit Einkaufsliste
+✓ D5 Adresse wieder sauber (kein erneutes Teilen beim Neuladen)
+✓ D6 „Als Ausgabe": Schnellzeile vorausgefüllt, Hinweis „Aus dem Teilen" — 12,50 Pizza | 📥 Aus dem Teilen übernommen – prüfen und „Eintragen“ tippen
+✓ E1 offline: Pille zeigt wartende Änderungen — OFFLINE · 2
+✓ E2 wieder online und bestätigt: keine Zahl mehr — LIVE
+✓ E3 Meldung „✓ Alles angekommen"
+✓ E4 keine Seitenfehler
+
+23 ok, 0 fehlgeschlagen

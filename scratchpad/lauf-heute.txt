@@ -1,0 +1,16 @@
+✓ A1 leere WG: alle 11 Werkzeuge als Chips — Chips: status,wash,fridge,meal,board,msg,book,rules,poll,repair,login
+✓ A2 leere WG: keine leere Werkzeug-Karte — Karten: 
+✓ A3 Heute ist kurz (≤ 1,6 Bildschirmhöhen) — 706 px
+✓ A4 jedes Chip-Werkzeug ist unsichtbar eingehängt (Nebenaufgaben laufen weiter) — ["status","wash","fridge","meal","board","msg","book","rules","poll","repair","login"]
+✓ B1 Chip „Kühlschrank" öffnet die Karte
+✓ B2 geöffnete Karte steht direkt unter den Chips
+✓ B3 keine Seitenfehler
+✓ C0 Start ohne Springen (Layout-Verschiebung CLS < 0,02) — CLS 0.002
+✓ C1 Kühlschrank mit Eintrag: Karte da, kein Chip — Karten fridge,repair · Chips status,wash,meal,board,msg,book,rules,poll,login
+✓ C2 offene Reparatur: Karte da, kein Chip
+✓ C3 leere Werkzeuge bleiben Chips
+✓ D1 Reihenfolge: Jetzt dran → Neu → Eingeben → Werkzeuge → Chips — {"rows":350.796875,"news":426.796875,"quick":532.796875,"werkzeug":606.796875,"chips":944.796875}
+✓ D2 keine Seitenfehler
+✓ E1 Chips auf Englisch — ➕ QUICK ACCESS · 🙋 Status · 🧺 Machine · 🧊 Fridge · 🍝 Meal plan · 🗓️ Announcement · 💬 Quick note · 🛁 Bookings · 📜 House rules · 🗳️ Poll · 🔧 Broken · 🔑 Share login
+
+14 ok, 0 fehlgeschlagen

@@ -153,6 +153,10 @@ check('E4 keine HTML-Entities in Texten (Quelltext und Wörterbuch)', ttEntities
 // Testdaten führen — „Miete … bis", „Garantie bis", „Gleichstand", „Keine Stimmen" und die lokale Erinnerung
 // standen deshalb lange auf Deutsch in der englischen App. Hier wird der Quelltext selbst durchsucht.
 // Ausnahmen mit Grund: was an einen deutschen Empfänger geht oder als Datensatz gespeichert wird.
+// Bekannte Grenze (wg-v98): Übersprungen werden nur Zeilen, die mit //, /* oder * BEGINNEN. Die Folgezeilen eines
+// mehrzeiligen Kommentars gelten als Code — ein `Wort` in Backticks mit einem Signalwort („leer", „noch") schlägt
+// dort an. Das ist ein Fehlalarm in die sichere Richtung; Block-Kommentare per Regex herauszuschneiden könnte
+// dagegen echten Code verschlucken (ein „/*" in einem String) und den Prüfer still blind machen. Also bleibt es so.
 const GEWOLLT_DEUTSCH = [
   'bitten Sie',              // Mängel-Schreiben an den Vermieter — geht an einen deutschen Empfänger
   ': bezahlt €',             // Abrechnungstext zum Teilen — in der Sprache des Absenders

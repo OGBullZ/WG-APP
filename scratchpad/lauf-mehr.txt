@@ -1,0 +1,104 @@
+✓ S1 Toms Status sichtbar
+✓ S2 eigener Status gespeichert, gilt bis Mitternacht — {"id":"u1","text":"📚 Lerne – bitte leise","back":"","until":1790805599000,"seq":1790771768682}
+✓ S3 Anzeige „Du: …" + Zurück-Knopf
+✓ S4 „Zurück" entfernt den Status
+✓ F1 Heute: Rauchmelder fällig, Entkalken nicht — 🚨
+Rauchmelder testen
+Wartung fällig · alle 12 Mon.
+Erledigt ✓
+🤝
+Bohrmaschine von Nachbar zurückholen
+über der Zeit
+Zurück ✓
+✓ F2 Heute: Bohrmaschine zurückholen (überfällig), Beamer nicht — 🚨
+Rauchmelder testen
+Wartung fällig · alle 12 Mon.
+Erledigt ✓
+🤝
+Bohrmaschine von Nachbar zurückholen
+über der Zeit
+Zurück ✓
+✓ F3 „Erledigt" setzt last = heute
+✓ P1 Ergebnis vor der eigenen Stimme verborgen
+✓ P2 Stimme gespeichert
+✓ P3 alle gestimmt → entschieden + Push
+✓ P4 neue Umfrage (| im Text entschärft, anonym, Frist +3) — {"id":"1mall7q3","q":"Pizza oder Sushi?","opts":"Pizza|Su/shi","by":"u1","ts":1790771770883,"until":"2026-10-03","anon":true,"seq":1790771770883}
+✓ P5 Push „Umfrage"
+✓ W1 Wartung: Vorlagen ohne schon Angelegtes
+✓ W2 Vorlage → Aufgabe alle 3 Monate, noch nie gemacht
+✓ W3 Anzeige „noch nie – jetzt fällig"
+✓ L1 Ausleihe: überfällig rot markiert
+✓ L2 geliehen, Rückgabe in 14 Tagen — {"id":"pxbg9v1y","what":"Leiter","person":"Frau Meier","dir":"in","since":"2026-09-30","due":"2026-10-14","by":"u1","seq":1790771773064}
+✓ L3 „Zurück" entfernt
+✓ K1 Kaution, leer = gleich verteilt — {"id":"k","total":1000,"c_u1":500,"c_u2":500,"seq":1790771774299}
+✓ K2 Rückzahlung 900 auf mein Konto → Tom bekommt 40 % = 360 von mir — [{"id":"r02sbdcl","date":"2026-09-30","settled":false,"name":"🔑 Kaution zurück: Anteil Tom","price":360,"paidBy":"u2","owedBy":"u1","cat":"fix","seq":1790771775957}]
+✓ K3 Kaution als zurück markiert
+✓ G1 Angaben gespeichert (v = 1)
+✓ G2 Link mit Schlüssel, nicht mit dem Code
+✓ G3 ungültig machen: v = 2, Link weg
+✓ A1 Übergabe-Seite: Kaution — €1000,00 · Torben €600,00 · Tom €400,00 · zurück €900,00
+✓ V1 Monatsverbrauch interpoliert (Jan 31 T., Feb 28 T. von 200) — 2025-01:105.08 2025-02:94.92 2025-03:100.00
+✓ V2 Juni 200 > 1,3 × Schnitt → Hinweis; ohne Vorjahr kein Vergleich — Vorjahresvergleich ab einem Jahr Ablesungen · ⚠️ deutlich über dem Schnitt (100 kWh)
+✓ R1 Monatsbericht: Summe des Monats (ohne Kaution nur heutige Posten) — Gesamt: €470,00 · 4 Posten
+✓ R2 pro Person bezahlt/Anteil — Torben	bezahlt €50,00	Anteil €425,00	−€375,00
+Tom	bezahlt €420,00	Anteil €45,00	+€375,00
+✓ B1 Korb: nur Fehlendes zählen (Brot steht schon drauf)
+✓ B2 Milch auf der Liste, Brot nicht doppelt
+✓ B3 danach „Alles schon auf der Liste"
+✓ Z1 keine Seitenfehler
+✓ X1 offene Beträge → gesperrt
+✓ X2 Hinweis: Kautions-Anteil geht über
+✓ X3 Kim ersetzt Tom (neue id, Einzug heute, alle mit joined) — [{"id":"u1","name":"Torben","color":"#38bdf8","joined":"2026-09-30"},{"id":"t0wxskvz","name":"Kim","color":"#a78bfa","joined":"2026-09-30"}]
+✓ X4 Toms Aufgabe geht an Kim
+✓ X5 Kautions-Anteil übernommen
+✓ X6 Toms Status weg
+✓ X7 Putz-Zählung beginnt am Einzug (alte Einträge zählen nicht) — {"u1":0,"t0wxskvz":0}
+✓ X8 Push „zieht ein"
+✓ X9 keine Seitenfehler
+✓ S5 abgelaufener Status verschwindet
+✓ Q1 Heute: Gesamt 66,25 mit Aufschlüsselung — 💸
+Du schuldest Tom €66,25 (Haushalt €58,25 + Growbox €8,00)
+›
+✓ Q2 Übersicht „insgesamt" = dieselbe Zahl (Growbox nach Pflanzen, nicht 50/50) — schuldet Tom insgesamt €66,25
+✓ Q3 Start-Pop-up rechnet gleich — -66.25
+✓ Q4 keine Seitenfehler
+✓ N1 eigenes Gerät ohne Push → „Benachrichtigungen sind aus"
+✓ N2 Tom hat ein Gerät (uid) → kein Hinweis zu Tom
+✓ N3 „Einschalten" → Mehr, Benachrichtigungen aufgeklappt
+✓ N8 blockiert → Hinweis auf Einstellungen, kein Knopf — 🔔
+Benachrichtigungen sind blockiert
+In den Handy-Einstellungen für diese App bzw. Seite erlauben – sonst kommen Müll, Putzplan und Zahlungen nicht an.
+✓ N4 Tom ohne Push → Hinweis mit WhatsApp-Link
+✓ N5 ohne Service Worker kein Eigen-Hinweis (nichts behaupten)
+✓ N6 „Später" blendet 7 Tage aus
+✓ N7 keine Seitenfehler
+✓ K1 falsche IBAN (Prüfziffer) → Warnung
+✓ K2 gültige IBAN → ✓ in 4er-Blöcken
+✓ K3 Inhaber + IBAN gespeichert (Anzeigename bleibt) — [{"id":"u1","name":"Torben","color":"#38bdf8"},{"id":"u2","name":"Tom","color":"#fbbf24","holder":"Tom-Luca Beispiel","iban":"de89 3704 0044 0532 0130 00"}]
+✓ L1 fremdes Profil: Felder schreibgeschützt + Hinweis
+✓ L2 Tippen in fremde IBAN ändert nichts
+✓ L3 „Das bin ich" für eine andere Person fragt nach
+✓ L4 abgebrochen → weiter Tom
+✓ K8 als Gläubiger: „Bankdaten an Torben schicken"
+✓ K7 keine Seitenfehler
+✓ K4 ich schulde Tom → Überweisung an den Kontoinhaber
+✓ K5 IBAN kopiert (ohne Leerzeichen)
+✓ K6 „Alles kopieren": Empfänger, IBAN, Betrag, Zweck — Empfänger: Tom-Luca Beispiel
+IBAN: DE89 3704 0044 0532 0130 00
+Betrag: 20,00 €
+Verwendungszweck: WG-Ausgleich Torben
+✓ V10 Haushalt zeigt den verrechneten Betrag 58,25 — Torben
+Tom
+€
+58,25
+58,25
+✓ V11 Aufschlüsselung Haushalt −66,25 · Growbox +8,00
+✓ V12 PayPal/IBAN-Betrag = 58,25 (Tom hat PayPal? nein → Hinweis; Zahlungsmeldung mit 58,25)
+✓ V13 Heute: dieselbe Zahl
+✓ V14 Abrechnen schließt Haushalt UND Growbox — [[{"seq":100,"id":"v1","name":"Einkauf","price":132.5,"paidBy":"u2","date":"2026-09-30","settled":true,"settledAt":"2026-09-30","settlementId":"lwdd8lno"}],[{"seq":100,"id":"g1","name":"Erde","price":16,"paidBy":"u1","date":"2026-09-30","settled":true,"settledAt":"2026-09-30","settlementId":"gljupm9b"}]]
+✓ V15 Abrechnung: 58,25 von Torben an Tom; Growbox-Eintrag mit 0 (über Haushalt) — [{"id":"lwdd8lno","mod":"hs","date":"2026-09-30","total":132.5,"n":1,"fromId":"u1","toId":"u2","amount":58.25,"withGi":true,"seq":1790771858720},{"id":"gljupm9b","mod":"gi","date":"2026-09-30","total":16,"n":1,"fromId":"u1","toId":"u2","amount":0,"viaHs":"lwdd8lno","seq":1790771858719}]
+✓ V16 Rückgängig öffnet beide wieder
+✓ V17 keine Seitenfehler
+✓ D1 Regeln für st/vo/lh/wa/kt/wk/ga
+
+76 ok, 0 fehlgeschlagen

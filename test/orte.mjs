@@ -58,7 +58,10 @@ for (const [wort, erwartet] of WOERTER) {
 }
 check('A1 Alltagswörter führen zur passenden Funktion', fehlt.length === 0, fehlt.join(' | '));
 const trefferMuell = await suche(A.page, 'müll');
-check('A2 der Weg steht dabei („Heute")', trefferMuell.some(t => /Heute/.test(t)), trefferMuell.join(' | ').slice(0, 90));
+/* 🪤 wg-v98: Hier stand „Heute" als erwarteter Weg — die Müllabfuhr liegt aber im Putzplan. Die Liste war in v91
+   falsch eingetragen, und dieser Haken hat den Fehler als richtige Antwort festgeschrieben, statt ihn zu finden.
+   Geprüft wurde nur, DASS ein Weg dasteht; ob man dort auch ankommt, prüft seit v98 `sprung.mjs` für jeden Eintrag. */
+check('A2 der Weg steht dabei („Putzplan")', trefferMuell.some(t => /Müllabfuhr/.test(t) && /Putzplan/.test(t)), trefferMuell.join(' | ').slice(0, 90));
 const trefferKaution = await suche(A.page, 'kaution');
 check('A3 bei Karten unter „Mehr" steht auch die Gruppe dabei', trefferKaution.some(t => /Mehr → Wohnung/.test(t)), trefferKaution.join(' | ').slice(0, 90));
 // Nur am Wortanfang suchen: „bin" darf nicht „VerBINdung" treffen. Ohne diese Prüfung blieb die Gegenprobe
@@ -132,7 +135,7 @@ const tEn = await suche(E.page, 'bin');
 // Auf das ZIEL prüfen, nicht auf „irgendein Treffer": „bin" steckt auch in „Flat code & sync"? Nein — aber in
 // „Verbindung" (deutsche Stichwörter) und in „combined". Ohne Zielprüfung war die Gegenprobe hier grün.
 check('E1 englische Stichwörter führen zur Müllabfuhr („bin" → Bin collection)', tEn.some(t => /Bin collection/.test(t)), tEn.join(' | ').slice(0, 110));
-check('E2 der Weg steht auf Englisch dabei', tEn.some(t => /Bin collection/.test(t) && /Today/.test(t)), tEn.join(' | ').slice(0, 110));
+check('E2 der Weg steht auf Englisch dabei (Chores, nicht Today — siehe A2)', tEn.some(t => /Bin collection/.test(t) && /Chores/.test(t)), tEn.join(' | ').slice(0, 110));
 const tEn2 = await suche(E.page, 'wifi');
 check('E3 „wifi" findet die WG-Infos', tEn2.some(t => /Flat notes/.test(t)), tEn2.join(' | ').slice(0, 110));
 

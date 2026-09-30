@@ -1,0 +1,50 @@
+  ✓ A1 Alltagswörter führen zur passenden Funktion
+  ✓ A3 bei Karten unter „Mehr" steht auch die Gruppe dabei — ➜
+Kaution
+Mehr → Wohnung
+›
+  ✓ A4 Funktionen greifen nur am Wortanfang („bin" ≠ „Verbindung")
+  ✓ A5 Wortmitte trifft nicht („ung" findet nichts)
+  ✓ B1 ohne Suchtext listet „Funktionen" die ganze App — 48 Einträge
+  ✓ B2 darunter Dinge aus allen Ecken
+  ✓ B3 „Alles" ohne Suchtext bleibt leer (Funktionen drängen sich nicht auf) — 0
+  ✓ C1 der eingetragene Posten steht vor der Funktion — 💸 Miete September €400,00 · Torben · 30.9.2026 ›
+  ✓ C2 die Funktion ist trotzdem dabei — 💸
+Miete September
+€400,00 · Torben · 30.9.2026
+› | ➜
+Miete
+Haushalt
+›
+  ✓ D1 Tab gewechselt (Mehr)
+  ✓ D2 die Gruppe wurde aufgeklappt und die Karte ist sichtbar
+  ✓ D3 das Ziel ist hervorgehoben (man sieht, wo man gelandet ist)
+  ✓ D4 die Hervorhebung verschwindet wieder
+  ✓ D5 auch ohne Gruppe: Karte sichtbar und hervorgehoben
+  ✓ F1 Einstieg steht ganz oben unter „Mehr"
+  ✓ F2 … und zwar vor den Gruppen — 70 vs 174
+  ✓ F3 öffnet die Suche direkt im Inhaltsverzeichnis — 48
+  ✓ F4 der Bereich „Funktionen" ist dabei aktiv
+  ✓ F5 normal geöffnet startet die Suche wieder bei „Alles"
+  ✓ E1 englische Stichwörter führen zur Müllabfuhr („bin" → Bin collection) — ➜
+Bin collection
+Chores
+›
+  ✓ E3 „wifi" findet die WG-Infos — ➜
+Flat notes
+More → Home
+› | ➜
+guest link
+More → Home
+›
+  ✓ Z1 keine Seitenfehler
+  ✗ A2 der Weg steht dabei („Heute") — ➜
+Müllabfuhr
+Putzplan
+›
+  ✗ E2 der Weg steht auf Englisch dabei — ➜
+Bin collection
+Chores
+›
+
+22 von 24 Prüfungen bestanden

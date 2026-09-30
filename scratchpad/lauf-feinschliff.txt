@@ -1,0 +1,17 @@
+  ✓ P1 390 px: kein Platzhalter ist abgeschnitten (alle Seiten)
+  ✓ K1 390 px: kein großer Knopf steht als halber Knopf allein in seiner Zeile
+  ✓ P1 360 px: kein Platzhalter ist abgeschnitten (alle Seiten)
+  ✓ K1 360 px: kein großer Knopf steht als halber Knopf allein in seiner Zeile
+  ✓ P0 es wurden überhaupt Felder mit Platzhalter gemessen — 30 Felder über beide Breiten
+  ✓ P2 Platzhalter enden notfalls mit „…" statt mitten im Buchstaben — {"leer":true,"wert":"ellipsis"}
+  ✓ K2 „Eintragen" bleibt auf „Heute" schmal neben dem Feld — {"nebeneinander":true,"knopf":98,"feld":252}
+  ✓ B0 die Liste mischt Zeilen mit und ohne Fragezeichen (sonst misst B1 nichts) — {"zeilen":3,"kanten":[318,318,318],"mitFrage":1}
+  ✓ B1 alle Beträge enden an derselben Kante — [318,318,318]
+  ✓ W1 „alle 3 Tage" bricht nicht mitten im Rhythmus um — [{"text":"wöchentlich","stuecke":1},{"text":"alle 3 Tage","stuecke":1}]
+  ✓ M1 dunkel: das Tonnen-Symbol hat einen hellen Saum (⚫ lag sonst auf Schwarz) — drop-shadow(rgba(255, 255, 255, 0.8) 0px 0px 1px) drop-shadow(rgba(255, 255, 255, 0.6) 0px 0px 0.5px)
+  ✓ M2 Kalender-Symbole sind mindestens 10 px groß (waren 8) — {"markierte":1,"px":11}
+  ✓ G1 „Größte Posten": Symbol je Kategorie (verschiedene Posten, verschiedene Bilder) — ["🛒","🎉","🧴"]
+  ✓ M3 hell: kein Saum — none
+  ✓ Z1 keine Seitenfehler
+
+15 von 15 Prüfungen bestanden

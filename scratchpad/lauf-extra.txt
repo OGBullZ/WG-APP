@@ -1,0 +1,45 @@
+  OK  A1 „12,50 Pizza" — {"price":12.5,"name":"Pizza","alone":false}
+  OK  A2 „Döner 8 Euro allein" → allein, ohne „Euro" — {"price":8,"name":"Döner","alone":true}
+  OK  A3 „Pizza 12.50€" — {"price":12.5,"name":"Pizza","alone":false}
+  OK  A4 „€5 Brot" — {"price":5,"name":"Brot","alone":false}
+  OK  A5 ohne Betrag → null
+  OK  A6 erste Zahl ist der Betrag („3 Kugeln Eis 4,50" → 3) — {"price":3,"name":"Kugeln Eis 4,50","alone":false}
+  OK  A7 Vorschau
+  OK  A8 gespeichert: ich zahle, Kategorie aus dem letzten „Lidl" — {"id":"sg180kll","name":"Lidl","price":23.4,"paidBy":"u1","date":"2026-09-30","owedBy":null,"cat":"food","settled":false,"seq":1790771866430}
+  OK  A9 Rückgängig angeboten, Feld leer
+  OK  B1 „Wie zuletzt: €10,00"
+  OK  B2 „▲ 30 % teurer als zuletzt"
+  OK  B3 Antippen übernimmt 10,00
+  OK  B4 bei gleichem Preis kein Sprung-Hinweis
+  OK  C1 Budget gespeichert (bud total)
+  OK  C2 Anzeige „€<Monat> / €100,00" — 🎯 Monatsbudget Haushalt | €97,40 / €100,00 | noch €2,60 für 0 Tage | 📈 Bei dem Tempo landet ihr bei ~€97,40 – passt
+  OK  D1 zuletzt ich (heute), 30 Tage 3 : 1 → Tom ist dran — 🛒 Zuletzt eingekauft: du (heute) · 30 Tage 3 : 1 → Tom ist dran
+  OK  E1 Vorlagen „Tier füttern", „Katzenklo", „Blumen düngen"
+  OK  F1 erste Ablesung: noch keine Hochrechnung
+  OK  F2 Ø 10,02 kWh/Tag · ~3.656 kWh/Jahr — ⚡
+Strom · 1.300,5 kWh (30.9.)
+Ø 10,02 kWh/Tag · ~3.656 kWh/Jahr · Preis + Abschlag antippen
+  OK  F3 Hochrechnung: ~€319,63 Nachzahlung — ⚡ | Strom · 1.300,5 kWh (30.9.) | Ø 10,02 kWh/Tag · ~3.656 kWh/Jahr · ~€319,63 Nachzahlung [{"id":"cfg-strom","kind":"strom","cfg":true,"price":0.35,"abschlag":80,"seq":1790771873824},{"id":"cgcf9grv","kind":"strom","date":"2026-09-30","value":1300.5,"by":"u1","seq":1790771872945},{"id":"rmd70f7r","kind":"strom","date":"2026-08-31","value":1000,"by":"u1","seq":1790771872046}]
+  OK  F4 gespeichert: 2 Ablesungen + Tarif
+  OK  F5 Besuch diesen Monat: Torben 1×
+  OK  G1 Link mit Schlüssel (nicht dem WG-Code)
+  OK  G2 „Im Kalender abonnieren" = webcal://
+  OK  G3 gemerkt für diesen Code
+  OK  H1 Hell: data-theme, heller Hintergrund, Statusleisten-Farbe — {"t":"light","z":"","m":"#f4f7f5","bg":"rgb(244, 247, 245)"}
+  OK  H2 Schrift groß → zoom 1.12
+  OK  H3 nach Neuladen sofort wieder hell + groß (Früh-Skript) — {"t":"light","z":"1.12"}
+  OK  H4 Personenfarbe Gelb als Schrift abgedunkelt — rgb(146, 64, 14)
+  OK  H5 zurück auf Dunkel + normal — {"t":"dark","z":"","m":"#060a08","bg":"rgb(6, 10, 8)"}
+  OK  I0 Heute standardmäßig an (erster Tab)
+  OK  I1 Begrüßung mit Name
+  OK  I2 Abholung morgen
+  OK  I3 Zahlung zum Bestätigen
+  OK  I4 Ankündigungen, Nachrichten, Reparaturen, Logins als Karten auf Heute
+  OK  I5 Einkauf: 1 offen · bald leer: Kaffee
+  OK  I6 Saldo-Zeile
+  OK  I7 Schnell-Eingabe auch hier
+  OK  I8 Tipp auf Einkauf → Einkaufsliste
+  OK  I9 keine Fehler
+  OK  J1 Ablehnung sichtbar, kein Link
+
+41 ok, 0 fehlgeschlagen

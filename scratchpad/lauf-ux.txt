@@ -1,0 +1,49 @@
+  OK  A1 Build läuft — ✓ build: app.54a7aa91ac.js (759 KB), wgapp.html 775 → 143 KB, Babel nicht ausgeliefert → E:\Users\torbe\AppData\Local\Temp\wg-dist-QWYRxy
+  OK  A2 dist: app.<hash>.js, kein Babel, kein Quelltext im HTML — 404.html,app.54a7aa91ac.js,apple-touch-icon.png,fonts,icon-192.png,icon-512.png,icon-maskable-512.png,icon.svg,manifest.json,robots.txt,sw.js,vendor,wgapp.html
+  OK  A3 dist/sw.js: App-Datei in der Shell, Babel nicht vorab
+  OK  A4 nicht ausgeliefert: Tests, Skripte, Doku, API — 404.html,app.54a7aa91ac.js,apple-touch-icon.png,fonts,icon-192.png,icon-512.png,icon-maskable-512.png,icon.svg,manifest.json,robots.txt,sw.js,vendor,wgapp.html
+  OK  A5 läuft vorab übersetzt (kein Browser-Kompilat, Build-Kennung = Datei) — {"pre":true,"build":"54a7aa91ac","jsx":false}
+  OK  A6 Babel wird nicht geladen
+  OK  A7 Erststart bei 4× gedrosselter CPU unter 6 s (vorher 16,5 s) — 855 ms
+  OK  A8 keine Fehler
+  OK  B1 neue App startet auf „Heute“ (erster Tab)
+  OK  B2 Heute: Ankündigungen, Nachrichten, Timer, Reparaturen, Logins (Karte oder Chip)
+  OK  B3 Haushalt ohne Ankündigungen/Nachrichten/Timer/„Du bist dran“
+  OK  C1 leer → Knopf „+ Ausgabe hinzufügen“
+  OK  C2 ohne Betrag: Hinweis aufs volle Formular
+  OK  C3 öffnet das Formular mit „Pizza“ vorbelegt
+  OK  C4 mit Betrag → „Eintragen“
+  OK  C5 der große Extra-Knopf ist weg (nur noch einer)
+  OK  D1 Schuldner sieht Hinweis statt „Alles abrechnen“
+  OK  D2 Gläubiger sieht „Alles abrechnen“
+  OK  E1 gelernter Kauf „Hafermilch“ als Kachel
+  OK  E1b gelernte Kachel: „+ auf die Liste“ → Liste + Push „braucht“ — [{"code":"TEST-LOKAL-UX","from":"wg511vnn5S4USD","title":"🛒 Torben braucht Hafermilch","body":"","tag":"wg-shop","type":"shop"}]
+  OK  E2 keine Vorschlags-Chips mehr
+  OK  E3 Reihenfolge Obst → Kühlregal → Drogerie → Sonstiges — Äpfel | Hafermilch | Milch | Klopapier | Batteriehalter
+  OK  E4 Bereich steht an der Zeile
+  OK  E5 „Mitbringen lassen“ jetzt in der Einkaufsliste
+  OK  F1 Heute zeigt „Wer bist du?“
+  OK  F2 auch im Haushalt, „+ Ausgabe hinzufügen“ bleibt erreichbar
+  OK  F3 ein Tipp setzt die Person, Hinweis verschwindet
+  OK  G1 „Morgen“ setzt snooze, Aufgabe verschwindet aus „Du bist dran“ — {"seq":100,"id":"t1","name":"Bad putzen","em":"🚿","interval":7,"pts":3,"assignee":"u1","lastDone":"2026-09-21","snooze":"2026-10-01"}
+  OK  G2 Serie bleibt heil (nicht überfällig)
+  OK  G3 Rückgängig holt sie zurück
+  OK  G4 Abhaken räumt „Morgen“ ab, Eintrag pünktlich (late 0) — {"seq":100,"id":"t1","name":"Bad putzen","em":"🚿","interval":7,"pts":3,"assignee":"u2","lastDone":"2026-09-30","snooze":null}
+  OK  H1 Trockner merkt 30 Min., Waschmaschine hat ihren Standard (90) — Starten · fertig um 16:11 / Starten · fertig um 15:11
+  OK  I1 Push-Arten: Nachricht + Wäsche an, Info-Arten leise — {"exp":false,"shop":false,"putz":true,"settle":true,"remind":true,"board":false,"msg":true,"wash":true,"away":false,"repair":false,"game":false,"done":false,"digest":false,"quiet":false,"qs":22,"qe":8,"pv":2}
+  OK  I2 Server + Regeln kennen die Arten
+  OK  J1 sechs Gruppen (seit wg-v68 + Inventar & Auszug), anfangs zu — 6
+  OK  J2 Mehr ist kurz (≤ 1,5 Bildschirme) — 791px
+  OK  J3 Aufklappen zeigt den Inhalt und merkt es sich
+  OK  J4 Tab-Beschriftung 11 px, Untertitel 12,5 px
+  OK  J5 Fehlerprotokoll-Gruppe öffnet sich bei Einträgen von selbst (roter Punkt)
+  OK  J6 ohne Person: „Personen“ offen
+  OK  L1 alter Modul-Schnappschuss (heute:false aus v64/65) → Heute kommt einmalig zurück
+  OK  L2 Laden-Bereiche: Reis/Butterkekse/Tomatenmark → Vorrat, Weißwein/Apfelsaft/Eistee → Getränke, Eis/TK → Tiefkühl — vorrat,tk,kuehl,vorrat,vorrat,drinks,kuehl,drinks,tk,obst,drinks,sonst,obst
+  OK  L3 gelernte Kachel bleibt gelernt (kein Vorrat-Eintrag, weiter „+ auf die Liste“)
+  OK  L4 Gruppe mit Warnpunkt lässt sich zuklappen
+  OK  L5 … und wieder aufklappen
+  OK  L6 Putzplan aus → Heute meldet nicht „nichts fällig“
+  OK  K1 ohne Heute: Karten im Haushalt
+
+47 ok, 0 fehlgeschlagen

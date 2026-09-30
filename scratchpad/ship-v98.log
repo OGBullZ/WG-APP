@@ -1,0 +1,204 @@
+
+> wg-app@1.0.0 ship
+> node scripts/ship.mjs feat(suche): jeder Funktions-Treffer landet sichtbar oder sagt warum nicht (19 von 37 landeten) + englischer Ausgaben-Reiter
+
+▶ 0/6 CSP-Hashes …
+✓ CSP-Hashes unverändert
+▶ 1/6 Test-Gate …
+   • test/split.mjs
+=== PASS ===
+Wizard hat 3 Schritte (statt 4)
+Datum ist eingeklappt (Heute-Toggle)
+Letzter Schritt zeigt Zusammenfassung Name+Preis
+Posten zeigt "Tom zahlt alles"
+Hero zeigt "Gemischter Split"
+Schuld = €20,00 (voller Betrag, nicht 10)
+50/50-Posten zeigt "je €4,00"
+
+=== FAIL ===
+(none)
+
+=== CONSOLE ERRORS ===
+(none)
+
+--- Banner-Auszug ---
+Tom | Torben | € | 16,00 | 16,05
+   • test/persist.mjs
+code1=ROT-WIND-67MPM7 code2=ROT-WIND-67MPM7 code3=ROT-WIND-67MPM7
+=== PASS ===
+Erststart persistiert wg_code sofort in localStorage
+Code überlebt Neustart (identisch)
+Neue Page im Context zeigt denselben Code
+
+=== FAIL ===
+(none)
+
+=== CONSOLE ERRORS ===
+Failed to load resource: net::ERR_FAILED
+Failed to load resource: net::ERR_FAILED
+Failed to load resource: net::ERR_FAILED
+Failed to load resource: net::ERR_FAILED
+Failed to load resource: net::ERR_FAILED
+Failed to load resource: net::ERR_FAILED
+   • test/paybtn.mjs
+TOM: {"txt":"Tom\nTorben\n€\n24,00\n24,00 || €24,00 an Torben per PayPal","href":"https://paypal.me/TorbenSteen/24.00EUR"}
+TORBEN: {"txt":"Tom\nTorben\n€\n24,00\n24,00 || Zahlungslink an Tom teilen","href":null}
+NOPP: {"txt":"Tom\nTorben\n€\n24,00\n24,00 || Per Klick zahlen geht, sobald Torben unter Mehr → Personen PayPal oder eine IBAN hinterlegt.","href":null}
+
+=== PASS ===
+Tom sieht Bezahl-Button "an Torben per PayPal"
+Link = paypal.me/TorbenSteen/24.00EUR
+Torben sieht "Zahlungslink an Tom teilen"
+Torben sieht KEINEN paypal.me-Bezahllink
+Ohne PayPal-Name: Hinweis sichtbar
+
+=== FAIL ===
+(none)
+   • test/archive.mjs
+oldDate=2026-04-01 oldYm=2026-04 shownYm="April 2026" heroLabel="15,00" archiveCount-sub="3 Posten älter als 3 Monate"
+=== PASS ===
+Kandidaten-Zähler zeigt 3 Posten älter als 3 Monate
+Bestätigungsdialog "Archivieren?" erscheint
+Aktive Haushalt-Liste enthält weiterhin das frische Item
+Aktive Haushalt-Liste hat die 2 alten Items NICHT mehr
+arc hat 3 Einträge
+Aktive stl-Liste hat den alten Abrechnungs-Eintrag NICHT mehr
+Monatswähler steht im alten Monat (5 Monate zurück)
+Hero-Total im alten Monat zeigt die archivierten 15,00 €
+
+=== FAIL ===
+(none)
+
+=== CONSOLE ERRORS ===
+(none)
+   • test/privat.mjs
+PASS:
+  ✓ 1 Tab "Privat" sichtbar (Migration schlägt gespeichertes fin:false)
+  ✓ 1b Migration persistiert fin:true in wg_modules (überlebt Neustart)
+  ✓ 2 Sperrbildschirm mit PIN-Pad
+  ✓ 2b Titel "PIN festlegen"
+  ✓ 2c Buchungen NICHT sichtbar solange gesperrt
+  ✓ 3 Nach 1. Eingabe: Wiederholung verlangt
+  ✓ 4 Abweichende Wiederholung wird abgelehnt
+  ✓ 5 Nach PIN-Anlage entsperrt (Monatsübersicht da)
+  ✓ 5b Hinweis "nur auf diesem Gerät"
+  ✓ 5c NBar-Pille LOKAL
+  ✓ 6 Fixkosten "Miete" angelegt
+  ✓ 6b Fälligkeitstag angezeigt
+  ✓ 7 Einnahme exakt in Monatsbilanz (1.450,00 statt 1,4K)
+  ✓ 7b Fixkosten/Mo. korrekt
+  ✓ 7c "bleibt" = 1450-480,50 = 969,50
+  ✓ 8 wg_priv enthält Miete + Gehalt
+  ✓ 8b wg_data (gesynct) enthält KEINE privaten Daten
+  ✓ 8c PIN nur als Hash+Salt gespeichert (kein Klartext "1234")
+  ✓ 9 Sperren schließt den Bereich wieder ab
+  ✓ 10 Falsche PIN abgewiesen
+  ✓ 10b Richtige PIN entsperrt
+  ✓ 11 Nach Reload wieder gesperrt
+  ✓ 11b Kein erneutes Anlegen, sondern Abfrage
+  ✓ 11c Daten nach Reload erhalten
+
+24/24 bestanden
+   • test/grow.mjs
+  OK  1 Kopfzeile zählt den Zyklus-Tag (Tag 40)
+  OK  1b Kopfzeile trägt das Phasen-Emoji
+  OK  2 vier Phasen-Chips
+  OK  2b Vegetativ ist aktiv markiert
+  OK  2c aktiver Chip ist als gedrückt annotiert (a11y)
+  OK  3 Fortschritt nennt Tag in der Phase
+  OK  3b typische Dauer sichtbar
+  OK  3c Überschreitung wird beziffert + nächste Phase vorgeschlagen
+  OK  3d Balken kappt bei 100 % statt überzulaufen
+  OK  4 Gieß-Zeile meldet 2 Tage überfällig
+  OK  4b Untertitel nennt Abstand, Person, Intervall und Zähler
+  OK  5 lastW steht auf heute
+  OK  5b lastWBy ist das eigene Gerät (u1)
+  OK  5c Gieß-Zähler hochgezählt (7 → 8)
+  OK  6 Anzeige springt auf „Gießen in 3 Tagen"
+  OK  6b Untertitel sagt „Zuletzt heute"
+  OK  7 Phase gewechselt auf blu
+  OK  7b pAt neu gesetzt (Phasen-Uhr startet heute)
+  OK  7c Zyklus-Start unverändert
+  OK  8 Fortschritt zeigt Tag 1 der Blüte (typisch 63)
+  OK  8b kein „drüber"-Hinweis mehr
+  OK  9 Trocknung blendet den Gieß-Block aus
+  OK  9b Hinweis erklärt warum
+  OK  10 Ernte gespeichert
+  OK  10b Zyklus auf das Ernte-Datum beendet
+  OK  10c Ernte ist mit dem Zyklus verknüpft
+  OK  11 ohne offenen Zyklus erscheint der Start-Button
+  OK  11b Zyklus-Karte ist weg
+  OK  11c gelöschte Ernte öffnet den Zyklus wieder
+  OK  11d Zyklus behält Phase und Startdatum
+  OK  11e Zyklus-Karte ist wieder da
+  OK  11f Rückgängig holt die Ernte zurück
+  OK  11g Rückgängig beendet den Zyklus wieder
+  OK  12 Intervall-Stepper startet beim Standard 3
+  OK  13 neuer Zyklus angelegt
+  OK  13b Phase aus dem Wizard übernommen
+  OK  13c Intervall 5 aus dem Stepper übernommen
+  OK  13d frisch = noch nicht gegossen
+  OK  14 alter Zyklus bleibt als beendeter Eintrag erhalten
+  OK  15 Anzeige nennt „Noch nicht gegossen"
+  OK  15b nie gegossen zeigt keine absurde Überfällig-Zahl
+  OK  15c Phasen-Überschreitung wird trotzdem beziffert
+  OK  16 leerer Grow-Tab zeigt den Start-Button statt einer leeren Karte
+  OK  16b Grow-Tab rendert trotzdem den Split-Hero
+  OK  17 keine Konsolen-/Seitenfehler
+
+45 ok, 0 fehlgeschlagen
+   • test/cron_grow.mjs
+  OK  1 kein Push wenn gestern gegossen (iv 3)
+  OK  2 kein Push am Tag vor der Fälligkeit
+  OK  3 Push genau bei Fälligkeit
+  OK  3b Fälligkeits-Text nennt den Abstand
+  OK  4 überfällig zählt die Tage
+  OK  5 Singular bei 1 Tag
+  OK  6 gestern-Formulierung wenn iv=1
+  OK  7 nie gegossen: sagt, dass nichts eingetragen ist
+  OK  7b nie gegossen: keine Überfällig-Tageszahl
+  OK  8 frisch gestartet, nie gegossen → kein Push
+  OK  9 Trocknung pusht kein Gießen
+  OK  10 beendeter Zyklus schweigt
+  OK  11 kein Zyklus → keine Nachricht
+  OK  12 gz als Array (Alt-Format) wird verstanden
+  OK  13 vor Ablauf der Phase kein Hinweis
+  OK  14 Hinweis am Tag danach
+  OK  15 Hinweis genau einmal, danach still
+  OK  16 letzte gießende Phase verweist aufs Ernten … 
+  OK  17 Trocknung durch → „Zeit zu ernten?"
+  OK  18 Gießen + Phase ergeben 2 Nachrichten
+  OK  19 Tags sind unterschiedlich
+  OK  20 Gieß-Tag ist stabil je Zyklus (ersetzt die Vortags-Meldung)
+  OK  21 unbekannte Phase fällt auf Keimung zurück (kein Crash)
+  OK  22 wiv 0 fällt auf den Standard 3 zurück
+  OK  22b negatives wiv wird auf 1 gehoben statt täglich zu spammen
+  OK  23 Zyklus ohne start wird ignoriert
+
+26 ok, 0 fehlgeschlagen
+   • test/cron_duel.mjs
+  OK  1 Punkte nur Mo–So der Vorwoche, Fallbacks wie in der App — 👑 Tom gewinnt die Woche — Torben 4 : 5 Tom. Neue Woche, neues Glück!
+  OK  2 Sieger mit Krone
+  OK  3 Tag enthält den Wochenbeginn (einmal je Woche) — duel-2026-09-14
+  OK  4 Gleichstand → Unentschieden, keine Krone — 🤝 Unentschieden — Torben 2 : 2 Tom. Neue Woche, neues Glück!
+  OK  5 niemand hat etwas getan → keine Push
+  OK  6 nur eine Person → keine Push
+  OK  7 Mittwoch → ebenfalls Vorwoche 14.–20.09. — 👑 Torben gewinnt die Woche — Torben 3 : 0 Tom. Neue Woche, neues Glück!
+  OK  8 Handler ruft weekDuel nur montags auf
+  OK  9 Push-Typ „game" (Standard an, abschaltbar)
+
+9 ok, 0 fehlgeschlagen
+   • test/privquota.mjs
+  OK  1 Bereich ist trotz Schreibfehler bedienbar
+  OK  2 vor der ersten Änderung KEINE Warnung
+  OK  3 Fehlgeschlagenes Speichern wird gemeldet
+  OK  3b Meldung nennt die Ursache
+  OK  3c Meldung sagt, was zu tun ist (Sichern)
+  OK  4 Warnung ist nicht wegklickbar (kein Schließen-Knopf)
+  OK  5 wirklich nichts geschrieben (Annahme des Tests gilt)
+  OK  6 Normalfall: keine Warnung
+  OK  6b Normalfall: Buchung liegt im Speicher
+  OK  7 keine Konsolen-/Seitenfehler
+
+10 ok, 0 fehlgeschlagen
+   • test/sync.mjs

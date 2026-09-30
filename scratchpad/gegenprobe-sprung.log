@@ -1,0 +1,17 @@
+✓ rot   Müllabfuhr wieder auf dem falschen Reiter (heute statt Putzplan)   [S3 f,S4 d]
+✓ rot   Vorrat ohne Unter-Reiter (Sprung zeigt die Ausgaben)   [S3 f,S4 d,U1 „]
+✗ GRÜN  Einkaufsliste ohne Unter-Reiter (Eintrag ohne Anker)
+✓ rot   Reste-Rezepte ohne Grund (Hinweis bleibt allgemein)   [S3 f,H2 …]
+✓ rot   Suche gibt Titel und Grund nicht mit (Hinweis ohne Namen)   [S1 j,S2 k,S6 e,H2 …]
+✓ rot   nimmt wieder das ERSTE Element, auch wenn es versteckt ist (alter Zustand)   [S2 k,S4 d,C1 e]
+✓ rot   öffnet das leere Werkzeug nicht (Chip wird nicht angetippt)   [S3 f,S4 d,C1 e]
+✓ rot   schweigt wieder, wenn es kein Ziel gibt
+✓ rot   Unter-Reiter wird beim Neuaufbau des Haushalts nicht gesetzt   [S1 j,S4 d,U1 „]
+✓ rot   Unter-Reiter wird nicht geschaltet, wenn der Haushalt schon offen ist   [U2 v]
+✓ rot   ausgeschaltetes Modul landet wieder kommentarlos im Haushalt   [S1 j,S6 e]
+✓ rot   Hinweis ist keine Statusmeldung   [H1 d]
+✓ rot   Hinweis bleibt stehen (verschwindet nicht von selbst)   [H3 …]
+✓ rot   Hinweis wieder als schmale, durchscheinende Blase oben   [H5 …]
+✓ rot   🔴 Reiter-Schlüssel wieder übersetzt („aus" → „off")
+
+Mindestens eine Sabotage blieb unbemerkt.

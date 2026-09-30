@@ -608,6 +608,28 @@ Beim ersten Durchgang in voller Länge sechs Funde, fünf davon nachgemessen (`s
   - → [[feedback-datumsabhaengige-tests]]: zweiter Vorfall binnen einer Woche, deshalb projektübergreifend festgehalten.
 - **Nicht angefasst, bewusst:** die Reihenfolge der Blöcke auf „Haushalt" (Budget → Sparen → Miete → Abrechnen → Einzelposten wirkt zufällig) und die leeren Erklärkarten auf „Übersicht". Beides ist mehr als Optik — es ändert, wo Dinge stehen — und gehört torbe zur Entscheidung.
 
+## Jeder Treffer landet — oder sagt, warum nicht (wg-v98, 30.09. — torbe: „weiter ausbauen")
+
+**Anlass war eine offene Frage aus der Fehlersuche:** v91 hat die Suche um 48 Funktionen erweitert, `orte.mjs` prüft den Sprung aber nur an zweien. `scratchpad/orte-sweep.mjs` tippte alle an, in einer **frischen** WG (wer eine Funktion sucht, benutzt sie meist noch nicht): **nur 19 von 37 Sprüngen landeten sichtbar.** Der Sprung stieg still aus, wenn er nichts fand (`if (!el) … return`). Fünf Ursachen:
+
+1. **Versteckte Karten (9).** Leere Werkzeuge auf „Heute" sind seit v82 Chips; die Karte hängt unsichtbar im DOM (`data-tool-leer`). Der Sprung nahm das **erste** Element mit dem Anker — genau das versteckte —, „markierte" es und scrollte hin. Zu sehen war nichts. Jetzt sucht er das sichtbare und tippt sonst den Chip an; die Karte öffnet sich wie von Hand.
+2. **Falscher Reiter (2).** Müllabfuhr und Abwesend standen in meiner v91-Liste auf `heute`; die Karten liegen im Putzplan.
+3. **Unter-Reiter (4).** Vorrat, Wochen-Korb, Rhythmus und die Einkaufsliste selbst liegen hinter „🛒 Einkaufsliste"; der Sprung wechselte nur den Haupt-Reiter. In der Liste steht dafür jetzt `fold:'liste'`, der Haushalt hört auf das Ereignis `wg-seg` (beide Richtungen: auch zurück zu den Ausgaben).
+4. **Karten nur mit Anlass (4–5).** Reste-Rezepte, Check-in, „Seit du zuletzt da warst", Rhythmus, Jahresübersicht. Neues sechstes Feld `wann` in `ORTE`; fehlt die Karte, steht unten: „„Reste-Rezepte" erscheint hier, sobald im Kühlschrank etwas liegt, aus dem sich kochen lässt."
+5. **Ausgeschaltetes Modul (1).** „Abos" ist ab Werk aus — der Treffer landete kommentarlos im Haushalt. Jetzt führt er zu „Mehr → Ansicht & Kalender", markiert den Modul-Block (`module-card`) und sagt, dass es aus ist.
+
+- **Ergebnis über alle 48:** 42 landen sichtbar, 5 erklären sich, 1 führt zum Modul-Schalter, **0 Fehler**.
+- 🔴 **Nebenfund, seit v77 live: in der englischen App zeigte „Expenses" die Einkaufsliste.** Der Schlüssel des Unter-Reiters stand in `TT()` — `[TT("aus"), TT("💶 Ausgaben")]` —, verglichen wird gegen `seg==='aus'`, und das Wörterbuch macht aus „aus" „off". Folge: beim Start kein Reiter markiert, nach einmal hin und zurück zeigte „Expenses" die Liste, die Ausgaben waren bis zum Reiterwechsel weg. Reproduziert mit `scratchpad/diag-seg-english.mjs`. Dasselbe Muster wie in [[feedback-codemod-verpackt-schluessel]]; eine Suche nach weiteren verpackten Schlüsseln fand keine.
+- **Doppelte Listen-Schlüssel:** Treffer ohne Anker auf demselben Reiter trugen dieselbe `id` (`ort-haus` dreimal). Jetzt aus der Position.
+- **Tests:** `sprung.mjs` **24 Checks**, liest `ORTE` und `MOD_DEF` **aus dem Quelltext** (ein neuer Eintrag ist automatisch im Test) und tippt jeden Eintrag durch die **echte Suche**. Gegenprobe `scratchpad/gegenprobe-sprung.mjs` **15 von 15 rot** (`--nur <Textteil>` fährt einzelne Sabotagen).
+- 🪤 **Die Kehrseite von „Liste aus dem Quelltext":** Der Test liest auch die **Erwartung** (Reiter, Unter-Reiter) aus `ORTE`. Bei Einträgen mit Anker unschädlich — steht dort Unsinn, fehlt die Karte im Bild. Bei Einträgen **ohne** Anker prüft er die Liste gegen sich selbst: die Sabotage „Einkaufsliste ohne Unter-Reiter" blieb grün, obwohl der Treffer wieder die Ausgaben zeigte. Dafür gibt es jetzt **U3, fest verdrahtet** (das Eingabefeld der Liste muss zu sehen sein). **Wer einen ankerlosen Eintrag mit besonderem Ziel anlegt, braucht dort eine Zeile dazu.**
+- 🪤 **Die Messung umging erst den Weg, den sie prüfen sollte.** Der Sweep feuerte das Ereignis `wg-tab` selbst — ohne Titel und Grund, die nur `springe()` in der Suche mitgibt. Die Hinweise kamen leer an („„" ist hier gerade nicht zu sehen"), und ein Fehler in genau dieser Übergabe wäre nie aufgefallen. → [[feedback-ui-pfad-nie-geprueft]]
+- 🪤 **`orte.mjs` hatte meinen Fehler als richtige Antwort festgeschrieben:** A2 erwartete für „müll" den Weg „Heute". Der Haken prüfte, **dass** ein Weg dasteht — nicht, ob man dort ankommt.
+- 🪤 **Der Hinweis sah erst schlecht aus:** mit dem Stil der einzeiligen „Live"-Pille wurde er bei vier Zeilen zur schmalen Blase über der Kopfkarte, deren Text durchschien. Im Bild gefunden; jetzt derselbe Balken wie „Rückgängig" (unten, deckend). H4/H5 prüfen Kontrast, Deckkraft und Breite — er hängt außerhalb von `.screen`.
+- 🪤 **Eigener Timing-Fehler im Test:** Beim ausgeschalteten Modul steht der Hinweis sofort da, die Markierung folgt später; „fertig, sobald Hinweis **oder** Markierung" maß dazwischen. Und „irgendetwas ist markiert" hätte die Markierung des **vorigen** Eintrags erwischt (sie hält 2,2 s) — gewartet wird jetzt auf genau das erwartete Ziel.
+- 🪤 **`english.mjs` E5 schlug auf einen Kommentar an:** `data-tool-leer` in Backticks, in der Folgezeile eines Block-Kommentars. Der Prüfer überspringt nur Zeilen, die mit `//`, `/*` oder `*` beginnen. Kommentar umformuliert, die Grenze steht jetzt im Test — Block-Kommentare per Regex herauszuschneiden könnte echten Code verschlucken und den Prüfer still blind machen.
+- **Werkzeug für lange Gegenproben:** `scratchpad/sicherung-aus-sabotage.mjs` leitet während eines laufenden Durchgangs das Original aus der gerade aktiven Sabotage ab. Die Gegenprobe hält das Original nur im Arbeitsspeicher; bricht sie ab, bliebe `wgapp.html` sabotiert — mit uncommitteter Arbeit darin.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -652,6 +674,7 @@ node test/organisation.mjs # Monatskalender (alle Quellen, Blättern), Geburtsta
 node test/push_versand.mjs # echter Push-Filter (Art, Ruhezeit, Morgen-Nachricht lautlos statt verworfen) — ohne Netz
 node test/ruhezeit.mjs   # Ruhezeit-Bereich mit nachgebildetem Push-Abo: Tippflächen inkl. ::after, Namen, Hinweis
 node test/optik.mjs      # Kopfkarte „Heute" (Tageszahl, Tageszeit-Ton, gestellte Uhr), Lichtkante der Karten in hell + dunkel
+node test/sprung.mjs     # JEDER Funktions-Treffer der Suche (Liste aus dem Quelltext): landet sichtbar oder erklärt sich; Chips, Unter-Reiter, Modul aus, EN-Reiter
 node test/feinschliff.mjs # Layout über ALLE Seiten × 390/360 px: kein abgeschnittener Platzhalter, kein halber Knopf, Beträge in einer Flucht, Tonnen-Saum, Kalender-Symbole
 node test/formular.mjs   # „Weiter" erklärt, was fehlt (jedes Wizard-Formular), nicht als deaktiviert ausgezeichnet, Kontrast hell+dunkel, EN
 node test/abgang.mjs     # Abgang mit Ansage: Animation läuft wirklich, Aktion folgt danach, „Weniger Bewegung" sofort, CountUp springt
