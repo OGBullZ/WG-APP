@@ -37,6 +37,13 @@ async function open({ reduce = false, tab = 'heute' } = {}) {
   });
   await page.route(/firebase-(app|database)-compat[-\d.]*\.js/, r => r.fulfill({ status: 200, contentType: 'application/javascript', body: /firebase-app-compat/.test(r.request().url()) ? STUB : '' }));
   await page.addInitScript(([s, t, tb]) => {
+    /* Warte-Hilfe für zeitkritische Schritte IM Browser: fragt die Bedingung alle 10 ms ab, höchstens `ms` lang.
+       Warum im Browser (30.09.): Zwischen zwei Playwright-Befehlen lag auf dem CI-Rechner mehr Zeit als das ganze
+       Zeitfenster des Abgangs (420 ms) — F1a sah dort nur noch EINE gleitende Zeile. Und eine feste Wartezeit
+       (setTimeout 40 ms) reicht unter Last nicht einmal, bis React die Klasse gesetzt hat. */
+    window.__bis = async (f, ms = 350) => { const t0 = performance.now(); while (performance.now() - t0 < ms) { if (f()) return true; await new Promise(r => setTimeout(r, 10)); } return !!f(); };
+    // Einzelposten-Zeile nach Name (mit Löschknopf — die Liste „Größte Posten" hat keinen und zählt hier nicht)
+    window.__zeile = n => [...document.querySelectorAll('.group .cell')].find(c => c.textContent.includes(n) && c.querySelector('.del-btn'));
     window.__wgSeed = s;
     localStorage.setItem('wg_code', JSON.stringify('TEST-LOKAL-ABGANG'));
     localStorage.setItem('wg_me', JSON.stringify('u1'));
@@ -48,6 +55,13 @@ async function open({ reduce = false, tab = 'heute' } = {}) {
   await page.locator('.tabbar').waitFor({ timeout: 30000 });
   await page.evaluate(() => window.__wg.fire());
   await page.waitForTimeout(1300);
+  /* `DROSSEL=6 node test/abgang.mjs` verlangsamt die CPU des Browsers um diesen Faktor (erst NACH dem Laden, sonst
+     dauert allein der Start Minuten). So lässt sich ein langsamer CI-Rechner lokal nachstellen: F1a war lokal
+     immer grün und in der CI rot (30.09.), weil dort die 420 ms des ersten Abgangs schon vorbei waren. */
+  if (process.env.DROSSEL) {
+    const cdp = await ctx.newCDPSession(page);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: Number(process.env.DROSSEL) });
+  }
   return { ctx, page, errs };
 }
 const daten = page => page.evaluate(() => JSON.parse(localStorage.getItem('wg_data') || '{}'));
@@ -55,16 +69,19 @@ const listeVon = async (page, key) => Object.values((await daten(page))[key] || 
 
 // ── A: Kühlschrank — „Weg ✓" lässt die Zeile erst gleiten, entfernt sie dann wirklich ──
 const A = await open();
-const kfRow = A.page.locator('[data-testid="fridge-row"]').first();
-await kfRow.locator('button').click();
-await A.page.waitForTimeout(120);   // mitten in der Animation nachsehen
-check('A1 die Zeile bekommt den Abgang (Klasse `geht`)', (await kfRow.getAttribute('class') || '').includes('geht'),
-  await kfRow.getAttribute('class'));
+// Tippen und Nachsehen in EINEM Zug im Browser — mitten im Abgang, egal wie langsam der Rechner ist
+const a = await A.page.evaluate(async () => {
+  const zeile = document.querySelector('[data-testid="fridge-row"]');
+  zeile.querySelector('button').click();
+  const geht = await window.__bis(() => zeile.classList.contains('geht'));
+  const cs = getComputedStyle(zeile);
+  const kf = Object.values(JSON.parse(localStorage.getItem('wg_data') || '{}').kf || {}).filter(Boolean).length;
+  return { geht, klasse: zeile.className, name: cs.animationName, dauer: cs.animationDuration, kf };
+});
+check('A1 die Zeile bekommt den Abgang (Klasse `geht`)', a.geht, a.klasse);
 // Die Animation muss WIRKLICH laufen, nicht nur benannt sein — sonst ist die Klasse Dekoration
-const lauf = await kfRow.evaluate(e => { const cs = getComputedStyle(e); return { name: cs.animationName, dauer: cs.animationDuration, fuell: cs.animationFillMode }; });
-check('A2 … und die Animation läuft tatsächlich', lauf.name === 'abgang' && parseFloat(lauf.dauer) > 0.1, JSON.stringify(lauf));
-check('A3 währenddessen steht der Eintrag noch in den Daten (nichts überstürzt)',
-  (await listeVon(A.page, 'kf')).length === 2, String((await listeVon(A.page, 'kf')).length));
+check('A2 … und die Animation läuft tatsächlich', a.name === 'abgang' && parseFloat(a.dauer) > 0.1, JSON.stringify({ name: a.name, dauer: a.dauer }));
+check('A3 währenddessen steht der Eintrag noch in den Daten (nichts überstürzt)', a.kf === 2, String(a.kf));
 await A.page.waitForTimeout(700);
 const kfNach = await listeVon(A.page, 'kf');
 check('A4 danach ist er wirklich weg', kfNach.length === 1 && !kfNach.some(x => x.name === 'Joghurt'),
@@ -78,13 +95,19 @@ check('A4 danach ist er wirklich weg', kfNach.length === 1 && !kfNach.some(x => 
    Sobald hier ein nicht-idempotenter Aufrufer dazukommt, werden sie scharf. */
 const B = await open();
 const bRow = B.page.locator('[data-testid="fridge-row"]').first();
-/* Über die TASTATUR auslösen, nicht per Maus: `.geht` setzt `pointer-events:none`, damit fängt schon das
-   CSS jeden zweiten Fingertipp ab — die Sabotage „Schutz im Hook weg" blieb deshalb grün, obwohl der
-   Schutz fehlte. Für die Tastatur gilt `pointer-events` NICHT. Genau dort ist der Riegel im Hook nötig. */
-await bRow.locator('button').focus();
-await B.page.keyboard.press('Enter');
-await B.page.waitForTimeout(80);
-await B.page.keyboard.press('Enter');
+/* Zweimal auslösen, der zweite Auslöser MITTEN im Abgang. Per `click()` im Browser — das umgeht wie die Tastatur
+   das `pointer-events:none` der gleitenden Zeile (ein echter zweiter Fingertipp würde vom CSS abgefangen).
+   Beide Auslöser in einem Zug: Mit zwei Playwright-Tastendrücken lag der zweite auf einem langsamen Rechner
+   schon hinter dem Fenster und prüfte gar keinen Doppeltipp mehr — grün, aber ohne Aussage. */
+const bFenster = await B.page.evaluate(async () => {
+  const knopf = document.querySelector('[data-testid="fridge-row"] button');
+  const zeile = knopf.closest('[data-testid="fridge-row"]');
+  knopf.click();
+  const imFenster = await window.__bis(() => zeile.classList.contains('geht'));
+  knopf.click();
+  return imFenster && zeile.isConnected && zeile.classList.contains('geht');   // der zweite kam, solange die erste noch glitt
+});
+check('B0 Vorbedingung: der zweite Auslöser kam, während die Zeile noch weggleitete', bFenster);
 await B.page.waitForTimeout(900);
 const bNach = await listeVon(B.page, 'kf');
 check('B1 Doppeltipp entfernt nur EINEN Eintrag', bNach.length === 1, JSON.stringify(bNach.map(x => x.name)));
@@ -116,9 +139,12 @@ const dRow = liste.locator('.cell').filter({ hasText: 'Rewe Wocheneinkauf' }).fi
 check('D0 der Ausgabenposten ist auf der Seite', await dRow.count() === 1, `${await dRow.count()} Treffer`);
 if (await dRow.count()) {
   const vorher = (await listeVon(D_.page, 'hs')).length;
-  await dRow.locator('.del-btn').click();
-  await D_.page.waitForTimeout(120);
-  check('D1 der Posten gleitet weg', (await dRow.getAttribute('class') || '').includes('geht'), await dRow.getAttribute('class'));
+  const d1 = await D_.page.evaluate(async () => {
+    const zeile = [...document.querySelectorAll('.group .cell')].find(c => c.textContent.includes('Rewe Wocheneinkauf') && c.querySelector('.del-btn'));
+    zeile.querySelector('.del-btn').click();
+    return { geht: await window.__bis(() => zeile.classList.contains('geht')), klasse: zeile.className };
+  });
+  check('D1 der Posten gleitet weg', d1.geht, d1.klasse);
   await D_.page.waitForTimeout(700);
   const nach = await listeVon(D_.page, 'hs');
   check('D2 … und ist danach gelöscht', nach.length === vorher - 1 && !nach.some(x => x.name === 'Rewe Wocheneinkauf'),
@@ -153,35 +179,62 @@ check('E1 bei „Weniger Bewegung" steht der neue Wert sofort, ohne Hochzählen'
    Der Test prüfte brav „ein Posten, ein Tipp, danach weg" und war grün. Die Regel aus CLAUDE.md stand
    längst da: „Zwischen Lesen und Schreiben liegt ein setTimeout? … Test: dieselbe Aktion zweimal schnell
    hintereinander." Ich hatte sie für den Doppeltipp auf DIESELBE Zeile geprüft, nicht für zwei Zeilen. */
-const postenZeile = (page, name) => page.locator('.group').filter({ hasText: name }).first().locator('.cell').filter({ hasText: name }).first();
 const namen = async page => (await listeVon(page, 'hs')).map(x => x.name).sort();
+/* 🪤 30.09.: F1a war lokal immer grün und in der CI rot — zwischen den Playwright-Befehlen „tippen", „150 ms warten",
+   „tippen", „100 ms warten", „zählen" verging dort mehr als das ganze Fenster von 420 ms. Mit `DROSSEL=8` lokal
+   nachgestellt. Schlimmer als das rote F1a: F2 und F3 hingen am selben Fenster. Verfehlten sie es, blieben sie
+   GRÜN, weil das Endergebnis trotzdem stimmt — und prüften dann gar nicht mehr, was sie versprechen.
+   Jetzt läuft jede Folge in EINEM Zug im Browser, und jede meldet laut (…v), ob sie das Fenster getroffen hat. */
 
 // F1: zwei Posten kurz nacheinander — beide müssen weg sein (vorher kam der erste zurück)
 const F1 = await open({ tab: 'haus' });
-await postenZeile(F1.page, 'Rewe Wocheneinkauf').locator('.del-btn').click();
-await F1.page.waitForTimeout(150);
-await postenZeile(F1.page, 'Pizza').locator('.del-btn').click();
-await F1.page.waitForTimeout(100);
+const f1 = await F1.page.evaluate(async () => {
+  const a = window.__zeile('Rewe Wocheneinkauf'), b = window.__zeile('Pizza');
+  a.querySelector('.del-btn').click();
+  const aGleitet = await window.__bis(() => a.classList.contains('geht'));
+  b.querySelector('.del-btn').click();
+  const beide = await window.__bis(() => b.classList.contains('geht'));
+  // Vorbedingung: A glitt noch, als B dazukam — sonst prüft F1a nichts über „gleichzeitig"
+  return { imFenster: aGleitet && a.isConnected && a.classList.contains('geht'), gleitend: document.querySelectorAll('.cell.geht').length, beide };
+});
+check('F1v Vorbedingung: der zweite Tipp kam, während der erste Posten noch glitt', f1.imFenster, JSON.stringify(f1));
 // Beide gleiten gleichzeitig: vorher kannte der Hook nur EINE id, die erste Zeile sprang zurück ins Bild
-check('F1a zwei Zeilen können gleichzeitig weggleiten', await F1.page.locator('.cell.geht').count() === 2, `${await F1.page.locator('.cell.geht').count()} mit .geht`);
+check('F1a zwei Zeilen können gleichzeitig weggleiten', f1.gleitend === 2, `${f1.gleitend} mit .geht`);
 await F1.page.waitForTimeout(1100);
 check('F1b zwei Posten nacheinander gelöscht → beide weg', (await namen(F1.page)).length === 0, JSON.stringify(await namen(F1.page)));
 
 // F2: während des Abgangs kommt ein Posten dazu — er muss bleiben (steht für „Tom trägt gerade etwas ein")
 const F2 = await open({ tab: 'haus' });
-await postenZeile(F2.page, 'Rewe Wocheneinkauf').locator('.del-btn').click();
-await F2.page.waitForTimeout(120);
-await F2.page.locator('[data-testid="quick-expense"] input').first().fill('5 Neu');
-await F2.page.locator('[data-testid="quick-expense"] button[type="submit"]').click();
+const f2v = await F2.page.evaluate(async () => {
+  const a = window.__zeile('Rewe Wocheneinkauf');
+  a.querySelector('.del-btn').click();
+  await window.__bis(() => a.classList.contains('geht'));
+  // Schnell-Eingabe füllen wie ein Mensch: Wert setzen UND das input-Ereignis, auf das React hört
+  const feld = document.querySelector('[data-testid="quick-expense"] input');
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(feld, '5 Neu');
+  feld.dispatchEvent(new Event('input', { bubbles: true }));
+  const knopf = document.querySelector('[data-testid="quick-expense"] button[type="submit"]');
+  await window.__bis(() => /Eintragen/.test(knopf.textContent));   // React hat den Text übernommen
+  const nochImFenster = a.isConnected && a.classList.contains('geht');
+  knopf.click();
+  return nochImFenster;
+});
+check('F2v Vorbedingung: „Neu" wurde eingetragen, während der gelöschte Posten noch glitt', f2v);
 await F2.page.waitForTimeout(1200);
 const f2 = await namen(F2.page);
 check('F2 ein Posten, der während des Abgangs dazukommt, bleibt erhalten', f2.includes('Neu') && f2.includes('Pizza') && !f2.includes('Rewe Wocheneinkauf'), JSON.stringify(f2));
 
 // F3: × tippen und sofort den Reiter wechseln — die Löschung darf nicht verloren gehen
 const F3 = await open({ tab: 'haus' });
-await postenZeile(F3.page, 'Rewe Wocheneinkauf').locator('.del-btn').click();
-await F3.page.waitForTimeout(80);
-await F3.page.locator('.tabbar .tabitem', { hasText: 'Übersicht' }).first().click();
+const f3v = await F3.page.evaluate(async () => {
+  const a = window.__zeile('Rewe Wocheneinkauf');
+  a.querySelector('.del-btn').click();
+  await window.__bis(() => a.classList.contains('geht'));
+  const nochImFenster = a.isConnected && a.classList.contains('geht');
+  [...document.querySelectorAll('.tabbar .tabitem')].find(t => /Übersicht/.test(t.textContent)).click();
+  return nochImFenster;
+});
+check('F3v Vorbedingung: der Reiter wurde gewechselt, während der Posten noch glitt', f3v);
 await F3.page.waitForTimeout(1100);
 const f3 = await namen(F3.page);
 check('F3 Reiter gewechselt, bevor der Abgang fertig war → trotzdem gelöscht', !f3.includes('Rewe Wocheneinkauf') && f3.includes('Pizza'), JSON.stringify(f3));

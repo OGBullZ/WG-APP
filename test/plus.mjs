@@ -105,8 +105,16 @@ d = await data();
 check('K3 neuer Eintrag: +3 Tage, gehört mir', d.kf.some(k => k.name === 'Joghurt' && k.exp === dayAgo(-3) && k.owner === 'u1'), JSON.stringify(d.kf));
 // wg-v95: Die Zeile gleitet erst weg (420 ms), erst danach wird entfernt.
 // Der Abgang wird eigens geprüft, damit das längere Warten keinen echten Fehler zudeckt.
-await page.getByRole('button', { name: 'Käse ist weg' }).click(); await page.waitForTimeout(120);
-check('K3b Entfernen zeigt sich erst als Abgang', await page.locator('[data-testid="fridge-row"].geht').count() === 1);
+// Tippen und Nachsehen in EINEM Zug im Browser (siehe abgang.mjs F1a, 30.09.: unter Last lag zwischen zwei
+// Playwright-Befehlen mehr als das ganze 420-ms-Fenster)
+const k3b = await page.evaluate(async () => {
+  const knopf = [...document.querySelectorAll('button')].find(b => b.getAttribute('aria-label') === 'Käse ist weg');
+  const zeile = knopf.closest('[data-testid="fridge-row"]');
+  knopf.click();
+  for (let t = 0; t < 35 && !zeile.classList.contains('geht'); t++) await new Promise(r => setTimeout(r, 10));
+  return zeile.classList.contains('geht');
+});
+check('K3b Entfernen zeigt sich erst als Abgang', k3b);
 await page.waitForTimeout(700);
 check('K4 „Weg ✓" entfernt', !(await data()).kf.some(k => k.name === 'Käse'));
 

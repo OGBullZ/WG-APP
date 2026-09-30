@@ -138,8 +138,17 @@ await hz.getByRole('button', { name: 'Gemeldet ✓' }).click(); await page.waitF
 await page.getByLabel('Kaputtes eintragen').fill('Vertipt'); await page.getByLabel('Kaputtes eintragen').press('Enter'); await page.waitForTimeout(300);
 // wg-v95: Die Zeile gleitet erst weg (420 ms), danach wird gelöscht — deshalb länger warten.
 // Vorher wird bewusst geprüft, dass der Abgang läuft: sonst würde ein längeres Warten nur den Fehler verdecken.
-await page.getByRole('button', { name: '„Vertipt" löschen' }).click(); await page.waitForTimeout(120);
-check('F2a Löschen zeigt sich erst als Abgang', await page.locator('[data-testid="repair-row"].geht').count() === 1);
+// Tippen und Nachsehen in EINEM Zug im Browser: Zwischen zwei Playwright-Befehlen kann auf einem langsamen
+// CI-Rechner mehr Zeit liegen als das ganze Fenster (30.09., abgang.mjs F1a) — dann wäre die Zeile schon weg.
+const f2a = await page.evaluate(async () => {
+  // über das Attribut vergleichen, nicht per CSS-Selektor: das gerade " im Namen ergäbe einen ungültigen Selektor
+  const knopf = [...document.querySelectorAll('button')].find(b => b.getAttribute('aria-label') === '„Vertipt" löschen');
+  const zeile = knopf.closest('[data-testid="repair-row"]');
+  knopf.click();
+  for (let t = 0; t < 35 && !zeile.classList.contains('geht'); t++) await new Promise(r => setTimeout(r, 10));
+  return zeile.classList.contains('geht');
+});
+check('F2a Löschen zeigt sich erst als Abgang', f2a);
 await page.waitForTimeout(700);
 check('F2b offener Eintrag löschbar', !(await data()).rp.some(r => r.text === 'Vertipt'));
 check('F3 gemeldet mit Datum', (await data()).rp.some(r => r.text === 'Heizung Bad' && r.status === 'gemeldet' && r.md === T));

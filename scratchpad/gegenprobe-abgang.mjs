@@ -39,21 +39,27 @@ const proben = [
 ];
 // Zeilenenden vereinheitlichen: die Datei hat CRLF, ein Suchstring mit \n fände sonst nichts
 const roh = readFileSync(F, 'utf8');
+// Original als DATEI sichern (nicht nur im Speicher) — siehe gegenprobe-sprung.mjs; .gitignore schließt sie aus
+writeFileSync('scratchpad/wgapp-original.sicherung.html', roh);
 const crlf = roh.includes('\r\n');
 const orig = roh.replace(/\r\n/g, '\n');
 const schreib = s => writeFileSync(F, crlf ? s.replace(/\n/g, '\r\n') : s);
 let alleRot = true;
-for (const [name, suchen, ersetzen] of proben) {
-  const n = orig.split(suchen).length - 1;
-  if (n !== 1) { console.log(`⚠️  ${name}: ${n}× gefunden — ungültig`); alleRot = false; continue; }
-  schreib(orig.replace(suchen, () => ersetzen));
+try {
+  for (const [name, suchen, ersetzen] of proben) {
+    const n = orig.split(suchen).length - 1;
+    if (n !== 1) { console.log(`⚠️  ${name}: ${n}× gefunden — ungültig`); alleRot = false; continue; }
+    schreib(orig.replace(suchen, () => ersetzen));
+    execSync('node scripts/csp-hashes.mjs --write', { stdio: 'ignore' });
+    let rot = false, grund = '';
+    try { execSync('node test/abgang.mjs', { stdio: 'pipe', timeout: 400000 }); }
+    catch (e) { rot = true; grund = String(e.stdout || '').split('\n').filter(l => /✗/.test(l)).map(l => l.trim().slice(2, 6)).join(','); }
+    console.log(`${rot ? '✓ rot  ' : '✗ GRÜN '} ${name}${grund ? '   [' + grund + ']' : ''}`);
+    if (!rot) alleRot = false;
+  }
+} finally {
+  writeFileSync(F, roh);
   execSync('node scripts/csp-hashes.mjs --write', { stdio: 'ignore' });
-  let rot = false;
-  try { execSync('node test/abgang.mjs', { stdio: 'pipe' }); } catch { rot = true; }
-  console.log(`${rot ? '✓ rot  ' : '✗ GRÜN '} ${name}`);
-  if (!rot) alleRot = false;
 }
-writeFileSync(F, roh);
-execSync('node scripts/csp-hashes.mjs --write', { stdio: 'ignore' });
 console.log(alleRot ? '\nAlle Sabotagen wurden erkannt.' : '\nMindestens eine Sabotage blieb unbemerkt.');
 process.exit(alleRot ? 0 : 1);
