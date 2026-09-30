@@ -5,3 +5,10 @@ test/shots/
 .vercel
 .env*
 dist/
+# Arbeitsdateien aus Prüfläufen (wg-v98): `ship.mjs` nimmt mit `git add -A` alles mit — am 30.09. landeten so
+# eine 785-KB-Sicherungskopie der App und zwölf Lauf-Protokolle im Repo. Skripte in scratchpad/ bleiben versioniert
+# (sie sind die Belege für die Messungen), ihre Ausgaben nicht.
+scratchpad/*.sicherung.html
+scratchpad/lauf-*.txt
+scratchpad/sweep-rot-*.txt
+scratchpad/gegenprobe-*.log

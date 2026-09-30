@@ -1,5 +1,0 @@
-  ✓ N0 alle Gruppen unter „Mehr" geöffnet und Push-Bereich erreicht (sonst misst N1 dort nichts) — Push-Schalter 13
-  ✓ N1 jeder Knopf hat einen verständlichen Namen (alle Hauptseiten)
-  ✓ Z1 keine Seitenfehler
-
-3 von 3 Prüfungen bestanden
