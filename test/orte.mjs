@@ -116,7 +116,14 @@ check('F2 … und zwar vor den Gruppen', !!obenBox && !!foldBox && obenBox.y < f
 await einstieg.click();
 await F.page.waitForTimeout(600);
 check('F3 öffnet die Suche direkt im Inhaltsverzeichnis', await F.page.locator('[data-testid="search-hit"]').count() >= 35, String(await F.page.locator('[data-testid="search-hit"]').count()));
-check('F4 der Bereich „Funktionen" ist dabei aktiv', await F.page.locator('[data-testid="sb-ort"]').evaluate(e => getComputedStyle(e).backgroundColor !== 'rgba(0, 0, 0, 0)'));
+/* 🪤 F4 war der erste Haken dieses Projekts, der in der CI rot wurde, ohne dass sich Code geändert hatte (30.09.,
+   Aufräum-Commit nach v98; derselbe Stand war eine Minute vorher grün). Er las die HINTERGRUNDFARBE des Knopfs —
+   die hat einen Übergang von 0,2 s, und auf einem langsamen Rechner (der Lauf brauchte 72 statt 33 Minuten) stand
+   noch die Anfangsfarbe da. Dahinter lag ein Mangel der App: der gewählte Bereich war NUR farblich ausgezeichnet.
+   Seit v99 trägt der Knopf `aria-pressed`; geprüft wird der Zustand, nicht sein Anstrich — und gewartet, bis er gilt. */
+const f4 = await F.page.locator('[data-testid="sb-ort"][aria-pressed="true"]').waitFor({ timeout: 4000 }).then(() => true).catch(() => false);
+check('F4 der Bereich „Funktionen" ist dabei aktiv (als Zustand ausgezeichnet, nicht nur gefärbt)', f4, await F.page.locator('[data-testid="sb-ort"]').getAttribute('aria-pressed').catch(() => '?'));
+check('F4b … und nur dieser eine Bereich', await F.page.locator('[data-testid="search-bereich"] [aria-pressed="true"]').count() === 1, String(await F.page.locator('[data-testid="search-bereich"] [aria-pressed="true"]').count()));
 // Beim nächsten normalen Öffnen wieder „Alles" — der Sonderstart darf nicht hängen bleiben
 await F.page.locator('.sheet:visible').getByText(/Abbrechen|Cancel/).first().click();
 await F.page.waitForTimeout(400);

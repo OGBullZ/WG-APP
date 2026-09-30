@@ -76,6 +76,41 @@ for (let i = 0; i < tabs.length; i++) {
 check('N0 alle Gruppen unter „Mehr" geöffnet und Push-Bereich erreicht (sonst misst N1 dort nichts)', !gruppenFehlen.length && pushSchalter >= 10,
   `Push-Schalter ${pushSchalter}${gruppenFehlen.length ? ' · nicht geöffnet: ' + gruppenFehlen.join(', ') : ''}`);
 check('N1 jeder Knopf hat einen verständlichen Namen (alle Hauptseiten)', funde.length === 0, funde.slice(0, 5).join(' | '));
+
+/* ── N2–N4 (wg-v99): nicht nur der NAME, auch der ZUSTAND muss hörbar sein ──
+   Anlass: 23 Auswahl-Knöpfe („Wer hat bezahlt?", „Wie oft?", Symbol, Farbe, Umschalter Ausgaben/Einkaufsliste) zeigten
+   ihren gewählten Zustand nur über die Klasse ` on`, also über die Farbe. Ein Bildschirmleser las gleich klingende
+   Knöpfe vor, ohne zu sagen, welcher gilt. Gefunden über einen Test, der deshalb eine Farbe prüfen musste und in der
+   CI wackelte — das Gegenstück zu den 35 Knöpfen ohne Namen aus v90. */
+
+// N2: Quelltext, datenunabhängig — deckt auch Formulare ab, die dieser Lauf nicht öffnet.
+// Jede Knopf-Zeile, die ` on` abhängig setzt, muss eine Zustands-Auszeichnung tragen.
+const { readFileSync } = await import('fs');
+const quelle = readFileSync(new URL('../wgapp.html', import.meta.url), 'utf8').split(/\r?\n/);
+const stumm = [], ausgezeichnet = [];
+quelle.forEach((z, i) => {
+  if (!/<button\b/.test(z) || !/\?' on':''\}/.test(z)) return;
+  (/aria-(pressed|selected|current|checked)=/.test(z) ? ausgezeichnet : stumm).push(`Z.${i + 1} ${(z.match(/className=\{`([a-z-]+)/) || [])[1] || '?'}`);
+});
+check('N2 es gibt Auswahl-Knöpfe zu prüfen (sonst sagt N3 nichts)', ausgezeichnet.length + stumm.length >= 20, `${ausgezeichnet.length + stumm.length} gefunden`);
+check('N3 jeder Auswahl-Knopf meldet seinen Zustand, nicht nur seine Farbe', stumm.length === 0, stumm.slice(0, 6).join(' | '));
+
+// N4: Laufzeit — stimmt die Ansage mit dem überein, was man sieht, und wechselt sie beim Tippen?
+// Ein Attribut, das da ist, aber nicht mitwandert, wäre schlimmer als keins.
+await page.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).first().click(); await page.waitForTimeout(700);
+await page.locator('button:visible').filter({ hasText: /Aufgabe anlegen/ }).first().click(); await page.waitForTimeout(600);
+const feld = page.locator('.sheet input:visible').first();
+await feld.click(); await feld.pressSequentially('Staubsaugen', { delay: 5 });
+await page.locator('[data-testid="wiz-next"]').click(); await page.waitForTimeout(500);
+const zustand = () => page.locator('.sheet .cat-btn').evaluateAll(els => els.map(e => ({ t: e.textContent.trim(), an: e.classList.contains('on'), sagt: e.getAttribute('aria-pressed') })));
+const vorher = await zustand();
+await page.locator('.sheet .cat-btn').filter({ hasText: /^Wöchentlich$/ }).click(); await page.waitForTimeout(350);
+const danach = await zustand();
+const stimmt = l => l.length >= 4 && l.every(x => x.sagt === String(x.an));
+check('N4 Ansage und Anzeige stimmen überein — vor und nach dem Tippen', stimmt(vorher) && stimmt(danach), JSON.stringify(danach.filter(x => x.sagt !== String(x.an))));
+check('N5 nach dem Tippen ist genau die gewählte Möglichkeit als gewählt angesagt',
+  danach.filter(x => x.sagt === 'true').map(x => x.t).join('|') === 'Wöchentlich', danach.filter(x => x.sagt === 'true').map(x => x.t).join('|') || '(keine)');
+
 check('Z1 keine Seitenfehler', errs.length === 0, errs.slice(0, 2).join(' | '));
 
 await browser.close();

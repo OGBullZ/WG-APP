@@ -2667,7 +2667,10 @@ function SearchSheet({ open, onClose, startBereich = 'alle' }) {
   }).sort((a, b) => (b.k === 'exp' && a.k === 'exp') ? String(b.date).localeCompare(String(a.date)) : 0);
   const summe = treffer.filter(x => x.k === 'exp').reduce((s, x) => s + x.preis, 0);
   const zeigen = treffer.slice(0, 60);
-  const chip = (aktiv, onClick, text, tid) => <button key={tid} type="button" data-testid={tid} className="tool-chip" style={aktiv ? { background:'var(--mint)', color:'var(--ink)', borderColor:'var(--mint)' } : null} onClick={onClick}>{text}</button>;
+  /* `aria-pressed` (wg-v99): Welcher Filter gewählt ist, stand bisher NUR in der Farbe — ein Bildschirmleser las
+     sechs gleich klingende Knöpfe. Aufgefallen über einen Test, der deshalb die Hintergrundfarbe prüfen musste
+     und auf einem langsamen CI-Rechner den Anfang des 0,2-s-Farbübergangs erwischte. */
+  const chip = (aktiv, onClick, text, tid) => <button key={tid} type="button" data-testid={tid} className="tool-chip" aria-pressed={!!aktiv} style={aktiv ? { background:'var(--mint)', color:'var(--ink)', borderColor:'var(--mint)' } : null} onClick={onClick}>{text}</button>;
   // Funktions-Treffer springen nicht nur in den Tab, sondern klappen die Gruppe auf und heben die Karte hervor
   const springe = x => { window.dispatchEvent(new CustomEvent('wg-tab', { detail: x.k === 'ort' ? { tab: x.tab, fold: x.fold, anker: x.anker, titel: x.t, wann: x.wann } : x.tab })); onClose(); };
   return (
@@ -2914,7 +2917,7 @@ function LoginShare() {
                   <div className="sheet-sublbl">{TT("Sichtbar für")} {other}</div>
                   <div className="seg">
                     {LOGIN_VIEW.map(([m,l])=>(
-                      <button key={m} className={`seg-btn${form.view===m?' on':''}`} onClick={()=>setForm(f=>({...f,view:m}))}>{l}</button>
+                      <button key={m} className={`seg-btn${form.view===m?' on':''}`} aria-pressed={!!(form.view===m)} onClick={()=>setForm(f=>({...f,view:m}))}>{l}</button>
                     ))}
                   </div>
                 </div>
@@ -3735,7 +3738,7 @@ function Onboarding({ mode: startMode, onDone }) {
     </>,
     who: <>
       <OnbTitle em="🙋" t={mode==='personal' ? TT("Das bist du") : TT("Wer bist du?")} s={mode==='personal' ? TT("Name und Farbe für dieses Handy – die anderen sehen die Änderung sofort.") : TT("Tipp auf deinen Namen – oder trag dich neu ein.")}/>
-      {users.length>0 && <div className="pick">{users.map(u=><button key={u.id} type="button" className={`pick-btn${me===u.id?' on':''}`} style={{background:u.color}} aria-label={TT("Ich bin {0}", u.name)} onClick={()=>pickMe(u.id)}>{u.name}</button>)}</div>}
+      {users.length>0 && <div className="pick">{users.map(u=><button key={u.id} type="button" className={`pick-btn${me===u.id?' on':''}`} aria-pressed={!!(me===u.id)} style={{background:u.color}} aria-label={TT("Ich bin {0}", u.name)} onClick={()=>pickMe(u.id)}>{u.name}</button>)}</div>}
       {mode!=='personal' && <>
         <div className="sheet-sublbl" style={{marginTop:6}}>{TT("Ich bin neu hier")}</div>
         <div style={{display:'flex',gap:6}}>
@@ -4272,7 +4275,7 @@ function DepositCard() {
           <div className="sheet-sublbl">{TT("Wie viel kam zurück? (nach Abzügen)")}</div>
           <div className="f-euro"><input className="field" inputMode="decimal" aria-label={TT("Rückzahlung")} value={r.amount} onChange={e=>setR({...r,amount:e.target.value})}/></div>
           <div className="sheet-sublbl">{TT("Auf wessen Konto?")}</div>
-          <div className="pick">{users.map(u=><button key={u.id} type="button" className={`pick-btn${r.to===u.id?' on':''}`} style={{background:u.color}} onClick={()=>setR({...r,to:u.id})}>{u.name}</button>)}</div>
+          <div className="pick">{users.map(u=><button key={u.id} type="button" className={`pick-btn${r.to===u.id?' on':''}`} aria-pressed={!!(r.to===u.id)} style={{background:u.color}} onClick={()=>setR({...r,to:u.id})}>{u.name}</button>)}</div>
           <div style={{fontSize:12.5,color:'var(--label2)'}}>{TT("Aufgeteilt nach dem, was jede Person eingezahlt hat.")}</div>
           <button className="btn" style={{background:'var(--mint)'}} onClick={refund}>{TT("Verrechnen")}</button>
         </>}
@@ -4361,7 +4364,7 @@ function SwapCard() {
       <MiniSheet open={!!f} onClose={()=>setF(null)} title={TT("Mitbewohner-Wechsel")} color="var(--sky)">
         {f && <>
           <div className="sheet-sublbl">{TT("Wer zieht aus?")}</div>
-          <div className="pick">{users.map(u=><button key={u.id} type="button" className={`pick-btn${f.old===u.id?' on':''}`} style={{background:u.color}} onClick={()=>setF({...f,old:u.id})}>{u.name}</button>)}</div>
+          <div className="pick">{users.map(u=><button key={u.id} type="button" className={`pick-btn${f.old===u.id?' on':''}`} aria-pressed={!!(f.old===u.id)} style={{background:u.color}} onClick={()=>setF({...f,old:u.id})}>{u.name}</button>)}</div>
           {bl.length>0 && <div data-testid="swap-block" style={{fontSize:13,color:'var(--red)',fontWeight:700,display:'flex',flexDirection:'column',gap:4}}>{bl.map(b=><span key={b}>⛔ {b}</span>)}</div>}
           <input className="field" maxLength={40} placeholder={TT("Name der neuen Person")} aria-label={TT("Neue Person")} value={f.name} onChange={e=>setF({...f,name:e.target.value})}/>
           {kt && cur && Number(kt['c_'+cur.id])>0 && <div style={{fontSize:12.5,color:'var(--label2)'}}>{TT("Kaution:")} {cur.name}{TT("s Anteil €")}{fmt(kt['c_'+cur.id])} {TT("geht auf die neue Person über – das Geld klärt ihr direkt untereinander.")}</div>}
@@ -4587,7 +4590,7 @@ function CostsCard() {
           </div>
           <div className="f-euro"><input className="field" inputMode="decimal" placeholder={TT("Betrag")} aria-label={TT("Betrag der Abrechnung")} value={f.amount} onChange={e=>setF({...f,amount:e.target.value})}/></div>
           <div className="sheet-sublbl">{f.credit ? TT("Wer hat das Guthaben bekommen?") : TT("Wer hat die Nachzahlung bezahlt?")}</div>
-          <div className="pick">{users.map(u=><button key={u.id} type="button" className={`pick-btn${f.who===u.id?' on':''}`} style={{background:u.color}} onClick={()=>setF({...f,who:u.id})}>{u.name}</button>)}</div>
+          <div className="pick">{users.map(u=><button key={u.id} type="button" className={`pick-btn${f.who===u.id?' on':''}`} aria-pressed={!!(f.who===u.id)} style={{background:u.color}} onClick={()=>setF({...f,who:u.id})}>{u.name}</button>)}</div>
           {users.length===2 && <>
           <label className="sheet-sublbl" htmlFor="nk-share">{TT("Anteil")} {a.name}: {f.share} % · {b.name}: {100-f.share} %</label>
           <input id="nk-share" type="range" min="0" max="100" step="5" value={f.share} onChange={e=>setF({...f,share:Number(e.target.value)})}/>
@@ -4652,7 +4655,7 @@ function MealCard() {
           <input type="date" className="field" aria-label={TT("Tag")} value={f.date} min={today} onChange={e=>setF({...f,date:e.target.value})}/>
           <input className="field" autoFocus maxLength={60} placeholder={TT("Was gibt es? z. B. Lasagne")} aria-label={TT("Gericht")} value={f.dish} onChange={e=>setF({...f,dish:e.target.value})}/>
           <div className="sheet-sublbl">{TT("Wer kocht? (Vorschlag: wer seltener gekocht hat)")}</div>
-          <div className="pick">{users.map(u=><button key={u.id} type="button" className={`pick-btn${f.cook===u.id?' on':''}`} style={{background:u.color}} onClick={()=>setF({...f,cook:u.id})}>{u.name}</button>)}</div>
+          <div className="pick">{users.map(u=><button key={u.id} type="button" className={`pick-btn${f.cook===u.id?' on':''}`} aria-pressed={!!(f.cook===u.id)} style={{background:u.color}} onClick={()=>setF({...f,cook:u.id})}>{u.name}</button>)}</div>
           <input className="field" maxLength={300} placeholder={TT("Zutaten, mit Komma getrennt")} aria-label={TT("Zutaten")} value={f.ings} onChange={e=>setF({...f,ings:e.target.value})}/>
           <button className="btn" style={{background:'var(--amber)'}} onClick={save}>{TT("Speichern")}</button>
         </>}
@@ -6786,14 +6789,14 @@ function Haushalt({goGrow, goPutz}) {
       <div>
         <div className="sheet-sublbl">{payLabel}</div>
         <div className="pick">
-          {users.map(u=><button key={u.id} className={`pick-btn${d.paidBy===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,paidBy:u.id})}>{u.name}</button>)}
+          {users.map(u=><button key={u.id} className={`pick-btn${d.paidBy===u.id?' on':''}`} aria-pressed={!!(d.paidBy===u.id)} style={{background:u.color}} onClick={()=>sd({...d,paidBy:u.id})}>{u.name}</button>)}
         </div>
       </div>
       <div>
         <div className="sheet-sublbl">{TT("Wie aufteilen?")}</div>
         <div className="pick" style={{flexDirection:'column'}}>
-          <button className={`pick-btn${!d.owedBy?' on':''}`} style={{background:'var(--mint)'}} onClick={()=>sd({...d,owedBy:null})}>{TT("Gleich teilen · 50/50")}</button>
-          {users.map(u=><button key={u.id} className={`pick-btn${d.owedBy===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,owedBy:u.id})}>{u.name} {TT("zahlt alles")}</button>)}
+          <button className={`pick-btn${!d.owedBy?' on':''}`} aria-pressed={!!(!d.owedBy)} style={{background:'var(--mint)'}} onClick={()=>sd({...d,owedBy:null})}>{TT("Gleich teilen · 50/50")}</button>
+          {users.map(u=><button key={u.id} className={`pick-btn${d.owedBy===u.id?' on':''}`} aria-pressed={!!(d.owedBy===u.id)} style={{background:u.color}} onClick={()=>sd({...d,owedBy:u.id})}>{u.name} {TT("zahlt alles")}</button>)}
         </div>
       </div>
     </div>
@@ -6855,7 +6858,7 @@ function Haushalt({goGrow, goPutz}) {
               Seit der Übersetzung (v77) so; die Deutsch-Prüfungen sahen es nie. Schlüssel gehören nie in TT(). */}
           <div className="seg rise" data-testid="haus-seg">
             {[['aus',TT("💶 Ausgaben")],['liste',TT("🛒 Einkaufsliste{0}", openL>0?` (${openL})`:'')]].map(([v,l])=>(
-              <button key={v} data-seg={v} className={`seg-btn${seg===v?' on':''}`} onClick={()=>setSeg(v)}>{l}</button>
+              <button key={v} data-seg={v} className={`seg-btn${seg===v?' on':''}`} aria-pressed={!!(seg===v)} onClick={()=>setSeg(v)}>{l}</button>
             ))}
           </div>
           {seg==='aus'?(
@@ -7354,7 +7357,7 @@ function Grow() {
           <div className="sheet-sublbl">{TT("Wer hat bezahlt?")}</div>
           <div className="pick">
             {users.map(u=>(
-              <button key={u.id} className={`pick-btn${d.paidBy===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,paidBy:u.id})}>
+              <button key={u.id} className={`pick-btn${d.paidBy===u.id?' on':''}`} aria-pressed={!!(d.paidBy===u.id)} style={{background:u.color}} onClick={()=>sd({...d,paidBy:u.id})}>
                 {u.name}<br/><span style={{fontSize:11,fontWeight:600,opacity:.75}}>{TT("zahlt")} {pctStr(u.id)}</span>
               </button>
             ))}
@@ -7909,14 +7912,14 @@ function Putzplan() {
     {label: TT("Wie oft?"),ok:d=>!!(d.interval||d.pk),render:({data:d,setData:sd})=>(
       <>
         <div className="cat-grid">
-          {IVS.map(([v,l])=><button key={v} className={`cat-btn${!d.pk&&d.interval===v?' on':''}`} onClick={()=>sd({...d,interval:v,pk:null})}>{l}</button>)}
+          {IVS.map(([v,l])=><button key={v} className={`cat-btn${!d.pk&&d.interval===v?' on':''}`} aria-pressed={!!(!d.pk&&d.interval===v)} onClick={()=>sd({...d,interval:v,pk:null})}>{l}</button>)}
         </div>
         {/* An die Müllabfuhr koppeln: fällig am Vorabend der Abholung statt fester Rhythmus */}
         {(D.mk||[]).filter(Boolean).length>0 && (
           <>
             <div className="sheet-sublbl" style={{marginTop:14}}>{TT("… oder immer am Vorabend der Abholung")}</div>
             <div className="cat-grid">
-              {(D.mk||[]).filter(Boolean).map(p=>{ const k=PICK_KINDS[p.kind]||['🗑️',p.kind]; return <button key={p.kind} data-testid="pk-opt" className={`cat-btn${d.pk===p.kind?' on':''}`} onClick={()=>sd({...d,pk:p.kind,interval:d.interval||'7'})}>{k[0]} {k[1]}</button>; })}
+              {(D.mk||[]).filter(Boolean).map(p=>{ const k=PICK_KINDS[p.kind]||['🗑️',p.kind]; return <button key={p.kind} data-testid="pk-opt" className={`cat-btn${d.pk===p.kind?' on':''}`} aria-pressed={!!(d.pk===p.kind)} onClick={()=>sd({...d,pk:p.kind,interval:d.interval||'7'})}>{k[0]} {k[1]}</button>; })}
             </div>
           </>
         )}
@@ -7925,16 +7928,16 @@ function Putzplan() {
     {label: TT("Wie aufwendig? (zählt für die Bilanz)"),render:({data:d,setData:sd})=>(
       <div className="cat-grid">
         {CHORE_PTS.map(([v,em,l,sub])=>(
-          <button key={v} className={`cat-btn${chorePts(d)===v?' on':''}`} style={{height:'auto',padding:'9px 4px',display:'flex',flexDirection:'column',alignItems:'center',gap:2}} onClick={()=>sd({...d,pts:v})}>
+          <button key={v} className={`cat-btn${chorePts(d)===v?' on':''}`} aria-pressed={!!(chorePts(d)===v)} style={{height:'auto',padding:'9px 4px',display:'flex',flexDirection:'column',alignItems:'center',gap:2}} onClick={()=>sd({...d,pts:v})}>
             <span style={{fontSize:18}}>{em}</span><span>{l}</span><span style={{fontSize:10.5,opacity:.7,fontWeight:500}}>{sub}</span>
           </button>
         ))}
       </div>
     )},
-    {label: TT("Symbol"),render:({data:d,setData:sd})=><div className="emoji-grid">{EMS.map(e=><button key={e} className={`emoji-btn${d.em===e?' on':''}`} onClick={()=>sd({...d,em:e})}>{e}</button>)}</div>},
+    {label: TT("Symbol"),render:({data:d,setData:sd})=><div className="emoji-grid">{EMS.map(e=><button key={e} className={`emoji-btn${d.em===e?' on':''}`} aria-pressed={!!(d.em===e)} onClick={()=>sd({...d,em:e})}>{e}</button>)}</div>},
     {label: TT("Wer fängt an?"),render:({data:d,setData:sd})=>(
       <div className="pick">
-        {users.map(u=><button key={u.id} className={`pick-btn${d.assignee===u.id?' on':''}`} style={{background:u.color}} onClick={()=>sd({...d,assignee:u.id})}>{u.name}</button>)}
+        {users.map(u=><button key={u.id} className={`pick-btn${d.assignee===u.id?' on':''}`} aria-pressed={!!(d.assignee===u.id)} style={{background:u.color}} onClick={()=>sd({...d,assignee:u.id})}>{u.name}</button>)}
       </div>
     )},
   ];
@@ -8194,7 +8197,7 @@ function Finanzen() {
     {label: TT("Art"),ok:d=>!!d.type,render:({data:d,setData:sd})=>(
       <div className="pick">
         {[['inc',TT("📈 Einnahme"),'var(--green)'],['exp',TT("📉 Ausgabe"),'var(--red)']].map(([v,l,c])=>(
-          <button key={v} className={`pick-btn${d.type===v?' on':''}`} style={{background:c}} onClick={()=>sd({...d,type:v})}>{l}</button>
+          <button key={v} className={`pick-btn${d.type===v?' on':''}`} aria-pressed={!!(d.type===v)} style={{background:c}} onClick={()=>sd({...d,type:v})}>{l}</button>
         ))}
       </div>
     )},
@@ -8207,7 +8210,7 @@ function Finanzen() {
     {label: TT("Kategorie & Notiz"),ok:d=>!!d.cat,render:({data:d,setData:sd})=>(
       <div style={{display:'flex',flexDirection:'column',gap:12}}>
         <div className="cat-grid">
-          {PRIV_CATS.map(c=><button key={c} className={`cat-btn${d.cat===c?' on':''}`} onClick={()=>sd({...d,cat:c})}>{c}</button>)}
+          {PRIV_CATS.map(c=><button key={c} className={`cat-btn${d.cat===c?' on':''}`} aria-pressed={!!(d.cat===c)} onClick={()=>sd({...d,cat:c})}>{c}</button>)}
         </div>
         <input maxLength={100} className="field" placeholder={TT("Notiz (optional)")} value={d.note||''} onChange={e=>sd({...d,note:e.target.value})}/>
       </div>
@@ -8220,7 +8223,7 @@ function Finanzen() {
       <div style={{display:'flex',flexDirection:'column',gap:12}}>
         <div className="pick">
           {[['m',TT("Monatlich")],['y',TT("Jährlich")]].map(([v,l])=>(
-            <button key={v} className={`pick-btn${d.freq===v?' on':''}`} style={{background:'var(--violet)'}} onClick={()=>sd({...d,freq:v})}>{l}</button>
+            <button key={v} className={`pick-btn${d.freq===v?' on':''}`} aria-pressed={!!(d.freq===v)} style={{background:'var(--violet)'}} onClick={()=>sd({...d,freq:v})}>{l}</button>
           ))}
         </div>
         {d.freq==='m'&&<input type="text" inputMode="numeric" maxLength={2} className="field" placeholder={TT("Fällig am … (Tag, optional)")} value={d.day||''} onChange={e=>sd({...d,day:e.target.value.replace(/\D/g,'')})}/>}
@@ -8268,7 +8271,7 @@ function Finanzen() {
 
           <div className="seg rise" style={{animationDelay:'120ms'}}>
             {[['txs',TT("💳 Buchungen")],['fix',TT("📌 Fixkosten")]].map(([v,l])=>(
-              <button key={v} className={`seg-btn${seg===v?' on':''}`} onClick={()=>setSeg(v)}>{l}</button>
+              <button key={v} className={`seg-btn${seg===v?' on':''}`} aria-pressed={!!(seg===v)} onClick={()=>setSeg(v)}>{l}</button>
             ))}
           </div>
 
@@ -8372,15 +8375,15 @@ function Abos() {
         <div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>
         <div className="seg">
           {[['m',TT("Monatlich")],['y',TT("Jährlich")]].map(([v,l])=>(
-            <button key={v} className={`seg-btn${d.iv===v?' on':''}`} onClick={()=>sd({...d,iv:v})}>{l}</button>
+            <button key={v} className={`seg-btn${d.iv===v?' on':''}`} aria-pressed={!!(d.iv===v)} onClick={()=>sd({...d,iv:v})}>{l}</button>
           ))}
         </div>
       </div>
     )},
     {label: TT("Symbol & Farbe"),render:({data:d,setData:sd})=>(
       <div style={{display:'flex',flexDirection:'column',gap:14}}>
-        <div className="emoji-grid">{EMS.map(e=><button key={e} className={`emoji-btn${d.em===e?' on':''}`} onClick={()=>sd({...d,em:e})}>{e}</button>)}</div>
-        <div className="color-row">{CLS.map(c=><button key={c} className={`color-btn${d.cl===c?' on':''}`} style={{background:c,color:c}} onClick={()=>sd({...d,cl:c})}/>)}</div>
+        <div className="emoji-grid">{EMS.map(e=><button key={e} className={`emoji-btn${d.em===e?' on':''}`} aria-pressed={!!(d.em===e)} onClick={()=>sd({...d,em:e})}>{e}</button>)}</div>
+        <div className="color-row">{CLS.map(c=><button key={c} className={`color-btn${d.cl===c?' on':''}`} aria-pressed={!!(d.cl===c)} style={{background:c,color:c}} onClick={()=>sd({...d,cl:c})}/>)}</div>
       </div>
     )},
   ];
