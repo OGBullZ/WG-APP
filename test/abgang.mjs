@@ -147,7 +147,47 @@ check('E1 bei „Weniger Bewegung" steht der neue Wert sofort, ohne Hochzählen'
   eGleich && eSpaet && eGleich.sichtbar === eSpaet.sichtbar && eGleich.sichtbar === eSpaet.ziel && eVor.ziel !== eSpaet.ziel,
   `vorher „${eVor?.ziel}" · nach 110 ms „${eGleich?.sichtbar}" · am Ende „${eSpaet?.ziel}"`);
 
-const alleErrs = [...A.errs, ...B.errs, ...C.errs, ...D_.errs, ...E.errs].filter(e => !/ResizeObserver/.test(e));
+/* ── F (wg-v97): was in den 420 ms des Abgangs passiert, darf keine Daten kosten ──
+   🔴 Diese vier Fälle fehlten in der ersten Fassung dieses Tests — und genau dort lag der Fehler, der mit
+   v95 live ging: Das Löschen schrieb nach dem Abgang die ganze Liste aus dem Stand VOR dem Tipp zurück.
+   Der Test prüfte brav „ein Posten, ein Tipp, danach weg" und war grün. Die Regel aus CLAUDE.md stand
+   längst da: „Zwischen Lesen und Schreiben liegt ein setTimeout? … Test: dieselbe Aktion zweimal schnell
+   hintereinander." Ich hatte sie für den Doppeltipp auf DIESELBE Zeile geprüft, nicht für zwei Zeilen. */
+const postenZeile = (page, name) => page.locator('.group').filter({ hasText: name }).first().locator('.cell').filter({ hasText: name }).first();
+const namen = async page => (await listeVon(page, 'hs')).map(x => x.name).sort();
+
+// F1: zwei Posten kurz nacheinander — beide müssen weg sein (vorher kam der erste zurück)
+const F1 = await open({ tab: 'haus' });
+await postenZeile(F1.page, 'Rewe Wocheneinkauf').locator('.del-btn').click();
+await F1.page.waitForTimeout(150);
+await postenZeile(F1.page, 'Pizza').locator('.del-btn').click();
+await F1.page.waitForTimeout(100);
+// Beide gleiten gleichzeitig: vorher kannte der Hook nur EINE id, die erste Zeile sprang zurück ins Bild
+check('F1a zwei Zeilen können gleichzeitig weggleiten', await F1.page.locator('.cell.geht').count() === 2, `${await F1.page.locator('.cell.geht').count()} mit .geht`);
+await F1.page.waitForTimeout(1100);
+check('F1b zwei Posten nacheinander gelöscht → beide weg', (await namen(F1.page)).length === 0, JSON.stringify(await namen(F1.page)));
+
+// F2: während des Abgangs kommt ein Posten dazu — er muss bleiben (steht für „Tom trägt gerade etwas ein")
+const F2 = await open({ tab: 'haus' });
+await postenZeile(F2.page, 'Rewe Wocheneinkauf').locator('.del-btn').click();
+await F2.page.waitForTimeout(120);
+await F2.page.locator('[data-testid="quick-expense"] input').first().fill('5 Neu');
+await F2.page.locator('[data-testid="quick-expense"] button[type="submit"]').click();
+await F2.page.waitForTimeout(1200);
+const f2 = await namen(F2.page);
+check('F2 ein Posten, der während des Abgangs dazukommt, bleibt erhalten', f2.includes('Neu') && f2.includes('Pizza') && !f2.includes('Rewe Wocheneinkauf'), JSON.stringify(f2));
+
+// F3: × tippen und sofort den Reiter wechseln — die Löschung darf nicht verloren gehen
+const F3 = await open({ tab: 'haus' });
+await postenZeile(F3.page, 'Rewe Wocheneinkauf').locator('.del-btn').click();
+await F3.page.waitForTimeout(80);
+await F3.page.locator('.tabbar .tabitem', { hasText: 'Übersicht' }).first().click();
+await F3.page.waitForTimeout(1100);
+const f3 = await namen(F3.page);
+check('F3 Reiter gewechselt, bevor der Abgang fertig war → trotzdem gelöscht', !f3.includes('Rewe Wocheneinkauf') && f3.includes('Pizza'), JSON.stringify(f3));
+check('F3b … und Rückgängig wird angeboten (die Aktion lief ganz, nicht halb)', await F3.page.locator('.undo-toast').count() === 1);
+
+const alleErrs = [...A.errs, ...B.errs, ...C.errs, ...D_.errs, ...E.errs, ...F1.errs, ...F2.errs, ...F3.errs].filter(e => !/ResizeObserver/.test(e));
 check('Z1 keine Seitenfehler', alleErrs.length === 0, alleErrs.slice(0, 2).join(' | '));
 
 await browser.close();

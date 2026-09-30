@@ -56,6 +56,20 @@ const call = async (handler, { method = 'GET', query = {}, body, headers = {} } 
 process.env.CRON_SECRET = 'geheim';
 process.env.WG_CODE = OLD;
 process.env.BACKUP_KEY = KEY;
+/* 🔴 Push-Versand abgefangen (wg-v97). Der Kopfkommentar versprach „Pushes werden nie verschickt: die Test-WG
+   hat nichts Fälliges" — das stimmte nur an den meisten Tagen. Die WG hat einen offenen Posten, und am
+   MONATSLETZTEN (Abrechnungs-Erinnerung) sowie am MONATSERSTEN (Digest) ruft der Cron `sendToSubs` auf. Ohne
+   VAPID-Schlüssel stürzte der Test dann ab: am 30.09.2026 im Ship-Gate, an 24 Tagen im Jahr (auch in der CI).
+   Der naheliegende Fix — Attrappen-Schlüssel setzen — hätte es schlimmer gemacht: Die Test-WG enthält ein
+   Fake-Gerät, und `web-push` sendet über `https`, nicht über das überschriebene `fetch` → ein echter
+   Verbindungsversuch nach push.example. Deshalb wird `web-push` selbst ersetzt: aufzeichnen statt senden.
+   `_push.js` und `cron.js` teilen sich dasselbe Modulobjekt, das Patchen wirkt also überall. */
+const webpush = require('web-push');
+const gesendet = [];
+webpush.setVapidDetails = () => {};                                     // keine Schlüsselprüfung nötig, es wird nie gesendet
+webpush.sendNotification = async (sub, payload) => { gesendet.push({ sub, payload: JSON.parse(payload) }); return { statusCode: 201 }; };
+for (const k of ['VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY']) process.env[k] ||= 'test-attrappe';   // nur damit `configureVapid` nicht abbricht
+process.env.VAPID_SUBJECT ||= 'mailto:test@example.invalid';
 const cron = require('../api/cron.js');
 const backup = require('../api/backup.js');
 const rotate = require('../api/rotate.js');
@@ -75,8 +89,25 @@ tree = { wg: { [OLD]: wgData() } };
 
 // ── 1) Cron: Berechtigung, Snapshot, Idempotenz ──
 check('1a Cron ohne Secret → 401', (await call(cron, { headers: {} })).statusCode === 401);
+gesendet.length = 0;
 const c1 = await call(cron, { headers: { authorization: 'Bearer geheim' } });
 check('1b Cron legt Tages-Snapshot an', c1.statusCode === 200 && c1.body.backup === 'ok', JSON.stringify(c1.body));
+/* 1b2: Was der Cron an einem GEGEBENEN Kalendertag versendet — nicht „nichts", sondern „genau das Richtige".
+   Die Test-WG hat einen offenen Posten und ein Gerät. Erwartung je Tag (Berliner Datum wie im Cron):
+   - normaler Tag: nichts Fälliges → keine Nachricht (das war das stille Versprechen, jetzt geprüft),
+   - Monatsletzter: die Abrechnungs-Erinnerung geht raus und nennt „Monatsende" — beweist, dass der Zweig lief,
+   - Monatserster: nur ein Digest, ob er das Gerät erreicht, hängt an dessen Einstellungen → nichts behaupten. */
+{
+  const [Y, M, D] = today.split('-').map(Number);
+  const letzter = D === new Date(Y, M, 0).getDate(), erster = D === 1;
+  const art = letzter ? 'Monatsletzter' : erster ? 'Monatserster' : 'normaler Tag';
+  const ok = letzter ? gesendet.length >= 1 && gesendet.some(g => /Monatsende/.test(g.payload.body || ''))
+    : erster ? true : gesendet.length === 0;
+  check(`1b2 Versand am ${art} (${today}) ist der erwartete`, ok,
+    `${gesendet.length} aufgezeichnet${gesendet[0] ? ': „' + String(gesendet[0].payload.body).slice(0, 50) + '“' : ''}`);
+  check('1b3 nichts verlässt den Test: jede Sendung ging an das Fake-Gerät', gesendet.every(g => /push\.example/.test(g.sub.endpoint)),
+    JSON.stringify(gesendet.map(g => g.sub.endpoint)));
+}
 const snap = getAt(`/sv/${KEY}/bk/${today}`);
 check('1c Snapshot enthält die Daten (hs, users)', !!snap && snap.data.hs?.h1?.name === 'Klopapier' && snap.data.users?.length === 2 && snap.code === OLD);
 check('1d Snapshot OHNE Push-Schlüssel, Login-Freigaben, Fehlerprotokoll', !!snap && !snap.data.push && !snap.data.ls && !snap.data.err);

@@ -68,6 +68,30 @@ for (const theme of ['dark', 'light']) {
     await page.waitForTimeout(900);   // Einblend-Animation abwarten, sonst halbtransparente Zwischenstände
     await page.screenshot({ path: `test/shots/rund-${kuerzel}${theme}-${tab}.png`, fullPage: true });
     console.log(`📸 rund-${kuerzel}${theme}-${tab}`);
+    /* `--lang`: die Seite Bildschirm für Bildschirm abfahren.
+       🪤 `fullPage` zeigte immer nur den ERSTEN Bildschirm — die App scrollt in einem inneren Container,
+       das Dokument selbst ist nie höher als das Fenster. Zwei Optik-Runden (v92, v94) haben deshalb nur
+       den Seitenkopf gesehen; alles darunter war optisch ungeprüft. Jetzt wird der Container gesucht,
+       der wirklich scrollt, und in Schritten weitergeschoben — so wie man es am Handy sieht. */
+    if (process.argv.includes('--lang')) {
+      const info = await page.evaluate(() => {
+        const kand = [...document.querySelectorAll('.screen, .content, .tab-view, main, #root *')]
+          .filter(e => e.scrollHeight > e.clientHeight + 40 && /auto|scroll/.test(getComputedStyle(e).overflowY));
+        const el = kand.sort((a, b) => b.scrollHeight - a.scrollHeight)[0];
+        if (!el) return null;
+        el.setAttribute('data-rundgang', '1');
+        return { hoehe: el.scrollHeight, sicht: el.clientHeight };
+      });
+      if (!info) { console.log(`   (kein Scroll-Container gefunden — Seite passt auf einen Bildschirm)`); continue; }
+      const schritt = info.sicht - 110, seiten = Math.ceil((info.hoehe - info.sicht) / schritt);
+      for (let i = 1; i <= seiten; i++) {
+        await page.evaluate(y => { document.querySelector('[data-rundgang]').scrollTop = y; }, i * schritt);
+        await page.waitForTimeout(350);
+        await page.screenshot({ path: `test/shots/rund-${kuerzel}${theme}-${tab}-${i + 1}.png` });
+      }
+      await page.evaluate(() => { const e = document.querySelector('[data-rundgang]'); e.scrollTop = 0; e.removeAttribute('data-rundgang'); });
+      console.log(`   … ${seiten} weitere Bildschirme (${info.hoehe} px hoch)`);
+    }
   }
   await ctx.close();
 }

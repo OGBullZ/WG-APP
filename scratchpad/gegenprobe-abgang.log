@@ -1,0 +1,13 @@
+✓ rot   kein Abgang am Kühlschrank (alter Zustand: sofort weg)
+✓ rot   Klasse wird nie gesetzt (Animation unerreichbar)
+✓ rot   Animation nur benannt, läuft aber nicht
+✓ rot   die Aktion läuft nie (nur Animation, keine Wirkung)
+✓ rot   die Aktion läuft SOFORT statt nach der Animation (überstürzt)
+✓ rot   „Weniger Bewegung" wird ignoriert (Verzögerung auch dort)
+✓ rot   Ausgabenposten wieder ohne Abgang
+✓ rot   CountUp zählt auch bei „Weniger Bewegung" wieder hoch
+✓ rot   🔴 Löschen schreibt wieder die ganze Liste aus dem Stand vor dem Tipp (Datenverlust aus v95)
+✓ rot   🔴 Verlassen der Seite verwirft die Aktion (Löschung geht verloren)
+✓ rot   nur EINE Zeile kann weggleiten (die erste springt zurück ins Bild)
+
+Alle Sabotagen wurden erkannt.

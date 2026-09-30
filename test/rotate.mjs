@@ -133,7 +133,7 @@ const openMehr = async page => { await page.locator('.tabbar .tabitem', { hasTex
   check('B4 KEIN Schreibversuch auf den alten Pfad', (await page.evaluate(() => window.__wg.updates.length)) === 0 && Object.keys(t.wg[OLD]).length === 2);
   // Beitritt mit dem neuen Code → zusammenführen
   await page.locator('.moved-banner').getByRole('button').click(); await page.waitForTimeout(400);
-  await page.locator('input[placeholder="Anderen Code eingeben …"]').fill(NEW);
+  await page.locator('input[placeholder="Anderen Code eingeben"]').fill(NEW);   // wg-v97: Platzhalter gekürzt (passte bei 360 px nicht)
   await page.getByRole('button', { name: 'Beitreten' }).click(); await page.waitForTimeout(300);
   await page.getByRole('button', { name: /Zusammenführen/ }).click(); await page.waitForTimeout(500);
   await page.evaluate(() => window.__wg.fire()); await page.waitForTimeout(1500);

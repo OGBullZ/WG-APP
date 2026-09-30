@@ -72,6 +72,7 @@ jobs:
           node test/fuer_andere.mjs
           node test/abgang.mjs
           node test/formular.mjs
+          node test/feinschliff.mjs
           node test/csp_hash.mjs
           node test/visual.mjs
           kill $SRV 2>/dev/null || true
