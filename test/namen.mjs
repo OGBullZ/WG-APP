@@ -98,7 +98,7 @@ check('N3 jeder Auswahl-Knopf meldet seinen Zustand, nicht nur seine Farbe', stu
 // N4: Laufzeit — stimmt die Ansage mit dem überein, was man sieht, und wechselt sie beim Tippen?
 // Ein Attribut, das da ist, aber nicht mitwandert, wäre schlimmer als keins.
 await page.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).first().click(); await page.waitForTimeout(700);
-await page.locator('button:visible').filter({ hasText: /Aufgabe anlegen/ }).first().click(); await page.waitForTimeout(600);
+await page.getByRole('button', { name: /Aufgabe anlegen/ }).first().click(); await page.waitForTimeout(600);   // sichtbar „+ Neu" seit wg-v102
 const feld = page.locator('.sheet input:visible').first();
 await feld.click(); await feld.pressSequentially('Staubsaugen', { delay: 5 });
 await page.locator('[data-testid="wiz-next"]').click(); await page.waitForTimeout(500);

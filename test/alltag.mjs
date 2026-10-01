@@ -163,6 +163,9 @@ check('G2 Schuldner sieht „wartet auf Bestätigung"', await page.locator('[dat
 
 // ── H: Müllabfuhr + Kopplung ──
 await tabTo('Putzplan');
+// seit wg-v102: ohne eingetragene Tonne ist die Müllabfuhr ein Chip — erst der Chip, dann „+ Tonne" (echter Weg, zwei Tipps)
+const tonnenChip = page.locator('[data-chip="pickup"]');
+if (await tonnenChip.count()) { await tonnenChip.click(); await page.waitForTimeout(300); }
 await page.getByRole('button', { name: '+ Tonne' }).click(); await page.waitForTimeout(300);
 await page.locator('.sheet button', { hasText: 'Papier' }).click();
 await page.locator('#pk-start').fill(dayAgo(-1));
@@ -178,7 +181,10 @@ check('H2 gekoppelt: „vor jeder 🔵 Papier-Abholung" + heute fällig (Voraben
 check('H3 pk gespeichert', (await data()).pt.find(t => t.id === 't1').pk === 'papier');
 
 // ── I: Abwesenheit ──
-await page.getByRole('button', { name: 'Ich bin weg' }).click(); await page.waitForTimeout(300);
+// seit wg-v102 erst der Chip „✈️ Abwesend" (solange nichts eingetragen ist), dann „Ich bin weg" in der Karte
+const wegChip = page.locator('[data-chip="away"]');
+if (await wegChip.count()) { await wegChip.click(); await page.waitForTimeout(300); }
+await page.getByRole('button', { name: 'Ich bin weg', exact: true }).click(); await page.waitForTimeout(300);
 await page.locator('.sheet button', { hasText: 'Eintragen' }).click(); await page.waitForTimeout(900);
 d = await data();
 check('I1 Abwesenheit gespeichert + Push', d.aw.some(a => a.userId === 'u1' && a.from === T) && pushes.some(p => /Torben ist weg/.test(p.title)));

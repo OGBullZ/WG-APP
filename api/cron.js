@@ -114,29 +114,7 @@ function growCycleMessages(wg, todayMid) {
   return out;
 }
 
-// Wochen-Duell (montags): Einsatz-Punkte der Vorwoche Mo–So je Person — spiegelt choreWeek()/chorePts()
-// aus wgapp.html (beide zusammen ändern). todayMid = Berliner Tagesmitte; liefert null, wenn niemand etwas getan hat.
-function weekDuel(wg, todayMid) {
-  const users = toArray(wg.users);
-  if (users.length < 2) return null;
-  const from = new Date(todayMid); from.setDate(from.getDate() - ((from.getDay() + 6) % 7) - 7);
-  const to = new Date(from); to.setDate(to.getDate() + 7);
-  const byId = {}; toArray(wg.pt).forEach((t) => { if (t && t.id) byId[t.id] = t; });
-  const ptsOf = (l) => { const p = Number(l.pts || (byId[l.taskId] && byId[l.taskId].pts)); return [1, 2, 3].includes(p) ? p : 2; };
-  const score = users.map((u) => ({ name: u.name, n: toArray(wg.pl)
-    .filter((l) => l && l.userId === u.id && parseIso(l.date) >= from && parseIso(l.date) < to)
-    .reduce((s, l) => s + ptsOf(l), 0) }));
-  const [a, b] = score;
-  if (a.n + b.n === 0) return null;
-  const head = `${a.name} ${a.n} : ${b.n} ${b.name}`;
-  const win = a.n === b.n ? null : (a.n > b.n ? a : b);
-  const kw = `${from.getFullYear()}-${pad2(from.getMonth() + 1)}-${pad2(from.getDate())}`;
-  return {
-    title: 'Wochen-Duell',
-    body: win ? `👑 ${win.name} gewinnt die Woche — ${head}. Neue Woche, neues Glück!` : `🤝 Unentschieden — ${head}. Neue Woche, neues Glück!`,
-    tag: `duel-${kw}`,
-  };
-}
+// (Wochen-Duell `weekDuel`, montags: in wg-v102 entfernt — torbe: „den duell kram überdenken finds unnötig")
 
 function pad2(n) { return String(n).padStart(2, '0'); }
 function monthKeyOf(y, m) { return `${y}-${pad2(m)}`; }
@@ -323,9 +301,7 @@ module.exports = async (req, res) => {
   const growMsgs = growCycleMessages(wg, todayMid);
   messages.push(...growMsgs);
 
-  // Montag: Ergebnis des Wochen-Duells — an alle Geräte außer denen, die „Spielelemente" abgeschaltet haben
-  // (Typ `game`: fehlt das Feld → an, wie der Standard in der App)
-  const duel = todayMid.getDay() === 1 ? weekDuel(wg, todayMid) : null;
+  // (Montag: Ergebnis des Wochen-Duells — mit dem Duell in wg-v102 entfernt)
 
   // Push-Diät (wg-v79): EINE Morgen-Push mit allem, was eine Handlung braucht; Rückblicke separat als `digest`
   // (Standard aus). Vorher ging jede Meldung einzeln raus — an einem Monatsersten bis zu ~10 Pushes.
@@ -336,15 +312,10 @@ module.exports = async (req, res) => {
     if (plan.remind) sent += (await sendToSubs(subs, plan.remind, { type: 'remind' })).sent;
     if (plan.digest) sent += (await sendToSubs(subs, plan.digest, { type: 'digest' })).sent;
   }
-  if (duel) {
-    const subs = await loadSubs(code);
-    sent += (await sendToSubs(subs, duel, { type: 'game' })).sent;
-  }
 
-  res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, budWarns, grow: growMsgs.length, duel: duel ? 1 : 0, repairs: repairMsgs.length, year: yearMsg ? 1 : 0, meter: meterMsg ? 1 : 0, fridge: fridgeMsg ? 1 : 0,maint: maintMsg ? 1 : 0, loan: loanMsg ? 1 : 0, rent: rentMsg ? 1 : 0, geb: gebMsg ? 1 : 0, sent, backup, pruned });
+  res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, budWarns, grow: growMsgs.length, repairs: repairMsgs.length, year: yearMsg ? 1 : 0, meter: meterMsg ? 1 : 0, fridge: fridgeMsg ? 1 : 0, maint: maintMsg ? 1 : 0, loan: loanMsg ? 1 : 0, rent: rentMsg ? 1 : 0, geb: gebMsg ? 1 : 0, sent, backup, pruned });
 };
 
 // Für test/cron_grow.mjs — der Handler selbst bleibt der Default-Export (Vercel).
 module.exports.growCycleMessages = growCycleMessages;
 module.exports.GROW_PHASES = GROW_PHASES;
-module.exports.weekDuel = weekDuel;

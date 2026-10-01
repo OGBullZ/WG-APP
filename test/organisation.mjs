@@ -177,49 +177,36 @@ const SEED_F = {
   ep: map([{ id: 'e1', date: T, dish: 'Lasagne', cook: 'u1' }]),
   lh: map([{ id: 'l1', what: 'Bohrmaschine', person: 'Nachbar', dir: 'out', since: vorTagen(3), due: inTagen(5) }]),
 };
+// wg-v102: Terminliste statt Monatsraster (torbe: „kalender … sinnvoll, nicht klobig und dumm"). Im aktuellen Monat
+// „Demnächst" = heute + 3 Wochen, auch über das Monatsende — der Test braucht kein Blättern mehr für „in 5 Tagen".
+// Geburtstag am 15. steht deshalb nur drin, wenn er in diesen 3 Wochen liegt (sonst über „+ 3 Wochen" bzw. Vormonat).
 const F = await open({ seed: SEED_F, tab: 'stats' });
 const kal = F.page.locator('[data-testid="kalender"]');
-check('F1 Kalender ist da', await kal.count() === 1);
-const tage = await F.page.locator('[data-testid="kal-tag"]').count();
-const imMonat = new Date(+YM.slice(0, 4), +YM.slice(5), 0).getDate();
-check('F2 so viele Tage wie der Monat hat', tage === imMonat, `${tage} statt ${imMonat}`);
-check('F3 Kopf nennt Monat und Jahr', new RegExp(YM.slice(0, 4)).test(await F.page.locator('[data-testid="kal-monat"]').innerText()));
-/* Tagesfeld lesen — auch wenn der Tag im Nachbarmonat liegt. Bis zum 26.09. las der Test nur das Raster des
-   laufenden Monats: „in 5 Tagen" war am Monatsende der 01.10., das Feld fehlte, der Test hing (datumsabhängig rot).
-   Danach wieder in den laufenden Monat zurück, weil die folgenden Prüfungen davon ausgehen. */
-async function tagInhalt(t) {
-  const loc = F.page.locator(`[data-tag="${t}"]`);
-  if (await loc.count()) return loc.innerText();
-  const [hin, zurueck] = t > T ? ['kal-vor', 'kal-zurueck'] : ['kal-zurueck', 'kal-vor'];
-  await F.page.locator(`[data-testid="${hin}"]`).click(); await F.page.waitForTimeout(300);
-  const txt = await F.page.locator(`[data-tag="${t}"]`).innerText().catch(() => '');
-  await F.page.locator(`[data-testid="${zurueck}"]`).click(); await F.page.waitForTimeout(300);
-  return txt;
-}
-check('F4 Geburtstag steht im Raster', /🎂/.test(await tagInhalt(`${YM}-15`)), await tagInhalt(`${YM}-15`));
-check('F5 Essensplan steht am heutigen Tag', /🍝/.test(await tagInhalt(T)), await tagInhalt(T));
-check('F6 Abwesenheit füllt alle Tage des Zeitraums', /✈️/.test(await tagInhalt(inTagen(2))) && /✈️/.test(await tagInhalt(inTagen(3))) && /✈️/.test(await tagInhalt(inTagen(4))));
-check('F7 Ausleih-Rückgabe steht am Fälligkeitstag', /↩️/.test(await tagInhalt(inTagen(5))));
-check('F8 Müllabfuhr wiederholt sich im Zweiwochentakt', /⚫/.test(await tagInhalt(T)) || /⚫/.test(await tagInhalt(inTagen(14))) || /⚫/.test(await tagInhalt(vorTagen(14))));
-await F.page.locator(`[data-tag="${T}"]`).click();
-await F.page.waitForTimeout(400);
-const liste = await F.page.locator('[data-testid="kal-tagesliste"]').innerText();
-check('F9 Tag antippen zeigt die Termine im Klartext', /Lasagne/.test(liste), liste.replace(/\n/g, ' ').slice(0, 120));
-await F.page.locator('[data-testid="kal-vor"]').click();
-await F.page.waitForTimeout(500);
-check('F10 Blättern wechselt den Monat', await F.page.locator('[data-testid="kal-monat"]').innerText() !== `${YM}`, await F.page.locator('[data-testid="kal-monat"]').innerText());
-check('F11 nach dem Blättern vorwärts ist kein Tag mehr ausgewählt', await F.page.locator('[data-testid="kal-tagesliste"]').count() === 0);
-// Auch rückwärts: die Auswahl gehört zum Monat, ein stehengebliebener Tag zeigte Termine eines anderen Monats
-await F.page.locator('[data-testid="kal-zurueck"]').click();
-await F.page.waitForTimeout(400);
-await F.page.locator(`[data-tag="${T}"]`).click();
-await F.page.waitForTimeout(400);
-check('F11b ausgewählter Tag ist da, solange man im Monat bleibt', await F.page.locator('[data-testid="kal-tagesliste"]').count() === 1);
-await F.page.locator('[data-testid="kal-zurueck"]').click();
-await F.page.waitForTimeout(400);
-check('F11c auch rückwärts fällt die Auswahl weg', await F.page.locator('[data-testid="kal-tagesliste"]').count() === 0);
-await F.page.waitForTimeout(300);
-check('F12 zurück in den Vormonat, ohne Absturz', await F.page.locator('[data-testid="kal-tag"]').count() > 27, String(await F.page.locator('[data-testid="kal-tag"]').count()));
+check('F1 Terminliste ist da, Kopf „Demnächst"', await kal.count() === 1 && /Demnächst/i.test(await F.page.locator('[data-testid="kal-monat"]').innerText()));
+const zeilen = await F.page.locator('[data-testid="kal-tag"]').evaluateAll(els => els.map(e => e.dataset.tag));
+check('F2 nur Tage mit Terminen, sortiert, ab heute', zeilen.length > 0 && zeilen.every((t, i) => t >= T && (i === 0 || t > zeilen[i - 1])), JSON.stringify(zeilen));
+check('F3 keine leeren Tageskästchen mehr (kein Raster)', zeilen.length < 22, String(zeilen.length));
+const tagInhalt = t => F.page.locator(`[data-tag="${t}"]`).innerText().catch(() => '');
+check('F4 heute heißt „Heute" und nennt das Essen im Klartext', /Heute/.test(await tagInhalt(T)) && /🍝/.test(await tagInhalt(T)) && /Lasagne/.test(await tagInhalt(T)), await tagInhalt(T));
+check('F5 Abwesenheit EINMAL mit „bis …" (nicht an jedem Tag)', /✈️.*bis/.test(await tagInhalt(inTagen(2))) && !/✈️/.test(await tagInhalt(inTagen(3))) && !/✈️/.test(await tagInhalt(inTagen(4))), await tagInhalt(inTagen(2)));
+check('F6 Ausleih-Rückgabe am Fälligkeitstag, mit Namen', /↩️/.test(await tagInhalt(inTagen(5))) && /Bohrmaschine/.test(await tagInhalt(inTagen(5))));
+check('F7 Müllabfuhr (2-Wochen-Takt) steht heute oder in 14 Tagen', /⚫/.test(await tagInhalt(T)) || /⚫/.test(await tagInhalt(inTagen(14))));
+// „+ 3 Wochen" verlängert einmal; der Geburtstag am 15. liegt im Monat → spätestens danach drin, falls er noch kommt
+await F.page.locator('[data-testid="kal-mehr"]').click(); await F.page.waitForTimeout(300);
+const nachher = await F.page.locator('[data-testid="kal-tag"]').count();
+check('F8 „+ 3 Wochen" zeigt mindestens so viel wie vorher, Knopf danach weg', nachher >= zeilen.length && await F.page.locator('[data-testid="kal-mehr"]').count() === 0, `${zeilen.length} → ${nachher}`);
+const gebTag = `${YM}-15`;
+if (gebTag >= T) check('F9 kommender Geburtstag steht drin', /🎂.*Mama/.test(await tagInhalt(gebTag)), await tagInhalt(gebTag));
+// Vergangener Monat über die Monatsauswahl der Übersicht (der Kalender hat keine eigene mehr)
+const statsZurueck = F.page.locator('[data-testid="stats-month"] [aria-label="Vorheriger Monat"]');
+check('F10 nur EINE Monatsauswahl auf der Seite', await F.page.locator('[data-testid="kal-zurueck"], [data-testid="kal-vor"]').count() === 0 && await statsZurueck.count() === 1);
+await statsZurueck.click(); await F.page.waitForTimeout(400);
+const vm = await F.page.locator('[data-testid="kal-monat"]').innerText();
+check('F11 Vormonat: Kopf nennt Monat und Jahr, Liste ohne Absturz', /Termine/i.test(vm) && /\d{4}/.test(vm), vm);
+// Derselbe Monat im Vorjahr (noch 11× zurück): der Geburtstag am 15. kommt jedes Jahr wieder
+for (let i = 0; i < 11; i++) { await statsZurueck.click(); await F.page.waitForTimeout(120); }
+const vorjahr = `${+YM.slice(0, 4) - 1}-${YM.slice(5)}-15`;
+check('F12 gleicher Monat im Vorjahr: Geburtstag am 15. steht drin', /🎂.*Mama/.test(await F.page.locator(`[data-tag="${vorjahr}"]`).innerText().catch(() => '')), vorjahr);
 
 const alleErrs = [...A.errs, ...B.errs, ...C.errs, ...Dd.errs, ...E.errs, ...G.errs, ...F.errs].filter(e => !/ResizeObserver/.test(e));
 check('Z1 keine Seitenfehler', alleErrs.length === 0, alleErrs.slice(0, 3).join(' | '));

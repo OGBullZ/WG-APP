@@ -173,7 +173,8 @@ const tonneDunkel = await S.page.locator('[data-testid="pickup-row"] .em-saum').
 check('M1 dunkel: das Tonnen-Symbol hat einen hellen Saum (⚫ lag sonst auf Schwarz)', /drop-shadow/.test(tonneDunkel), tonneDunkel);
 await zuTab(S.page, 'Übersicht');
 const kal = await S.page.evaluate(() => {
-  const mit = [...document.querySelectorAll('[data-testid="kal-tag"]')].map(b => b.querySelector('span:last-child')).filter(s => s && s.textContent.trim());
+  // seit wg-v102 Terminliste statt Raster: das Symbol steht vor dem Text in `.kal-eintrag .em-saum`
+  const mit = [...document.querySelectorAll('[data-testid="kal-tag"] .kal-eintrag .em-saum')].filter(s => s.textContent.trim());
   return { markierte: mit.length, px: mit.length ? parseFloat(getComputedStyle(mit[0]).fontSize) : 0 };
 });
 check('M2 Kalender-Symbole sind mindestens 10 px groß (waren 8)', kal.markierte >= 1 && kal.px >= 10, JSON.stringify(kal));

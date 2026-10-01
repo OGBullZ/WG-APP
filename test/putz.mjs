@@ -102,6 +102,22 @@ await page.locator('[data-testid="putz-regel-auf"]').click(); await page.waitFor
 check('C4 ⓘ zeigt die Regel', /Wer den Haken setzt/.test(await page.locator('[data-testid="putz-regel"]').innerText().catch(() => '')));
 // wg-v101: „Zuletzt erledigt" — höchstens 4 Zeilen, Abstand statt Datum („gestern" statt „30.9.2026")
 const logZeilen = await page.locator('[data-testid="putz-log-row"]').allInnerTexts();
+// wg-v102: leere Müllabfuhr/Abwesend sind Chips, die Karte erscheint erst auf Tipp (Test-WG hat weder Tonne noch Abwesenheit)
+const chips = await page.locator('[data-testid="putz-chips"] [data-chip]').evaluateAll(b => b.map(x => x.dataset.chip));
+check('C6 ohne Tonne/Abwesenheit: zwei Chips, keine sichtbaren Karten', JSON.stringify(chips) === '["pickup","away"]'
+  && !(await page.locator('[data-testid="pickup-card"]').isVisible().catch(() => false)), JSON.stringify(chips));
+await page.locator('[data-chip="pickup"]').click(); await page.waitForTimeout(300);
+check('C7 Chip antippen → Müllabfuhr-Karte sichtbar, Chip weg', await page.locator('[data-testid="pickup-card"]').first().isVisible()
+  && await page.locator('[data-chip="pickup"]').count() === 0);
+// Löschen im Bearbeiten-Fenster (das × je Zeile ist weg) — mit Rückgängig
+const vorher = await page.locator('[data-testid="chore-row"]').count();
+check('C8 kein × mehr an den Aufgaben', await page.locator('[data-testid="chore-row"] .del-btn').count() === 0);
+await page.locator('[data-testid="chore-row"]', { hasText: 'Bad' }).locator('[data-testid="chore-stand"]').click(); await page.waitForTimeout(400);
+await page.locator('[data-testid="wiz-del"]').click(); await page.waitForTimeout(400);
+check('C9 „Aufgabe löschen" im Bearbeiten-Fenster entfernt die Aufgabe', await page.locator('[data-testid="chore-row"]').count() === vorher - 1
+  && await page.locator('[data-testid="chore-row"]', { hasText: 'Bad' }).count() === 0);
+await page.getByRole('button', { name: 'Rückgängig' }).click(); await page.waitForTimeout(400);
+check('C10 Rückgängig holt sie zurück', await page.locator('[data-testid="chore-row"]', { hasText: 'Bad' }).count() === 1);
 check('C5 Verlauf: 1–4 Zeilen, relative Angabe, kein volles Datum', logZeilen.length >= 1 && logZeilen.length <= 4
   && logZeilen.every(z => /heute|gestern|vor \d+ Tagen/.test(z) && !/\d{1,2}\.\d{1,2}\.\d{4}/.test(z)), JSON.stringify(logZeilen));
 const heroText = async () => (await page.locator('.hero').first().innerText()).replace(/\n/g, ' ');
@@ -179,11 +195,7 @@ const kr = await page.evaluate(([d0, lw, d9, d20]) => {
   const log = [L('a', d0, 2), L('b', lw, 3), L('a', lw, 1), L('b', d20, 3)];   // 20 Tage: nie in dieser oder der letzten Woche
   const due = { id: 'o', assignee: 'a', lastDone: d9, interval: 3 };   // seit 6 Tagen überfällig
   return {
-    week: choreWeek(log, [], U, 0).map(u => u.n).join(':'),
-    last: choreWeek(log, [], U, -1).map(u => u.n).join(':'),
-    crown: choreCrown(log, [], U),
-    tie: choreCrown([L('a', lw, 2), L('b', lw, 2)], [], U),
-    none: choreCrown([], [], U),
+    duellWeg: typeof choreWeek === 'undefined' && typeof choreCrown === 'undefined',   // wg-v102: Duell entfernt
     s1: choreStreak([L('a', d0, 1, { late: 0 }), L('b', d0, 1, { late: 5 }), L('a', d0, 1, { late: 0 }), L('a', d0, 1, { late: 2 }), L('a', d0, 1, { late: 0 })], [], 'a'),
     legacy: choreStreak([L('a', d0, 1, { late: 0 }), L('a', d0, 1)], [], 'a'),
     miss: choreStreak([L('a', d0, 1, { late: 0 }), L('b', d0, 1, { late: 0, miss: 'a' }), L('a', d0, 1, { late: 0 })], [], 'a'),
@@ -191,10 +203,8 @@ const kr = await page.evaluate(([d0, lw, d9, d20]) => {
     otherOverdue: choreStreak([L('a', d0, 1, { late: 0 })], [{ ...due, assignee: 'b' }], 'a'),
   };
 }, [dayAgo(0), lastWeek, dayAgo(9), dayAgo(20)]);
-check('K1 Woche: nur Einträge ab Montag zählen', kr.week === '2:0', kr.week);
-check('K2 Vorwoche getrennt gezählt', kr.last === '1:3', kr.last);
-check('K3 👑 an den Sieger der Vorwoche', kr.crown === 'b', kr.crown);
-check('K4 Gleichstand / keine Punkte → keine Krone', kr.tie === null && kr.none === null);
+// K1–K4 prüften bis v101 Wochenpunkte und Krone des Duells — das gibt es nicht mehr
+check('K1 Duell-Rechnung (choreWeek/choreCrown) ist weg', kr.duellWeg);
 check('K5 Serie zählt eigene pünktliche in Folge, fremde Verspätung egal, eigene bricht', kr.s1 === 2, kr.s1);
 check('K6 alte Einträge ohne late brechen die Serie', kr.legacy === 1, kr.legacy);
 check('K7 vom anderen gerettet (miss) bricht die Serie', kr.miss === 1, kr.miss);
@@ -241,12 +251,10 @@ await pg.evaluate(() => window.__wg.fire()); await pg.waitForTimeout(1500);
 const hdr = await pg.locator('[data-testid="chore-quick"] .section-hdr').innerText();
 check('L1 Haushalt-Karte zeigt eigene Serie 🔥 2', /🔥\s*2/.test(hdr), hdr);
 await pg.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).click(); await pg.waitForTimeout(600);
-const duel = pg.locator('[data-testid="chore-duel"]');
-const duelTxt = async () => (await duel.innerText()).replace(/\n/g, ' ');
-check('L2 Duell diese Woche 4 : 0, „Du führst"', /4\s*:\s*0/.test(await duelTxt()) && /Du führst mit 4 P\./.test(await duelTxt()), await duelTxt());
-check('L3 👑 bei Tom (Vorwoche 2 : 9)', /👑/.test(await pg.locator('[data-testid="duel-name-u2"]').innerText()) && !/👑/.test(await pg.locator('[data-testid="duel-name-u1"]').innerText()));
-check('L4 Vorwoche im Untertitel', /Letzte Woche 2 : 9 · 👑 Tom/.test(await pg.locator('[data-testid="duel-sub"]').innerText()));
-check('L5 Serien: Du 🔥 2, Tom 🔥 0 (hat Überfälliges)', /2/.test(await pg.locator('[data-testid="duel-streak-u1"]').innerText()) && /🔥 0/.test(await pg.locator('[data-testid="duel-streak-u2"]').innerText()));
+// wg-v102: Duell entfernt — keine Duell-Karte, keine Krone, die Kopfkarte zeigt nur noch den Fairness-Balken
+const kopf = (await pg.locator('.hero').first().innerText()).replace(/\n/g, ' ');
+check('L2 kein Wochen-Duell, keine 👑 im Putzplan', await pg.locator('[data-testid="chore-duel"]').count() === 0 && !/👑|Duell/.test(await pg.locator('.content').innerText()), kopf);
+check('L3 Kopfkarte = Einsatz-Balken', /Einsatz/i.test(kopf) && /P\./.test(kopf), kopf);
 
 // pünktlich abhaken → Serie 3, Rückmeldung + Push nennen sie
 await pg.locator('[data-testid="chore-row"]', { hasText: 'Staubsaugen' }).locator('.done-btn').click(); await pg.waitForTimeout(900);
@@ -254,7 +262,6 @@ const undoTxt = await pg.getByRole('button', { name: 'Rückgängig' }).locator('
 check('L6 Rückmeldung „🔥 3"', /🔥 3/.test(undoTxt), undoTxt.replace(/\n/g, ' '));
 const pp = push2.filter(p => p.type === 'done').pop();
 check('L7 Push nennt „🔥 3 pünktlich in Folge"', !!pp && /🔥 3 pünktlich in Folge/.test(pp.body), pp && pp.body);
-check('L8 Duell jetzt 6 : 0', /6\s*:\s*0/.test(await duelTxt()), await duelTxt());
 const ent = JSON.parse(await pg.evaluate(() => localStorage.getItem('wg_data'))).pl[0];
 check('L9 Eintrag: late 0, keine miss', ent.late === 0 && !('miss' in ent), JSON.stringify(ent));
 
@@ -262,7 +269,9 @@ check('L9 Eintrag: late 0, keine miss', ent.late === 0 && !('miss' in ent), JSON
 await pg.locator('[data-testid="chore-row"]', { hasText: 'Altglas' }).locator('.done-btn').click(); await pg.waitForTimeout(900);
 const ent2 = JSON.parse(await pg.evaluate(() => localStorage.getItem('wg_data'))).pl[0];
 check('L10 Retten: late 0 für mich, miss = Tom', ent2.userId === 'u1' && ent2.late === 0 && ent2.miss === 'u2', JSON.stringify(ent2));
-check('L11 meine Serie 🔥 4, Toms bleibt 0', /4/.test(await pg.locator('[data-testid="duel-streak-u1"]').innerText()) && /🔥 0/.test(await pg.locator('[data-testid="duel-streak-u2"]').innerText()));
+// Serie sichtbar über die Rückmeldung (die Duell-Karte, die sie vorher zeigte, ist weg)
+const undoTxt2 = await pg.getByRole('button', { name: 'Rückgängig' }).locator('xpath=..').innerText();
+check('L11 Retten zählt in meine Serie: Rückmeldung „🔥 4"', /🔥 4/.test(undoTxt2), undoTxt2.replace(/\n/g, ' '));
 await ctx2.close();
 
 // ── M: Schalter „Spielelemente" (Mehr) blendet Duell + Serie aus, Fairness bleibt ──
@@ -309,8 +318,10 @@ check('M6 Serien-Daten werden trotzdem geschrieben (late)', ent3.late === 0, JSO
 await pm.locator('.tabbar .tabitem', { hasText: 'Mehr' }).click(); await pm.waitForTimeout(400);
 await tgl.click(); await pm.waitForTimeout(300);
 await pm.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).click(); await pm.waitForTimeout(500);
-check('M7 wieder an → Duell da, Serie zählt den Haken von eben (🔥 3)', await pm.locator('[data-testid="chore-duel"]').count() === 1
-  && /3/.test(await pm.locator('[data-testid="duel-streak-u1"]').innerText()));
+// wieder an → die Serie zählt auch den Haken, der im ausgeschalteten Zustand fiel (Staubsaugen = 3), Retten macht 4
+await pm.locator('[data-testid="chore-row"]', { hasText: 'Altglas' }).locator('.done-btn').click(); await pm.waitForTimeout(800);
+const undo7 = await pm.getByRole('button', { name: 'Rückgängig' }).locator('xpath=..').innerText();
+check('M7 wieder an → Serie zählt den Haken von eben mit (🔥 4)', /🔥 4/.test(undo7), undo7.replace(/\n/g, ' '));
 await ctx3.close();
 
 console.log(pass.map(p => '  OK  ' + p).join('\n'));

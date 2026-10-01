@@ -96,14 +96,15 @@ check('B3 in 20 Tagen noch nicht', !/Fern/.test(heuteTxt));
 
 // ── C: 29.02. im Kalender eines Nicht-Schaltjahres ──
 const C = await open({ seed: { gb: map([{ id: 'g1', name: 'Hüpf', tag: '02-29' }]) }, tab: 'stats' });
-// vorwärts blättern bis zum nächsten Februar eines Nicht-Schaltjahres
+// RÜCKWÄRTS über die Monatsauswahl der Übersicht bis zum letzten Februar eines Nicht-Schaltjahres (seit wg-v102 hat der
+// Kalender keine eigene Auswahl mehr, und die der Übersicht geht nicht in die Zukunft)
 const schalt = y => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
 let monat = '', gefunden = false;
 for (let i = 0; i < 60; i++) {
   monat = await C.page.locator('[data-testid="kal-monat"]').innerText();
   const j = +(monat.match(/\d{4}/) || [0])[0];
-  if (/FEBRUAR|Februar/i.test(monat) && !schalt(j)) { gefunden = true; break; }
-  await C.page.locator('[data-testid="kal-vor"]').click(); await C.page.waitForTimeout(120);
+  if (/FEBRUAR|Februar/i.test(monat) && j && !schalt(j)) { gefunden = true; break; }
+  await C.page.locator('[data-testid="stats-month"] [aria-label="Vorheriger Monat"]').click(); await C.page.waitForTimeout(120);
 }
 const jahr = +(monat.match(/\d{4}/) || [0])[0];
 check('C0 Februar eines Nicht-Schaltjahres erreicht', gefunden, monat);
@@ -114,20 +115,15 @@ const D_ = await open({ tab: 'stats', seed: { pt: map([
   { id: 't1', name: 'Nie gemacht', em: '🆕', interval: 7, pts: 2 },                                   // Putzplan: sofort fällig
   { id: 't2', name: 'Geschlummert', em: '😴', interval: 7, pts: 2, lastDone: vorTagen(10), snooze: inTagen(2) },
 ]) } });
-// Tag auch im Nachbarmonat lesen (am Monatsende liegt „in 2 Tagen" schon im nächsten) — wie in organisation.mjs
-async function tagTxt(t) {
-  const loc = D_.page.locator(`[data-tag="${t}"]`);
-  if (await loc.count()) return loc.innerText();
-  const [hin, zurueck] = t > T ? ['kal-vor', 'kal-zurueck'] : ['kal-zurueck', 'kal-vor'];
-  await D_.page.locator(`[data-testid="${hin}"]`).click(); await D_.page.waitForTimeout(300);
-  const txt = await D_.page.locator(`[data-tag="${t}"]`).innerText().catch(() => '');
-  await D_.page.locator(`[data-testid="${zurueck}"]`).click(); await D_.page.waitForTimeout(300);
-  return txt;
-}
+// „Demnächst" reicht seit wg-v102 drei Wochen über das Monatsende hinaus — kein Blättern mehr nötig
+const tagTxt = t => D_.page.locator(`[data-tag="${t}"]`).innerText().catch(() => '');
 // Nur „heute" zählt: dass sie in 7 Tagen WIEDER dasteht, ist richtig (Intervall). Der alte Code setzte den
 // ersten Termin auf heute + 7 — heute stand sie gar nicht im Kalender, obwohl der Putzplan „sofort fällig" sagte.
 check('D1 nie erledigte Aufgabe steht schon HEUTE im Kalender', /🆕/.test(await tagTxt(T)), `heute: ${(await tagTxt(T)).replace(/\n/g, ' ')}`);
 check('D2 „Morgen" gedrückt → Termin am Schlummer-Datum, nicht vorher', /😴/.test(await tagTxt(inTagen(2))) && !/😴/.test(await tagTxt(T)), `${inTagen(2)}: ${(await tagTxt(inTagen(2))).replace(/\n/g, ' ')}`);
+// wg-v102: nur der NÄCHSTE Termin — die Wiederholung nach 7 Tagen war Raten (jeder Haken verschiebt sie) und füllte das Raster
+const alle = (await D_.page.locator('[data-testid="kalender"]').innerText());
+check('D3 jede Aufgabe genau einmal in der Liste', (alle.match(/🆕/g) || []).length === 1 && (alle.match(/😴/g) || []).length === 1, alle.replace(/\n/g, ' ').slice(0, 160));
 
 // ── E: Suche findet Ankündigungen, Pinnwand und die festen Infos ──
 const E = await open({ seed: {

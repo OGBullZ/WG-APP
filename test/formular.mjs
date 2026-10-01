@@ -52,7 +52,8 @@ async function open({ tab = 'putz', theme = 'dark', lang = 'de', extra = {} } = 
    dass er beim Schrittwechsel verschwindet. Gemessen (scratchpad/diag-wiz-schritte.mjs): Schritt 1 und 2
    sind in beiden Formularen offen — ein stehengebliebener Hinweis stünde hier also sofort wieder da. */
 async function bisSchritt2(page, { hinweisAusloesen = false } = {}) {
-  await page.locator('button:visible').filter({ hasText: /Aufgabe anlegen/ }).first().click();
+  // über die Rolle: seit wg-v102 steht sichtbar „+ Neu" im Abschnittskopf, der Name bleibt „+ Aufgabe anlegen"
+  await page.getByRole('button', { name: /Aufgabe anlegen/ }).first().click();
   await page.waitForTimeout(600);
   if (hinweisAusloesen) { await page.locator('[data-testid="wiz-next"]').click(); await page.waitForTimeout(400); }
   const feld = page.locator('.sheet input:visible').first();

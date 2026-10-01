@@ -157,7 +157,9 @@ check('H2 Schrift groß → zoom 1.12', (await look()).z === '1.12');
 await page.reload({ waitUntil: 'domcontentloaded' }); await page.locator('.tabbar').waitFor();
 lk = await page.evaluate(() => ({ t: document.documentElement.dataset.theme, z: document.documentElement.style.zoom }));
 check('H3 nach Neuladen sofort wieder hell + groß (Früh-Skript)', lk.t === 'light' && lk.z === '1.12', JSON.stringify(lk));
-await tabTo('Putzplan');   // dort steht „Tom“ in seiner Personenfarbe als Schrift
+// Haushalt: dort steht „Tom“ in seiner Personenfarbe als Schrift (bis v101 der Putzplan — dessen Kopfkarte zeigte auch bei
+// leerem Plan „Tom 0 P."; seit wg-v102 erscheint sie nur mit Aufgaben, und diese Test-WG hat keine)
+await tabTo('Haushalt');
 const userCol = await page.evaluate(() => { const el = [...document.querySelectorAll('[style]')].find(e => /^color: rgb\(251, 191, 36\)|[ ;]color: rgb\(251, 191, 36\)/.test(e.getAttribute('style'))); return el ? getComputedStyle(el).color : 'kein Element'; });
 check('H4 Personenfarbe Gelb als Schrift abgedunkelt', userCol === 'rgb(146, 64, 14)', userCol);
 await tabTo('Mehr');

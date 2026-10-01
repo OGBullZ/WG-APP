@@ -24,6 +24,12 @@ const SEED = {
     { id: 'l5', taskId: 't1', name: 'Bad putzen', em: '🚿', userId: 'u1', date: tag(9), pts: 3, late: 1 },
     { id: 'l6', taskId: 't6', name: 'Glas wegbringen', em: '🍾', userId: 'u1', date: tag(10), pts: 1, late: 0 },
   ]),
+  // Termine für die Terminliste der Übersicht (wg-v102): Restmüll im 2-Wochen-Takt, Abwesenheit, Geburtstag, Essen
+  mk: map([{ id: 'mk-rest', kind: 'rest', start: tag(-3), every: 2 }]),
+  aw: map([{ id: 'a1', userId: 'u2', from: tag(-5), to: tag(-9), note: 'Oma' }]),
+  gb: map([{ id: 'g1', name: 'Mama', tag: tag(-12).slice(5) }]),
+  ep: map([{ id: 'e1', date: tag(0), dish: 'Lasagne', cook: 'u1' }]),
+  hs: map([{ id: 'h1', name: 'Rewe', price: 42.8, paidBy: 'u2', date: tag(2), settled: false, cat: 'food' }]),
 };
 const suffix = process.argv[2] ? '-' + process.argv[2] : '';
 const browser = await chromium.launch();
