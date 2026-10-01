@@ -140,8 +140,9 @@ const kfWg = { users, kf: {
 const kf = W.fridgeReminders(kfWg, '2026-09-17');
 check('28 Kühlschrank: heute + morgen, sortiert, mit Besitzer', kf?.body === '🧊 Läuft bald ab: Käse heute, Milch (Tom) morgen' && kf.tag === 'kf-2026-09-17', kf?.body);
 check('29 nichts fällig → keine Push', W.fridgeReminders({ users, kf: { d: kfWg.kf.d } }, '2026-09-17') === null && W.fridgeReminders({ users }, '2026-09-17') === null);
-check('30 Check-in nur mit zwei Personen', !!W.checkinReminder({ users }) && W.checkinReminder({ users: { a: users.a } }) === null);
-check('31 Morgen-Job: Kühlschrank täglich, Check-in am 1.', /fridgeReminders\(wg, todayIso\)/.test(cron) && /d === 1 \? checkinReminder\(wg\)/.test(cron));
+// wg-v101: Monats-Check-in entfernt — es darf auch keine Push „Wie läuft's in der WG?" am 1. mehr geben
+check('30 Check-in-Aufruf entfernt (keine Funktion, kein Aufruf im Cron)', W.checkinReminder === undefined && !/checkinReminder/.test(cron));
+check('31 Morgen-Job: Kühlschrank täglich', /fridgeReminders\(wg, todayIso\)/.test(cron));
 
 // ── MEHR (wg-v70): Wartung, Ausleihe, Gast-Seite ──
 check('32 Monate addieren kappt am Monatsende', W.addMonthsIso('2026-01-31', 1) === '2026-02-28' && W.addMonthsIso('2026-11-15', 3) === '2027-02-15');

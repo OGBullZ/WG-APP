@@ -115,6 +115,19 @@ if (await addBtn.count()) {
   check('E2 Formular durchgehend englisch', !GERMAN.test(sheet) && /Next|Continue/i.test(sheet), sheet.replace(/\n/g, ' ⏎ ').slice(0, 140));
 }
 await E.ctx.close();
+// E8 (wg-v100): Miet-Zeile „offen" — steht nur VOR dem Fälligkeitstag da (sonst „offen – überfällig"). Mit Fälligkeit
+// am 3. war sie nur am 1. und 2. zu sehen; am 01.10.2026 fiel das deutsche „offen" auf. Im Folgemonat ist die Miete
+// immer noch nicht fällig → die Stelle wird an jedem Tag geprüft.
+// Eigene Seite: das Ausgaben-Formular oben liegt als Overlay über allem, die App schließt es nicht per Escape.
+const M = await open({ lang: 'en', tab: 'haus' });
+const weiter = M.page.locator('[data-testid="rent-card"] [aria-label="Next month"]');
+check('E8v Miet-Karte mit „Next month" gefunden', await weiter.count() === 1, String(await weiter.count()));
+if (await weiter.count() === 1) {
+  await weiter.click(); await M.page.waitForTimeout(300);
+  const zeilen = (await M.page.locator('[data-testid="rent-row"]').allInnerTexts()).join(' ⏎ ');
+  check('E8 Miet-Zeilen im Folgemonat englisch („open")', /\bopen\b/.test(zeilen) && !GERMAN.test(zeilen.replace(/Torben|Tom/g, '')), zeilen.slice(0, 140));
+}
+await M.ctx.close();
 
 // Ersteinrichtung: eigener Kontext ohne WG-Code
 const F = await browser.newContext({ viewport: { width: 420, height: 900 }, serviceWorkers: 'block' });
@@ -162,7 +175,8 @@ const GEWOLLT_DEUTSCH = [
   ': bezahlt €',             // Abrechnungstext zum Teilen — in der Sprache des Absenders
   'Kaution zurück: Anteil',  // wird als Buchung gespeichert, beide Seiten sehen denselben Namen
   'aufgelöst: Einzahlung',   // dito (Sparziel aufgelöst)
-  'holt noch auf',           // Push-Text — Push-Titel sind bewusst in der Sprache des Absenders
+  // 'holt noch auf' stand hier bis wg-v99 als „Push in der Sprache des Absenders" — der Titel daneben lief aber
+  // durch TT, war also schon in der Sprache des Absenders; die Ausnahme erlaubte nur englischen Titel + deutschen Text.
 ];
 const DEUTSCH = /\b(heute|morgen|bis|fällig|Tage|Tagen|leer|noch|schuldet|bezahlt|zurück|Miete|seit|von|für|und|oder|nicht|keine?)\b/;
 const templLecks = [];
@@ -173,12 +187,68 @@ jsxTeil.split('\n').forEach(z => {
     const roh = m[1].replace(/\$\{[^}]*\}/g, '');
     if (!DEUTSCH.test(roh)) continue;
     if (/TT\($/.test(z.slice(Math.max(0, m.index - 4), m.index))) continue;
-    if (/notifyOthers|console\.|data-|className|aria-|http|\.ics|mailto/.test(z.slice(Math.max(0, m.index - 60), m.index))) continue;
+    // notifyOthers stand bis wg-v99 mit in dieser Liste — dadurch sah E5 KEINEN Push-Text. Die prüft jetzt E7.
+    if (/console\.|data-|className|aria-|http|\.ics|mailto/.test(z.slice(Math.max(0, m.index - 60), m.index))) continue;
     if (GEWOLLT_DEUTSCH.some(g => m[1].includes(g))) continue;
     templLecks.push(roh.trim().slice(0, 60));
   }
 });
 check('E5 kein deutscher Template-String ohne TT() (Quelltext, datenunabhängig)', templLecks.length === 0, templLecks.slice(0, 4).join(' | '));
+
+// E7 (wg-v100): Push-Texte STRUKTURELL statt per Wortliste. E5 nahm notifyOthers ganz aus und hätte mit seiner
+// Wortliste „Einzahlungen stehen in der Abrechnung" ohnehin nicht erkannt — 15 deutsche Push-Texte an 7 Stellen.
+// Regel: Jedes Text-Literal in einem notifyOthers-Aufruf steht in TT() (als Schlüssel) oder ist kein Text
+// (Push-Art, Tag, nur Zeichen/Emoji/Einzelbuchstabe).
+// Mini-Scanner statt Regex: Template-Strings schachteln (`${a ? ` · ${b}` : ''}`), und ein Literal in einem ${…}
+// oder als Ersatzwert in TT("…", x || 'die Aufgabe') ist genauso Anzeigetext.
+function literale(code, start, schluss) {
+  const out = []; let i = start;
+  const walk = ende => {
+    let tiefe = 0;
+    while (i < code.length) {
+      const c = code[i];
+      if (tiefe === 0 && c === ende) return;
+      if (code.startsWith('TT(', i) && !/[\w$.]/.test(code[i - 1] || '')) {
+        i += 3; const vorher = out.length; walk(')'); i++;
+        out.splice(vorher, 1);                 // nur der Schlüssel ist übersetzt, weitere Literale nicht
+        continue;
+      }
+      if (c === '"' || c === "'") {
+        let j = i + 1, t = '';
+        while (j < code.length && code[j] !== c) { if (code[j] === '\\') { t += code[j + 1]; j += 2; continue; } t += code[j++]; }
+        out.push(t); i = j + 1; continue;
+      }
+      if (c === '`') {
+        i++; let t = '';
+        while (i < code.length && code[i] !== '`') {
+          if (code[i] === '\\') { t += code[i + 1]; i += 2; continue; }
+          if (code.startsWith('${', i)) { i += 2; walk('}'); i++; t += ' '; continue; }
+          t += code[i++];
+        }
+        out.push(t); i++; continue;
+      }
+      if ('([{'.includes(c)) tiefe++;
+      if (')]}'.includes(c)) tiefe--;
+      i++;
+    }
+  };
+  walk(schluss);
+  return out;
+}
+const KEIN_TEXT = /^(wg|wt)-[\w-]*$|^(settle|putz|board|shop|exp|msg|away|done|game|repair|digest|remind|wash)$/;
+// Ersatzname einer gespeicherten Buchung (`d.name || 'Einkauf'`) — der Push wiederholt den Namen, den beide in der Liste sehen
+const GESPEICHERT = ['Einkauf', 'Grow'];
+const pushAufrufe = [...jsxTeil.matchAll(/notifyOthers\(/g)];
+const pushLecks = [];
+for (const m of pushAufrufe) {
+  for (const t of literale(jsxTeil, m.index + m[0].length, ')')) {
+    if (KEIN_TEXT.test(t.trim()) || GESPEICHERT.includes(t)) continue;
+    if (!/\p{L}{2,}/u.test(t)) continue;
+    pushLecks.push(t.trim().slice(0, 50));
+  }
+}
+check('E7v Push-Aufrufe im Quelltext gefunden (Prüfer nicht leer)', pushAufrufe.length >= 40, String(pushAufrufe.length));
+check('E7 jeder Push-Text läuft durch TT() (Titel UND Text)', pushLecks.length === 0, pushLecks.slice(0, 5).join(' | '));
 
 // E6 (wg-v91): Texte, die als Liste stehen und erst über TT(variable) übersetzt werden. Der Lücken-Prüfer
 // von i18n-dict sucht nur nach TT("…") im Quelltext und sieht sie deshalb NICHT — „Funktionen" stand so

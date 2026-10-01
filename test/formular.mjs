@@ -19,7 +19,7 @@ const check = (n, c, extra = '') => (c ? pass : fail).push(n + (extra ? ` — ${
 const z = n => String(n).padStart(2, '0');
 const T = (d => `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`)(new Date());
 
-async function open({ tab = 'putz', theme = 'dark', lang = 'de' } = {}) {
+async function open({ tab = 'putz', theme = 'dark', lang = 'de', extra = {} } = {}) {   // extra: weitere Seed-Listen
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
   await ctx.routeWebSocket(/./, () => {});
   const page = await ctx.newPage();
@@ -31,8 +31,8 @@ async function open({ tab = 'putz', theme = 'dark', lang = 'de' } = {}) {
     return /firebasedatabase|firebaseio|vercel|googleapis/.test(u) ? r.abort() : r.continue();
   });
   await page.route(/firebase-(app|database)-compat[-\d.]*\.js/, r => r.fulfill({ status: 200, contentType: 'application/javascript', body: /firebase-app-compat/.test(r.request().url()) ? STUB : '' }));
-  await page.addInitScript(([t, tb, th, lg]) => {
-    window.__wgSeed = { users: [{ id: 'u1', name: 'Torben', color: '#38bdf8' }, { id: 'u2', name: 'Tom', color: '#fbbf24' }] };
+  await page.addInitScript(([t, tb, th, lg, x]) => {
+    window.__wgSeed = { users: [{ id: 'u1', name: 'Torben', color: '#38bdf8' }, { id: 'u2', name: 'Tom', color: '#fbbf24' }], ...x };
     localStorage.setItem('wg_code', JSON.stringify('TEST-LOKAL-FORM'));
     localStorage.setItem('wg_me', JSON.stringify('u1'));
     localStorage.setItem('wg_start_shown', JSON.stringify(t));
@@ -40,7 +40,7 @@ async function open({ tab = 'putz', theme = 'dark', lang = 'de' } = {}) {
     localStorage.setItem('wg_theme', JSON.stringify(th));
     localStorage.setItem('wg_lang', JSON.stringify(lg));
     localStorage.setItem('wg_push_nudge', JSON.stringify({ until: Date.now() + 864e5 * 30 }));
-  }, [T, tab, theme, lang]);
+  }, [T, tab, theme, lang, extra]);
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   await page.locator('.tabbar').waitFor({ timeout: 30000 });
   await page.evaluate(() => window.__wg.fire());
@@ -153,6 +153,8 @@ if (await E.page.locator('.sheet input:visible').count()) {
   const t = await E.page.locator('[data-testid="wiz-hint"]').innerText().catch(() => '');
   check('E1 der Hinweis ist übersetzt', !!t && !/Dafür fehlt noch/.test(t), `„${t}"`);
 } else check('E1 der Hinweis ist übersetzt', false, 'englisches Formular nicht erreicht');
+
+// (Abschnitt K — Check-in-Knopf „Absenden" — entfiel in wg-v101 mit dem Monats-Check-in; `extra` in open() bleibt)
 
 const alleErrs = [...A.errs, ...C.errs, ...E.errs].filter(e => !/ResizeObserver/.test(e));
 check('Z1 keine Seitenfehler', alleErrs.length === 0, alleErrs.slice(0, 2).join(' | '));

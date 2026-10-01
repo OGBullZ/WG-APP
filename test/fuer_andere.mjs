@@ -68,11 +68,15 @@ check('B2 … und der gehört Tom', log[0]?.userId === 'u2', String(log[0]?.user
 const ptB = Object.values((await daten(A.page)).pt || {}).find(x => x && x.id === 't1');
 check('B3 die Aufgabe gilt als heute erledigt', ptB?.lastDone === T, String(ptB?.lastDone));
 check('B4 Tom war eingeteilt und hat es gemacht → er ist pünktlich (late bleibt gezählt)', typeof log[0]?.late === 'number', JSON.stringify(log[0]));
-check('B5 der Push nennt Tom als Erlediger', A.pushes.some(p => /Tom hat/.test(p.title || '')), JSON.stringify(A.pushes.map(p => p.title)));
+// B5 (wg-v100): Der Push geht auch an Tom selbst. „Tom hat „Müll" erledigt" von Torbens Handy las sich wie ein
+// Fehler — der Titel nennt deshalb, wer getippt hat, und für wen. Den irreführenden Wortlaut darf es nicht mehr geben.
+const letzter = A.pushes[A.pushes.length - 1]?.title || '';
+check('B5 der Push sagt „Torben hat … für Tom abgehakt"', /Torben hat „Müll[^"]*" für Tom abgehakt/.test(letzter), JSON.stringify(A.pushes.map(p => p.title)));
+check('B5b kein Push behauptet „Tom hat … erledigt"', !A.pushes.some(p => /Tom hat/.test(p.title || '')), JSON.stringify(A.pushes.map(p => p.title)));
 // Der Verlauf „Seit du zuletzt da warst" darf nach der Korrektur NICHT beide Fassungen zeigen —
 // die erste Meldung („Torben hat …") wird mit zurückgenommen.
 const akA = Object.values((await daten(A.page)).ak || {}).filter(x => x && /Müll/.test(x.t || ''));
-check('B6 im Verlauf steht nur die korrigierte Zeile', akA.length === 1 && /Tom hat/.test(akA[0].t), JSON.stringify(akA.map(a => a.t)));
+check('B6 im Verlauf steht nur die korrigierte Zeile', akA.length === 1 && /für Tom abgehakt/.test(akA[0].t), JSON.stringify(akA.map(a => a.t)));
 
 // ── C: bei drei Personen wird gefragt ──
 const C = await open({ users: U3 });

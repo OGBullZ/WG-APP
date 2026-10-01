@@ -216,7 +216,7 @@ Bausteine im Block `PLUS` in wgapp.html. Neue Listen-Keys: `sg ep kf inv rg ci`,
   - Eine Regel gilt erst, wenn **alle** `ok_<id>` gesetzt haben.
   - Wer sie vorschlägt, stimmt automatisch zu.
   - Ablehnen löscht die Regel (mit Rückgängig).
-- **Monats-Check-in** (`ci`, id `<YYYY-MM>-<userId>`):
+- **Monats-Check-in** (`ci`, id `<YYYY-MM>-<userId>`) — ⛔ **in wg-v101 entfernt** (Daten bleiben), Beschreibung nur noch Historie:
   - Fremde Antworten sind erst sichtbar, wenn alle geantwortet haben.
   - Sichtbar ist die Karte vom 1. bis 10. Danach nur, solange eine begonnene Runde unvollständig ist oder höchstens 3 Tage fertig.
   - Die erste Fassung hätte eine halbe Runde ab dem 11. versteckt.
@@ -647,6 +647,27 @@ Beim ersten Durchgang in voller Länge sechs Funde, fünf davon nachgemessen (`s
   - **Jetzt:** jede zeitkritische Folge läuft in **einem** `page.evaluate` im Browser; gewartet wird per Abfrage auf den Zustand (`window.__bis`), nicht mit fester Zeit; und jeder Abschnitt meldet **laut**, ob er das Fenster getroffen hat (B0, F1v, F2v, F3v). **23 von 23 bei 1×, 4×, 8× und 12× Drosselung.** Dieselbe Umstellung für die zwei Abgangs-Haken, die ich in v95 in `alltag.mjs` (F2a) und `plus.mjs` (K3b) eingebaut hatte.
   - Die Regel stand längst im Gedächtnis („Timing als Vorbedingung wackelt unter Last — in EIN evaluate legen"). **Einen Test mit Zeitfenster vor dem Einchecken einmal mit `DROSSEL=8` fahren.**
 
+## Was nur am Monatsersten zu sehen ist (wg-v100, 01.10. — torbe: „fehlersuche")
+
+**Kalender-Sweep über alle 53 Gate-Tests** an vier Tagen (heute = 01.10., 31.12., 01.01., 29.02.2028). Dafür neu: `scratchpad/fake-date-browser.mjs` stellt die Uhr in Node **und** im Browser (die Tests rechnen „heute" in beiden), `scratchpad/kalender-sweep-alle.sh` liest die Testliste aus `ship.mjs`. Ergebnis: 31.12. und 29.02. grün, **beide Monatsersten rot** (`english`, `a11y`) — also heute live.
+
+- 🔴 **„Absenden" der Check-in-Karte ohne Note unlesbar** (Kontrast 1,2): Der Knopf bekam `--bg3` als Hintergrund, behielt aber die Schriftfarbe von `.btn` — weiß auf hellgrau bzw. fast schwarz auf dunkelgrau. Und ein Tipp darauf tat **nichts**. Jetzt: grau mit `--label`-Schrift, Tipp ohne Note zeigt „Erst oben eine Note antippen." (`.wiz-hint`, `role="status"`, `aria-describedby`) — dasselbe Muster wie „Weiter" im Formular (v96).
+- 🔴 **Miet-Zeile „offen" ohne `TT()`** — in Englisch stand „offen". Sichtbar nur **vor** dem Fälligkeitstag; mit Fälligkeit am 3. also nur am 1. und 2. eines Monats.
+- **Warum das nie auffiel:** Die Check-in-Karte erscheint nur am 1.–10. (oder solange eine Runde offen ist). `a11y` und `english` sahen sie also an zwei Dritteln der Tage gar nicht — eine Prüfung, deren Reichweite vom Datum abhängt. **Jetzt datenunabhängig:** beide Tests legen eine offene Runde an (Tom hat geantwortet), `english` E8 blättert die Miet-Karte in den Folgemonat (dort ist die Miete nie fällig). Gegenprobe läuft am **15.** des Monats.
+- **Push „für jemand anderen abgehakt" (aus v93):** Tom bekam von Torbens Handy „✅ Tom hat „Müll" erledigt" — las sich wie ein Fehler. Jetzt „✅ Torben hat „Müll" für Tom abgehakt".
+- **15 deutsche Push-Texte an 7 Stellen** (Einkauf, Nebenkosten, Check-in, Miete, Sparziel, Putzplan, Abgabe): englischer Titel, deutscher Text. Der Template-Prüfer E5 nahm **jeden** `notifyOthers`-Aufruf aus und stellte „holt noch auf" ausdrücklich frei („Push in der Sprache des Absenders") — aber der Titel daneben lief durch `TT`, war also schon in der Sprache des Absenders. **Neu E7:** prüft Push-Aufrufe **strukturell** mit einem kleinen Scanner (Template-Strings schachteln, Literale in `${…}` und Ersatzwerte in `TT("…", x || 'die Aufgabe')` zählen mit), statt per Wortliste — die hätte „Einzahlungen stehen in der Abrechnung" ohnehin nicht erkannt. Ausnahme mit Grund: `d.name || 'Einkauf'` ist der gespeicherte Buchungsname.
+- **Werkzeugfehler unterwegs:** Die erste Fassung von `fake-date-browser.mjs` setzte **jede neue Seite** wieder auf 12:00:00, während Node schon Minuten weiter war → `logins` C5/C6 („abgelaufene Freigabe") am 31.12. falsch rot. Jetzt nimmt der Browser denselben Versatz wie Node.
+- **Gegenprobe** `scratchpad/gegenprobe-v100.mjs` (am 15.10.): eine Sabotage blieb grün — „Hinweis bleibt nach Notenwahl stehen". **Sie richtete keinen Schaden an:** die Anzeige hängt ohnehin an `fehlt && !score`, und eine Note lässt sich nicht abwählen. Das zusätzliche `setFehlt(false)` war doppelt (dritter Fall „grüne Sabotage = überflüssiger Code").
+- **Nicht nachprüfbar:** ob der echte Cron heute früh sauber lief — Vercel-Hobby hält Laufzeit-Logs nur **1 Stunde**.
+
+### Monats-Check-in entfernt (wg-v101, gleiche Auslieferung — torbe: „Monats Check in Entfernung")
+
+Noch vor dem Ausliefern von v100 entschieden; der reparierte Knopf ging deshalb nie live. Ausgeliefert wurden v100-Fixes und Ausbau **zusammen** (der laufende Ship wurde vor dem Commit abgebrochen).
+- **Raus:** `CheckinCard` und beide Einbindungen (Heute, Haushalt-Ersatzansicht), Sucheintrag „Monats-Check-in", Cron-Push am 1. (`checkinReminder` in `api/_wg.js`/`cron.js`, Feld `checkin` in der Cron-Antwort), `Monats-Check-in` aus `DIGEST_TITLES`.
+- **Bleibt bewusst:** Listen-Key `ci` (`LIST_KEYS`) und seine DB-Regel — alte Antworten werden nicht gelöscht, nur nicht angezeigt. Zurückholen bliebe verlustfrei. Die englischen Wörterbuch-Einträge bleiben (kein Prüfer auf verwaiste Schlüssel, schaden nicht).
+- **Tests:** `plus.mjs` C1–C3 (Seed MIT offener Runde → Karte darf trotzdem nicht erscheinen, alte Antwort bleibt in den Daten), `cron_alltag` 30, `push_diaet` B4 nutzt jetzt den Wochenüberblick als zweite Digest-Meldung. `formular` K und die `ci`-Seeds in `english`/`a11y` sind wieder raus.
+- **Gegenprobe** `scratchpad/gegenprobe-v101-ausbau.mjs`: die neuen Tests gegen die **alte** Fassung (`git show HEAD:…`) — beide rot. Bei einem Ausbau ist das die passende Sabotage: nicht etwas abschalten, sondern das Entfernte zurückholen.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
@@ -706,7 +727,7 @@ node test/gross.mjs      # Größere WGs: Verrechnungsplan (3 und 4 Personen), Z
 node test/miete.mjs       # Miete (3 Personen): einrichten, Anteile, abhaken/zurücknehmen, Monatswechsel, überfällig, Heute-Zeile, wer darf abhaken
 node test/onboarding.mjs  # Einrichtung: neue WG (alle Schritte bis Heute), Beitreten per ?join= (Umlaut-Code), falscher Code, „Ich bin neu", bestehendes Gerät/fremder Link ignoriert, „Mein Profil einrichten"
 node test/mehr.mjs        # Mehr: Status (Ablauf), Umfragen (verdeckt bis zur eigenen Stimme), Wartung/Ausleihe + Heute-Fälliges, Verbrauch je Monat, Monatsbericht, Kaution, Wochen-Korb, Mitbewohner-Wechsel, Gast-Link
-node test/plus.mjs        # Plus: Check-in (verdeckt bis alle), Kühlschrank, Essensplan, WG-Regeln, Sparziel, gemischter Einkauf, Nebenkosten, Sprach-Kurzbefehl, Inventar, Auszug + Druck
+node test/plus.mjs        # Plus: Check-in bleibt weg (seit v101), Kühlschrank, Essensplan, WG-Regeln, Sparziel, gemischter Einkauf, Nebenkosten, Sprach-Kurzbefehl, Inventar, Auszug + Druck
 node test/cron_alltag.mjs # Server-Hälfte (api/_wg.js): Abholrhythmus, Vorabend-Fälligkeit, Abwesenheit, Abend-Push, Sonntags-Überblick, Reparaturen, Jahr, Kühlschrank, Check-in
 node test/cron_duel.mjs # Montags-Push Wochen-Duell: Vorwoche Mo–So, Punkte-Fallbacks wie in der App, Gleichstand, nur montags, Typ game
 node test/csp_hash.mjs  # CSP-Hashes passen zu wgapp.html (+ Gegenproben) — ohne passende Hashes wäre die App blockiert

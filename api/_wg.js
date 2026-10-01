@@ -131,10 +131,7 @@ function fridgeReminders(wg, todayIso) {
   const who = (id) => { const u = users.find((x) => x.id === id); return u ? ` (${u.name})` : ''; };
   return { title: 'Kühlschrank', body: `🧊 Läuft bald ab: ${soon.slice(0, 5).map((k) => `${k.name}${who(k.owner)} ${k.exp === todayIso ? 'heute' : 'morgen'}`).join(', ')}`, tag: `kf-${todayIso}` };
 }
-// 1. des Monats: Check-in-Aufruf (nur wenn es zwei Personen gibt)
-function checkinReminder(wg) {
-  return toArray(wg.users).length > 1 ? { title: 'Monats-Check-in', body: '💬 Wie läuft\'s in der WG? Kurz in der App antworten – die Antworten seht ihr, wenn beide geantwortet haben.', tag: 'ci-month' } : null;
-}
+// (Check-in-Aufruf am 1. des Monats: mit dem Monats-Check-in in wg-v101 entfernt)
 
 // Morgens: EINE Putz-Push für alles Fällige statt je Aufgabe eine (weniger Rauschen → Push bleibt an)
 function putzDigest(wg, todayIso) {
@@ -295,7 +292,7 @@ function buildIcs(wg, todayIso, now = new Date()) {
    Typ `digest` (Standard aus, in der App einschaltbar). */
 
 // Reine Info ohne Handlung — kommt nur als Push, wer „Rückblicke" eingeschaltet hat
-const DIGEST_TITLES = /^(Monats-Rückblick|Jahresrückblick|Wochenüberblick|Monats-Check-in)/;
+const DIGEST_TITLES = /^(Monats-Rückblick|Jahresrückblick|Wochenüberblick)/;
 // Reihenfolge in der Sammel-Push: was heute wirklich drängt zuerst
 const MORNING_ORDER = ['Geburtstag', 'Miete', 'Putzplan', 'Abrechnung', 'Kühlschrank', 'Growbox', 'Budget', 'Ausleihe', 'Reparatur', 'Wartung', 'Zählerstände', 'Abo'];
 const rankOf = (m) => { const i = MORNING_ORDER.findIndex((p) => String(m.title || '').startsWith(p)); return i < 0 ? MORNING_ORDER.length : i; };
@@ -333,4 +330,4 @@ function eveningPlan(msgs, todayIso) {
   };
 }
 
-module.exports = { toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, checkinReminder, maintReminders, loanReminders, gebDatum, birthdayReminders, guestView, addMonthsIso, rentReminders, rentDueIso, buildIcs, icsText, icsFold, PICK_KINDS, bundleMessages, morningPlan, eveningPlan };
+module.exports = { toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, maintReminders, loanReminders, gebDatum, birthdayReminders, guestView, addMonthsIso, rentReminders, rentDueIso, buildIcs, icsText, icsFold, PICK_KINDS, bundleMessages, morningPlan, eveningPlan };

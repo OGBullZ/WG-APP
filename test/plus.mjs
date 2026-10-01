@@ -1,5 +1,5 @@
 /* PLUS-Funktionen (wg-v68) im Browser, Firebase per Stub:
-   Monats-Check-in · Kühlschrank · Essensplan (fairer Koch, Zutaten) · WG-Regeln (Zustimmung aller) ·
+   Monats-Check-in (seit v101 entfernt — geprüft wird, dass er wegbleibt) · Kühlschrank · Essensplan (fairer Koch, Zutaten) · WG-Regeln (Zustimmung aller) ·
    Sparziel (Einzahlung + Kauf → Bilanz) · gemischter Einkauf · Nebenkosten · Sprach-Kurzbefehl ·
    Inventar (Garantie) · Auszugs-Seite (inkl. Druckansicht) · DB-Regeln für die neuen Listen. */
 import { chromium } from 'playwright';
@@ -80,18 +80,13 @@ const M = await open(SEED);
 const { page, data, tabTo, pushes } = M;
 const sheet = page.locator('.sheet:visible');
 
-// ── C: Monats-Check-in — fremde Antwort erst sichtbar, wenn beide geantwortet haben ──
-const ci = page.locator('[data-testid="checkin-card"]');
-check('C1 Check-in-Karte sichtbar (Tom hat schon geantwortet)', await ci.count() === 1);
-check('C2 Toms Wunsch vor der eigenen Antwort verborgen', !/Mehr lüften/.test(await ci.innerText()));
-await ci.getByRole('button', { name: 'Note 4' }).click();
-await ci.getByLabel('Wunsch').fill('Weiter so');
-await ci.getByRole('button', { name: 'Absenden' }).click(); await page.waitForTimeout(500);
+// ── C: Monats-Check-in ist ENTFERNT (wg-v101, torbe: „Monats Check in Entfernung") ──
+// Der Seed enthält weiter eine offene Runde (Tom hat geantwortet) — genau der Zustand, in dem die Karte früher
+// immer erschien. Sie darf trotzdem nicht auftauchen, und die alte Antwort muss in den Daten bleiben.
+check('C1 keine Check-in-Karte, obwohl eine offene Runde in den Daten liegt', await page.locator('[data-testid="checkin-card"]').count() === 0);
+check('C2 „Wie läuft\'s in der WG?" steht nirgends', !/Wie läuft's in der WG/.test(await page.locator('.content').innerText()));
 let d = await data();
-check('C3 Antwort gespeichert (id = Monat-Person)', d.ci.some(c => c.id === `${YM}-u1` && c.score === 4 && c.wish === 'Weiter so'), JSON.stringify(d.ci));
-const cres = await page.locator('[data-testid="checkin-result"]').innerText().catch(() => '');
-check('C4 danach beide Antworten sichtbar', /Mehr lüften/.test(cres) && /Weiter so/.test(cres), cres);
-check('C4b letzte Antwort → Push „Alle haben geantwortet"', pushes.some(p => p.title === '💬 Monats-Check-in' && /Alle haben geantwortet/.test(p.body)));
+check('C3 alte Antwort bleibt in den Daten (nichts gelöscht)', (d.ci || []).some(c => c.id === `${YM}-u2`), JSON.stringify(d.ci));
 
 // ── K: Kühlschrank ──
 const fr = await page.locator('[data-testid="fridge-row"]').allInnerTexts();
@@ -311,13 +306,11 @@ const q2 = await qs.locator('[data-testid="nk-preview"]').innerText();
 check('N10 zwei Personen 100,01 → 50,01 + 50,00', q2 === 'Torben €50,01 · Tom €50,00', q2);
 await Q.ctx.close();
 
-// ── C: nur ich habe geantwortet → „wir warten", nichts von Tom ──
-const X = await open({ ...SEED, ci: map([{ id: `${YM}-u1`, ym: YM, userId: 'u1', score: 5, wish: 'Top', ts: Date.now() }]),
+// ── X: Regeln, Sparziel, Inventar mit eigener Ausgangslage (hier stand bis v101 auch der Check-in-Wartezustand) ──
+const X = await open({ ...SEED,
   rg: map([{ id: 'r9', text: 'Müll Montag', by: 'u1', ts: 9, ok_u1: true, ok_u2: true }]),
   sg: map([{ id: 'g2', name: 'Grill', target: 80, holder: 'u1', c_u1: 10, c_u2: 30, ts: 1 }]),
   inv: map([{ id: 'iv', name: 'Regal', owner: 'u9' }]) });
-const xw = await X.page.locator('[data-testid="checkin-wait"]').innerText().catch(() => '');
-check('C5 eigene Antwort da, Tom fehlt → „warten auf Tom", kein Ergebnis', /warten auf Tom/.test(xw) && await X.page.locator('[data-testid="checkin-result"]').count() === 0, xw);
 check('C6 keine Seitenfehler', X.errs.length === 0, X.errs.join(' | '));
 // eigene gültige Regel aufheben → der andere erfährt es
 await X.page.getByRole('button', { name: 'Regel „Müll Montag" aufheben' }).click(); await X.page.waitForTimeout(400);

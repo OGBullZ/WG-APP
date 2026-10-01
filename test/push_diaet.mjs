@@ -39,13 +39,13 @@ const morning = [
   { title: 'Kühlschrank', body: '🧊 Läuft bald ab: Milch', tag: 'kf' },
   { title: 'Zählerstände', body: '📟 Strom ablesen', tag: 'zs' },
   { title: 'Monats-Rückblick', body: '📊 September: 412 € ausgegeben', tag: 'dg' },
-  { title: 'Monats-Check-in', body: '💬 Wie läuft\'s?', tag: 'ci' },
+  { title: 'Wochenüberblick', body: '🗓️ Diese Woche: 3 Termine', tag: 'wk' },   // bis v101 stand hier der Monats-Check-in
 ];
 const mp = W.morningPlan(morning, T);
 check('B1 morgens genau EINE Handlungs-Push statt sieben', !!mp.remind && mp.remind.title === '☀️ Heute: 5 Dinge', mp.remind && mp.remind.title);
 check('B2 Miete steht vorn, Abo hinten', mp.remind.body.startsWith('🏠') && !mp.remind.body.includes('Netflix'), mp.remind.body);
 check('B3 Rest als „+2 weitere in der App"', mp.remind.body.endsWith('+2 weitere in der App'), mp.remind.body);
-check('B4 Rückblick + Check-in getrennt als eine digest-Push', !!mp.digest && mp.digest.title === '📊 Rückblick' && mp.digest.body.includes('September'));
+check('B4 Rückblick + Wochenüberblick getrennt als eine digest-Push', !!mp.digest && mp.digest.title === '📊 Rückblick' && mp.digest.body.includes('September'));
 check('B5 Tag ersetzt sich (eine Push je Morgen)', mp.remind.tag === `morning-${T}`);
 check('B6 nur eine Meldung → bleibt mit eigenem Titel', W.morningPlan([morning[2]], T).remind.title === 'Miete heute');
 check('B7 nichts zu melden → keine Push', W.morningPlan([], T).remind === null && W.morningPlan([], T).digest === null);
