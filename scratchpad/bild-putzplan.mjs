@@ -27,8 +27,9 @@ const SEED = {
 };
 const suffix = process.argv[2] ? '-' + process.argv[2] : '';
 const browser = await chromium.launch();
-for (const theme of ['dark']) {
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 2600 }, serviceWorkers: 'block' });
+const W = Number(process.env.W || 390);   // Breite: 390 Handy, 820 Tablet, 1280 Desktop
+for (const theme of (process.env.THEME || 'dark').split(',')) {
+  const ctx = await browser.newContext({ viewport: { width: W, height: 2600 }, serviceWorkers: 'block' });
   await ctx.routeWebSocket(/./, () => {});
   const page = await ctx.newPage();
   await page.route('**/*', r => /firebasedatabase|firebaseio|vercel|googleapis/.test(r.request().url()) ? r.abort() : r.continue());
@@ -48,7 +49,7 @@ for (const theme of ['dark']) {
   await page.waitForTimeout(1600);
   // Inhalt bis zum Ende messen, dann genau so hoch abbilden
   const h = await page.evaluate(() => document.querySelector('.content').scrollHeight + 120);
-  await page.screenshot({ path: `scratchpad/bild-putzplan-${theme}${suffix}.png`, clip: { x: 0, y: 0, width: 390, height: Math.min(h, 2600) } });
+  await page.screenshot({ path: `scratchpad/bild-putzplan-${theme}${suffix}.png`, clip: { x: 0, y: 0, width: W, height: Math.min(h, 2600) } });
   const text = await page.locator('.content').innerText();
   console.log(`${theme}: ${text.split(/\s+/).filter(Boolean).length} Wörter, Höhe ${h}px`);
   await ctx.close();

@@ -216,7 +216,7 @@ Bausteine im Block `PLUS` in wgapp.html. Neue Listen-Keys: `sg ep kf inv rg ci`,
   - Eine Regel gilt erst, wenn **alle** `ok_<id>` gesetzt haben.
   - Wer sie vorschlägt, stimmt automatisch zu.
   - Ablehnen löscht die Regel (mit Rückgängig).
-- **Monats-Check-in** (`ci`, id `<YYYY-MM>-<userId>`) — ⛔ **in wg-v101 entfernt** (Daten bleiben), Beschreibung nur noch Historie:
+- **Monats-Check-in** (`ci`, id `<YYYY-MM>-<userId>`) — ⛔ **in wg-v100 entfernt** (Daten bleiben), Beschreibung nur noch Historie:
   - Fremde Antworten sind erst sichtbar, wenn alle geantwortet haben.
   - Sichtbar ist die Karte vom 1. bis 10. Danach nur, solange eine begonnene Runde unvollständig ist oder höchstens 3 Tage fertig.
   - Die erste Fassung hätte eine halbe Runde ab dem 11. versteckt.
@@ -660,13 +660,26 @@ Beim ersten Durchgang in voller Länge sechs Funde, fünf davon nachgemessen (`s
 - **Gegenprobe** `scratchpad/gegenprobe-v100.mjs` (am 15.10.): eine Sabotage blieb grün — „Hinweis bleibt nach Notenwahl stehen". **Sie richtete keinen Schaden an:** die Anzeige hängt ohnehin an `fehlt && !score`, und eine Note lässt sich nicht abwählen. Das zusätzliche `setFehlt(false)` war doppelt (dritter Fall „grüne Sabotage = überflüssiger Code").
 - **Nicht nachprüfbar:** ob der echte Cron heute früh sauber lief — Vercel-Hobby hält Laufzeit-Logs nur **1 Stunde**.
 
-### Monats-Check-in entfernt (wg-v101, gleiche Auslieferung — torbe: „Monats Check in Entfernung")
+### Monats-Check-in entfernt (wg-v100, gleiche Auslieferung — torbe: „Monats Check in Entfernung")
 
 Noch vor dem Ausliefern von v100 entschieden; der reparierte Knopf ging deshalb nie live. Ausgeliefert wurden v100-Fixes und Ausbau **zusammen** (der laufende Ship wurde vor dem Commit abgebrochen).
 - **Raus:** `CheckinCard` und beide Einbindungen (Heute, Haushalt-Ersatzansicht), Sucheintrag „Monats-Check-in", Cron-Push am 1. (`checkinReminder` in `api/_wg.js`/`cron.js`, Feld `checkin` in der Cron-Antwort), `Monats-Check-in` aus `DIGEST_TITLES`.
 - **Bleibt bewusst:** Listen-Key `ci` (`LIST_KEYS`) und seine DB-Regel — alte Antworten werden nicht gelöscht, nur nicht angezeigt. Zurückholen bliebe verlustfrei. Die englischen Wörterbuch-Einträge bleiben (kein Prüfer auf verwaiste Schlüssel, schaden nicht).
 - **Tests:** `plus.mjs` C1–C3 (Seed MIT offener Runde → Karte darf trotzdem nicht erscheinen, alte Antwort bleibt in den Daten), `cron_alltag` 30, `push_diaet` B4 nutzt jetzt den Wochenüberblick als zweite Digest-Meldung. `formular` K und die `ci`-Seeds in `english`/`a11y` sind wieder raus.
-- **Gegenprobe** `scratchpad/gegenprobe-v101-ausbau.mjs`: die neuen Tests gegen die **alte** Fassung (`git show HEAD:…`) — beide rot. Bei einem Ausbau ist das die passende Sabotage: nicht etwas abschalten, sondern das Entfernte zurückholen.
+- **Gegenprobe** `scratchpad/gegenprobe-v100-ausbau.mjs`: die neuen Tests gegen die **alte** Fassung (`git show HEAD:…`) — beide rot. Bei einem Ausbau ist das die passende Sabotage: nicht etwas abschalten, sondern das Entfernte zurückholen.
+
+## Weniger Text (wg-v101, 01.10. — torbe: „generell anschauen was ist wirklich sinnvoll, putzplan ist zu viel Text")
+
+**Gemessen statt geschätzt** (`scratchpad/textmenge.mjs`, sichtbare Wörter je Reiter, Faltbereiche zu): Übersicht 240 · Putzplan 169 · Haushalt 123 · Heute 85 · Mehr 75. Bilder vorher/nachher mit `scratchpad/bild-putzplan.mjs` (`W=`, `THEME=`) und `bild-tab.mjs` (`TAB=`). Putzplan in einer realistischen WG (6 Aufgaben, Verlauf): **242 → 161 Wörter, 1681 → 1419 px**.
+
+- **Putzplan:** Der 4-Zeilen-Absatz „Wer den Haken setzt …" stand **immer** da → nur noch ohne Verlauf offen, danach hinter „ⓘ So funktioniert's". Abschnitt „Aufgaben" statt „Aufgaben · Haken = ich hab's gemacht". Jede Aufgabe **eine** Unterzeile „Du · wöchentlich" statt „Du bist dran · 1:0 · wöchentlich" — den Stand „1:0" verstand ohne Erklärung niemand, die Fairness zeigt der Balken oben; er steht jetzt im `title` der Zeile („Letzte 30 Tage: Torben 5×, Tom 2×"). „Zuletzt erledigt" 4 statt 6 Zeilen, „gestern"/„vor 3 Tagen" statt „30.9.2026". Leertexte Müllabfuhr/Abwesend je eine kurze Zeile.
+- **Übersicht:** Verlauf-Diagramm nur, wenn in den sechs Monaten überhaupt etwas ausgegeben wurde (sonst ein leerer Kasten mit sechs Strichen). Leertexte Zähler/Nebenkosten gekürzt.
+- **Haushalt:** feste Fußnote unter der Bilanz („Haushalt + Growbox · abgerechnet wird pro Bereich · …") entfernt, Miete-Leertext gekürzt.
+- 🪤 **Falle beim Ausblenden:** `useInView` beobachtet nur, was beim **ersten** Rendern da ist. Als bedingter Block in `Statistik` wären die Balken nach einem Monatswechsel auf Höhe 0 geblieben. Deshalb eigene Komponente `Verlauf6` mit eigenem `useInView`. `feinschliff.mjs` V1–V5 fährt genau diesen Weg (6 Monate zurück → weg, wieder vor → Balken > 20 px).
+- 🔴 **Nebenfund Sommerzeit:** `daysSince` rechnete `Math.floor((heute 0 Uhr − Tag 0 Uhr) / 24 h)`. Über den Beginn der Sommerzeit hat ein Tag 23 h → **jede Spanne über den letzten Märzsonntag war einen Tag zu kurz** (20.03.→05.04.2027: 15 statt 16) — Überfälligkeit, „vor N Tagen", Putz-Fälligkeit. Jetzt `Math.round`; dieselbe Kopie in `api/cron.js` mit korrigiert (doppelte Herleitung; auf Vercel/UTC wirkungslos, lokal nicht). Neuer reiner Node-Test **`test/datum.mjs`**: zieht beide Fassungen aus dem Quelltext, stellt Berliner Zeit und prüft Spannen über beide Umstellungen — gegen die alte Fassung 3 von 7 rot. Der Kalender-Sweep hatte es nicht gesehen: **kein Test prüfte eine Spanne ÜBER die Umstellung**, nur Tage AN ihr.
+- Nebenbei: `„{0}" gelöscht` hatte `'Aufgabe'` ohne `TT` als Ersatzwert.
+- **Gegenprobe** `scratchpad/gegenprobe-v101.mjs`: 9 Sabotagen.
+- **Bewusst NICHT angefasst — torbes Entscheidung** (Funktionen, nicht Text): siehe Liste in der Antwort vom 01.10.: Wochen-Duell (zweite Punktzahl direkt über dem Fairness-Balken), Monatskalender + doppelte Monatsauswahl in der Übersicht, Jahresrückblick, leere Werkzeuge auf Haushalt (Budget, Sparen, Miete, Wiederkehrend) als Chips wie auf Heute.
 
 ## Live & Deploy
 
@@ -727,7 +740,8 @@ node test/gross.mjs      # Größere WGs: Verrechnungsplan (3 und 4 Personen), Z
 node test/miete.mjs       # Miete (3 Personen): einrichten, Anteile, abhaken/zurücknehmen, Monatswechsel, überfällig, Heute-Zeile, wer darf abhaken
 node test/onboarding.mjs  # Einrichtung: neue WG (alle Schritte bis Heute), Beitreten per ?join= (Umlaut-Code), falscher Code, „Ich bin neu", bestehendes Gerät/fremder Link ignoriert, „Mein Profil einrichten"
 node test/mehr.mjs        # Mehr: Status (Ablauf), Umfragen (verdeckt bis zur eigenen Stimme), Wartung/Ausleihe + Heute-Fälliges, Verbrauch je Monat, Monatsbericht, Kaution, Wochen-Korb, Mitbewohner-Wechsel, Gast-Link
-node test/plus.mjs        # Plus: Check-in bleibt weg (seit v101), Kühlschrank, Essensplan, WG-Regeln, Sparziel, gemischter Einkauf, Nebenkosten, Sprach-Kurzbefehl, Inventar, Auszug + Druck
+node test/plus.mjs        # Plus: Check-in bleibt weg (seit v100), Kühlschrank, Essensplan, WG-Regeln, Sparziel, gemischter Einkauf, Nebenkosten, Sprach-Kurzbefehl, Inventar, Auszug + Druck
+node test/datum.mjs       # Tagesabstände über die Zeitumstellung, App UND api/cron.js (wg-v101, reiner Node-Test)
 node test/cron_alltag.mjs # Server-Hälfte (api/_wg.js): Abholrhythmus, Vorabend-Fälligkeit, Abwesenheit, Abend-Push, Sonntags-Überblick, Reparaturen, Jahr, Kühlschrank, Check-in
 node test/cron_duel.mjs # Montags-Push Wochen-Duell: Vorwoche Mo–So, Punkte-Fallbacks wie in der App, Gleichstand, nur montags, Typ game
 node test/csp_hash.mjs  # CSP-Hashes passen zu wgapp.html (+ Gegenproben) — ohne passende Hashes wäre die App blockiert

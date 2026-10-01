@@ -12,3 +12,6 @@ scratchpad/*.sicherung.html
 scratchpad/lauf-*.txt
 scratchpad/sweep-rot-*.txt
 scratchpad/gegenprobe-*.log
+# Sichtprüfungs-Bilder (01.10.): drei „vorher"-Bilder rutschten mit dem v100-Ship ins Repo — sie entstanden, während
+# dessen Gate lief, und `git add -A` am Ende nahm sie mit
+scratchpad/*.png

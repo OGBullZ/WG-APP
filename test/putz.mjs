@@ -89,9 +89,21 @@ check('B3 Tab-Punkt am Putzplan', await dotPutz() === 1);
 // ── C: Putzplan — Stand je Aufgabe ──
 await page.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).click(); await page.waitForTimeout(600);
 const row = name => page.locator('[data-testid="chore-row"]', { hasText: name });
+// wg-v101: Die Zeile sagt nur noch „Tom · alle 2 Tage" — der Stand („5 : 2") steht im title der Zeile.
+// Geprüft bleibt dasselbe: wer dran ist, und dass der alte Eintrag nicht mitzählt.
 const mRow = await row('Müll').innerText();
-check('C1 Müll: „Tom ist dran" + Stand 5 : 2 (alter Eintrag zählt nicht)', /Tom ist dran/.test(mRow) && /5\s*:\s*2/.test(mRow), mRow.replace(/\n/g, ' | '));
-check('C2 Bad: „Du bist dran"', /Du bist dran/.test(await row('Bad').innerText()));
+const mStand = await row('Müll').locator('[data-testid="chore-stand"]').getAttribute('title');
+check('C1 Müll: Tom ist dran + Stand Torben 5× / Tom 2× (alter Eintrag zählt nicht)', /\bTom\b/.test(mRow) && /Torben 5×/.test(mStand || '') && /Tom 2×/.test(mStand || ''), `${mRow.replace(/\n/g, ' | ')} — title: ${mStand}`);
+check('C1b die Zeile hat nur noch eine Unterzeile (kein „ist dran", kein „5 : 2")', !/ist dran|\d\s*:\s*\d/.test(mRow), mRow.replace(/\n/g, ' | '));
+check('C2 Bad: „Du" ist dran', /\bDu\b/.test(await row('Bad').innerText()));
+// wg-v101: Die Regel („Wer den Haken setzt …") steht nur ohne Verlauf offen — hier gibt es Verlauf → eingeklappt, ⓘ klappt auf
+check('C3 mit Verlauf: Regel eingeklappt, ⓘ-Knopf da', await page.locator('[data-testid="putz-regel"]').count() === 0 && await page.locator('[data-testid="putz-regel-auf"]').count() === 1);
+await page.locator('[data-testid="putz-regel-auf"]').click(); await page.waitForTimeout(200);
+check('C4 ⓘ zeigt die Regel', /Wer den Haken setzt/.test(await page.locator('[data-testid="putz-regel"]').innerText().catch(() => '')));
+// wg-v101: „Zuletzt erledigt" — höchstens 4 Zeilen, Abstand statt Datum („gestern" statt „30.9.2026")
+const logZeilen = await page.locator('[data-testid="putz-log-row"]').allInnerTexts();
+check('C5 Verlauf: 1–4 Zeilen, relative Angabe, kein volles Datum', logZeilen.length >= 1 && logZeilen.length <= 4
+  && logZeilen.every(z => /heute|gestern|vor \d+ Tagen/.test(z) && !/\d{1,2}\.\d{1,2}\.\d{4}/.test(z)), JSON.stringify(logZeilen));
 const heroText = async () => (await page.locator('.hero').first().innerText()).replace(/\n/g, ' ');
 // 30 Tage: Torben 4 Müll-Einträge (alte ohne pts → Punkte der Aufgabe = 1), Tom 2
 check('C3 Einsatz: Torben 4 P., Tom 2 P.', /Torben 4 P\./.test(await heroText()) && /Tom 2 P\./.test(await heroText()), await heroText());
@@ -103,7 +115,7 @@ const m1 = await task('m'), pl1 = (await local()).pl;
 check('D1 Eintrag geht an Torben (wer den Haken setzt)', pl1[0].taskId === 'm' && pl1[0].userId === 'u1' && pl1[0].pts === 1, JSON.stringify(pl1[0]));
 check('D2 Tom bleibt dran (2 < 6)', m1.assignee === 'u2', m1.assignee);
 check('D3 Müll heute erledigt', m1.lastDone === dayAgo(0), m1.lastDone);
-check('D4 Stand zeigt 6 : 2', /6\s*:\s*2/.test(await row('Müll').innerText()));
+check('D4 Stand steigt auf Torben 6× / Tom 2× (title der Zeile, seit v101)', await (async () => { const t = await row('Müll').locator('[data-testid="chore-stand"]').getAttribute('title') || ''; return /Torben 6×/.test(t) && /Tom 2×/.test(t); })());
 // seit wg-v79 (Push-Diät) ist „X hat erledigt" Typ `done` (leise, Standard aus) statt `putz`
 const p1 = pushes.slice(pushBefore).find(p => p.type === 'done');
 check('D5 Push: „Torben hat … erledigt" / „Tom, du bist dran"', !!p1 && /Torben hat „Müll rausbringen" erledigt/.test(p1.title) && /Tom, du bist dran/.test(p1.body), JSON.stringify(p1));

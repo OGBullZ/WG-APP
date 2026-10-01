@@ -1,4 +1,4 @@
-/* Gegenprobe zum Check-in-Ausbau (wg-v101): Die neuen Prüfungen „Check-in bleibt weg" müssen gegen die ALTE Fassung
+/* Gegenprobe zum Check-in-Ausbau (wg-v100): Die neuen Prüfungen „Check-in bleibt weg" müssen gegen die ALTE Fassung
    (git HEAD, Karte + Cron-Push noch drin) rot werden — sonst prüfen sie nichts. Dateien werden gesichert und im
    finally zurückgeschrieben; CSP-Hashes danach neu. */
 import { readFileSync, writeFileSync } from 'fs';

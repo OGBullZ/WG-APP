@@ -11,7 +11,7 @@ const proben = [
   /* Die Check-in-Proben (Knopf-Kontrast, Hinweis, Speichern) liefen am 01.10. alle rot bis auf eine: „Hinweis bleibt
      nach Notenwahl stehen" blieb grün — zu Recht, die Anzeige hing ohnehin an `fehlt && !score` (dritter Fall
      „grüne Sabotage = überflüssiger Code", siehe [[feedback-gegenprobe]]). Noch am selben Tag wurde der Check-in
-     ganz entfernt (wg-v101); die Proben sind mit ihm gegangen. Dass er wegbleibt, prüfen plus.mjs C1–C3 und
+     ganz entfernt (wg-v100); die Proben sind mit ihm gegangen. Dass er wegbleibt, prüfen plus.mjs C1–C3 und
      cron_alltag 30 — deren Gegenprobe: die neuen Tests gegen die ALTE Fassung (git HEAD vor v100) fahren. */
   ['Putz-Push für andere wieder „Tom hat … erledigt"', 'fuer_andere',
     '    const titel = wer && meU && wer !== me', '    const titel = false'],

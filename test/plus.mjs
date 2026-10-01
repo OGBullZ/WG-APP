@@ -1,5 +1,5 @@
 /* PLUS-Funktionen (wg-v68) im Browser, Firebase per Stub:
-   Monats-Check-in (seit v101 entfernt — geprüft wird, dass er wegbleibt) · Kühlschrank · Essensplan (fairer Koch, Zutaten) · WG-Regeln (Zustimmung aller) ·
+   Monats-Check-in (seit v100 entfernt — geprüft wird, dass er wegbleibt) · Kühlschrank · Essensplan (fairer Koch, Zutaten) · WG-Regeln (Zustimmung aller) ·
    Sparziel (Einzahlung + Kauf → Bilanz) · gemischter Einkauf · Nebenkosten · Sprach-Kurzbefehl ·
    Inventar (Garantie) · Auszugs-Seite (inkl. Druckansicht) · DB-Regeln für die neuen Listen. */
 import { chromium } from 'playwright';
@@ -80,7 +80,7 @@ const M = await open(SEED);
 const { page, data, tabTo, pushes } = M;
 const sheet = page.locator('.sheet:visible');
 
-// ── C: Monats-Check-in ist ENTFERNT (wg-v101, torbe: „Monats Check in Entfernung") ──
+// ── C: Monats-Check-in ist ENTFERNT (wg-v100, torbe: „Monats Check in Entfernung") ──
 // Der Seed enthält weiter eine offene Runde (Tom hat geantwortet) — genau der Zustand, in dem die Karte früher
 // immer erschien. Sie darf trotzdem nicht auftauchen, und die alte Antwort muss in den Daten bleiben.
 check('C1 keine Check-in-Karte, obwohl eine offene Runde in den Daten liegt', await page.locator('[data-testid="checkin-card"]').count() === 0);
@@ -306,7 +306,7 @@ const q2 = await qs.locator('[data-testid="nk-preview"]').innerText();
 check('N10 zwei Personen 100,01 → 50,01 + 50,00', q2 === 'Torben €50,01 · Tom €50,00', q2);
 await Q.ctx.close();
 
-// ── X: Regeln, Sparziel, Inventar mit eigener Ausgangslage (hier stand bis v101 auch der Check-in-Wartezustand) ──
+// ── X: Regeln, Sparziel, Inventar mit eigener Ausgangslage (hier stand bis v100 auch der Check-in-Wartezustand) ──
 const X = await open({ ...SEED,
   rg: map([{ id: 'r9', text: 'Müll Montag', by: 'u1', ts: 9, ok_u1: true, ok_u2: true }]),
   sg: map([{ id: 'g2', name: 'Grill', target: 80, holder: 'u1', c_u1: 10, c_u2: 30, ts: 1 }]),

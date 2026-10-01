@@ -40,7 +40,7 @@ function parseIso(s) {
 
 // Entspricht daysSince() aus wgapp.html.
 function daysSince(sd, todayMid) {
-  return Math.floor((todayMid - parseIso(sd)) / 86400000);
+  return Math.round((todayMid - parseIso(sd)) / 86400000);   // round wie in der App (wg-v101): 23-h-Tag bei Sommerzeit-Beginn; Vercel läuft UTC, lokal nicht
 }
 
 // Tage bis zur nächsten Abbuchung (0 = heute, 1 = morgen, ...).
@@ -304,7 +304,7 @@ module.exports = async (req, res) => {
   // 1. des Monats: Zähler ablesen (nur wenn schon einmal abgelesen wurde)
   const meterMsg = d === 1 ? meterReminder(wg) : null;
   if (meterMsg) messages.push(meterMsg);
-  // Kühlschrank (täglich); der Check-in-Aufruf am 1. ist mit dem Check-in in wg-v101 entfallen
+  // Kühlschrank (täglich); der Check-in-Aufruf am 1. ist mit dem Check-in in wg-v100 entfallen
   const fridgeMsg = fridgeReminders(wg, todayIso);
   if (fridgeMsg) messages.push(fridgeMsg);
   // Wartung + Ausleihe (wg-v70): Fälligkeitstag, danach montags

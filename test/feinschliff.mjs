@@ -188,7 +188,25 @@ const H = await open({ theme: 'light', tab: 'putz' });
 const tonneHell = await H.page.locator('[data-testid="pickup-row"] .em-saum').first().evaluate(e => getComputedStyle(e).filter).catch(() => 'FEHLT');
 check('M3 hell: kein Saum', tonneHell === 'none', tonneHell);
 
-const alleErrs = [...S.errs, ...H.errs].filter(e => !/ResizeObserver/.test(e));
+// ── V (wg-v101): Verlauf-Diagramm der Übersicht nur mit Ausgaben — und beim Wiedererscheinen mit sichtbaren Balken ──
+// Falle: useInView beobachtet nur, was beim ersten Rendern da ist. Taucht das Diagramm erst nach einem Monatswechsel auf,
+// blieben die Balken als bedingter Block auf Höhe 0 — deshalb ist es eine eigene Komponente. Geprüft wird genau dieser Weg.
+const V = await open({ tab: 'stats' });
+const verlauf = V.page.locator('[data-testid="verlauf6"]');
+const balkenHoch = async () => { await verlauf.scrollIntoViewIfNeeded(); await V.page.waitForTimeout(900);
+  return verlauf.evaluate(el => Math.max(...[...el.querySelectorAll('.group > div > div')].map(b => b.getBoundingClientRect().height))); };
+check('V1 mit Ausgaben im Monat: Verlauf da', await verlauf.count() === 1);
+if (await verlauf.count() === 1) check('V2 … mit sichtbarem Balken', await balkenHoch() > 20);
+const zurueck = V.page.locator('[data-testid="stats-month"] [aria-label="Vorheriger Monat"]');
+for (let i = 0; i < 6; i++) { await zurueck.click(); await V.page.waitForTimeout(120); }
+check('V3 sechs Monate zurück, keine Ausgaben im Fenster → Verlauf weg (kein leerer Kasten)', await verlauf.count() === 0);
+const weiterM = V.page.locator('[data-testid="stats-month"] [aria-label="Nächster Monat"]');
+for (let i = 0; i < 6; i++) { await weiterM.click(); await V.page.waitForTimeout(120); }
+check('V4 wieder vor: Verlauf erscheint neu …', await verlauf.count() === 1);
+if (await verlauf.count() === 1) { const h = await balkenHoch(); check('V5 … und seine Balken wachsen (useInView-Falle)', h > 20, `${h}px`); }
+await V.ctx.close();
+
+const alleErrs = [...S.errs, ...H.errs, ...V.errs].filter(e => !/ResizeObserver/.test(e));
 check('Z1 keine Seitenfehler', alleErrs.length === 0, alleErrs.slice(0, 2).join(' | '));
 
 await browser.close();

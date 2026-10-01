@@ -154,7 +154,7 @@ if (await E.page.locator('.sheet input:visible').count()) {
   check('E1 der Hinweis ist übersetzt', !!t && !/Dafür fehlt noch/.test(t), `„${t}"`);
 } else check('E1 der Hinweis ist übersetzt', false, 'englisches Formular nicht erreicht');
 
-// (Abschnitt K — Check-in-Knopf „Absenden" — entfiel in wg-v101 mit dem Monats-Check-in; `extra` in open() bleibt)
+// (Abschnitt K — Check-in-Knopf „Absenden" — entfiel in wg-v100 mit dem Monats-Check-in; `extra` in open() bleibt)
 
 const alleErrs = [...A.errs, ...C.errs, ...E.errs].filter(e => !/ResizeObserver/.test(e));
 check('Z1 keine Seitenfehler', alleErrs.length === 0, alleErrs.slice(0, 2).join(' | '));

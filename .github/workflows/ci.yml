@@ -75,6 +75,7 @@ jobs:
           node test/feinschliff.mjs
           node test/sprung.mjs
           node test/csp_hash.mjs
+          node test/datum.mjs
           node test/visual.mjs
           kill $SRV 2>/dev/null || true
       - name: Upload Screenshots

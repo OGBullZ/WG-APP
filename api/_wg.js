@@ -131,7 +131,7 @@ function fridgeReminders(wg, todayIso) {
   const who = (id) => { const u = users.find((x) => x.id === id); return u ? ` (${u.name})` : ''; };
   return { title: 'Kühlschrank', body: `🧊 Läuft bald ab: ${soon.slice(0, 5).map((k) => `${k.name}${who(k.owner)} ${k.exp === todayIso ? 'heute' : 'morgen'}`).join(', ')}`, tag: `kf-${todayIso}` };
 }
-// (Check-in-Aufruf am 1. des Monats: mit dem Monats-Check-in in wg-v101 entfernt)
+// (Check-in-Aufruf am 1. des Monats: mit dem Monats-Check-in in wg-v100 entfernt)
 
 // Morgens: EINE Putz-Push für alles Fällige statt je Aufgabe eine (weniger Rauschen → Push bleibt an)
 function putzDigest(wg, todayIso) {
