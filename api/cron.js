@@ -12,7 +12,7 @@
 // Europe/Berlin bestimmt (siehe CLAUDE.md-Gotcha zu UTC-Off-by-one).
 
 const { loadSubs, sendToSubs, DB_BASE } = require('./_push');
-const { hasKey, currentCode, writeSnapshot, listSnapshots, pruneSnapshots, berlinParts } = require('./_sv');
+const { hasKey, cronErlaubt, currentCode, writeSnapshot, listSnapshots, pruneSnapshots, berlinParts } = require('./_sv');
 const { taskDueIn, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, maintReminders, loanReminders, rentReminders, birthdayReminders, isoOf, morningPlan } = require('./_wg');
 
 function berlinTodayParts() {
@@ -43,11 +43,22 @@ function daysSince(sd, todayMid) {
   return Math.round((todayMid - parseIso(sd)) / 86400000);   // round wie in der App (wg-v101): 23-h-Tag bei Sommerzeit-Beginn; Vercel läuft UTC, lokal nicht
 }
 
-// Tage bis zur nächsten Abbuchung (0 = heute, 1 = morgen, ...).
+// Abbuchung n Perioden nach sd — Kalendermonat bzw. -jahr, Tag auf den Monatsletzten begrenzt (31. → 30.11., 29.02. → 28.02.).
+// Entspricht aboPlus() in wgapp.html (wg-v104) — beide zusammen ändern; test/datum.mjs prüft, dass sie gleich rechnen.
+function aboPlus(sd, n, iv) {
+  const [y, m, d] = String(sd).split('-').map(Number);
+  const yy = iv === 'm' ? y : y + n, mm = iv === 'm' ? m - 1 + n : m - 1;
+  const last = new Date(yy, mm + 1, 0).getDate();
+  const dt = new Date(yy, mm, Math.min(d, last));
+  return `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())}`;
+}
+// Tage bis zur nächsten Abbuchung (0 = heute, 1 = morgen, ...). Bis wg-v103 fest 30/365 Tage ab sd — driftete vom echten Tag weg.
 function daysUntilCharge(s, todayMid) {
-  const p = s.iv === 'm' ? 30 : 365;
-  const d = daysSince(s.sd, todayMid);
-  return (p - (((d % p) + p) % p)) % p;
+  if (!/^\d{4}-\d{2}-\d{2}/.test(String(s.sd || ''))) return -1;   // ohne Datum keine Erinnerung (statt NaN)
+  const iv = s.iv === 'm' ? 'm' : 'y';
+  let k = 0, nxt = s.sd;
+  while (k < 2400 && daysSince(nxt, todayMid) > 0) { k++; nxt = aboPlus(s.sd, k, iv); }
+  return -daysSince(nxt, todayMid);
 }
 
 function fmtPrice(n) {
@@ -131,9 +142,10 @@ function sumOpen(items) {
 }
 
 module.exports = async (req, res) => {
-  const auth = req.headers && req.headers.authorization;
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-    res.status(401).json({ error: 'unauthorized' });
+  // Prüfung in _sv.cronErlaubt (wg-v104): ohne gesetztes CRON_SECRET öffnete „Bearer undefined" die Route
+  const zugang = cronErlaubt(req);
+  if (zugang !== 'ok') {
+    res.status(zugang === 'fehlt' ? 503 : 401).json({ error: zugang === 'fehlt' ? 'CRON_SECRET nicht gesetzt' : 'unauthorized' });
     return;
   }
 
@@ -244,6 +256,7 @@ module.exports = async (req, res) => {
   // Nur echte hs-Kategorie-Treffer zählen (Posten ohne cat laufen in kein Budget).
   const CAT_LABELS = { total: 'Haushalt gesamt', food: 'Lebensmittel', home: 'Haushalt', fun: 'Freizeit', fix: 'Fixkosten', other: 'Sonstiges' };
   let budWarns = 0;
+  const budMarks = [];   // Budget-Stufen dieses Laufs; „gesendet" markiert erst, wenn die Push wirklich rausging
   const buds = toArray(wg.bud).filter((b) => b && b.id && Number(b.limit) > 0);
   if (buds.length) {
     const ymKey = monthKeyOf(y, m);
@@ -264,11 +277,7 @@ module.exports = async (req, res) => {
           : `⚠️ Budget ${label} bei ${Math.round((spent / limit) * 100)} %: ${fmtPrice(spent)} € von ${fmtPrice(limit)} €`,
         tag: `bud-${markId}`,
       });
-      try {
-        await fetch(`${DB_BASE}/wg/${encodeURIComponent(code)}/budSent/${encodeURIComponent(markId)}.json`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: markId, t: Date.now() }),
-        });
-      } catch (_) { /* best effort — schlimmstenfalls morgen eine Doppel-Warnung */ }
+      budMarks.push(markId);   // Marker erst NACH erfolgreichem Versand (unten) — wg-v104
       budWarns++;
     }
   }
@@ -309,8 +318,18 @@ module.exports = async (req, res) => {
   const plan = morningPlan(messages, todayIso);
   if (plan.remind || plan.digest) {
     const subs = await loadSubs(code);
-    if (plan.remind) sent += (await sendToSubs(subs, plan.remind, { type: 'remind' })).sent;
+    let remindSent = 0;
+    if (plan.remind) { remindSent = (await sendToSubs(subs, plan.remind, { type: 'remind' })).sent; sent += remindSent; }
     if (plan.digest) sent += (await sendToSubs(subs, plan.digest, { type: 'digest' })).sent;
+    // Budget-Marker erst jetzt (wg-v104): vorher vor dem Versand geschrieben — scheiterte danach loadSubs/Versand, war die
+    // 80/100-%-Warnung für den ganzen Monat verloren. Kein Gerät erreicht → morgen neuer Versuch.
+    if (remindSent > 0) for (const markId of budMarks) {
+      try {
+        await fetch(`${DB_BASE}/wg/${encodeURIComponent(code)}/budSent/${encodeURIComponent(markId)}.json`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: markId, t: Date.now() }),
+        });
+      } catch (_) { /* best effort — schlimmstenfalls morgen eine Doppel-Warnung */ }
+    }
   }
 
   res.status(200).json({ due: dueTasks.length, abos: soonAbos.length, settleReminder, digest, budWarns, grow: growMsgs.length, repairs: repairMsgs.length, year: yearMsg ? 1 : 0, meter: meterMsg ? 1 : 0, fridge: fridgeMsg ? 1 : 0, maint: maintMsg ? 1 : 0, loan: loanMsg ? 1 : 0, rent: rentMsg ? 1 : 0, geb: gebMsg ? 1 : 0, sent, backup, pruned });

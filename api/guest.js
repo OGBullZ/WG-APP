@@ -55,6 +55,12 @@ module.exports = async (req, res) => {
 
   const t = req.query && req.query.t;
   if (typeof t !== 'string' || t.length !== 32) { res.status(404).send('not found'); return; }
+  // wg-v104: erst ohne DB vorprüfen, ob der Token zu IRGENDEINER Version gehören kann (v = 1…200, reines Hashing). Bis v103
+  // zählte jeder anonyme Abruf mit 32 Zeichen gegen die Bremse des echten Links — 60 Fantasie-Abrufe sperrten den Gast
+  // 10 Minuten aus. Der genaue Vergleich gegen die aktuelle Version folgt unten nach dem Lesen.
+  let moeglich = false;
+  for (let k = 1; k <= 200 && !moeglich; k++) moeglich = same(t, tokenFor(code, k));   // 200 × sha256 ≈ 0,3 ms
+  if (!moeglich) { res.status(404).send('not found'); return; }
   if (!(await rateLimit('guest:' + code, 60))) { res.status(429).send('zu viele Abrufe'); return; }
   let wg;
   try {

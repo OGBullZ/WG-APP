@@ -26,6 +26,13 @@ window.__wg = { updates: [], onceAt: 0, listeners: [], holdWrites: false, held: 
     var o = W.tree;
     s.slice(0, -1).forEach(function(k){ if (!o[k] || typeof o[k] !== 'object') o[k] = {}; o = o[k]; });
     if (v === null || v === undefined) delete o[s[s.length - 1]]; else o[s[s.length - 1]] = JSON.parse(JSON.stringify(v));
+    // Wie die echte RTDB: ein Knoten ohne Kinder existiert nicht — leere Eltern verschwinden mit (02.10.2026). Sonst
+    // blieb nach dem Löschen des LETZTEN Eintrags ein leeres {} stehen, und der Fehler „Liste remote geleert kommt
+    // nicht an" (Key fehlt im Snapshot) war im Test nie zu sehen.
+    if (v === null || v === undefined) for (var i = s.length - 1; i > 0; i--) {
+      var eltern = getAt(s.slice(0, i).join('/'));
+      if (eltern && typeof eltern === 'object' && !Object.keys(eltern).length) setAt(s.slice(0, i).join('/'), null); else break;
+    }
   }
   function snapAt(p){ var v = getAt(p); v = (v === undefined) ? null : JSON.parse(JSON.stringify(v)); return { val: function(){ return v; } }; }
   function notify(){ W.listeners.slice().forEach(function(l){ l.cb(snapAt(l.path)); }); }
@@ -59,7 +66,15 @@ window.__wg = { updates: [], onceAt: 0, listeners: [], holdWrites: false, held: 
     this.on = function(_ev, cb){ W.listeners.push({ path: path, cb: cb }); setTimeout(function(){ cb(snapAt(path)); }, 40); };
     this.off = function(){ W.listeners = W.listeners.filter(function(l){ return l.path !== path; }); };
     this.child = function(c){ return new Ref(path + '/' + c); };
-    this.update = function(u){ return write({ path: path, u: u }); };
+    // wie das echte SDK (vendor/firebase-database-compat, „contains undefined"): ein undefined irgendwo im Wert wirft
+    // SYNCHRON. Bis 02.10.2026 schluckte der Stub das — ein Write mit „last: undefined" legte in echt den Sync lahm,
+    // (KEINE Backticks in diesem Block: der ganze Stub steht in einem Template-String)
+    // in jedem Test lief er durch. Zusätzlich gezählt, damit Tests den Wurf auch sehen, wenn die App ihn abfängt.
+    var hatUndef = function(v){ return v === undefined || (v !== null && typeof v === 'object' && Object.keys(v).some(function(k){ return hatUndef(v[k]); })); };
+    this.update = function(u){
+      if (Object.keys(u).some(function(k){ return hatUndef(u[k]); })) { W.undefWuerfe = (W.undefWuerfe || 0) + 1; throw new Error('Reference.update failed: First argument contains undefined'); }
+      return write({ path: path, u: u });
+    };
     this.set = function(v){ return write({ path: path, set: true, v: v }); };
     this.remove = function(){ return write({ path: path, set: true, v: null }); };
     Object.defineProperty(this, 'root', { get: function(){ return new Ref(''); } });

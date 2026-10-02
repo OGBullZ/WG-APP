@@ -5,12 +5,13 @@
 // Die Logik steckt in _wg.js (reine Funktionen, test/cron_alltag.mjs).
 
 const { loadSubs, sendToSubs, DB_BASE } = require('./_push');
-const { currentCode, berlinParts } = require('./_sv');
+const { currentCode, berlinParts, cronErlaubt } = require('./_sv');
 const { eveningMessages, eveningPlan } = require('./_wg');
 
 module.exports = async (req, res) => {
-  const auth = req.headers && req.headers.authorization;
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) { res.status(401).json({ error: 'unauthorized' }); return; }
+  // wie cron.js (wg-v104): ohne gesetztes CRON_SECRET 503 statt „Bearer undefined" durchzulassen
+  const zugang = cronErlaubt(req);
+  if (zugang !== 'ok') { res.status(zugang === 'fehlt' ? 503 : 401).json({ error: zugang === 'fehlt' ? 'CRON_SECRET nicht gesetzt' : 'unauthorized' }); return; }
   const code = await currentCode();
   if (!code) { res.status(500).json({ error: 'WG_CODE nicht gesetzt' }); return; }
   let wg;

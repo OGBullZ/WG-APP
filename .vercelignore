@@ -1,0 +1,16 @@
+# Was Vercel NICHT ausliefern soll (02.10.2026, Fehlersuche): ohne diese Datei war das ganze Repo öffentlich abrufbar —
+# z. B. /CLAUDE.md (Architektur, Sicherheitsmodell, Konto-E-Mail), /test/sync.mjs, /database.rules.json (HTTP 200 geprüft).
+# Vercel braucht nur api/, vercel.json und package*.json; die App kommt von Firebase Hosting.
+# wgapp.html + Bilder bleiben, weil vercel.json „/" darauf umleitet.
+CLAUDE.md
+README.md
+test
+scratchpad
+scripts
+lang
+docs
+.github
+database.rules.json
+firebase.json
+.firebaserc
+dist

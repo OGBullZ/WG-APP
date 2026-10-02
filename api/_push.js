@@ -81,17 +81,28 @@ function inQuiet(sub, hour) {
    Alles andere bleibt in der Ruhezeit aus — es steht ohnehin im Verlauf „Seit du zuletzt da warst". */
 const LAUTLOS_NACHHOLEN = new Set(['remind']);
 
+/* Nur an echte Push-Dienste senden (wg-v104). Die Abos stehen in der WG-Datenbank, und die DB-Regeln prüfen beim Endpoint
+   nur „String ≤ 1000" — wer einen WG-Code anlegt, konnte dort eine beliebige URL eintragen und /api/notify schickte einen
+   signierten POST dorthin (offenes Relais). Browser vergeben Endpoints nur bei diesen Diensten. */
+const PUSH_HOSTS = [/^fcm\.googleapis\.com$/, /^android\.googleapis\.com$/, /(^|\.)push\.services\.mozilla\.com$/,
+  /(^|\.)notify\.windows\.com$/, /(^|\.)push\.apple\.com$/];
+const pushErlaubt = (endpoint) => {
+  try { const u = new URL(String(endpoint)); return u.protocol === 'https:' && PUSH_HOSTS.some((r) => r.test(u.hostname)); }
+  catch { return false; }
+};
+
 // `hour` nur für Tests (test/push_versand.mjs) — im Betrieb immer die aktuelle Berliner Stunde
 async function sendToSubs(subs, payloadObj, { excludeDevice, type, hour = berlinHour() } = {}) {
   configureVapid();
   const payload = JSON.stringify(payloadObj);
   const payloadLeise = JSON.stringify({ ...payloadObj, silent: true });
-  let sent = 0, removed = 0, skipped = 0, silent = 0;
+  let sent = 0, removed = 0, skipped = 0, silent = 0, fremd = 0;
   const errors = [];
 
   await Promise.all(subs
     .filter(s => {
       if (s.deviceId === excludeDevice) return false;
+      if (!pushErlaubt(s.endpoint)) { fremd++; return false; }   // kein bekannter Push-Dienst → nie anfragen
       if (!subWants(s, type)) { skipped++; return false; }
       if (inQuiet(s, hour) && !LAUTLOS_NACHHOLEN.has(type)) { skipped++; return false; }
       return true;
@@ -114,7 +125,7 @@ async function sendToSubs(subs, payloadObj, { excludeDevice, type, hour = berlin
       }
     }));
 
-  return { sent, removed, skipped, silent, errors };
+  return { sent, removed, skipped, silent, fremd, errors };
 }
 
-module.exports = { loadSubs, sendToSubs, removeSub, berlinHour, subWants, inQuiet, LAUTLOS_NACHHOLEN, DB_BASE };
+module.exports = { loadSubs, sendToSubs, removeSub, berlinHour, subWants, inQuiet, pushErlaubt, LAUTLOS_NACHHOLEN, DB_BASE };

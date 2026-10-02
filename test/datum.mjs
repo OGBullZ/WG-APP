@@ -43,6 +43,29 @@ for (const [heute, tag, soll] of FAELLE) {
   const s = cronDays(tag, mid);
   check(`T ${tag} → ${heute} = ${soll} Tage (App ${a}, Server ${s})`, a === soll && s === soll);
 }
+
+// ── Abos (wg-v104): nächste Abbuchung im Kalender, App (aboNaechste) und Server (daysUntilCharge) gleich ──
+// Bis v103 fest 30/365 Tage ab sd: am 15.07. war ein seit 15.01. laufendes Monatsabo nicht „heute", sondern 3 Tage daneben.
+const appAbo = new Function(`${app.match(/const todayISO = [^\n]*\n/)[0]}${appSrc}\n${app.match(/const aboPlus = [\s\S]*?\n\};/)[0]}\n${app.match(/const aboNaechste = [\s\S]*?\n\};/)[0]}\nreturn aboNaechste;`)();
+const cronAbo = new Function(`${cronSrc}\nfunction pad2(n) { return String(n).padStart(2, '0'); }\n${cron.match(/function aboPlus\(sd, n, iv\) \{[\s\S]*?\n\}/)[0]}\n${cron.match(/function daysUntilCharge\(s, todayMid\) \{[\s\S]*?\n\}/)[0]}\nreturn daysUntilCharge;`)();
+// [heute, Abo, erwartete Tage bis zur Abbuchung]
+const ABOS = [
+  ['2026-07-15', { sd: '2026-01-15', iv: 'm' }, 0],    // 6 Monate später derselbe Tag = heute (30-Tage-Rechnung: 3 Tage daneben)
+  ['2026-02-27', { sd: '2026-01-31', iv: 'm' }, 1],    // vom 31.: im Februar am Monatsletzten (28.)
+  ['2026-02-28', { sd: '2026-01-31', iv: 'm' }, 0],
+  ['2026-03-01', { sd: '2026-01-31', iv: 'm' }, 30],   // … und im März wieder am 31.
+  ['2027-02-27', { sd: '2024-02-29', iv: 'y' }, 1],    // Schalttag-Abo: im Nicht-Schaltjahr am 28.02.
+  ['2026-12-31', { sd: '2026-01-05', iv: 'm' }, 5],    // über den Jahreswechsel
+  ['2027-03-29', { sd: '2027-03-27', iv: 'm' }, 29],   // über den Sommerzeit-Beginn (27.03. → 27.04.)
+  ['2026-10-02', { sd: '2026-10-20', iv: 'm' }, 18],   // Abbuchungstag in der Zukunft eingetragen
+];
+for (const [heute, abo, soll] of ABOS) {
+  jetzt = new Echt(`${heute}T12:00:00`).getTime();
+  const a = appAbo(abo).tage;
+  const mid = new Echt(`${heute}T12:00:00`); mid.setHours(0, 0, 0, 0);
+  const s = cronAbo(abo, mid);
+  check(`A ${abo.iv === 'm' ? 'monatlich' : 'jährlich'} ab ${abo.sd}, heute ${heute}: in ${soll} Tagen (App ${a}, Server ${s})`, a === soll && s === soll);
+}
 globalThis.Date = Echt;
 
 for (const p of pass) console.log('✓ ' + p);

@@ -81,7 +81,9 @@ const check = (n, c, extra = '') => (c ? pass : fail).push(n + (extra ? ` — ${
 const wgData = () => ({
   users: [{ id: 'u1', name: 'Torben' }, { id: 'u2', name: 'Tom' }],
   hs: { h1: { id: 'h1', name: 'Klopapier', price: 5, paidBy: 'u1', date: today, settled: false } },
-  push: { dev1: { endpoint: 'https://push.example/geheim', p256dh: 'x', auth: 'y' } },
+  // realistischer Push-Dienst: seit wg-v104 sendet der Server nur an bekannte Dienste — mit „push.example" wäre 1b2 an jedem
+  // Monatsletzten rot geworden (dort MUSS etwas rausgehen), an allen anderen Tagen grün geblieben
+  push: { dev1: { endpoint: 'https://fcm.googleapis.com/fcm/send/geheim', p256dh: 'x', auth: 'y' } },
   ls: { l1: { id: 'l1', svc: 'Netflix', ct: 'AAAA' } },
   err: { e1: { id: 'e1', m: 'boom' } },
 });
@@ -105,7 +107,7 @@ check('1b Cron legt Tages-Snapshot an', c1.statusCode === 200 && c1.body.backup 
     : erster ? true : gesendet.length === 0;
   check(`1b2 Versand am ${art} (${today}) ist der erwartete`, ok,
     `${gesendet.length} aufgezeichnet${gesendet[0] ? ': „' + String(gesendet[0].payload.body).slice(0, 50) + '“' : ''}`);
-  check('1b3 nichts verlässt den Test: jede Sendung ging an das Fake-Gerät', gesendet.every(g => /push\.example/.test(g.sub.endpoint)),
+  check('1b3 nichts verlässt den Test: jede Sendung ging an das Fake-Gerät', gesendet.every(g => /fcm\.googleapis\.com\/fcm\/send\/geheim$/.test(g.sub.endpoint)),
     JSON.stringify(gesendet.map(g => g.sub.endpoint)));
 }
 const snap = getAt(`/sv/${KEY}/bk/${today}`);
@@ -114,6 +116,19 @@ check('1d Snapshot OHNE Push-Schlüssel, Login-Freigaben, Fehlerprotokoll', !!sn
 const t1 = snap?.t;
 const c2 = await call(cron, { headers: { authorization: 'Bearer geheim' } });
 check('1e zweiter Lauf am selben Tag überschreibt nicht', c2.body.backup === 'exists' && getAt(`/sv/${KEY}/bk/${today}`).t === t1, JSON.stringify(c2.body));
+// 1f/1g (wg-v104): Budget-Marker erst nach erfolgreicher Zustellung — vorher vor dem Versand geschrieben, eine gescheiterte
+// Zustellung kostete die Warnung für den ganzen Monat
+{
+  const wg = tree.wg[OLD], mark = `${today.slice(0, 7)}-total-100`, pushAlt = wg.push;
+  wg.bud = { total: { id: 'total', limit: 1 } };   // Klopapier 5 € > 1 € → 100-%-Warnung
+  wg.push = { fremd: { endpoint: 'https://opfer.example/x', p256dh: 'x', auth: 'y' } };   // kein erreichbares Gerät
+  gesendet.length = 0; await call(cron, { headers: { authorization: 'Bearer geheim' } });
+  check('1f Budget-Warnung ohne Zustellung → Marker NICHT gesetzt (morgen neuer Versuch)', !getAt(`/wg/${OLD}/budSent/${mark}`) && gesendet.length === 0, JSON.stringify(wg.budSent || {}));
+  wg.push = pushAlt; gesendet.length = 0; await call(cron, { headers: { authorization: 'Bearer geheim' } });
+  check('1g mit Zustellung → Budget in der Push und Marker gesetzt', gesendet.some(g => /Budget/.test(`${g.payload.title} ${g.payload.body}`)) && !!getAt(`/wg/${OLD}/budSent/${mark}`),
+    JSON.stringify(gesendet.map(g => g.payload.title)));
+  delete wg.bud; delete wg.budSent;
+}
 
 // ── 2) Aufräumen: alte weg, „alter Name, aber frisches t" bleibt (Regel prüft t) ──
 setAt(`/sv/${KEY}/bk/2020-01-01`, { t: Date.now() - 400 * DAY, code: OLD, data: {} });

@@ -10,6 +10,17 @@
 const { DB_BASE } = require('./_push');
 
 const KEEP_DAYS = 14;
+// Zeitgesteuerte Routen (cron, evening): nur mit `Authorization: Bearer <CRON_SECRET>`. → 'ok' | 'fehlt' | 'nein'.
+// wg-v104: Bis v103 verglichen beide `auth !== \`Bearer ${CRON_SECRET}\`` — ohne gesetzte Env wurde daraus „Bearer
+// undefined", und genau dieser Header öffnete die Route (Backups, Pushes an alle). Jetzt: Env muss gesetzt sein (sonst
+// 503, laut), Vergleich zeitkonstant. Bewusst KEINE Mindestlänge — die echte Länge auf Vercel ist hier unbekannt.
+const cronErlaubt = (req) => {
+  const geheim = process.env.CRON_SECRET;
+  if (typeof geheim !== 'string' || !geheim.length) return 'fehlt';
+  const a = Buffer.from(String((req.headers && req.headers.authorization) || ''));
+  const b = Buffer.from(`Bearer ${geheim}`);
+  return a.length === b.length && require('crypto').timingSafeEqual(a, b) ? 'ok' : 'nein';
+};
 const hasKey = () => typeof process.env.BACKUP_KEY === 'string' && process.env.BACKUP_KEY.length >= 40;
 const svUrl = (p) => `${DB_BASE}/sv/${encodeURIComponent(process.env.BACKUP_KEY || '')}${p}.json`;
 // Snapshot-Schlüssel: nur Ziffern, T und Bindestrich (RTDB-Pfad-sicher, sortierbar)
@@ -106,4 +117,4 @@ async function rateLimit(code, max = 30, windowMs = 10 * 60e3) {
   return true;
 }
 
-module.exports = { hasKey, currentCode, setCode, stripForBackup, writeSnapshot, listSnapshots, readSnapshot, pruneSnapshots, berlinParts, rateLimit, CODE_FORMAT, SNAP_KEY, KEEP_DAYS };
+module.exports = { hasKey, cronErlaubt, currentCode, setCode, stripForBackup, writeSnapshot, listSnapshots, readSnapshot, pruneSnapshots, berlinParts, rateLimit, CODE_FORMAT, SNAP_KEY, KEEP_DAYS };

@@ -19,7 +19,8 @@ const pass = [], fail = [];
 const check = (n, c, extra = '') => (c ? pass : fail).push(n + (extra ? ` — ${extra}` : ''));
 
 // Drei Geräte: Ruhezeit 22–8 (Standard), ohne Ruhezeit, und eines, das „remind" bewusst abgeschaltet hat
-const sub = (id, extra) => ({ deviceId: id, endpoint: 'https://push.example/' + id, p256dh: 'x', auth: 'y', pv: 2, ...extra });
+// realistische Adresse: seit wg-v104 sendet der Server nur an bekannte Push-Dienste (vorher ging „push.example" durch)
+const sub = (id, extra) => ({ deviceId: id, endpoint: 'https://fcm.googleapis.com/fcm/send/' + id, p256dh: 'x', auth: 'y', pv: 2, ...extra });
 const SUBS = [
   sub('ruhig', { quiet: true, qs: 22, qe: 8 }),
   sub('offen', {}),
@@ -54,6 +55,15 @@ check('11 Ruhezeit aus → nie ruhig', !P.inQuiet({ quiet: false, qs: 22, qe: 8 
 // Der Service Worker muss `silent` auch anzeigen — sonst wäre das Flag wirkungslos
 const sw = (await import('fs')).readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 check('12 sw.js reicht `silent` an showNotification weiter', /silent:\s*d\.silent === true/.test(sw));
+
+// wg-v104: kein offenes Relais — nur echte Push-Dienste werden angefragt (Abos stehen in der frei beschreibbaren WG-DB)
+check('13 bekannte Push-Dienste erlaubt (Google, Mozilla, Apple, Microsoft)', ['https://fcm.googleapis.com/fcm/send/a', 'https://updates.push.services.mozilla.com/wpush/v2/a',
+  'https://web.push.apple.com/a', 'https://wns2-par02p.notify.windows.com/w/?token=a'].every(P.pushErlaubt));
+check('14 fremde Adressen abgelehnt (auch http, Tricks mit Subdomain/Pfad)', !['https://opfer.example/hook', 'http://fcm.googleapis.com/x', 'https://fcm.googleapis.com.evil.example/x',
+  'https://evil.example/fcm.googleapis.com', 'x', ''].some(P.pushErlaubt));
+gesendet.length = 0;
+const fr = await P.sendToSubs([{ deviceId: 'boese', endpoint: 'https://opfer.example/hook', p256dh: 'x', auth: 'y', pv: 2 }], { title: 'T' }, { type: 'remind', hour: 12 });
+check('15 an eine fremde Adresse geht nichts raus (gezählt als fremd)', gesendet.length === 0 && fr.fremd === 1 && fr.sent === 0, JSON.stringify(fr));
 
 console.log(pass.map(p => '  OK  ' + p).join('\n'));
 if (fail.length) console.log(fail.map(f => '  FAIL ' + f).join('\n'));

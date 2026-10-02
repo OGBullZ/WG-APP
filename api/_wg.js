@@ -105,22 +105,34 @@ function rentDueIso(cfg, ym) {
 }
 // Erinnerung: 2 Tage vorher, am Fälligkeitstag und danach montags — jeweils mit den offenen Namen.
 // Eine Push an alle (pro Person zustellen kann der Dienst nicht) — deshalb stehen die Namen im Text.
+// wg-v104: DREI Monate statt nur dem laufenden. Bis v103 gab es bei Fälligkeit am 1./2. nie die Vorwarnung (die 2 Tage
+// vorher liegen im Vormonat, dessen Termin schon vorbei ist), und ein am Monatswechsel unbezahlter Vormonat fiel still aus
+// jeder Erinnerung. Der Vormonat zählt nur, wenn dort schon jemand gezahlt hat — sonst mahnte eine WG, die die Miete gerade
+// erst eingerichtet hat, für einen Monat, den sie nie verfolgt hat. Gleiche Regel wie mieteFuerMich() in wgapp.html.
+const ymShiftIso = (ym, n) => { const [y, m] = ym.split('-').map(Number); const d = new Date(y, m - 1 + n, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
+const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 function rentReminders(wg, todayIso) {
   const cfg = wg.mi && wg.mi.cfg;
   const users = toArray(wg.users);
   if (!cfg || !Number(cfg.total) || users.length < 1) return null;
-  const ym = todayIso.slice(0, 7), due = rentDueIso(cfg, ym);
-  const open = users.filter((u) => !(wg.mi && wg.mi[`${ym}-${u.id}`]));
-  if (!open.length) return null;
-  const diff = daysBetween(todayIso, due);   // > 0 = in x Tagen fällig
+  const cur = todayIso.slice(0, 7), prev = ymShiftIso(cur, -1), next = ymShiftIso(cur, 1);
+  const bezahlt = (ym, u) => !!(wg.mi && wg.mi[`${ym}-${u.id}`]);
+  const offen = (ym) => users.filter((u) => !bezahlt(ym, u));
   const monday = parseIso(todayIso).getDay() === 1;
-  let when = null;
-  if (diff === 2) when = 'in 2 Tagen fällig';
-  else if (diff === 0) when = 'heute fällig';
-  else if (diff < 0 && monday) when = `seit ${-diff} ${-diff === 1 ? 'Tag' : 'Tagen'} überfällig`;
-  if (!when) return null;
+  const kandidaten = [];
+  // Reihenfolge = Vorrang: heute fällig > Vorwarnung > überfällig (ältester Monat zuerst)
+  [cur, next].forEach((ym) => { const diff = daysBetween(todayIso, rentDueIso(cfg, ym)); if (diff === 0) kandidaten.push({ ym, diff, art: 'due' }); });
+  [cur, next].forEach((ym) => { const diff = daysBetween(todayIso, rentDueIso(cfg, ym)); if (diff === 2) kandidaten.push({ ym, diff, art: 'pre' }); });
+  if (monday) {
+    const prevAktiv = users.some((u) => bezahlt(prev, u));
+    [...(prevAktiv ? [prev] : []), cur].forEach((ym) => { const diff = daysBetween(todayIso, rentDueIso(cfg, ym)); if (diff < 0) kandidaten.push({ ym, diff, art: 'late' }); });
+  }
+  const k = kandidaten.find((x) => offen(x.ym).length);
+  if (!k) return null;
+  const when = k.art === 'pre' ? 'in 2 Tagen fällig' : k.art === 'due' ? 'heute fällig' : `seit ${-k.diff} ${-k.diff === 1 ? 'Tag' : 'Tagen'} überfällig`;
   const to = cfg.mode === 'holder' ? ` an ${(users.find((u) => u.id === cfg.holder) || {}).name || 'die WG'}` : '';
-  return { title: `Miete ${when}`, body: `🏠 €${fmtEur(cfg.total)}${to} · offen: ${open.map((u) => u.name).join(', ')}`, tag: `mi-${ym}-${diff === 2 ? 'pre' : diff === 0 ? 'due' : 'late'}` };
+  const monat = k.ym !== cur ? ` (${MONATE[+k.ym.slice(5) - 1]})` : '';   // anderer Monat als der laufende → dazusagen
+  return { title: `Miete${monat} ${when}`, body: `🏠 €${fmtEur(cfg.total)}${to} · offen: ${offen(k.ym).map((u) => u.name).join(', ')}`, tag: `mi-${k.ym}-${k.art}` };
 }
 
 // Morgens: was im Kühlschrank heute/morgen abläuft (eine Push)

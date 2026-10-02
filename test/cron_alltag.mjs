@@ -192,6 +192,27 @@ check('51 zwei Tage vorher: Push mit offenen Namen und Empfänger', W.rentRemind
 check('52 am Stichtag', W.rentReminders(miWg, '2026-09-03')?.title === 'Miete heute fällig');
 check('53 danach nur montags (07.09.2026 = Montag, 05.09. nicht)', /überfällig/.test(W.rentReminders(miWg, '2026-09-07')?.title || '') && W.rentReminders(miWg, '2026-09-05') === null);
 check('54 alle bezahlt → keine Push; ohne Einstellung auch nicht', W.rentReminders({ ...miWg, mi: { cfg: miWg.mi.cfg, '2026-09-u1': {}, '2026-09-u2': {}, '2026-09-u3': {} } }, '2026-09-03') === null && W.rentReminders({ users: miWg.users }, '2026-09-03') === null);
+// wg-v104: Monatsgrenzen. Fälligkeit am 1. → Vorwarnung liegt im Vormonat; unbezahlter Vormonat fällt nicht still raus.
+const mi1 = { users: miWg.users, mi: { cfg: { ...miWg.mi.cfg, day: 1 } } };
+check('56 Fälligkeit am 1.: Vorwarnung 2 Tage vorher (29.09. für den 01.10.)', W.rentReminders(mi1, '2026-09-29')?.title === 'Miete (Oktober) in 2 Tagen fällig', W.rentReminders(mi1, '2026-09-29')?.title);
+// September teilweise bezahlt (u2) → am Montag 05.10. wird der offene September angemahnt, vor dem Oktober
+check('57 offener Vormonat wird montags angemahnt (mit Monatsnamen)', /^Miete \(September\) seit \d+ Tagen überfällig$/.test(W.rentReminders(miWg, '2026-10-05')?.title || '') && /Torben, Kim/.test(W.rentReminders(miWg, '2026-10-05')?.body || ''), W.rentReminders(miWg, '2026-10-05')?.title);
+// Vormonat ohne JEDE Zahlung = Miete war da noch nicht verfolgt → nicht mahnen, nur der laufende Monat
+const miNeu = { users: miWg.users, mi: { cfg: miWg.mi.cfg } };
+check('58 Vormonat ohne jede Zahlung zählt nicht (frisch eingerichtet)', W.rentReminders(miNeu, '2026-10-05')?.title === 'Miete seit 2 Tagen überfällig', W.rentReminders(miNeu, '2026-10-05')?.title);
+check('59 am Stichtag hat „heute fällig" Vorrang vor alter Schuld', W.rentReminders({ ...miWg, mi: { ...miWg.mi } }, '2026-10-03')?.title === 'Miete heute fällig');
+// wg-v104: Cron/Evening ohne gesetztes CRON_SECRET → 503 (vorher öffnete „Bearer undefined" die Route)
+{
+  const SV = require('../api/_sv.js'), alt = process.env.CRON_SECRET;
+  delete process.env.CRON_SECRET;
+  const ohne = SV.cronErlaubt({ headers: { authorization: 'Bearer undefined' } });
+  process.env.CRON_SECRET = 'geheim-test';
+  const richtig = SV.cronErlaubt({ headers: { authorization: 'Bearer geheim-test' } }), falsch = SV.cronErlaubt({ headers: { authorization: 'Bearer geheim-tesx' } });
+  if (alt === undefined) delete process.env.CRON_SECRET; else process.env.CRON_SECRET = alt;
+  check('60 ohne CRON_SECRET kommt niemand durch, auch nicht mit „Bearer undefined"', ohne === 'fehlt' && richtig === 'ok' && falsch === 'nein', `${ohne}/${richtig}/${falsch}`);
+  const evening = readFileSync(new URL('../api/evening.js', import.meta.url), 'utf8');
+  check('61 cron.js und evening.js nutzen beide die Prüfung', /cronErlaubt\(req\)/.test(cron) && /cronErlaubt\(req\)/.test(evening) && !/Bearer \$\{process\.env\.CRON_SECRET\}/.test(cron + evening));
+}
 // Notfall-Infos auf der Gast-Seite (wg-v76)
 const gvNf = W.guestView({ users, cf: { n: { id: 'notfall', strom: 'Flur links', wasser: 'unter der Spüle' }, v: { id: 'vermieter', name: 'Meier', email: 'meier@example.com' } }, ga: { info: { wifi: 'X' } } }, '2026-09-20');
 check('56 Gast-Seite: Notfall-Infos ja, Vermieter-Daten nein', gvNf.emergency.join(' | ') === '⚡ Sicherungskasten: Flur links | 🚰 Wasser-Absperrhahn: unter der Spüle'

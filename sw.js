@@ -3,7 +3,7 @@
    App-Shell + Bibliotheken (React/Babel/Firebase-SDK, selbst gehostet unter vendor/) + Schriften (fonts/)
    werden gecacht. Der Firebase-Realtime-Sync läuft weiter übers Netz (nie gecacht).
    Cache-Name bei jedem Deploy mit relevanter Änderung hochzählen. */
-const CACHE = 'wg-v103';
+const CACHE = 'wg-v104';
 /* Stabiler Cache OHNE Versions-Suffix, überlebt Deploys. Hier liegen nur Dateien, deren Name sich bei jeder
    inhaltlichen Änderung mitändert (vendor/ mit Version, fonts/ mit Inhalts-Hash). Vorher wurden solche Dateien beim activate-Cleanup jedes Deploys mitgelöscht: bis zum
    nächsten vollen Online-Load war die App offline ein weißer Screen (HTML da, Skripte weg). */
@@ -119,8 +119,13 @@ self.addEventListener('fetch', e => {
   if (req.mode === 'navigate') {
     e.respondWith(
       fetch(req).then(res => {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put('./wgapp.html', copy));
+        // Nur die App selbst und nur bei Erfolg als Offline-Hülle ablegen (wg-v104). Bis v103 landete JEDE Navigation dort —
+        // eine vertippte Adresse (404-Seite) ersetzte die App, und offline startete danach die Fehlerseite.
+        const pfad = new URL(url).pathname;
+        if (res.ok && (pfad === '/' || pfad.endsWith('/wgapp.html') || pfad.endsWith('/'))) {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put('./wgapp.html', copy));
+        }
         return res;
       }).catch(() => caches.match('./wgapp.html').then(h => h || caches.match('./')))
     );
