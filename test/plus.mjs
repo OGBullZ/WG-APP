@@ -214,6 +214,10 @@ check('G9 „Tom zahlt alles" bleibt, wie gewählt (keine Aufteilung)', wa.lengt
 // ── N: Nebenkosten ──
 await tabTo('Übersicht');
 const cc = page.locator('[data-testid="costs-card"]');
+// seit wg-v103 ist die leere Nebenkosten-Karte ein Chip — echter Weg: Chip, dann „+ Abrechnung"
+const nkChip = async p => { const c = p.locator('[data-chip="nk"]'); if (await c.count()) { await c.click(); await p.waitForTimeout(300); } };
+check('N0 ohne Abrechnung: Chip statt Karte', await page.locator('[data-chip="nk"]').count() === 1 && !(await cc.isVisible()));
+await nkChip(page);
 await cc.getByRole('button', { name: '+ Abrechnung' }).click(); await page.waitForTimeout(300);
 await sheet.getByLabel('Betrag der Abrechnung').fill('300');
 await sheet.locator('#nk-share').fill('60');
@@ -288,6 +292,7 @@ await Y.ctx.close();
 const U3 = [...USERS, { id: 'u3', name: 'Kim', color: '#a78bfa' }];
 const Z = await open({ users: U3 }, { tab: 'stats' });
 const zs = Z.page.locator('.sheet:visible');
+await nkChip(Z.page);
 await Z.page.locator('[data-testid="costs-card"]').getByRole('button', { name: '+ Abrechnung' }).click(); await Z.page.waitForTimeout(300);
 check('N6 drei Personen: kein Anteil-Schieber', await zs.locator('#nk-share').count() === 0);
 await zs.getByLabel('Betrag der Abrechnung').fill('100');
@@ -300,6 +305,7 @@ check('N9 keine Seitenfehler', Z.errs.length === 0, Z.errs.join(' | '));
 await Z.ctx.close();
 const Q = await open({ users: USERS }, { tab: 'stats' });
 const qs = Q.page.locator('.sheet:visible');
+await nkChip(Q.page);
 await Q.page.locator('[data-testid="costs-card"]').getByRole('button', { name: '+ Abrechnung' }).click(); await Q.page.waitForTimeout(300);
 await qs.getByLabel('Betrag der Abrechnung').fill('100,01');
 const q2 = await qs.locator('[data-testid="nk-preview"]').innerText();

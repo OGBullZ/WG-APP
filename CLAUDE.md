@@ -679,7 +679,7 @@ Noch vor dem Ausliefern von v100 entschieden; der reparierte Knopf ging deshalb 
 - 🔴 **Nebenfund Sommerzeit:** `daysSince` rechnete `Math.floor((heute 0 Uhr − Tag 0 Uhr) / 24 h)`. Über den Beginn der Sommerzeit hat ein Tag 23 h → **jede Spanne über den letzten Märzsonntag war einen Tag zu kurz** (20.03.→05.04.2027: 15 statt 16) — Überfälligkeit, „vor N Tagen", Putz-Fälligkeit. Jetzt `Math.round`; dieselbe Kopie in `api/cron.js` mit korrigiert (doppelte Herleitung; auf Vercel/UTC wirkungslos, lokal nicht). Neuer reiner Node-Test **`test/datum.mjs`**: zieht beide Fassungen aus dem Quelltext, stellt Berliner Zeit und prüft Spannen über beide Umstellungen — gegen die alte Fassung 3 von 7 rot. Der Kalender-Sweep hatte es nicht gesehen: **kein Test prüfte eine Spanne ÜBER die Umstellung**, nur Tage AN ihr.
 - Nebenbei: `„{0}" gelöscht` hatte `'Aufgabe'` ohne `TT` als Ersatzwert.
 - **Gegenprobe** `scratchpad/gegenprobe-v101.mjs`: 9 Sabotagen.
-- **Bewusst NICHT angefasst — torbes Entscheidung** (Funktionen, nicht Text; Duell + Kalender in v102 entschieden, offen bleiben Jahresrückblick und Haushalt-Chips): siehe Liste in der Antwort vom 01.10.: Wochen-Duell (zweite Punktzahl direkt über dem Fairness-Balken), Monatskalender + doppelte Monatsauswahl in der Übersicht, Jahresrückblick, leere Werkzeuge auf Haushalt (Budget, Sparen, Miete, Wiederkehrend) als Chips wie auf Heute.
+- **Bewusst NICHT angefasst — torbes Entscheidung** (Funktionen, nicht Text; Duell + Kalender in v102, Jahresrückblick + Haushalt-Chips in v103 erledigt): siehe Liste in der Antwort vom 01.10.: Wochen-Duell (zweite Punktzahl direkt über dem Fairness-Balken), Monatskalender + doppelte Monatsauswahl in der Übersicht, Jahresrückblick, leere Werkzeuge auf Haushalt (Budget, Sparen, Miete, Wiederkehrend) als Chips wie auf Heute.
 
 ## Putzplan clean, Duell raus, Terminliste (wg-v102, 01.10. — torbe: „putzplan viel eleganter! so clean wie möglich, kalender … sinnvoll, nicht klobig und dumm" · „den duell kram überdenken finds unnötig")
 
@@ -692,6 +692,17 @@ Putzplan in einer realistischen WG: **242 (v100) → 161 (v101) → 92 Wörter, 
 - Nebenbei: `'weg'` in der Abwesend-Zeile und `'Bankdaten'` beim Kopieren ohne `TT`; `quickLabel` der Putz-Formulare ohne `TT`.
 - **Tests:** `putz.mjs` C3–C10 (ⓘ, Chips, Chip öffnet Karte, kein ×, Löschen im Fenster + Rückgängig), L/M (Serie über die Rückmeldung statt Duell-Feld), K1 Duell-Rechnung weg; `organisation.mjs` F1–F12 neu (Liste, Abwesenheit einmal, „+ 3 Wochen", nur eine Monatsauswahl, Vorjahr); `verzahnung.mjs` C rückwärts über die Übersicht, D3 jede Aufgabe genau einmal; `extra.mjs` H4 sucht Toms Farbe jetzt auf dem Haushalt (leerer Putzplan hat keine Kopfkarte mehr).
 - **Gegenprobe** `scratchpad/gegenprobe-v102.mjs`: 8 Sabotagen + die neuen Tests gegen die alte Fassung.
+
+## Chips überall, Jahresrückblick eingeklappt (wg-v103, 02.10. — torbe: „weiter" auf die zwei offenen Fragen)
+
+Umgesetzt wie empfohlen, im Muster von Putzplan (v102) und Heute (v82): **leeres Werkzeug = Chip, mit Inhalt = Karte.**
+- **Haushalt:** Monatsbudget, Sparziel, Miete als Chips; „Wiederkehrend" ist ein Formular, sein Chip öffnet es direkt. Der breite Knopf „Wiederkehrenden Posten einrichten" ist weg; mit Einträgen steht „+ Neu" im Kopf der Liste.
+- **Übersicht:** Zählerstände und Nebenkosten als Chips. **Jahresrückblick** eingeklappt eine Zeile „📅 Jahresrückblick 2026 · €42,80 ›", offen auf Tipp und von selbst im Dezember/Januar. Inhalt bleibt eingehängt (`hidden` + `data-tool-leer="jahr"`, Zeile = `data-chip="jahr"`) — der Such-Sprung zu „Jahresübersicht drucken" klappt ihn selbst auf.
+- 🪤 **Neuer Hook `useWerkzeugOffen`** (Putzplan, Haushalt, Übersicht): eine Karte, die in dieser Sitzung schon Inhalt hatte, bleibt offen. Ohne ihn verschwand sie **mitten in der Bedienung**, sobald ihr letzter Eintrag weg war (letztes Sparziel gekauft → Karte weg) — `plus.mjs` S7 fiel darauf. Zum Chip wird sie erst beim nächsten Öffnen.
+- Nebenbei ohne `TT`: `'Jemand'` im Haushalt, `'Putz-Punkte'` im Jahresrückblick.
+- **Tests:** `miete` A0, `extra` C0/C0b/F0, `plus` N0 (Chip statt Karte; danach der echte Weg über den Chip), `geld` F1b/F1c datumsbewusst (zu außerhalb Dez/Jan) — grün heute, am 15.12. und 10.01.
+- 🪤 Test-Server: per Bash im Hintergrund gestartet wurde er nach dessen Zeitlimit beendet → vier Tests brachen mitten im Lauf ab (kein App-Fehler). Für lange Läufe per `Start-Process python -m http.server …` starten.
+- **Gegenprobe** `scratchpad/gegenprobe-v103.mjs`: 8 Sabotagen.
 
 ## Live & Deploy
 

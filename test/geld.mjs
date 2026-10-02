@@ -176,6 +176,12 @@ const SEED_J = { users: USERS,
 const F = await open({ seed: SEED_J, tab: 'stats' });
 const drucken = F.page.locator('[data-testid="jahr-drucken"]');
 check('F1 Knopf zur Jahresübersicht ist da', await drucken.count() === 1);
+// wg-v103: Jahresrückblick ist außerhalb von Dezember/Januar eingeklappt (eine Zeile mit Summe) — datumsbewusst geprüft
+const zu = ![11, 0].includes(new Date().getMonth());
+const jahrZeile = F.page.locator('[data-chip="jahr"]');
+check('F1b eingeklappt genau dann, wenn nicht Dez/Jan', (await jahrZeile.count() === 1) === zu && (await drucken.isVisible()) === !zu, `zu=${zu}`);
+if (await jahrZeile.count()) { await jahrZeile.click(); await F.page.waitForTimeout(300); }
+check('F1c nach dem Aufklappen ist der Druck-Knopf sichtbar', await drucken.isVisible());
 await drucken.first().click();
 await F.page.waitForTimeout(500);
 const blatt = F.page.locator('[data-testid="jahr-blatt"]');

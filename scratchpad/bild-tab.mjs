@@ -33,7 +33,7 @@ const SEED = {
 };
 const suffix = process.argv[2] ? '-' + process.argv[2] : '';
 const browser = await chromium.launch();
-for (const theme of ['dark']) {
+for (const theme of (process.env.THEME || 'dark').split(',')) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 2600 }, serviceWorkers: 'block' });
   await ctx.routeWebSocket(/./, () => {});
   const page = await ctx.newPage();

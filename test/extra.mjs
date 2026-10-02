@@ -96,6 +96,13 @@ check('B4 bei gleichem Preis kein Sprung-Hinweis', await page.locator('[data-tes
 await page.getByRole('button', { name: 'Abbrechen' }).first().click(); await page.waitForTimeout(300);
 
 // ── C: Gesamtbudget ──
+// seit wg-v103: ohne Budget ein Chip — erst der Chip, dann „Monatsbudget festlegen"
+check('C0 ohne Budget: Chip statt Karte', await page.locator('[data-chip="budget"]').count() === 1);
+// Wiederkehrend ist ein Formular: der Chip öffnet es direkt (kein breiter Knopf mehr, wg-v103)
+await page.locator('[data-chip="wiederkehrend"]').click(); await page.waitForTimeout(400);
+check('C0b Chip „Wiederkehrend" öffnet das Formular direkt', await page.locator('.sheet:visible').count() === 1);
+await page.getByRole('button', { name: 'Abbrechen' }).first().click(); await page.waitForTimeout(300);
+await page.locator('[data-chip="budget"]').click(); await page.waitForTimeout(300);
 await page.locator('[data-testid="total-budget-set"]').click(); await page.waitForTimeout(300);
 await page.getByLabel('Monatsbudget').fill('100');
 await page.locator('.sheet').getByRole('button', { name: 'Speichern' }).click(); await page.waitForTimeout(400);
@@ -119,6 +126,9 @@ await page.getByRole('button', { name: 'Abbrechen' }).first().click(); await pag
 
 // ── F: Zählerstände + Besuch ──
 await tabTo('Übersicht');
+// seit wg-v103: ohne Zählerstände ein Chip — erst der Chip, dann „+ Ablesen" (danach bleibt die Karte offen)
+check('F0 ohne Zählerstände: Chip statt Karte', await page.locator('[data-chip="zaehler"]').count() === 1);
+await page.locator('[data-chip="zaehler"]').click(); await page.waitForTimeout(300);
 const addRead = async (v, date) => {
   await page.getByRole('button', { name: '+ Ablesen' }).click(); await page.waitForTimeout(300);
   await page.getByLabel('Zählerstand').fill(v);
