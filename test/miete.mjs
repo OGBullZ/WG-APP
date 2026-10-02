@@ -95,7 +95,15 @@ await C.tabTo('Haushalt');
 check('C2 offene Zeilen ab dem Stichtag als überfällig markiert', DAY === 1 || /offen – überfällig/.test(await C.card.innerText()), await C.card.innerText());
 await C.card.getByRole('button', { name: 'Torben hat gezahlt' }).click(); await C.page.waitForTimeout(400);
 await C.tabTo('Heute');
-check('C3 nach dem Bezahlen keine Heute-Zeile mehr', await C.page.locator('[data-testid="today-rent"]').count() === 0);
+// wg-v104: Seit es die Vorwarnung für den NÄCHSTEN Monat gibt (Fälligkeit am 1. → 3 Tage vorher „bis 01.xx."), steht in
+// den letzten drei Tagen eines Monats nach dem Bezahlen zu Recht eine Zeile da — die Annahme „gar keine Zeile" machte C3
+// an jedem 29.–31. rot (Kalender-Sweep 29.03.2027). Geprüft wird jetzt genau: nichts mehr zum LAUFENDEN Monat, und die
+// Vorwarnung erscheint genau dann, wenn der nächste 1. höchstens 3 Tage entfernt ist.
+const naechster1 = (() => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + 1); d.setHours(0, 0, 0, 0); return d; })();
+const tageBis = Math.round((naechster1 - new Date(new Date().setHours(0, 0, 0, 0))) / 864e5);
+const restZeile = await C.page.locator('[data-testid="today-rent"]').innerText().catch(() => '');
+check('C3 nach dem Bezahlen nichts mehr zum laufenden Monat (höchstens die Vorwarnung „bis …")', !/heute fällig|war am/.test(restZeile)
+  && (tageBis <= 3 ? /bis/.test(restZeile) : restZeile === ''), `noch ${tageBis} Tage bis zum 1. · Zeile: „${restZeile}"`);
 check('C4 keine Seitenfehler', C.errs.length === 0, C.errs.join(' | '));
 await C.ctx.close();
 
