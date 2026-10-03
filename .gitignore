@@ -15,3 +15,5 @@ scratchpad/gegenprobe-*.log
 # Sichtprüfungs-Bilder (01.10.): drei „vorher"-Bilder rutschten mit dem v100-Ship ins Repo — sie entstanden, während
 # dessen Gate lief, und `git add -A` am Ende nahm sie mit
 scratchpad/*.png
+# … und in Unterordnern (wg-v105: `bilder-v105/` hätte `*.png` oben nicht erfasst)
+scratchpad/**/*.png

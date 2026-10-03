@@ -61,11 +61,17 @@ check('A3 Heute ist kurz (≤ 1,6 Bildschirmhöhen)', hoehe <= 844 * 1.6, `${hoe
 // Leere Werkzeuge bleiben unsichtbar eingehängt (LoginShare räumt abgelaufene Freigaben auf, WashCard öffnet ?a=waesche)
 const leer = await A.page.locator('[data-tool-leer]').evaluateAll(els => els.map(e => ({ k: e.getAttribute('data-tool-leer'), sichtbar: e.offsetParent !== null })));
 check('A4 jedes Chip-Werkzeug ist unsichtbar eingehängt (Nebenaufgaben laufen weiter)', TOOLS.every(k => leer.some(x => x.k === k && !x.sichtbar)), JSON.stringify(leer.map(x => x.k)));
-// B: Chip öffnet die Karte
+// B: ein Tipp auf die Kachel tut, was man will (wg-v105; bis v104 schob der Chip eine LEERE Karte ein → zweiter Tipp)
 await A.page.locator('[data-chip="fridge"]').click();
 await A.page.waitForTimeout(400);
-check('B1 Chip „Kühlschrank" öffnet die Karte', (await tools(A.page)).includes('fridge') && !(await chips(A.page)).includes('fridge'));
-check('B2 geöffnete Karte steht direkt unter den Chips', await A.page.evaluate(() => { const c = document.querySelector('[data-testid="tool-chips"]'); const k = document.querySelector('[data-tool="fridge"]'); return !!c && !!k && (c.compareDocumentPosition(k) & Node.DOCUMENT_POSITION_FOLLOWING) > 0; }));
+check('B1 Kachel „Kühlschrank" öffnet direkt das Eingabeblatt, keine leere Karte im Feed',
+  await A.page.locator('.sheet:visible').getByPlaceholder('Was? z. B. Milch').count() === 1 && !(await tools(A.page)).includes('fridge'));
+await A.page.locator('.sheet:visible').getByRole('button', { name: 'Abbrechen' }).first().click(); await A.page.waitForTimeout(300);
+check('B2 Abbrechen: Kachel bleibt, nichts gespeichert', (await chips(A.page)).includes('fridge') && await A.page.locator('.sheet:visible').count() === 0);
+// Karten-Werkzeug (Eingabe in der Karte): Blatt mit der Karte darin
+await A.page.locator('[data-chip="board"]').click(); await A.page.waitForTimeout(400);
+check('B2b Kachel „Ankündigung" öffnet ein Blatt mit der Karte', await A.page.locator('.sheet:visible [data-testid="board-card"]').count() === 1 && !(await tools(A.page)).includes('board'));
+await A.page.locator('.sheet:visible').getByRole('button', { name: 'Abbrechen' }).first().click(); await A.page.waitForTimeout(300);
 check('B3 keine Seitenfehler', A.errs.length === 0, A.errs.join(' | '));
 await A.ctx.close();
 

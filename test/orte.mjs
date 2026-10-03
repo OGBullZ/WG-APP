@@ -101,11 +101,12 @@ check('D2 die Gruppe wurde aufgeklappt und die Karte ist sichtbar', await D_.pag
 check('D3 das Ziel ist hervorgehoben (man sieht, wo man gelandet ist)', await D_.page.locator('[data-testid="deposit-card"].ziel').count() === 1);
 await D_.page.waitForTimeout(2200);
 check('D4 die Hervorhebung verschwindet wieder', await D_.page.locator('.ziel').count() === 0);
-// Sprung in einen normalen Tab, ohne Gruppe
+// Sprung in einen normalen Tab, ohne Gruppe. Die Zähler sind in dieser WG leer → seit wg-v105 öffnet der Sprung wie die
+// Kachel direkt „Zähler ablesen" (vorher: leere Karte eingeblendet und markiert)
 await suche(D_.page, 'zähler');
 await D_.page.locator('[data-testid="search-hit"]').first().click();
 await D_.page.waitForTimeout(1400);
-check('D5 auch ohne Gruppe: Karte sichtbar und hervorgehoben', await D_.page.locator('[data-testid="meter-card"]').isVisible().catch(() => false));
+check('D5 auch ohne Gruppe: leeres Werkzeug öffnet sein Eingabeblatt', await D_.page.locator('.sheet:visible', { hasText: 'Zähler ablesen' }).count() === 1);
 
 // ── F: Einstieg „Was kann die App?" unter Mehr ──
 const F = await open({ tab: 'set' });

@@ -102,13 +102,16 @@ await page.locator('[data-testid="putz-regel-auf"]').click(); await page.waitFor
 check('C4 ⓘ zeigt die Regel', /Wer den Haken setzt/.test(await page.locator('[data-testid="putz-regel"]').innerText().catch(() => '')));
 // wg-v101: „Zuletzt erledigt" — höchstens 4 Zeilen, Abstand statt Datum („gestern" statt „30.9.2026")
 const logZeilen = await page.locator('[data-testid="putz-log-row"]').allInnerTexts();
-// wg-v102: leere Müllabfuhr/Abwesend sind Chips, die Karte erscheint erst auf Tipp (Test-WG hat weder Tonne noch Abwesenheit)
+// leere Müllabfuhr/Abwesend sind Kacheln (wg-v102 Chips → v105 Kacheln; Test-WG hat weder Tonne noch Abwesenheit)
 const chips = await page.locator('[data-testid="putz-chips"] [data-chip]').evaluateAll(b => b.map(x => x.dataset.chip));
-check('C6 ohne Tonne/Abwesenheit: zwei Chips, keine sichtbaren Karten', JSON.stringify(chips) === '["pickup","away"]'
+check('C6 ohne Tonne/Abwesenheit: zwei Kacheln, keine sichtbaren Karten', JSON.stringify(chips) === '["pickup","away"]'
   && !(await page.locator('[data-testid="pickup-card"]').isVisible().catch(() => false)), JSON.stringify(chips));
+// wg-v105: ein Tipp öffnet direkt „Abholtermin"; Abbrechen ändert nichts, die Kachel bleibt
 await page.locator('[data-chip="pickup"]').click(); await page.waitForTimeout(300);
-check('C7 Chip antippen → Müllabfuhr-Karte sichtbar, Chip weg', await page.locator('[data-testid="pickup-card"]').first().isVisible()
-  && await page.locator('[data-chip="pickup"]').count() === 0);
+check('C7 Kachel antippen → Abholtermin-Blatt direkt offen, leere Karte nicht im Feed', await page.locator('.sheet:visible', { hasText: 'Abholtermin' }).count() === 1
+  && !(await page.locator('[data-testid="pickup-card"]').first().isVisible()));
+await page.locator('.sheet:visible').getByRole('button', { name: 'Abbrechen' }).first().click(); await page.waitForTimeout(300);
+check('C7b Abbrechen: Blatt zu, Kachel bleibt', await page.locator('.sheet:visible').count() === 0 && await page.locator('[data-chip="pickup"]').count() === 1);
 // Löschen im Bearbeiten-Fenster (das × je Zeile ist weg) — mit Rückgängig
 const vorher = await page.locator('[data-testid="chore-row"]').count();
 check('C8 kein × mehr an den Aufgaben', await page.locator('[data-testid="chore-row"] .del-btn').count() === 0);

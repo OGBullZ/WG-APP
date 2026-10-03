@@ -68,18 +68,32 @@ async function tippe(page, titel, anker = '') {
   const i = await page.locator('[data-testid="search-hit"]').evaluateAll((els, t) => els.findIndex(e => (e.innerText || '').split('\n').map(s => s.trim()).filter(Boolean).some(zeile => zeile === t)), titel);
   if (i < 0) return false;
   await page.locator('[data-testid="search-hit"]').nth(i).click();
+  // erst das Suchblatt weg — sonst zählte unten „ein Blatt ist offen" schon die schließende Suche (Wettlauf, wg-v105)
+  await page.locator('[data-testid="sb-ort"]').waitFor({ state: 'detached', timeout: 2000 }).catch(() => {});
   /* Warten, bis der Sprung FERTIG ist — nicht pauschal 1,5 s. Fertig heißt: GENAU DIESES Ziel ist sichtbar
      hervorgehoben und im Bild, oder ein Hinweis mit genau diesem Titel steht da. Auf das konkrete Ziel bezogen,
      nicht auf „irgendetwas ist markiert": die Markierung des vorigen Eintrags hält 2,2 s und stünde sonst noch da.
      Tritt beides nicht ein (echter Fehler), läuft die Frist ab und die Prüfung danach entscheidet — die Frist
      ist großzügiger als der Sprung je braucht (340 ms + drei Versuche à 260 ms + Scrollen). */
   if (!anker) { await page.waitForTimeout(500); return true; }   // nur Reiterwechsel, nichts zu markieren
+  // wg-v105: ODER ein Eingabeblatt ist offen — ein leeres Werkzeug öffnet beim Sprung (wie beim Tipp auf die Kachel)
+  // direkt sein Formular, eine Karte zum Markieren gibt es dann nicht
   await page.waitForFunction(([a, t]) => [...document.querySelectorAll(`[data-testid="${a}"].ziel, [data-fold="${a}"].ziel`)]
       .some(e => { const b = e.getBoundingClientRect(); return e.offsetParent !== null && b.top >= 0 && b.top < innerHeight; })
-    || (document.querySelector('[data-testid="sprung-hinweis"]')?.textContent || '').includes(t), [anker, titel], { timeout: 2400 }).catch(() => {});
+    || (document.querySelector('[data-testid="sprung-hinweis"]')?.textContent || '').includes(t)
+    || !!document.querySelector('.overlay .sheet'), [anker, titel], { timeout: 2400 }).catch(() => {});
+  // Blatt offen: bei Karten-Werkzeugen (`blatt: true`) steht die Karte IM Blatt und wird erst beim nächsten Versuch
+  // des Sprungs (260 ms) markiert — so lange abwarten
+  if (await page.locator('.overlay .sheet').count()) await page.waitForTimeout(700);
   await page.waitForTimeout(80);
   return true;
 }
+// Offenes Blatt per Tipp neben das Blatt schließen (alle Overlays schließen so); true = es war eins offen
+const blattZu = async page => {
+  if (!(await page.locator('.overlay .sheet').count())) return false;
+  await page.locator('.overlay').first().click({ position: { x: 12, y: 12 } }); await page.waitForTimeout(300);
+  return true;
+};
 const lage = (page, anker) => page.evaluate(a => {
   const alle = a ? [...document.querySelectorAll(`[data-testid="${a}"], [data-fold="${a}"]`)] : [];
   const el = alle.find(x => x.offsetParent !== null);
@@ -97,9 +111,10 @@ const lage = (page, anker) => page.evaluate(a => {
 const S = await open();
 // Welche Reiter hat diese WG überhaupt? Ein ausgeschaltetes Modul (Abos) hat keinen — dort gilt anderes.
 const vorhanden = await S.page.evaluate(() => [...document.querySelectorAll('.tabbar .tabitem')].length);
-const nichtGefunden = [], falscherReiter = [], stumm = [], ohneGrund = [], landet = [], erklaert = [], modulAus = [];
+const nichtGefunden = [], falscherReiter = [], stumm = [], ohneGrund = [], landet = [], erklaert = [], modulAus = [], blattAuf = [];
 for (const o of ORTE) {
   // jedes Mal von „Heute" aus — sonst prüft man nur das Scrollen auf einer Seite, die schon offen ist
+  await blattZu(S.page);   // ein Blatt vom vorigen Eintrag verdeckte sonst die Suche
   await S.page.evaluate(() => window.dispatchEvent(new CustomEvent('wg-tab', { detail: 'heute' })));
   await S.page.waitForTimeout(200);
   if (!(await tippe(S.page, o.titel, AUS.includes(o.tab) ? 'module-card' : o.anker))) { nichtGefunden.push(o.titel); continue; }
@@ -119,7 +134,11 @@ for (const o of ORTE) {
   if (r.tab !== o.tab) { falscherReiter.push(`${name} → gelandet auf ${r.tab}`); continue; }
   if (o.tab === 'haus' && r.seg !== (o.fold === 'liste' ? 'liste' : 'aus')) { falscherReiter.push(`${name} → Unter-Reiter ${r.seg}`); continue; }
   if (!o.anker) { landet.push(name); continue; }
-  if (r.sichtbar && r.markiert && r.imBild) { landet.push(name); continue; }
+  if (r.sichtbar && r.markiert && r.imBild) { await blattZu(S.page); landet.push(name); continue; }
+  // leeres Werkzeug: das Eingabeblatt ist offen, die Karte (noch) unsichtbar — „ein Tipp tut, was man will" (wg-v105).
+  // Ohne Hinweis darüber: „ist gerade nicht zu sehen" über einem offenen Formular wäre falsch.
+  // (ein Hinweis vom VORIGEN Eintrag steht noch bis 4,5 s — gezählt wird nur einer mit diesem Titel)
+  if (!r.sichtbar && await blattZu(S.page)) { const h = r.hinweis.includes(o.titel); (h ? stumm : blattAuf).push(h ? `${name} Blatt + Hinweis „${r.hinweis}"` : name); continue; }
   // Kein sichtbares Ziel: dann MUSS ein Hinweis mit dem Titel dastehen …
   if (!r.hinweis.includes(o.titel)) { stumm.push(`${name} ${JSON.stringify({ versteckt: r.versteckt, hinweis: r.hinweis.slice(0, 40) })}`); continue; }
   // … und zwar mit dem Grund. Ein Eintrag ohne `wann`, der hier landet, hat einen toten Anker.
@@ -130,21 +149,24 @@ check('S0 jeder Eintrag steht im Inhaltsverzeichnis der Suche', nichtGefunden.le
 check('S1 jeder Treffer führt auf den richtigen Reiter (auch Unter-Reiter „Einkaufsliste")', falscherReiter.length === 0, falscherReiter.slice(0, 4).join(' | '));
 check('S2 kein Sprung endet stumm (Ziel versteckt oder weg, und nichts wird gesagt)', stumm.length === 0, stumm.slice(0, 4).join(' | '));
 check('S3 fehlt eine Karte, nennt der Hinweis den Grund', ohneGrund.length === 0, ohneGrund.slice(0, 3).join(' | '));
-check('S4 die allermeisten landen sichtbar und hervorgehoben', landet.length >= ORTE.length - 6, `${landet.length} von ${ORTE.length} landen · ${erklaert.length} mit Erklärung`);
+check('S4 die allermeisten landen sichtbar (hervorgehoben oder als offenes Eingabeblatt)', landet.length + blattAuf.length >= ORTE.length - 6, `${landet.length} landen + ${blattAuf.length} Blatt von ${ORTE.length} · ${erklaert.length} mit Erklärung`);
+check('S4b leere Werkzeuge öffnen beim Sprung ihr Eingabeblatt (mind. 5)', blattAuf.length >= 5, blattAuf.join(', '));
 // Laut, was die Zahlen bedeuten: eine leere Schleife wäre sonst überall grün
-check('S5 es wurde wirklich jeder Eintrag durchlaufen', landet.length + erklaert.length + modulAus.length + nichtGefunden.length + falscherReiter.length + stumm.length + ohneGrund.length === ORTE.length,
-  `${landet.length} landen + ${erklaert.length} erklärt + ${modulAus.length} Modul aus + ${nichtGefunden.length + falscherReiter.length + stumm.length + ohneGrund.length} Fehler = ${ORTE.length} · ${vorhanden} Reiter`);
+check('S5 es wurde wirklich jeder Eintrag durchlaufen', landet.length + blattAuf.length + erklaert.length + modulAus.length + nichtGefunden.length + falscherReiter.length + stumm.length + ohneGrund.length === ORTE.length,
+  `${landet.length} landen + ${blattAuf.length} Blatt + ${erklaert.length} erklärt + ${modulAus.length} Modul aus + ${nichtGefunden.length + falscherReiter.length + stumm.length + ohneGrund.length} Fehler = ${ORTE.length} · ${vorhanden} Reiter`);
 check('S6 ein Treffer auf ein ausgeschaltetes Modul führt zu dessen Schalter', modulAus.length >= 1, modulAus.join(', '));
 
 // ── C: die Chip-Karten im Einzelnen — der häufigste Fall aus der Messung (9 von 18 Fehlschlägen) ──
 await S.page.evaluate(() => window.dispatchEvent(new CustomEvent('wg-tab', { detail: 'stats' })));
 await S.page.waitForTimeout(300);
 await tippe(S.page, 'Waschmaschine', 'wash-card');
-const wasch = await S.page.evaluate(() => {
-  const sichtbar = [...document.querySelectorAll('[data-testid="wash-card"]')].filter(e => e.offsetParent !== null);
-  return { sichtbar: sichtbar.length, imWerkzeug: !!sichtbar[0]?.closest('[data-tool]'), chipNoch: !!document.querySelector('[data-chip="wash"], [data-chip="wasch"]') };
-});
-check('C1 ein leeres Werkzeug wird beim Sprung geöffnet (nicht die versteckte Kopie markiert)', wasch.sichtbar === 1 && wasch.imWerkzeug, JSON.stringify(wasch));
+// wg-v105: wie der Tipp auf die Kachel — das Timer-Blatt ist direkt offen, nichts Verstecktes wird markiert
+const wasch = await S.page.evaluate(() => ({
+  blatt: (document.querySelector('.overlay .sheet')?.innerText || '').slice(0, 60),
+  markiertVersteckt: [...document.querySelectorAll('[data-testid="wash-card"].ziel')].some(e => e.offsetParent === null),
+  hinweis: document.querySelector('[data-testid="sprung-hinweis"]')?.textContent || '' }));
+check('C1 ein leeres Werkzeug öffnet beim Sprung sein Eingabeblatt (nicht die versteckte Kopie markiert, kein Hinweis)', /Timer starten/i.test(wasch.blatt) && !wasch.markiertVersteckt && !wasch.hinweis, JSON.stringify(wasch));
+await blattZu(S.page);
 
 // ── H: der Hinweis — erscheint, nennt Titel und Grund, ist vorlesbar und verschwindet wieder ──
 await tippe(S.page, 'Reste-Rezepte', 'recipe-card');
@@ -175,7 +197,10 @@ const u1 = await lage(S.page, 'stock-card');
 check('U1 „Vorrat" öffnet die Einkaufsliste und zeigt die Karte', u1.seg === 'liste' && u1.sichtbar && u1.markiert, JSON.stringify(u1));
 await tippe(S.page, 'Miete', 'rent-card');
 const u2 = await lage(S.page, 'rent-card');
-check('U2 von dort zurück: „Miete" schaltet wieder auf die Ausgaben', u2.seg === 'aus' && u2.sichtbar && u2.markiert, JSON.stringify(u2));
+// Miete ist in dieser WG leer → seit wg-v105 öffnet der Sprung das Einrichten-Blatt (wie die Kachel) statt der leeren Karte
+const u2Blatt = /Miete/i.test(   /* i: der Blatt-Titel steht per CSS in Großbuchstaben */await S.page.locator('.overlay .sheet').innerText().catch(() => ''));
+check('U2 von dort zurück: „Miete" schaltet wieder auf die Ausgaben (und öffnet „Miete einrichten")', u2.seg === 'aus' && (u2Blatt || (u2.sichtbar && u2.markiert)), JSON.stringify({ ...u2, u2Blatt }));
+await blattZu(S.page);
 
 /* U3: „Einkaufsliste" — FEST verdrahtet, bewusst NICHT aus der Liste abgeleitet.
    🪤 Die Schleife oben liest auch die ERWARTUNG (Reiter, Unter-Reiter) aus `ORTE`. Bei Einträgen mit Anker ist das

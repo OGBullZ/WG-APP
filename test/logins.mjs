@@ -75,8 +75,8 @@ const card = page => page.locator('.group', { has: page.getByText('Login freigeb
 
 // ── A) Ersteller legt eine Freigabe an ───────────────────────────────────────────
 const A = await device({ me: 'u1' });
-await openTool(A.page, 'login');
-await A.page.getByRole('button', { name: /Login freigeben/ }).click();
+// ohne Freigabe ist „Login teilen" eine Kachel — seit wg-v105 öffnet sie das Formular direkt
+if (!(await openTool(A.page, 'login'))) await A.page.getByRole('button', { name: /Login freigeben/ }).click();
 await A.page.waitForTimeout(300);
 check('A0 Button „Code erzeugen" ist ohne Eingaben gesperrt', await A.page.getByRole('button', { name: 'Code erzeugen' }).isDisabled());
 await A.page.getByLabel('Dienst').fill('Netflix');
@@ -173,8 +173,7 @@ await A.page.waitForTimeout(800);
 check('C1 Ersteller sieht „Tom hat ihn … geöffnet"', /Tom hat ihn um \d\d:\d\d geöffnet/.test(await card(A.page).innerText()));
 
 // Zweite Freigabe mit gemerktem Login (Chip) anlegen und zurückziehen
-await openTool(A.page, 'login');
-await A.page.getByRole('button', { name: /Login freigeben/ }).click();
+if (!(await openTool(A.page, 'login'))) await A.page.getByRole('button', { name: /Login freigeben/ }).click();
 await A.page.waitForTimeout(300);
 await A.page.locator('.sheet').getByRole('button', { name: 'Netflix', exact: true }).click();
 check('C2 Chip füllt gemerkten Login ein', (await A.page.getByLabel('Passwort').inputValue()) === SECRET_P);

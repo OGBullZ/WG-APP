@@ -159,12 +159,13 @@ check('G4 Abhaken räumt „Morgen“ ab, Eintrag pünktlich (late 0)', !g.snooz
 
 // ── H: Waschtimer merkt sich die Dauer je Maschine ──
 await G.tabTo('Heute');
-await openTool(G.page, 'wash');
-await G.page.locator('[data-testid="wash-open"]').click(); await G.page.waitForTimeout(300);
+// wg-v105: ohne laufenden Timer öffnet die Kachel das Timer-Blatt direkt, sonst der Knopf in der Karte
+const washOeffnen = async () => { if (!(await openTool(G.page, 'wash'))) { await G.page.locator('[data-testid="wash-open"]').click(); await G.page.waitForTimeout(300); } };
+await washOeffnen();
 await G.page.locator('.sheet button', { hasText: 'Trockner' }).click();
 await G.page.locator('.sheet button', { hasText: '30 Min.' }).click();
 await G.page.getByRole('button', { name: 'Abbrechen' }).first().click(); await G.page.waitForTimeout(300);
-await G.page.locator('[data-testid="wash-open"]').click(); await G.page.waitForTimeout(300);
+await washOeffnen();
 await G.page.locator('.sheet button', { hasText: 'Waschmaschine' }).click();
 const w1 = await G.page.locator('.sheet button', { hasText: /^Starten/ }).innerText();
 await G.page.locator('.sheet button', { hasText: 'Trockner' }).click();

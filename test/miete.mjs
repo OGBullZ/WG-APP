@@ -47,10 +47,9 @@ async function open(seed, { tab = 'haus', me = 'u1' } = {}) {
 // ── A: einrichten und abhaken (3 Personen, eine sammelt ein) ──
 const A = await open({ users: U3 });
 const { page, data, card, sheet } = A;
-// seit wg-v103 ist die leere Miete ein Chip auf dem Haushalt — echter Weg: erst der Chip, dann „+ Einrichten"
-check('A0 leere Miete erscheint als Chip, nicht als Karte', await page.locator('[data-chip="miete"]').count() === 1 && !(await card.first().isVisible()));
+// leere Miete ist eine Kachel auf dem Haushalt — seit wg-v105 öffnet ein Tipp darauf direkt „Miete einrichten"
+check('A0 leere Miete erscheint als Kachel, nicht als Karte', await page.locator('[data-chip="miete"]').count() === 1 && !(await card.first().isVisible()));
 await page.locator('[data-chip="miete"]').click(); await page.waitForTimeout(300);
-await card.getByRole('button', { name: '+ Einrichten' }).click(); await page.waitForTimeout(300);
 await sheet.getByLabel('Miete gesamt').fill('1200');
 await sheet.locator('#mi-day').fill('3');
 await sheet.getByRole('button', { name: 'Eine Person sammelt' }).click();

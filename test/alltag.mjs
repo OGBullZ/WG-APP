@@ -113,8 +113,7 @@ check('D2 je Gerät nur einmal gemeldet (ein Merker-Schlüssel)', await page.eva
 check('D2b vor 5 Std. fertig → keine Push mehr, aber sichtbar', !pushes.some(p => p.tag === 'wt-w0') && /Spülmaschine ist fertig/.test(await page.locator('[data-testid="wash-card"]').innerText()));
 await page.locator('[data-testid="wash-run"]', { hasText: 'Waschmaschine' }).getByRole('button', { name: 'Ausgeräumt ✓' }).click(); await page.waitForTimeout(400);
 check('D3 „Ausgeräumt" entfernt den Lauf', !(await data()).wt.some(r => r.id === 'w1'));
-await openTool(page, 'wash');
-await page.locator('[data-testid="wash-open"]').click(); await page.waitForTimeout(300);
+if (!(await openTool(page, 'wash'))) { await page.locator('[data-testid="wash-open"]').click(); await page.waitForTimeout(300); }
 await page.locator('.sheet button', { hasText: 'Trockner' }).click();
 await page.locator('.sheet button', { hasText: '30 Min.' }).click();
 await page.locator('.sheet button', { hasText: /^Starten/ }).click(); await page.waitForTimeout(500);
@@ -163,10 +162,8 @@ check('G2 Schuldner sieht „wartet auf Bestätigung"', await page.locator('[dat
 
 // ── H: Müllabfuhr + Kopplung ──
 await tabTo('Putzplan');
-// seit wg-v102: ohne eingetragene Tonne ist die Müllabfuhr ein Chip — erst der Chip, dann „+ Tonne" (echter Weg, zwei Tipps)
-const tonnenChip = page.locator('[data-chip="pickup"]');
-if (await tonnenChip.count()) { await tonnenChip.click(); await page.waitForTimeout(300); }
-await page.getByRole('button', { name: '+ Tonne' }).click(); await page.waitForTimeout(300);
+// seit wg-v105: ohne eingetragene Tonne öffnet die Kachel „Müllabfuhr" das Tonnen-Blatt direkt (ein Tipp)
+if (!(await openTool(page, 'pickup'))) { await page.getByRole('button', { name: '+ Tonne' }).click(); await page.waitForTimeout(300); }
 await page.locator('.sheet button', { hasText: 'Papier' }).click();
 await page.locator('#pk-start').fill(dayAgo(-1));
 await page.locator('.sheet button', { hasText: 'Alle 2 Wochen' }).click();
@@ -181,10 +178,8 @@ check('H2 gekoppelt: „vor jeder 🔵 Papier-Abholung" + heute fällig (Voraben
 check('H3 pk gespeichert', (await data()).pt.find(t => t.id === 't1').pk === 'papier');
 
 // ── I: Abwesenheit ──
-// seit wg-v102 erst der Chip „✈️ Abwesend" (solange nichts eingetragen ist), dann „Ich bin weg" in der Karte
-const wegChip = page.locator('[data-chip="away"]');
-if (await wegChip.count()) { await wegChip.click(); await page.waitForTimeout(300); }
-await page.getByRole('button', { name: 'Ich bin weg', exact: true }).click(); await page.waitForTimeout(300);
+// seit wg-v105 öffnet die Kachel „✈️ Abwesend" das Blatt „Ich bin weg" direkt (solange nichts eingetragen ist)
+if (!(await openTool(page, 'away'))) { await page.getByRole('button', { name: 'Ich bin weg', exact: true }).click(); await page.waitForTimeout(300); }
 await page.locator('.sheet button', { hasText: 'Eintragen' }).click(); await page.waitForTimeout(900);
 d = await data();
 check('I1 Abwesenheit gespeichert + Push', d.aw.some(a => a.userId === 'u1' && a.from === T) && pushes.some(p => /Torben ist weg/.test(p.title)));

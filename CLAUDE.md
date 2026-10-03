@@ -721,6 +721,24 @@ Workflow `bug-hunt` (3 Finder: State/Sync, Datum/Edge, Rechte/Security) → ~45 
 - **Kalender-Sweep auf dem fertigen Stand** (alle 57 Gate-Tests, losgelöst gestartet): 25.10.2026 57/57, 29.03.2027 56/57 — rot nur `miete` C3: die NEUE Vorwarnung für den nächsten Monat zeigt in den letzten 3 Tagen nach dem Bezahlen zu Recht eine Zeile; der Test nahm „gar keine Zeile" an und wäre an jedem 29.–31. rot geworden. Test präzisiert (`2a49ff6`), an 28./29./31.03. geprüft.
 - **Bewusst offen:** Umbuchungen (Sparziel-Einzahlung, Kautions-Anteil) zählen in Monats-/Jahres-/Budget-Summen als Ausgaben — 5 Stellen in App + Server, Kaution ohne Markierung; eigene Runde. Niedrig/akzeptiert: Rechte nur im UI (bewusstes Vertrauensmodell), WG-Code im Query-String von `/api/backup`, Rate-Limit-Knoten je Fantasie-Code, Belegung/Essen außerhalb des Anzeigefensters (jetzt in „Demnächst" sichtbar), „War {Name}" rechnet mit altem `D` (bei 2 Personen gleich), `parseNum` verwirft Minus.
 
+## Werkzeug-Kacheln: ein Tipp tut, was man will (wg-v105, 03.10. — torbe: „home screen mit den aufklappbaren dingern sieht nicht clean genug aus und fühlt sich nicht intuitiv an")
+
+**Was störte (v82–v104):** Chip-Wand in Textbreite (unruhig); ein Tipp schob unten eine **leere** Karte ein, dort musste man ein zweites Mal tippen („+ Eintrag"), der Chip war weg, zurück ging nicht.
+
+**Jetzt (Heute, Haushalt, Putzplan, Übersicht — ein Baustein `WerkzeugGitter` + `useWerkzeuge`):**
+- Abschnitt **„Hinzufügen"**: gleich große Kacheln im Raster (`.wz-gitter`, `auto-fill minmax(76px,1fr)`), Icon in einer Fläche + zweizeilige Beschriftung.
+- **Werkzeuge mit eigenem Eingabeblatt** (13: Status, Wäsche, Kühlschrank, Essen, Belegung, Umfrage, Müllabfuhr, Abwesend, Monatsbudget, Sparziel, Miete, Zähler, Nebenkosten, dazu Login): Kachel → **Blatt direkt offen**. Mechanik: Prop `oeffnen` (Zähler) + `useOeffnen` hängt einen Ref an den **bestehenden** Öffner-Knopf der Karte und klickt ihn — Öffner-Logik bleibt an einer Stelle (viele Öffner brauchen Werte nach einem frühen `return null`). Die Karte bleibt unsichtbar eingehängt (Blätter sind Portale), erst mit Inhalt steht sie im Feed. Abbrechen ändert nichts, die Kachel bleibt.
+- **Werkzeuge mit Eingabe in der Karte** (`blatt: true`: Ankündigung, Kurz Bescheid, Regeln, Kaputt): Kachel → Blatt mit der Karte darin; sobald Inhalt da ist, schließt es und die Karte steht im Feed. Der Blatt-Zustand liegt in `useWerkzeuge` (nicht im Gitter), damit der Feed die Karte solange weglässt.
+- **Such-Sprung** zu einem leeren Werkzeug = Kachel-Tipp → Eingabeblatt offen, kein „ist gerade nicht zu sehen" darüber.
+- Aufgeräumt auf Heute: „· Stand" in „Du bist dran" (ChoreTally) weg; Push-Hinweis bei Sperre kürzer.
+
+**Was schiefging:**
+- 🪤 **Login teilen** war zuerst ein `blatt`-Werkzeug: im Blatt brauchte es doch wieder den zweiten Tipp („Login freigeben"), und sobald die Freigabe existierte, schloss sich das Blatt **samt Einmal-Code** (nur einmal sichtbar!) — `logins.mjs` fiel darauf. Eine Variante „Blatt bleibt bis Fertig" kollidierte mit dem „Fertig" der Karte. Endlösung: Login öffnet sein Formular direkt wie die anderen; weil die Karte beim Wechsel in den Feed **neu eingehängt** wird, merkt sich `lgMadeMerk` (Modulvariable, nur Arbeitsspeicher, nie Storage/Server) den gerade erzeugten Code. `kacheln.mjs` L2 prüft genau das.
+- Ein `Edit` scheiterte („Datei seit dem Lesen geändert"), die zwei folgenden griffen trotzdem → halber Umbau (Gitter-Körper sprach schon `wz.…`, Kopf noch alt). Erst per Grep gefunden; nach einem gescheiterten Edit in einer Serie immer den Stand prüfen.
+- Neun Bestandstests gingen noch den Zwei-Tipp-Weg (Kachel, dann „+ Tonne" usw.) → `openTool` gibt jetzt zurück, ob eine Kachel getippt wurde; nur sonst wird der Öffner der Karte getippt.
+
+**Tests:** neu `test/kacheln.mjs` (Gate + CI): Raster, Blatt direkt, Abbrechen, Speichern → Feed, Karten-Werkzeug im Blatt, Login-Code überlebt, Putzplan. Angepasst: `heute` B1/B2/B2b, `ux` H, `alltag` D/H/I, `extra` C/F/I, `miete` A0, `plus` N, `putz` C6/C7/C7b, `orte` D5, `sprung` (neue Kategorie „Blatt auf", S4b), `logins` A0/C2.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.

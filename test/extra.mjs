@@ -96,14 +96,13 @@ check('B4 bei gleichem Preis kein Sprung-Hinweis', await page.locator('[data-tes
 await page.getByRole('button', { name: 'Abbrechen' }).first().click(); await page.waitForTimeout(300);
 
 // ── C: Gesamtbudget ──
-// seit wg-v103: ohne Budget ein Chip — erst der Chip, dann „Monatsbudget festlegen"
-check('C0 ohne Budget: Chip statt Karte', await page.locator('[data-chip="budget"]').count() === 1);
+// seit wg-v105: ohne Budget eine Kachel — ein Tipp öffnet direkt „Monatsbudget"
+check('C0 ohne Budget: Kachel statt Karte', await page.locator('[data-chip="budget"]').count() === 1);
 // Wiederkehrend ist ein Formular: der Chip öffnet es direkt (kein breiter Knopf mehr, wg-v103)
 await page.locator('[data-chip="wiederkehrend"]').click(); await page.waitForTimeout(400);
 check('C0b Chip „Wiederkehrend" öffnet das Formular direkt', await page.locator('.sheet:visible').count() === 1);
 await page.getByRole('button', { name: 'Abbrechen' }).first().click(); await page.waitForTimeout(300);
 await page.locator('[data-chip="budget"]').click(); await page.waitForTimeout(300);
-await page.locator('[data-testid="total-budget-set"]').click(); await page.waitForTimeout(300);
 await page.getByLabel('Monatsbudget').fill('100');
 await page.locator('.sheet').getByRole('button', { name: 'Speichern' }).click(); await page.waitForTimeout(400);
 d = await data();
@@ -126,11 +125,10 @@ await page.getByRole('button', { name: 'Abbrechen' }).first().click(); await pag
 
 // ── F: Zählerstände + Besuch ──
 await tabTo('Übersicht');
-// seit wg-v103: ohne Zählerstände ein Chip — erst der Chip, dann „+ Ablesen" (danach bleibt die Karte offen)
-check('F0 ohne Zählerstände: Chip statt Karte', await page.locator('[data-chip="zaehler"]').count() === 1);
-await page.locator('[data-chip="zaehler"]').click(); await page.waitForTimeout(300);
+// seit wg-v105: ohne Zählerstände eine Kachel — ein Tipp öffnet direkt „Zähler ablesen", danach steht die Karte im Feed
+check('F0 ohne Zählerstände: Kachel statt Karte', await page.locator('[data-chip="zaehler"]').count() === 1);
 const addRead = async (v, date) => {
-  await page.getByRole('button', { name: '+ Ablesen' }).click(); await page.waitForTimeout(300);
+  if (!(await openTool(page, 'zaehler'))) { await page.getByRole('button', { name: '+ Ablesen' }).click(); await page.waitForTimeout(300); }
   await page.getByLabel('Zählerstand').fill(v);
   await page.getByLabel('Ablesedatum').fill(date);
   await page.locator('.sheet').getByRole('button', { name: 'Speichern' }).click(); await page.waitForTimeout(400);
@@ -183,8 +181,10 @@ await tabTo('Heute');
 check('I1 Begrüßung mit Name', /Torben/.test(await page.locator('[data-testid="today-hello"]').innerText()));
 check('I2 Abholung morgen', /Papier morgen früh/.test(await page.locator('[data-testid="today-pick-papier"]').innerText().catch(() => '')));
 check('I3 Zahlung zum Bestätigen', /Tom hat €5,00 bezahlt – bitte bestätigen/.test(await page.locator('[data-testid="today-pay-pr1"]').innerText().catch(() => '')));
-await openTool(page, 'msg');   // ohne Nachricht der letzten 12 Std. ist „Kurz Bescheid" ein Chip (wg-v82)
+// ohne Nachricht der letzten 12 Std. ist „Kurz Bescheid" eine Kachel; seit wg-v105 öffnet sie ein Blatt mit der Karte
+const msgBlatt = await openTool(page, 'msg');
 check('I4 Ankündigungen, Nachrichten, Reparaturen, Logins als Karten auf Heute', /Eltern/.test(await page.locator('[data-testid="board-card"]').innerText().catch(() => '')) && /Bin gleich da/.test(await page.locator('[data-testid="quick-msgs"]').innerText().catch(() => '')) && await page.locator('[data-testid="repair-card"]').count() === 1);
+if (msgBlatt) { await page.getByRole('button', { name: 'Abbrechen' }).first().click(); await page.waitForTimeout(300); }
 check('I5 Einkauf: 1 offen · bald leer: Kaffee', /1 auf der Einkaufsliste · bald leer: Kaffee/.test(await page.locator('[data-testid="today-shop"]').innerText().catch(() => '')));
 check('I6 Saldo-Zeile', await page.locator('[data-testid="today-bal"]').count() === 1);
 check('I7 Schnell-Eingabe auch hier', await page.locator('[data-testid="quick-expense"]').count() === 1);
