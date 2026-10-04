@@ -35,6 +35,7 @@ jobs:
           node test/fehlersuche_v104.mjs
           node test/kacheln.mjs
           node test/putz_fest.mjs
+          node test/umbuchung.mjs
           node test/logins.mjs
           node test/selfhost.mjs
           node test/startflow.mjs

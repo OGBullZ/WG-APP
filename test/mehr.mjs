@@ -154,6 +154,7 @@ await sheet.getByRole('button', { name: 'Verrechnen' }).click(); await page.wait
 d = await data();
 const kItems = d.hs.filter(i => /Kaution zurück/.test(i.name));
 check('K2 Rückzahlung 900 auf mein Konto → Tom bekommt 40 % = 360 von mir', kItems.length === 1 && kItems[0].price === 360 && kItems[0].paidBy === 'u2' && kItems[0].owedBy === 'u1', JSON.stringify(kItems));
+check('K2b als Umbuchung markiert (zählt nicht als Ausgabe, wg-v107)', kItems[0]?.ub === true);
 check('K3 Kaution als zurück markiert', d.kt.find(k => k.id === 'k').back === T && /zurück: €900,00/.test(await dc.innerText()));
 // Gast-Link
 const gc = page.locator('[data-testid="guest-card"]');
@@ -183,9 +184,11 @@ const rs = page.locator('[data-testid="report-sheet"]');
 // Wenn heute ≤ 5. ist, öffnet der Bericht den Vormonat → einmal vorblättern
 if (new Date().getDate() <= 5) { await rs.getByRole('button', { name: 'Folgemonat' }).click(); await page.waitForTimeout(200); }
 const rt = await rs.locator('[data-testid="report-total"]').innerText();
-check('R1 Monatsbericht: Summe des Monats (ohne Kaution nur heutige Posten)', /Gesamt: €470,00/.test(rt), rt);
+// wg-v107: die Kaution-Rückzahlung (360 €, K2) ist eine Umbuchung und zählt nicht mehr — bis v106 standen hier 470 €
+// (110 + 360) und Torben „Anteil €425" / Tom „bezahlt €420"
+check('R1 Monatsbericht: Summe des Monats ohne die Kaution-Umbuchung', /Gesamt: €110,00/.test(rt), rt);
 const rp = await rs.locator('[data-testid="report-people"]').innerText();
-check('R2 pro Person bezahlt/Anteil', /Torben\s+bezahlt €50,00\s+Anteil €425,00/.test(rp.replace(/\t/g, ' ')) && /Tom\s+bezahlt €420,00\s+Anteil €45,00/.test(rp.replace(/\t/g, ' ')), rp);
+check('R2 pro Person bezahlt/Anteil (ohne Umbuchung)', /Torben\s+bezahlt €50,00\s+Anteil €65,00/.test(rp.replace(/\t/g, ' ')) && /Tom\s+bezahlt €60,00\s+Anteil €45,00/.test(rp.replace(/\t/g, ' ')), rp);
 await rs.getByRole('button', { name: 'Schließen' }).click(); await page.waitForTimeout(200);
 
 // ── B: Wochen-Korb ──

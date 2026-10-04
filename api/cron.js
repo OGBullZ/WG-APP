@@ -13,7 +13,7 @@
 
 const { loadSubs, sendToSubs, DB_BASE } = require('./_push');
 const { hasKey, cronErlaubt, currentCode, writeSnapshot, listSnapshots, pruneSnapshots, berlinParts } = require('./_sv');
-const { taskDueIn, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, maintReminders, loanReminders, rentReminders, birthdayReminders, isoOf, morningPlan } = require('./_wg');
+const { taskDueIn, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, maintReminders, loanReminders, rentReminders, birthdayReminders, isoOf, morningPlan, istUmbuchung } = require('./_wg');
 
 function berlinTodayParts() {
   const fmt = new Intl.DateTimeFormat('en-CA', {
@@ -133,12 +133,13 @@ function prevMonth(y, m) { return m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 
 function monthName(y, m) {
   return new Intl.DateTimeFormat('de-DE', { month: 'long' }).format(new Date(y, m - 1, 1));
 }
-// Summe aller Posten eines Monats (Datum 'YYYY-MM-…', auch rec-Posten mit 'YYYY-MM-01').
+// Summe aller Ausgaben eines Monats (Datum 'YYYY-MM-…', auch rec-Posten mit 'YYYY-MM-01') — ohne Umbuchungen (wg-v107)
 function sumByMonth(items, key) {
-  return items.filter((i) => String(i.date || '').startsWith(key)).reduce((s, i) => s + (Number(i.price) || 0), 0);
+  return items.filter((i) => String(i.date || '').startsWith(key) && !istUmbuchung(i)).reduce((s, i) => s + (Number(i.price) || 0), 0);
 }
+// Offene Ausgaben — ohne Umbuchungen, wie „Offene Ausgaben" im Haushalt
 function sumOpen(items) {
-  return items.filter((i) => !i.settled).reduce((s, i) => s + (Number(i.price) || 0), 0);
+  return items.filter((i) => !i.settled && !istUmbuchung(i)).reduce((s, i) => s + (Number(i.price) || 0), 0);
 }
 
 module.exports = async (req, res) => {
@@ -213,13 +214,16 @@ module.exports = async (req, res) => {
     const openHs = sumOpen(hs);
     const openGi = sumOpen(gi);
     const open = openHs + openGi;
-    if (open > 0.005) {
+    // Nur offene Umbuchungen (z. B. Kaution zurück) ohne Ausgaben: trotzdem erinnern — abgerechnet werden muss es ja
+    const nurUmbuchungen = open <= 0.005 && hs.some((i) => !i.settled && istUmbuchung(i));
+    if (open > 0.005 || nurUmbuchungen) {
       const parts = [];
       if (openHs > 0.005) parts.push(`Haushalt ${fmtPrice(openHs)} €`);
       if (openGi > 0.005) parts.push(`Growbox ${fmtPrice(openGi)} €`);
       messages.push({
         title: 'Abrechnung',
-        body: `💶 Monatsende: ${fmtPrice(open)} € offen (${parts.join(' + ')}) — Zeit abzurechnen`,
+        body: nurUmbuchungen ? '💶 Monatsende: offene Umbuchungen — Zeit abzurechnen'
+          : `💶 Monatsende: ${fmtPrice(open)} € offen (${parts.join(' + ')}) — Zeit abzurechnen`,
         tag: `settle-${monthKeyOf(y, m)}`,
       });
       settleReminder = 1;
@@ -262,7 +266,7 @@ module.exports = async (req, res) => {
     const ymKey = monthKeyOf(y, m);
     const sentMarks = wg.budSent || {};
     for (const b of buds) {
-      const spent = hs.filter((i) => String(i.date || '').startsWith(ymKey) && (b.id === 'total' || i.cat === b.id))   // total = alle Posten
+      const spent = hs.filter((i) => String(i.date || '').startsWith(ymKey) && (b.id === 'total' || i.cat === b.id) && !istUmbuchung(i))   // total = alle Ausgaben (ohne Umbuchungen, wg-v107)
         .reduce((s, i) => s + (Number(i.price) || 0), 0);
       const limit = Number(b.limit);
       const level = spent >= limit ? 100 : spent >= limit * 0.8 ? 80 : 0;
@@ -337,4 +341,6 @@ module.exports = async (req, res) => {
 
 // Für test/cron_grow.mjs — der Handler selbst bleibt der Default-Export (Vercel).
 module.exports.growCycleMessages = growCycleMessages;
+module.exports.sumByMonth = sumByMonth;   // für test/umbuchung.mjs (Umbuchungen zählen nicht, wg-v107)
+module.exports.sumOpen = sumOpen;
 module.exports.GROW_PHASES = GROW_PHASES;

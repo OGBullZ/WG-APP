@@ -751,6 +751,17 @@ Workflow `bug-hunt` (3 Finder: State/Sync, Datum/Edge, Rechte/Security) → ~45 
 - **Was schiefging:** erster Testlauf zeigte den Push-Text „ · 🔥 3 pünktlich in Folge" (Serie hing an einem leeren Rotationsteil) → führendes „ · " entfernt. Test-Fehlalarm: Unterzeile steht per CSS in Großbuchstaben („WER?").
 - **Tests:** `test/putz_fest.mjs` (Gate + CI): Rotation, Formular fest, Bearbeiten hin/zurück, Abwesenheit App = Server, Funktionen, Englisch. Gegenprobe `scratchpad/gegenprobe-v106.mjs`.
 
+## Umbuchungen zählen nicht als Ausgaben (wg-v107, 04.10. — torbe: „Umbuchungen nicht als Ausgaben zählen"; offen seit v104)
+
+- **Was ist eine Umbuchung:** Geld, das nur zwischen Personen wandert — Sparziel-Einzahlung (beim Kauf verrechnet), Rückgabe beim Auflösen, „🔑 Kaution zurück: Anteil …", Nebenkosten-„Guthaben-Anteil". Der Sparziel-**Kauf** selbst (owedBy null) bleibt Ausgabe, die Nebenkosten-**Nachzahlung** auch.
+- **Regel an EINER Stelle je Seite:** `istUmbuchung` / `ohneUmbuchung` in wgapp.html (bei `hsAll`) und `istUmbuchung` in `api/_wg.js` — gleich formuliert, beide zusammen ändern. Neue Posten tragen `ub:true` (4 Erzeuger), ältere werden an der Herkunft erkannt (sg + owedBy, Namensanfang „🔑 Kaution zurück", nk + „Guthaben-Anteil") — keine Datenmigration nötig.
+- **Raus aus:** Übersicht (Monat, Trend, Vormonat, Kategorien, Größte Posten, Wer hat bezahlt/getragen → `all`), Jahresrückblick + druckbare Jahresübersicht, Monatsbericht, Monatsbudget-Karte, Haushalt „Offene Ausgaben"/„Ausgelegt"/50-50-Hinweis, „Deine Bilanz" (Haushalt-Anteil), „Wer streckt vor", Server: Digest (`sumByMonth`), Monatsende (`sumOpen`), Budget-Warnungen, Jahresrückblick-Push.
+- **Drin bleibt:** jede Saldo-Rechnung (`myBalance`, `bals.net`, Server-`net`) — wer schuldet wem ändert sich nicht.
+- **Gefunden beim Testen (nicht in der v104-Liste):** „Deine Bilanz" zeigte unter „Haushalt €X" den Kostenanteil MIT Umbuchungen. Und waren NUR Umbuchungen offen (Kosten 0), zeigte der Kreis 🎉, obwohl ich schulde → Bedingung `myCost>0.01 || totalNet<-0.01`. Server-Monatsende erinnert auch, wenn nur Umbuchungen offen sind („offene Umbuchungen").
+- Liste: Umbuchungen zeigen „↔ Umbuchung" statt „Torben zahlt alles".
+- **Widerlegter Verdacht:** Haushalt-`save`/`add` schreiben `set('hs', items…)` — sieht aus wie die v104-Falle (alter Stand nach Dialog), ist aber synchron im Klick mit dem aktuellen Render → kein Fehler, unverändert.
+- **Tests:** `test/umbuchung.mjs` (Gate + CI): Regel neu/alt, Server-Summen, Budget im echten Cron (+ Gegenstück), Sparziel-Kauf über die Oberfläche, Saldo unverändert, alle Summen-Stellen, Bericht (am 1.–5. öffnet er den Vormonat → Test blättert vor), nur-Umbuchung-Lage mit/ohne Gerät. `mehr` K2b: Kaution trägt `ub`. Gegenprobe `scratchpad/gegenprobe-v107.mjs` (13 Stellen).
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.

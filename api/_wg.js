@@ -218,11 +218,17 @@ function repairReminders(wg, todayIso) {
     .map(({ r, d }) => ({ title: 'Reparatur', body: `🔧 „${r.text}" ist seit ${d} Tagen gemeldet — beim Vermieter nachhaken`, tag: `rp-${r.id}-${d}` }));
 }
 
-// 1. Januar: Rückblick aufs Vorjahr (Ausgaben inkl. Archiv, teuerster Monat, Putz-Punkte)
+// Umbuchung (wg-v107): Geld, das nur zwischen Personen wandert (Sparziel-Einzahlung/-Rückgabe, Kaution zurück,
+// Nebenkosten-Guthaben) — zählt für die Abrechnung, aber in keine Ausgaben-Summe. Gleiche Regel wie `istUmbuchung`
+// in wgapp.html (beide zusammen ändern): neue Posten `ub:true`, ältere an der Herkunft erkannt.
+const istUmbuchung = (i) => !!i && (i.ub === true || (!!i.sg && !!i.owedBy)
+  || (typeof i.name === 'string' && (i.name.startsWith('🔑 Kaution zurück') || (!!i.nk && i.name.includes('Guthaben-Anteil')))));
+
+// 1. Januar: Rückblick aufs Vorjahr (Ausgaben inkl. Archiv, teuerster Monat, Putz-Punkte) — ohne Umbuchungen
 function yearReview(wg, year) {
   const ys = String(year);
   const arc = toArray(wg.arc).filter((a) => a.src === 'hs' || a.src === 'gi');
-  const items = [...toArray(wg.hs), ...toArray(wg.gi), ...arc].filter((i) => String(i.date || '').startsWith(ys));
+  const items = [...toArray(wg.hs), ...toArray(wg.gi), ...arc].filter((i) => String(i.date || '').startsWith(ys) && !istUmbuchung(i));
   const pl = toArray(wg.pl).filter((l) => String(l.date || '').startsWith(ys));
   if (!items.length && !pl.length) return null;
   const months = Array.from({ length: 12 }, (_, m) => items.filter((i) => Number(String(i.date).slice(5, 7)) === m + 1)
@@ -345,4 +351,4 @@ function eveningPlan(msgs, todayIso) {
   };
 }
 
-module.exports = { toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, maintReminders, loanReminders, gebDatum, birthdayReminders, guestView, addMonthsIso, rentReminders, rentDueIso, buildIcs, icsText, icsFold, PICK_KINDS, bundleMessages, morningPlan, eveningPlan };
+module.exports = { toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, istUmbuchung, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, maintReminders, loanReminders, gebDatum, birthdayReminders, guestView, addMonthsIso, rentReminders, rentDueIso, buildIcs, icsText, icsFold, PICK_KINDS, bundleMessages, morningPlan, eveningPlan };
