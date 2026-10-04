@@ -739,6 +739,18 @@ Workflow `bug-hunt` (3 Finder: State/Sync, Datum/Edge, Rechte/Security) → ~45 
 
 **Tests:** neu `test/kacheln.mjs` (Gate + CI): Raster, Blatt direkt, Abbrechen, Speichern → Feed, Karten-Werkzeug im Blatt, Login-Code überlebt, Putzplan. Angepasst: `heute` B1/B2/B2b, `ux` H, `alltag` D/H/I, `extra` C/F/I, `miete` A0, `plus` N, `putz` C6/C7/C7b, `orte` D5, `sprung` (neue Kategorie „Blatt auf", S4b), `logins` A0/C2.
 
+## Putzplan: wechselt es? + feste Aufgaben (wg-v106, 04.10. — torbe: „prüfen ob gewechselt wird, es steht halt ‚du alle 3 tage' schlecht formuliert" · „individuelle sachen … die nur eine person erledigt, wie bei tom alle 7 tage Boden Wischen")
+
+- **Wechselt es?** Ja — geprüft über den echten Haken (`test/putz_fest.mjs` R): Torben hakt ab → Tom dran; hakt Torben Toms Runde ab (2 : 0), bleibt Tom dran (holt auf, Fairness-Regel aus v59). Das Problem war nur die Zeile **„Du · alle 3 Tage"** — las sich wie „du machst das immer".
+- **Neue Zeile:** „**Du, danach Tom** · alle 3 Tage" / „Tom, danach **wieder** Tom" (holt auf) / „**Nur Tom** · wöchentlich". Das „danach" rechnet `choreDanach` = dieselbe Rechnung wie beim Abhaken mit einem gedachten Eintrag des Eingeteilten von heute — keine zweite Herleitung.
+- **Feste Aufgabe:** Feld `fix` (userId) an der Aufgabe. Formular, letzter Schritt „Wer macht's?": `🔁 Abwechselnd` (dann „Wer fängt an?") oder `👤 Nur eine Person` (dann „Wer?"). `choreFix(t, users)` gilt nur, solange es die Person gibt (Auszug → rotiert wieder).
+  - Abhaken: bleibt bei `fix`, egal wer hakt (Gutschrift geht trotzdem an den, der hakt). Push ohne „du bist dran/holt auf".
+  - **Abwesenheit:** feste Aufgaben werden NICHT an den Anwesenden umverteilt — App (`geht` im Umverteil-Effekt) **und Server** (`taskWho` in `api/_wg.js`, eigene Kopie der Regel — [[Doppelte Herleitung]]). Server nimmt `assignee`, nicht `fix`: hat jemand eine feste Aufgabe übernommen, zeigt die App ihn als dran.
+  - Mitbewohner-Wechsel: `fix` geht mit `assignee` an die neue Person.
+  - Bearbeiten: neue/geänderte feste Person ist sofort dran; sonst gilt die v104-Regel (Zuteilung nur bei echter Änderung).
+- **Was schiefging:** erster Testlauf zeigte den Push-Text „ · 🔥 3 pünktlich in Folge" (Serie hing an einem leeren Rotationsteil) → führendes „ · " entfernt. Test-Fehlalarm: Unterzeile steht per CSS in Großbuchstaben („WER?").
+- **Tests:** `test/putz_fest.mjs` (Gate + CI): Rotation, Formular fest, Bearbeiten hin/zurück, Abwesenheit App = Server, Funktionen, Englisch. Gegenprobe `scratchpad/gegenprobe-v106.mjs`.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.

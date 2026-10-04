@@ -34,6 +34,7 @@ jobs:
           node test/sync_robust.mjs
           node test/fehlersuche_v104.mjs
           node test/kacheln.mjs
+          node test/putz_fest.mjs
           node test/logins.mjs
           node test/selfhost.mjs
           node test/startflow.mjs

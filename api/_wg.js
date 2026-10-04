@@ -36,11 +36,14 @@ function taskDueIn(t, wg, todayIso) {
   if (!t.lastDone) return 0;
   return daysBetween(todayIso, shiftIso(t.lastDone, t.interval || 7));
 }
-// Wer macht es wirklich? Abwesende geben an den ab, der da ist (wie die Umverteilung in der App)
+// Wer macht es wirklich? Abwesende geben an den ab, der da ist (wie die Umverteilung in der App).
+// Feste Aufgaben (`fix`, wg-v106) gibt niemand ab — wie `choreFix` + Umverteilung in der App. Es zählt trotzdem
+// `assignee` (nicht `fix`): hat jemand eine feste Aufgabe übernommen, zeigt auch die App ihn als dran.
 function taskWho(t, wg, todayIso) {
   const users = toArray(wg.users);
   const u = users.find((x) => x.id === t.assignee);
-  if (u && isAway(wg, u.id, todayIso)) { const o = users.find((x) => x.id !== u.id && !isAway(wg, x.id, todayIso)); if (o) return o; }
+  const fest = !!t.fix && users.some((x) => x.id === t.fix);
+  if (u && !fest && isAway(wg, u.id, todayIso)) { const o = users.find((x) => x.id !== u.id && !isAway(wg, x.id, todayIso)); if (o) return o; }
   return u || null;
 }
 const ptsOf = (l, byId) => { const p = Number(l.pts || (byId[l.taskId] && byId[l.taskId].pts)); return [1, 2, 3].includes(p) ? p : 2; };
