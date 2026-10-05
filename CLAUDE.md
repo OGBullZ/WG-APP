@@ -761,6 +761,7 @@ Workflow `bug-hunt` (3 Finder: State/Sync, Datum/Edge, Rechte/Security) → ~45 
 - Liste: Umbuchungen zeigen „↔ Umbuchung" statt „Torben zahlt alles".
 - **Widerlegter Verdacht:** Haushalt-`save`/`add` schreiben `set('hs', items…)` — sieht aus wie die v104-Falle (alter Stand nach Dialog), ist aber synchron im Klick mit dem aktuellen Render → kein Fehler, unverändert.
 - **Tests:** `test/umbuchung.mjs` (Gate + CI): Regel neu/alt, Server-Summen, Budget im echten Cron (+ Gegenstück), Sparziel-Kauf über die Oberfläche, Saldo unverändert, alle Summen-Stellen, Bericht (am 1.–5. öffnet er den Vormonat → Test blättert vor), nur-Umbuchung-Lage mit/ohne Gerät. `mehr` K2b: Kaution trägt `ub`. Gegenprobe `scratchpad/gegenprobe-v107.mjs` (13 Stellen).
+- **Kalender-Sweep (05.10.)** der neuen/geänderten Tests v105–v107 (`kacheln`, `putz_fest`, `umbuchung`, `mehr`, `backup_api`) mit `scratchpad/sweep-neu-v107.ps1` an 15.10., 31.10., 01.11., 31.12., 01.01., 28./29.03.2027 (Sommerzeit), 29.02.2028: **40/40 grün**. Probe, dass die Uhr greift: `umbuchung` am 01.01.2027 meldet „Jahresrückblick 2027" (Node) und „Januar 2027" (Browser).
 
 ## Live & Deploy
 
