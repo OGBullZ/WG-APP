@@ -52,6 +52,10 @@ check('S2 Regel: alte Sparziel-Einzahlung (sg + owedBy) ja, der Kauf selbst (sg,
 check('S3 Regel: alte Kaution zurück ja; Nebenkosten-Guthaben ja, Nachzahlung nein',
   iu({ name: '🔑 Kaution zurück: Anteil Tom', owedBy: 'u1' }) && iu({ name: 'NK 2025 – Guthaben-Anteil Tom', nk: true, owedBy: 'u2' })
   && !iu({ name: 'NK 2025 – Nachzahlung (Tom)', nk: true, owedBy: 'u2' }));
+// wg-v108: der Sparziel-KAUF trägt `ub:false` — wird er bearbeitet („Tom zahlt alles" → owedBy gesetzt), darf ihn die
+// Herkunfts-Heuristik (sg + owedBy) NICHT zur Umbuchung machen, sonst fiele eine echte Ausgabe aus allen Summen
+check('S3b Regel: Kauf mit ub:false bleibt Ausgabe, auch mit owedBy (nach dem Bearbeiten); gleiche Posten ohne ub:false nicht',
+  !iu({ name: '🐷 Sofa', sg: 'g', owedBy: 'u1', ub: false }) && iu({ name: '🐷 Sofa: Einzahlung Tom', sg: 'g', owedBy: 'u1' }));
 const hsS = [
   { id: 'a', name: 'Pizza', price: 20, paidBy: 'u1', date: T, settled: false },
   { id: 'b', name: '🐷 Sofa: Einzahlung Tom', price: 40, paidBy: 'u2', owedBy: 'u1', sg: 'g', date: T, settled: false },
@@ -118,7 +122,17 @@ await sv.getByRole('button', { name: 'Gekauft', exact: true }).click(); await pa
 await page.locator('.sheet:visible').getByRole('button', { name: 'Als Ausgabe eintragen' }).click(); await page.waitForTimeout(600);
 const d = await data();
 const kauf = d.hs.find(i => i.name === '🐷 Staubsauger'), einz = d.hs.find(i => /Einzahlung Tom/.test(i.name));
-check('U1 Kauf als Ausgabe, Einzahlung als Umbuchung (ub:true) verbucht', !!kauf && !kauf.ub && !!einz && einz.ub === true, JSON.stringify({ kauf, einz }));
+check('U1 Kauf als Ausgabe (ub:false), Einzahlung als Umbuchung (ub:true) verbucht', !!kauf && kauf.ub === false && !!einz && einz.ub === true, JSON.stringify({ kauf, einz }));
+// App-Regel gleich wie Server-Regel: dieselben Fälle in der Seite ausführen (zwei Kopien derselben Regel → gemeinsam prüfen)
+const appRegel = await page.evaluate(() => ({
+  kaufEdit: istUmbuchung({ name: '🐷 Sofa', sg: 'g', owedBy: 'u1', ub: false }),
+  einzAlt: istUmbuchung({ name: '🐷 Sofa: Einzahlung Tom', sg: 'g', owedBy: 'u1' }),
+  kautionAlt: istUmbuchung({ name: '🔑 Kaution zurück: Anteil Tom', owedBy: 'u1' }),
+  nkGuthaben: istUmbuchung({ name: 'NK – Guthaben-Anteil Tom', nk: true, owedBy: 'u2' }),
+  nkNachzahlung: istUmbuchung({ name: 'NK – Nachzahlung (Tom)', nk: true, owedBy: 'u2' }),
+}));
+check('U1b App-Regel = Server-Regel (Kauf-Edit nein, alte Einzahlung/Kaution/NK-Guthaben ja, Nachzahlung nein)',
+  appRegel.kaufEdit === false && appRegel.einzAlt && appRegel.kautionAlt && appRegel.nkGuthaben && !appRegel.nkNachzahlung, JSON.stringify(appRegel));
 // Saldo: Pizza 20 (Tom 10) + Kauf 100 (Tom 50) − Einzahlung 40 − Kaution 300 → Torben bekommt 10 + 50 − 40 − 300 = −280
 const saldo1 = await saldo();
 check('U2 Saldo rechnet Umbuchungen weiter mit (−280 €: Torben schuldet Tom)', Math.abs(saldo1 - (-280)) < 0.01 && Math.abs(saldo0 - (-290)) < 0.01, `${saldo0} → ${saldo1}`);
@@ -178,6 +192,37 @@ async function lage(me) {
 const mitGeraet = await lage('u1'), ohneGeraet = await lage(null);
 check('U8 nur Umbuchung offen: „Deine Bilanz" zeigt „ich schulde €300" statt 🎉', /ich schulde/i.test(mitGeraet.txt) && /300/.test(mitGeraet.txt) && !/🎉/.test(mitGeraet.txt), mitGeraet.txt.slice(0, 120));
 check('U9 ohne Gerät: große Zahl „Offene Ausgaben" €0,00 (die Kaution ist keine Ausgabe)', /Offene Ausgaben/i.test(ohneGeraet.txt) && /^€0,00/.test(ohneGeraet.gross), ohneGeraet.gross);
+
+// ── Abrechnen, wenn NUR eine Umbuchung offen ist (Kaution beim Auszug) — wg-v108: Push und Eintrag sagten „€0,00" ──
+{
+  const c = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+  await c.routeWebSocket(/./, () => {});
+  const p = await c.newPage();
+  const pushes = [], fehler = [];
+  p.on('pageerror', e => fehler.push(e.message));
+  await p.route('**/*', r => { const u = r.request().url(); if (u.includes('/api/notify')) { pushes.push(JSON.parse(r.request().postData() || '{}')); return r.fulfill({ status: 200, body: '{}' }); } return /firebasedatabase|firebaseio|vercel|googleapis/.test(u) ? r.abort() : r.continue(); });
+  await p.route(/firebase-(app|database)-compat[-\d.]*\.js/, r => r.fulfill({ status: 200, contentType: 'application/javascript', body: /firebase-app-compat/.test(r.request().url()) ? STUB : '' }));
+  await p.addInitScript(([s, t]) => {
+    window.__wgSeed = s;
+    localStorage.setItem('wg_code', JSON.stringify('TEST-LOKAL-UMB3'));
+    localStorage.setItem('wg_me', JSON.stringify('u2'));   // Tom hat 300 € Kaution-Anteil ausgelegt, Torben schuldet sie → Tom ist Gläubiger und rechnet ab
+    localStorage.setItem('wg_start_shown', JSON.stringify(t));
+    localStorage.setItem('wg_tab', JSON.stringify('haus'));
+    localStorage.setItem('wg_push_nudge', JSON.stringify({ until: Date.now() + 864e5 * 30 }));
+  }, [{ users: U, hs: { k: { id: 'k', name: '🔑 Kaution zurück: Anteil Tom', price: 300, paidBy: 'u2', owedBy: 'u1', cat: 'fix', ub: true, date: T, settled: false } } }, T]);
+  await p.goto('http://localhost:8099/wgapp.html', { waitUntil: 'domcontentloaded' });
+  await p.locator('.tabbar').waitFor({ timeout: 30000 });
+  await p.evaluate(() => window.__wg.fire());
+  await p.waitForTimeout(1300);
+  await p.getByRole('button', { name: /Alles abrechnen/ }).click(); await p.waitForTimeout(800);
+  const dd = await p.evaluate(() => JSON.parse(localStorage.getItem('wg_data')));
+  const rec = (dd.stl || []).find(s => s.mod === 'hs');
+  const settlePush = pushes.find(x => /abgerechnet/.test(x.title || ''));
+  check('U11 nur Umbuchung offen → Abrechnen: Eintrag nennt €300 statt €0 (total = Ausgleichsbetrag)', !!rec && rec.total === 300 && rec.amount === 300 && rec.n === 1, JSON.stringify(rec));
+  check('U12 … und die Push sagt „€300,00", nicht „€0,00"', !!settlePush && /300,00/.test(settlePush.body || '') && !/€0,00/.test(settlePush.body || ''), JSON.stringify(settlePush));
+  check('Z3 kein Write mit undefined / keine Seitenfehler (Abrechnen)', await p.evaluate(() => window.__wg.undefWuerfe || 0) === 0 && fehler.length === 0, fehler.join(' | '));
+  await c.close();
+}
 await browser.close();
 
 for (const p of pass) console.log('✓ ' + p);

@@ -221,8 +221,8 @@ function repairReminders(wg, todayIso) {
 // Umbuchung (wg-v107): Geld, das nur zwischen Personen wandert (Sparziel-Einzahlung/-Rückgabe, Kaution zurück,
 // Nebenkosten-Guthaben) — zählt für die Abrechnung, aber in keine Ausgaben-Summe. Gleiche Regel wie `istUmbuchung`
 // in wgapp.html (beide zusammen ändern): neue Posten `ub:true`, ältere an der Herkunft erkannt.
-const istUmbuchung = (i) => !!i && (i.ub === true || (!!i.sg && !!i.owedBy)
-  || (typeof i.name === 'string' && (i.name.startsWith('🔑 Kaution zurück') || (!!i.nk && i.name.includes('Guthaben-Anteil')))));
+const istUmbuchung = (i) => !!i && (i.ub === true || (i.ub !== false && ((!!i.sg && !!i.owedBy)
+  || (typeof i.name === 'string' && (i.name.startsWith('🔑 Kaution zurück') || (!!i.nk && i.name.includes('Guthaben-Anteil')))))));   // ub:false = ausdrücklich Ausgabe (Sparziel-Kauf)
 
 // 1. Januar: Rückblick aufs Vorjahr (Ausgaben inkl. Archiv, teuerster Monat, Putz-Punkte) — ohne Umbuchungen
 function yearReview(wg, year) {

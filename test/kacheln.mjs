@@ -84,6 +84,19 @@ await page.getByRole('button', { name: 'Fertig', exact: true }).click(); await p
 check('L3 „Fertig" schließt, Code ist weg (auch nach erneutem Öffnen des Formulars)', await blatt.count() === 0
   && await (async () => { await page.getByRole('button', { name: /Login freigeben/ }).click(); await page.waitForTimeout(300); const da = await page.locator('[data-testid="lg-code"]').count(); await page.getByRole('button', { name: 'Abbrechen' }).first().click(); await page.waitForTimeout(300); return da === 0; })());
 
+// L4 (wg-v108): der Einmal-Code darf nach einem Reiterwechsel von außen NICHT von selbst wieder aufspringen.
+// Der Merker `lgMadeMerk` ist nur für das Neueinhängen der Karte (Millisekunden) gedacht und verfällt nach 5 s.
+// Vorher blieb er stehen, wenn das Blatt nicht über „Fertig" zuging (z. B. Push-Link wechselt den Reiter).
+await page.getByRole('button', { name: /Login freigeben/ }).click(); await page.waitForTimeout(300);
+await page.getByLabel('Dienst').fill('Disney');
+await page.getByLabel('Passwort').fill('y-geheim-2');
+await page.getByRole('button', { name: 'Code erzeugen' }).click();
+await page.locator('[data-testid="lg-code"]').waitFor({ timeout: 8000 }).catch(() => {});
+await page.evaluate(() => window.dispatchEvent(new CustomEvent('wg-tab', { detail: 'haus' })));   // Blatt bleibt offen, Heute geht weg
+await page.waitForTimeout(5600);
+await page.evaluate(() => window.dispatchEvent(new CustomEvent('wg-tab', { detail: 'heute' }))); await page.waitForTimeout(900);
+check('L4 nach Reiterwechsel von außen springt das Code-Blatt nicht wieder auf', await page.locator('[data-testid="lg-code"]').count() === 0 && await blatt.count() === 0);
+
 // ── P: Putzplan ──
 await page.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).click(); await page.waitForTimeout(600);
 await kachel('pickup').click(); await page.waitForTimeout(400);
@@ -92,6 +105,34 @@ await page.getByRole('button', { name: 'Abbrechen' }).first().click(); await pag
 
 check('Z1 kein Write mit undefined', await page.evaluate(() => window.__wg.undefWuerfe || 0) === 0);
 check('Z2 keine Seitenfehler', errs.length === 0, errs.slice(0, 2).join(' | '));
+
+// ── H: ohne gewählte Person (wg-v108) — vier Kacheln (Status, Belegung, Umfrage, Abwesend) hatten dann keinen Öffner-Knopf:
+// der Tipp tat NICHTS, ohne ein Wort. Jetzt: ein Hinweis, was fehlt. Mit Person öffnet weiter jede Kachel (alle 4 Reiter
+// einzeln: scratchpad/kachel-sonde.mjs). Hier der Kern: Hinweis statt Stille, und kein Blatt.
+{
+  const c = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+  await c.routeWebSocket(/./, () => {});
+  const p = await c.newPage();
+  await p.route('**/*', r => (/firebasedatabase|firebaseio|vercel|googleapis/.test(r.request().url()) ? r.abort() : r.continue()));
+  await p.route(/firebase-(app|database)-compat[-\d.]*\.js/, r => r.fulfill({ status: 200, contentType: 'application/javascript', body: /firebase-app-compat/.test(r.request().url()) ? STUB : '' }));
+  await p.addInitScript(([s, t]) => {
+    window.__wgSeed = s;
+    localStorage.setItem('wg_code', JSON.stringify('TEST-LOKAL-KACHEL-H'));   // bewusst KEIN wg_me
+    localStorage.setItem('wg_start_shown', JSON.stringify(t));
+    localStorage.setItem('wg_tab', JSON.stringify('heute'));
+    localStorage.setItem('wg_push_nudge', JSON.stringify({ until: Date.now() + 864e5 * 30 }));
+  }, [{ users: [{ id: 'u1', name: 'Torben', color: '#38bdf8' }, { id: 'u2', name: 'Tom', color: '#fbbf24' }] }, T]);
+  await p.goto(url, { waitUntil: 'domcontentloaded' });
+  await p.locator('.tabbar').waitFor({ timeout: 30000 });
+  await p.evaluate(() => window.__wg.fire());
+  await p.waitForTimeout(1300);
+  await p.locator('.wz-kachel[data-chip="poll"]').click(); await p.waitForTimeout(500);
+  check('H1 ohne Person: Tipp auf „Umfrage" öffnet kein Blatt …', await p.locator('.overlay .sheet').count() === 0);
+  check('H2 … sondern sagt, was fehlt („Wähle zuerst oben, wer du bist.")', await p.getByText('Wähle zuerst oben, wer du bist.').count() >= 1);
+  await p.locator('.wz-kachel[data-chip="fridge"]').click(); await p.waitForTimeout(500);
+  check('H3 Kachel ohne Personen-Abhängigkeit (Kühlschrank) öffnet trotzdem — kein Hinweis-Dauerfeuer', await p.locator('.overlay .sheet').count() === 1);
+  await c.close();
+}
 await browser.close();
 for (const p of pass) console.log('✓ ' + p);
 for (const f of fail) console.log('FAIL ' + f);
