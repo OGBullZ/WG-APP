@@ -43,7 +43,10 @@ const TABS = argTabs || ['Heute', 'Haushalt', 'Putzplan', 'Übersicht', 'Mehr'];
 const kuerzel = argW === 390 ? '' : `${argW}-`;
 const browser = await chromium.launch();
 for (const theme of ['dark', 'light']) {
-  const ctx = await browser.newContext({ viewport: { width: argW, height: argW > 700 ? 1000 : 844 }, deviceScaleFactor: 2, isMobile: argW < 768, hasTouch: argW < 768, serviceWorkers: 'block' });
+  // --hoch: Fenster 3200 px hoch, Schärfe 1 → die GANZE Seite in einem Bild (die App scrollt in einem inneren Container,
+  // fullPage/Scroll-Folgen zeigten am 07.10. nur den ersten Bildschirm). Zum Hinsehen auf Gesamtwirkung, nicht für Pixeldetails.
+  const hoch = process.argv.includes('--hoch');
+  const ctx = await browser.newContext({ viewport: { width: argW, height: hoch ? 3200 : (argW > 700 ? 1000 : 844) }, deviceScaleFactor: hoch ? 1 : 2, isMobile: argW < 768, hasTouch: argW < 768, serviceWorkers: 'block' });
   await ctx.routeWebSocket(/./, () => {});
   await ctx.route('**/*', r => (/firebasedatabase|firebaseio|vercel|googleapis/.test(r.request().url()) ? r.abort() : r.continue()));
   await ctx.route(/firebase-(app|database)-compat[-\d.]*\.js/, r => r.fulfill({ status: 200, contentType: 'application/javascript', body: /firebase-app-compat/.test(r.request().url()) ? STUB : '' }));

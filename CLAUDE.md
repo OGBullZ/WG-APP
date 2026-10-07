@@ -796,6 +796,18 @@ Nach v108 nicht noch einmal den Diff lesen, sondern den **ganzen Bestand** mit d
 
 **Was nur ihr könnt (Stand 07.10.):** Tom muss am Handy einmal „Wer bist du → Tom" wählen und Benachrichtigungen erlauben (die App zeigt ihm das auf „Heute" samt WhatsApp-Text). Ob der Morgen-Cron und die tägliche Sicherung laufen, zeigt die App selbst: „Mehr → Backup" listet die Server-Sicherungen; der Backup-Wächter meldet sich, wenn die letzte älter als 2 Tage ist. Von hier aus nicht prüfbar: Vercel-Hobby hält Logs nur 1 h, und die Sicherungen liegen hinter dem `BACKUP_KEY`.
 
+## Optische Runde (wg-v110, 07.10. — torbe: „such nach optischen verbesserungen")
+
+**Wie gesucht:** `scratchpad/shot-rundgang.mjs --hoch` (neu: Fenster 390×3200, Schärfe 1 → ganze Seite in EINEM Bild, weil die App in einem inneren Container scrollt) + `scratchpad/zuschnitt.py <bild> 900` (schneidet in lesbare Teile, leeren Rest weg), alle 5 Tabs hell+dunkel angesehen. Sechs Funde, zwei davon waren eigentlich **inhaltlich falsch**, nicht nur unschön:
+1. **Donut „Deine Bilanz" zeigte „✓ alles gut", während Tom mir €27,20 schuldete** — der Zweig kannte nur „ich schulde" und „sonst". Jetzt dritter Zweig `totalNet>0.01` → „€27,20 bekomme ich" (`data-testid="bilanz-bekomme"`); „alles gut" nur bei Saldo 0. Bedingung für den Donut überhaupt: `myCost>0.01 || |totalNet|>0.01`.
+2. **Übersicht „▲ 2063 % vs. Vormonat"** (€3,50 → €75,70) — über 200 % zählt jetzt der Betrag („▲ €72,20 mehr als im Vormonat"); Rückgang kann nie über 100 % liegen, bleibt Prozent.
+3. Rotes ❓-Emoji an jedem fremden Posten (wirkte wie ein Fehler) → ruhiger „?"-Kreis `.frage-ico`.
+4. Abhak-Kreise fast unsichtbar (`var(--sep)` auf Kartenhintergrund) → `.chk-leer` mit `--label3` 45 %.
+5. Putzplan-Chip „IN 1d" im Hellen ohne Hintergrund (inline `rgba(255,255,255,.06)` auf Weiß) → `.due-chip.bald` mit Hell-Override `var(--bg3)`.
+6. Putzplan-Zeile: „·" hing am Zeilenende → Punkt + Rhythmus in einem `nowrap`-Span, bricht gemeinsam um.
+- **Test `test/optik_v110.mjs` (11, im Gate):** Gläubiger/Schuldner/ausgeglichen, Vormonat Betrag/+%/−%/≈, Frage-Kreis + kein ❓, Kreisrand berechnet, Chip-Hintergrund hell. 🪤 Vormonats-Posten liegen am **15. des Vormonats**, nicht „vor 9 Tagen" — im Rundgang-Seed landete Spülmittel nur wegen des 7.10. im Vormonat.
+- 🪤 **Eigener Fehler:** den neuen Test zuerst als `test/optik.mjs` geschrieben — die Datei gab es schon (Optik-Runden v92/v94, im Gate), das Write-Tool hat sie still überschrieben. Per `git checkout` zurückgeholt, neuer Test heißt `optik_v110.mjs`. Vor jedem neuen Testnamen `ls test/` ansehen.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
