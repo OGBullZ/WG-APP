@@ -1,15 +1,18 @@
 /* Ein-Befehl-Deploy: Test-Gate → SW-Version bumpen → commit → push → firebase deploy → Live-Smoke.
    Nutzung:  npm run ship -- "commit message"   (optional: --rules  zum Mit-Deployen der DB-Regeln)
-   Der Test-Gate (split/persist/paybtn) läuft headless gegen einen kurz gestarteten lokalen Server.
+             npm run gate                         (= --nur-gate: CSP + alle Gate-Tests, KEIN Bump/Commit/Deploy — Vorabprüfung)
+   Der Test-Gate läuft headless gegen einen lokalen Server (sichergestellt, s. scripts/testserver.mjs).
    NICHT enthalten: die visuelle Harness (npm run visual) — die braucht Augen, separat ansehen. */
 import { execSync, spawn } from 'child_process';
 import { readFileSync, writeFileSync } from 'fs';
 import { setTimeout as sleep } from 'timers/promises';
+import { testServer } from './testserver.mjs';
 
 const args = process.argv.slice(2);
 const rules = args.includes('--rules');
-const msg = args.filter(a => a !== '--rules').join(' ').trim();
-if (!msg) { console.error('✗ Commit-Message fehlt.  Nutzung: npm run ship -- "fix: ..."'); process.exit(1); }
+const nurGate = args.includes('--nur-gate');   // wg-v110: Gate allein (z. B. um das Gate selbst zu erproben, ohne eine unveränderte App auszuliefern)
+const msg = args.filter(a => a !== '--rules' && a !== '--nur-gate').join(' ').trim();
+if (!msg && !nurGate) { console.error('✗ Commit-Message fehlt.  Nutzung: npm run ship -- "fix: ..."'); process.exit(1); }
 
 const sh = (cmd, opts = {}) => execSync(cmd, { stdio: 'inherit', ...opts });
 const shOut = (cmd) => execSync(cmd, { encoding: 'utf8' }).trim();
@@ -19,21 +22,22 @@ const shOut = (cmd) => execSync(cmd, { encoding: 'utf8' }).trim();
 console.log('▶ 0/6 CSP-Hashes …');
 sh('node scripts/csp-hashes.mjs --write');
 
-// 1) Test-Gate gegen kurzlebigen lokalen Server
+// 1) Test-Gate gegen lokalen Server — sichergestellt statt blind gestartet (wg-v110, Begründung in scripts/testserver.mjs)
 console.log('▶ 1/6 Test-Gate …');
-const server = spawn('python', ['-m', 'http.server', '8099'], { stdio: 'ignore' });
+const ts = testServer(8099);
 let gateOk = false;
 try {
-  await sleep(1600);
-  for (const t of ['test/split.mjs', 'test/datum.mjs', 'test/zahlen.mjs', 'test/persist.mjs', 'test/paybtn.mjs', 'test/archive.mjs', 'test/privat.mjs', 'test/grow.mjs', 'test/cron_grow.mjs', 'test/cron_duel.mjs', 'test/privquota.mjs', 'test/sync.mjs', 'test/sync_robust.mjs', 'test/fehlersuche_v104.mjs', 'test/kacheln.mjs', 'test/putz_fest.mjs', 'test/umbuchung.mjs', 'test/logins.mjs', 'test/selfhost.mjs', 'test/startflow.mjs', 'test/backup_api.mjs', 'test/rotate.mjs', 'test/errlog.mjs', 'test/notify_api.mjs', 'test/bkwatch.mjs', 'test/update.mjs', 'test/putz.mjs', 'test/alltag.mjs', 'test/cron_alltag.mjs', 'test/extra.mjs', 'test/ux.mjs', 'test/upgrade_dist.mjs', 'test/plus.mjs', 'test/mehr.mjs', 'test/onboarding.mjs', 'test/miete.mjs', 'test/gross.mjs', 'test/fair.mjs', 'test/laden.mjs', 'test/english.mjs', 'test/push_diaet.mjs', 'test/neu.mjs', 'test/a11y.mjs', 'test/heute.mjs', 'test/breite.mjs', 'test/komfort.mjs', 'test/geld.mjs', 'test/organisation.mjs', 'test/verzahnung.mjs', 'test/push_versand.mjs', 'test/ruhezeit.mjs', 'test/namen.mjs', 'test/orte.mjs', 'test/optik.mjs', 'test/fuer_andere.mjs', 'test/abgang.mjs', 'test/formular.mjs', 'test/feinschliff.mjs', 'test/sprung.mjs', 'test/csp_hash.mjs']) {
+  console.log(`   Test-Server: ${await ts.serverSicherstellen()}`);
+  for (const t of ['test/testserver.mjs', 'test/split.mjs','test/datum.mjs', 'test/zahlen.mjs', 'test/persist.mjs', 'test/paybtn.mjs', 'test/archive.mjs', 'test/privat.mjs', 'test/grow.mjs', 'test/cron_grow.mjs', 'test/cron_duel.mjs', 'test/privquota.mjs', 'test/sync.mjs', 'test/sync_robust.mjs', 'test/fehlersuche_v104.mjs', 'test/kacheln.mjs', 'test/putz_fest.mjs', 'test/umbuchung.mjs', 'test/logins.mjs', 'test/selfhost.mjs', 'test/startflow.mjs', 'test/backup_api.mjs', 'test/rotate.mjs', 'test/errlog.mjs', 'test/notify_api.mjs', 'test/bkwatch.mjs', 'test/update.mjs', 'test/putz.mjs', 'test/alltag.mjs', 'test/cron_alltag.mjs', 'test/extra.mjs', 'test/ux.mjs', 'test/upgrade_dist.mjs', 'test/plus.mjs', 'test/mehr.mjs', 'test/onboarding.mjs', 'test/miete.mjs', 'test/gross.mjs', 'test/fair.mjs', 'test/laden.mjs', 'test/english.mjs', 'test/push_diaet.mjs', 'test/neu.mjs', 'test/a11y.mjs', 'test/heute.mjs', 'test/breite.mjs', 'test/komfort.mjs', 'test/geld.mjs', 'test/organisation.mjs', 'test/verzahnung.mjs', 'test/push_versand.mjs', 'test/ruhezeit.mjs', 'test/namen.mjs', 'test/orte.mjs', 'test/optik.mjs', 'test/fuer_andere.mjs', 'test/abgang.mjs', 'test/formular.mjs', 'test/feinschliff.mjs', 'test/sprung.mjs', 'test/csp_hash.mjs']) {
     console.log('   • ' + t);
-    sh(`node ${t}`);
+    await ts.mitServer(() => sh(`node ${t}`));   // Server weg → neu starten + Test einmal wiederholen; echter Testfehler bleibt rot
   }
   gateOk = true;
 } finally {
-  try { execSync(`taskkill /F /T /PID ${server.pid}`, { stdio: 'ignore' }); } catch { server.kill(); }
+  ts.aufraeumen();   // nur selbst gestartete Server beenden
 }
 if (!gateOk) process.exit(1);
+if (nurGate) { console.log('✓ Gate grün (--nur-gate: kein Bump, kein Commit, kein Deploy)'); process.exit(0); }
 
 // 2) SW-Cache-Version automatisch hochzählen
 console.log('▶ 2/6 SW-Version bumpen …');

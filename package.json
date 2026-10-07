@@ -7,7 +7,9 @@
     "serve": "python -m http.server 8099",
     "test": "node test/split.mjs",
     "visual": "node test/visual.mjs",
-    "ship": "node scripts/ship.mjs"
+    "ship": "node scripts/ship.mjs",
+    "gate": "node scripts/ship.mjs --nur-gate",
+    "betrieb": "pwsh -NoProfile -File scratchpad/betrieb-check.ps1"
   },
   "repository": {
     "type": "git",
