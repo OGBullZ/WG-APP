@@ -4663,7 +4663,10 @@ function CostsCard({ oeffnen } = {}) {
   const [a, b] = users;
   const save = () => {
     const amt = parseNum(f.amount); if (!(amt>0)) return;
-    const label = `${(NK_KINDS.find(k=>k[0]===f.kind)||['',''])[1]} ${f.year}`;
+    // wg-v109: Jahr nur aus Ziffern (Feld filtert schon); leer → ohne Jahr statt „⚡ Strom " mit hängendem Leerschritt.
+    // Rein kosmetisch am gespeicherten Namen und im Browser unsichtbar (HTML fasst Leerraum zusammen) → bewusst ohne Test:
+    // die Gegenprobe „Leerschritt zurück" bleibt grün, richtet aber keinen sichtbaren Schaden an.
+    const label = `${(NK_KINDS.find(k=>k[0]===f.kind)||['',''])[1]}${f.year ? ' ' + f.year : ''}`;
     const shares = nkShares(amt);
     const items = [];
     if (!f.credit) users.forEach(u=>{ if (shares[u.id]>0) items.push(hsItem({ name:`${label} – Nachzahlung (${u.name})`, price:shares[u.id], paidBy:f.who, owedBy:u.id, cat:'fix', nk:true })); });
@@ -4696,7 +4699,7 @@ function CostsCard({ oeffnen } = {}) {
       <MiniSheet open={!!f} onClose={()=>setF(null)} title={TT("Nebenkosten verteilen")} color="var(--sky)">
         {f && <>
           <div style={{display:'flex',flexWrap:'wrap',gap:6}}>{NK_KINDS.map(([k,l])=><button key={k} type="button" style={chipSt(f.kind===k)} onClick={()=>setF({...f,kind:k})}>{l}</button>)}</div>
-          <input className="field" inputMode="numeric" maxLength={4} aria-label={TT("Abrechnungsjahr")} value={f.year} onChange={e=>setF({...f,year:e.target.value})}/>
+          <input className="field" inputMode="numeric" maxLength={4} aria-label={TT("Abrechnungsjahr")} value={f.year} onChange={e=>setF({...f,year:e.target.value.replace(/\D/g,'').slice(0,4)})}/>
           <div style={{display:'flex',gap:6}}>
             <button type="button" style={{...chipSt(!f.credit),flex:1}} onClick={()=>setF({...f,credit:false})}>{TT("Nachzahlung")}</button>
             <button type="button" style={{...chipSt(f.credit),flex:1}} onClick={()=>setF({...f,credit:true})}>{TT("Guthaben")}</button>

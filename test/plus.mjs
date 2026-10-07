@@ -221,6 +221,13 @@ await sheet.getByLabel('Betrag der Abrechnung').fill('300');
 await sheet.locator('#nk-share').fill('60');
 const np = await sheet.locator('[data-testid="nk-preview"]').innerText().catch(() => '');
 check('N1 Vorschau nach Anteil 60/40', /Torben €180,00 · Tom €120,00/.test(np), np);
+// wg-v109 (Affen-Lauf): das Jahr-Feld nahm beliebigen Text an → Posten hießen „⚡ Strom NaN – Nachzahlung". Jetzt nur Ziffern, max. 4.
+// ZEICHENWEISE tippen, nicht `fill`: fill setzt den ganzen Text auf einmal, und maxLength=4 kappt ihn dabei auf „x20y" noch VOR
+// dem Ziffernfilter → „20" (erster Lauf rot; die App war richtig, der Test tippte unmenschlich). Ein Mensch tippt Zeichen für Zeichen.
+const jahrFeld = sheet.getByLabel('Abrechnungsjahr');
+await jahrFeld.fill(''); await jahrFeld.pressSequentially('x20y24z9');
+const jahrWert = await jahrFeld.inputValue();
+check('N1b Abrechnungsjahr nimmt nur Ziffern (max. 4): „x20y24z9" getippt → 2024', jahrWert === '2024', `Wert: „${jahrWert}"`);
 await sheet.getByRole('button', { name: 'Verteilen' }).click(); await page.waitForTimeout(500);
 d = await data();
 let nk = d.hs.filter(i => i.nk);
