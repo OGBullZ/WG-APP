@@ -41,7 +41,8 @@ if (f > 0 && process.argv[f + 1]) {
 // alle TT("…")-Schlüssel aus dem Quelltext gegen das Wörterbuch halten
 if (process.argv.includes('--luecken')) {
   const jsx = html.slice(html.indexOf('<script type="text/jsx-src"'));
-  const keys = new Set([...jsx.matchAll(/\bTT\("((?:[^"\\]|\\.)*)"/g)].map(x => JSON.parse('"' + x[1] + '"')));
+  // TTn (wg-v111, Sätze mit Element-Platzhaltern) mitzählen — sonst wären dessen Schlüssel für diese Prüfung unsichtbar
+  const keys = new Set([...jsx.matchAll(/\bTTn?\("((?:[^"\\]|\\.)*)"/g)].map(x => JSON.parse('"' + x[1] + '"')));
   const offen = [...keys].filter(k => dict[k] === undefined).sort((a, b) => a.localeCompare(b, 'de'));
   console.log(JSON.stringify(offen, null, 1));
   console.error(`${offen.length} von ${keys.size} TT-Schlüsseln ohne Übersetzung`);

@@ -157,7 +157,7 @@ await D1.ctx.close();
 // ohne dass eine Prüfung anschlug — hier beide Seiten abdecken: Quelltext und Wörterbuch.
 const quelle = readFileSync(new URL('../wgapp.html', import.meta.url), 'utf8');
 const jsxTeil = quelle.slice(quelle.indexOf('<script type="text/jsx-src"'));
-const ttEntities = [...jsxTeil.matchAll(/\bTT\("((?:[^"\\]|\\.)*)"/g)].map(m => m[1]).filter(k => /&[a-zA-Z]+;|&#\d+;/.test(k));
+const ttEntities = [...jsxTeil.matchAll(/\bTTn?\("((?:[^"\\]|\\.)*)"/g)]   /* TTn seit wg-v111 */.map(m => m[1]).filter(k => /&[a-zA-Z]+;|&#\d+;/.test(k));
 const dictEntities = Object.entries(DICT).filter(([k, v]) => /&[a-zA-Z]+;|&#\d+;/.test(k) || /&[a-zA-Z]+;|&#\d+;/.test(v)).map(([k]) => k);
 check('E4 keine HTML-Entities in Texten (Quelltext und Wörterbuch)', ttEntities.length === 0 && dictEntities.length === 0,
   [...ttEntities, ...dictEntities].slice(0, 4).join(' | '));
