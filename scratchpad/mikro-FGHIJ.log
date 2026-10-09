@@ -1,0 +1,33 @@
+
+=== F: Leerlauf 4 s auf „Heute" (Tracing: Paint / UpdateLayoutTree) ===
+Heute · wie ausgeliefert: Paint 482 (49 ms) · UpdateLayoutTree 241 (37 ms) · Layout 0
+Heute · ohne .live-dot-Puls: Paint 0 (0 ms) · UpdateLayoutTree 0 (0 ms) · Layout 0
+Heute · ohne live-dot + Aurora + overdue + breathe: Paint 0 (0 ms) · UpdateLayoutTree 0 (0 ms) · Layout 0
+Putzplan · wie ausgeliefert: Paint 482 (26 ms) · UpdateLayoutTree 241 (20 ms) · Layout 0
+Putzplan · ohne .live-dot-Puls: Paint 0 (0 ms) · UpdateLayoutTree 241 (18 ms) · Layout 0
+Putzplan · ohne live-dot + Aurora + overdue + breathe: Paint 0 (0 ms) · UpdateLayoutTree 0 (0 ms) · Layout 0
+
+=== G: Wiederkehr nach „Rückgängig" und Fremd-Änderungen ===
+Rückgängig nach ×: Zeile wieder da: ja · Animationen: rise @btn.rise
+(a) Tom LÖSCHT „Klopapier" (Haushalt offen): Live-Toast „Live aktualisiert — neuer Eintrag vom anderen Gerät" · Animationen: transition:stroke-dasharray @circle | transition:stroke-dashoffset @circle | toastIn @toast | odoRoll @odo-d
+(b) Tom trägt „Bier" ein (Haushalt offen): Live-Toast „Live aktualisiert — neuer Eintrag vom anderen Gerät" · Animationen: transition:stroke-dasharray @circle | transition:stroke-dashoffset @circle | remoteFlash @cell.flash | toastIn @toast | odoRoll @odo-d
+(c) Tom hakt „Küche" ab (Putzplan offen): Live-Toast „Live aktualisiert — neuer Eintrag vom anderen Gerät" · Animationen: transition:width @fair-seg | transition:border-bottom-color @done-btn | transition:border-left-color @done-btn | transition:border-right-color @done-btn | transition:border-top-color @done-btn | assigneeIn @assignee-swap | toastIn @toast
+
+=== H: Heute · „Du bist dran" erledigt ===
+
+## Heute · „Du bist dran" erledigt
+   Animationen: rise @rise (ab 44 ms, 500 ms) | tpDraw @path (ab 44 ms, 450 ms) | tpPart @tp-particle (ab 44 ms, 720 ms) | toastIn @undo-toast.zwei (ab 44 ms, 300 ms)
+   Zeile: aus DOM nach 34 ms
+   Haptik: 30 @29ms
+   Balken: nach 34 ms „🚿 „Bad putzen" erledigt · Torben" Knöpfe=[War Tom, Rückgängig] role/aria-live=null
+   neue Knoten in <body>: {"[object SVGAnimatedString]":1,"tp-particle":7,"undo-toast zwei":1}
+Karte „Du bist dran" danach: WEG (ganze Karte ohne Abgang entfernt)
+
+=== J: Folgezeile beim Abgang (y je Frame) ===
+Haushalt × (.geht): Nachbarzeile „Pizza" bewegt sich in 0 von 61 Frames · größter Sprung 0 px in EINEM Frame bei null ms · Gesamtweg 0 px
+Haushalt × (.geht), Zeile darüber: Nachbarzeile „Rewe" bewegt sich in 2 von 60 Frames · größter Sprung 67 px in EINEM Frame bei 482 ms · Gesamtweg -68 px
+Einkauf abhaken (.sl-leaving): Nachbarzeile „Kaffee" bewegt sich in 1 von 61 Frames · größter Sprung 84 px in EINEM Frame bei 651 ms · Gesamtweg 84 px
+
+=== I: Abhak-Kreise Einkauf (inline --sep) vs. Ausgaben (.chk-leer) ===
+dark: Ausgaben-Kreis Rand color(srgb 0.94902 0.964706 0.952941 / 0.278824) · Einkauf-Kreis Rand rgba(255, 255, 255, 0.08)
+light: Ausgaben-Kreis Rand color(srgb 0.0431373 0.082353 0.0627451 / 0.296471) · Einkauf-Kreis Rand rgba(0, 0, 0, 0.09)

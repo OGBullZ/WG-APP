@@ -1,0 +1,126 @@
+
+=== B: Gesten normal ===
+
+## Haushalt · Posten abhaken (abgerechnet)
+   Animationen: transition:stroke-dasharray @circle (ab 35 ms, 800 ms) | transition:stroke-dashoffset @circle (ab 35 ms, 800 ms) | rise @rise (ab 35 ms, 500 ms) | odoRoll @odo-d (ab 51 ms, 300 ms) | rise @btn.rise (ab 1135 ms, 500 ms)
+   Zeile: aus DOM nach 28 ms
+   Haptik: — keine —
+   Balken: — kein NEUER Rückgängig-Balken —
+
+## Haushalt · Posten löschen ×
+   Animationen: abgang @cell.geht (ab 44 ms, 420 ms) | transition:stroke-dasharray @circle (ab 494 ms, 800 ms) | transition:stroke-dashoffset @circle (ab 494 ms, 800 ms) | toastIn @undo-toast (ab 494 ms, 300 ms) | odoRoll @odo-d (ab 516 ms, 300 ms)
+   Zeile: aus DOM nach 477 ms · Klassen: 33ms "cell geht"
+   Haptik: — keine —
+   Balken: nach 477 ms „„Spülmittel" gelöscht" Knöpfe=[Rückgängig] role/aria-live=null
+   neue Knoten in <body>: {"undo-toast":1}
+
+## Einkauf · Artikel abhaken
+   Animationen: slLeave @cell.sl-leaving (ab 47 ms, 600 ms) | slStrike @cell-title::after (ab 47 ms, 380 ms) | rise @btn.rise (ab 651 ms, 500 ms)
+   Zeile: bleibt im DOM · Klassen: 35ms "cell sl-leaving" → 649ms "cell dim"
+   Haptik: 12 @34ms
+   Balken: — kein NEUER Rückgängig-Balken —
+
+## Einkauf · Artikel löschen ×
+   Animationen: toastIn @undo-toast (ab 53 ms, 300 ms)
+   Zeile: aus DOM nach 47 ms
+   Haptik: — keine —
+   Balken: nach 47 ms „„Brot" gelöscht" Knöpfe=[Rückgängig] role/aria-live=null
+   neue Knoten in <body>: {"undo-toast":1}
+
+## Growbox · Posten abhaken (abgerechnet)
+   Animationen: rise @rise (ab 54 ms, 500 ms) | odoRoll @odo-d (ab 70 ms, 300 ms)
+   Zeile: aus DOM nach 52 ms
+   Haptik: — keine —
+   Balken: — kein NEUER Rückgängig-Balken —
+
+## Growbox · Posten löschen ×
+   Animationen: — keine —
+   Zeile: aus DOM nach 37 ms
+   Haptik: — keine —
+   Balken: nach 37 ms „„Dünger" gelöscht" Knöpfe=[Rückgängig] role/aria-live=null (alter Balken, nur Text getauscht)
+
+## Putzplan · Aufgabe erledigt
+   Animationen: transition:width @fair-seg (ab 64 ms, 700 ms) | assigneeIn @assignee-swap (ab 64 ms, 400 ms) | tpDraw @path (ab 64 ms, 450 ms) | tpPart @tp-particle (ab 64 ms, 720 ms)
+   Zeile: bleibt im DOM
+   Haptik: 30 @43ms
+   Balken: nach 62 ms „🚿 „Bad putzen" erledigt · Torben" Knöpfe=[War Tom, Rückgängig] role/aria-live=null (alter Balken, nur Text getauscht)
+   neue Knoten in <body>: {"[object SVGAnimatedString]":1,"tp-particle":7}
+
+## Heute · Kühlschrank „Weg ✓"
+   Animationen: abgang @cell.geht (ab 41 ms, 420 ms)
+   Zeile: aus DOM nach 459 ms · Klassen: 29ms "cell geht"
+   Haptik: — keine —
+   Balken: nach 459 ms „🧊 Joghurt entfernt" Knöpfe=[Rückgängig] role/aria-live=null (alter Balken, nur Text getauscht)
+
+## Haushalt · Schnell-Eingabe „7,30 Döner" + Enter
+   Animationen: rise @rise (ab 12 ms, 500 ms) | okFlash @field (ab 12 ms, 900 ms) | odoRoll @odo-d (ab 27 ms, 300 ms)
+   Haptik: [{"t":6,"p":12}]
+   Balken: „💸 „Döner" €7,30 eingetragen" [Rückgängig]
+
+## Haushalt · „Alles abrechnen"
+   Animationen: transition:background-color @field (ab 46 ms, 200 ms) | transition:border-bottom-color @field (ab 46 ms, 200 ms) | transition:border-left-color @field (ab 46 ms, 200 ms) | transition:border-right-color @field (ab 46 ms, 200 ms) | transition:border-top-color @field (ab 46 ms, 200 ms) | transition:box-shadow @field (ab 46 ms, 200 ms) | stampIn @settle-stamp (ab 46 ms, 1100 ms) | rise @rise (ab 46 ms, 500 ms)
+   Zeile: aus DOM nach 31 ms
+   Haptik: — keine —
+   Balken: nach 31 ms „Alles abgerechnet" Knöpfe=[Rückgängig] role/aria-live=null (alter Balken, nur Text getauscht)
+
+=== C: Gesten mit „weniger Bewegung" ===
+
+## Haushalt · Posten abhaken (abgerechnet)
+   Animationen: transition:stroke-dasharray @circle (ab 42 ms, 800 ms) | transition:stroke-dashoffset @circle (ab 42 ms, 800 ms)
+   Zeile: aus DOM nach 33 ms
+   Haptik: — keine —
+   Balken: — kein NEUER Rückgängig-Balken —
+
+## Haushalt · Posten löschen ×
+   Animationen: transition:stroke-dasharray @circle (ab 43 ms, 800 ms) | transition:stroke-dashoffset @circle (ab 43 ms, 800 ms) | toastIn @undo-toast (ab 43 ms, 300 ms)
+   Zeile: aus DOM nach 33 ms
+   Haptik: — keine —
+   Balken: nach 33 ms „„Spülmittel" gelöscht" Knöpfe=[Rückgängig] role/aria-live=null
+   neue Knoten in <body>: {"undo-toast":1}
+
+## Einkauf · Artikel abhaken
+   Animationen: — keine —
+   Zeile: bleibt im DOM · Klassen: 45ms "cell dim"
+   Haptik: — keine —
+   Balken: — kein NEUER Rückgängig-Balken —
+
+## Einkauf · Artikel löschen ×
+   Animationen: — keine —
+   Zeile: aus DOM nach 32 ms
+   Haptik: — keine —
+   Balken: nach 32 ms „„Brot" gelöscht" Knöpfe=[Rückgängig] role/aria-live=null (alter Balken, nur Text getauscht)
+
+## Growbox · Posten abhaken (abgerechnet)
+   Animationen: — keine —
+   Zeile: aus DOM nach 32 ms
+   Haptik: — keine —
+   Balken: — kein NEUER Rückgängig-Balken —
+
+## Growbox · Posten löschen ×
+   Animationen: — keine —
+   Zeile: aus DOM nach 32 ms
+   Haptik: — keine —
+   Balken: nach 32 ms „„Dünger" gelöscht" Knöpfe=[Rückgängig] role/aria-live=null (alter Balken, nur Text getauscht)
+
+## Putzplan · Aufgabe erledigt
+   Animationen: transition:width @fair-seg (ab 45 ms, 700 ms)
+   Zeile: bleibt im DOM
+   Haptik: 30 @33ms
+   Balken: nach 44 ms „🚿 „Bad putzen" erledigt · Torben" Knöpfe=[War Tom, Rückgängig] role/aria-live=null (alter Balken, nur Text getauscht)
+
+## Heute · Kühlschrank „Weg ✓"
+   Animationen: — keine —
+   Zeile: aus DOM nach 35 ms
+   Haptik: — keine —
+   Balken: nach 35 ms „🧊 Joghurt entfernt" Knöpfe=[Rückgängig] role/aria-live=null (alter Balken, nur Text getauscht)
+
+## Haushalt · Schnell-Eingabe „7,30 Döner" + Enter
+   Animationen: okFlash @field (ab 11 ms, 900 ms)
+   Haptik: []
+   Balken: „💸 „Döner" €7,30 eingetragen" [Rückgängig]
+
+## Haushalt · „Alles abrechnen"
+   Animationen: transition:background-color @field (ab 44 ms, 200 ms) | transition:border-bottom-color @field (ab 44 ms, 200 ms) | transition:border-left-color @field (ab 44 ms, 200 ms) | transition:border-right-color @field (ab 44 ms, 200 ms) | transition:border-top-color @field (ab 44 ms, 200 ms) | transition:box-shadow @field (ab 44 ms, 200 ms)
+   Zeile: aus DOM nach 35 ms
+   Haptik: — keine —
+   Balken: nach 35 ms „Alles abgerechnet" Knöpfe=[Rückgängig] role/aria-live=null (alter Balken, nur Text getauscht)

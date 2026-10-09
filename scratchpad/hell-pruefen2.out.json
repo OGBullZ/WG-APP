@@ -1,0 +1,256 @@
+{
+ "light": {
+  "gegenprobe": {
+   "geprueft": 36,
+   "gefunden": true
+  },
+  "ohneKat": {
+   "text": "rgba(255, 255, 255, 0.25)",
+   "r_text": 1,
+   "r_balken": 1
+  },
+  "farben": {
+   "Heute": {
+    "titel": "rgb(15, 118, 110)",
+    "tab": "rgb(15, 118, 110)",
+    "knopf": "rgb(230, 236, 232)",
+    "aktionen": "rgb(154, 74, 6) / rgb(3, 105, 161) / rgb(15, 118, 110)",
+    "schimmer": "-"
+   },
+   "Haushalt": {
+    "titel": "rgb(15, 118, 110)",
+    "tab": "rgb(15, 118, 110)",
+    "knopf": "rgb(0, 112, 186)",
+    "aktionen": "rgb(15, 118, 110) / rgb(3, 105, 161)",
+    "schimmer": "rgba(94,234,212,.16)"
+   },
+   "Growbox": {
+    "titel": "rgb(63, 98, 18)",
+    "tab": "rgb(63, 98, 18)",
+    "knopf": "rgb(63, 98, 18)",
+    "aktionen": "-",
+    "schimmer": "rgba(163,230,53,.17)"
+   },
+   "Putzplan": {
+    "titel": "rgb(154, 74, 6)",
+    "tab": "rgb(154, 74, 6)",
+    "knopf": "-",
+    "aktionen": "rgb(154, 74, 6)",
+    "schimmer": "rgba(251,191,36,.15)"
+   },
+   "Übersicht": {
+    "titel": "rgb(3, 105, 161)",
+    "tab": "rgb(3, 105, 161)",
+    "knopf": "-",
+    "aktionen": "rgb(3, 105, 161) / rgba(11, 21, 16, 0.76)",
+    "schimmer": "rgba(56,189,248,.16)"
+   },
+   "Mehr": {
+    "titel": "rgb(11, 21, 16)",
+    "tab": "rgba(11, 21, 16, 0.76)",
+    "knopf": "rgb(3, 105, 161)",
+    "aktionen": "rgb(15, 118, 110) / rgb(154, 74, 6) / rgb(3, 105, 161) / rgb(190, 18, 60)",
+    "schimmer": "-"
+   }
+  },
+  "variante": {
+   "Heute": {
+    "geprueft": 35,
+    "funde": [
+     {
+      "txt": "LIVE",
+      "fg": "#55821a",
+      "bg": "#eef6e8",
+      "r": 4.12,
+      "px": 10,
+      "w": 700
+     }
+    ]
+   },
+   "Haushalt": {
+    "geprueft": 62,
+    "funde": [
+     {
+      "txt": "LIVE",
+      "fg": "#55821a",
+      "bg": "#eef6e8",
+      "r": 4.12,
+      "px": 10,
+      "w": 700
+     },
+     {
+      "txt": "€",
+      "fg": "#b45309",
+      "bg": "#f5f3e4",
+      "r": 4.48,
+      "px": 16,
+      "w": 700
+     },
+     {
+      "txt": "2",
+      "fg": "#b45309",
+      "bg": "#f5f3e4",
+      "r": 4.48,
+      "px": 16,
+      "w": 700
+     },
+     {
+      "txt": "3",
+      "fg": "#b45309",
+      "bg": "#f5f3e4",
+      "r": 4.48,
+      "px": 16,
+      "w": 700
+     },
+     {
+      "txt": "4",
+      "fg": "#b45309",
+      "bg": "#f5f3e4",
+      "r": 4.48,
+      "px": 16,
+      "w": 700
+     },
+     {
+      "txt": "5",
+      "fg": "#b45309",
+      "bg": "#f5f3e4",
+      "r": 4.48,
+      "px": 16,
+      "w": 700
+     }
+    ]
+   },
+   "Growbox": {
+    "geprueft": 23,
+    "funde": [
+     {
+      "txt": "LIVE",
+      "fg": "#55821a",
+      "bg": "#eef6e8",
+      "r": 4.12,
+      "px": 10,
+      "w": 700
+     }
+    ]
+   },
+   "Putzplan": {
+    "geprueft": 37,
+    "funde": [
+     {
+      "txt": "LIVE",
+      "fg": "#55821a",
+      "bg": "#eef6e8",
+      "r": 4.12,
+      "px": 10,
+      "w": 700
+     }
+    ]
+   },
+   "Übersicht": {
+    "geprueft": 96,
+    "funde": [
+     {
+      "txt": "LIVE",
+      "fg": "#55821a",
+      "bg": "#eef6e8",
+      "r": 4.12,
+      "px": 10,
+      "w": 700
+     },
+     {
+      "txt": "➖ Ohne Kategorie",
+      "fg": "#ffffff",
+      "bg": "#ffffff",
+      "r": 1,
+      "px": 12.5,
+      "w": 700
+     }
+    ]
+   },
+   "Mehr": {
+    "geprueft": 24,
+    "funde": [
+     {
+      "txt": "LIVE",
+      "fg": "#55821a",
+      "bg": "#eef6e8",
+      "r": 4.12,
+      "px": 10,
+      "w": 700
+     }
+    ]
+   },
+   "weissAuf": {
+    "b45309": 5.02,
+    "4d7c0f": 4.99,
+    "9a4a06_alt": 6.26,
+    "3f6212_alt": 7.08,
+    "b45309_auf_bg": 4.66,
+    "4d7c0f_auf_bg": 4.63
+   }
+  }
+ },
+ "dark": {
+  "gegenprobe": {
+   "geprueft": 36,
+   "gefunden": true
+  },
+  "ohneKat": {
+   "text": "rgba(255, 255, 255, 0.25)",
+   "r_text": 2.26,
+   "r_balken": 2.27
+  },
+  "farben": {
+   "Heute": {
+    "titel": "rgb(94, 234, 212)",
+    "tab": "rgb(94, 234, 212)",
+    "knopf": "rgba(28, 36, 32, 0.95)",
+    "aktionen": "rgb(251, 191, 36) / rgb(56, 189, 248) / rgb(94, 234, 212)",
+    "schimmer": "-"
+   },
+   "Haushalt": {
+    "titel": "rgb(94, 234, 212)",
+    "tab": "rgb(94, 234, 212)",
+    "knopf": "rgb(0, 112, 186)",
+    "aktionen": "rgb(94, 234, 212) / rgb(56, 189, 248)",
+    "schimmer": "rgba(94,234,212,.16)"
+   },
+   "Growbox": {
+    "titel": "rgb(163, 230, 53)",
+    "tab": "rgb(163, 230, 53)",
+    "knopf": "rgb(163, 230, 53)",
+    "aktionen": "-",
+    "schimmer": "rgba(163,230,53,.17)"
+   },
+   "Putzplan": {
+    "titel": "rgb(251, 191, 36)",
+    "tab": "rgb(251, 191, 36)",
+    "knopf": "-",
+    "aktionen": "rgb(251, 191, 36)",
+    "schimmer": "rgba(251,191,36,.15)"
+   },
+   "Übersicht": {
+    "titel": "rgb(56, 189, 248)",
+    "tab": "rgb(56, 189, 248)",
+    "knopf": "-",
+    "aktionen": "rgb(56, 189, 248) / rgba(242, 246, 243, 0.72)",
+    "schimmer": "rgba(56,189,248,.16)"
+   },
+   "Mehr": {
+    "titel": "rgb(242, 246, 243)",
+    "tab": "rgba(242, 246, 243, 0.72)",
+    "knopf": "rgb(56, 189, 248)",
+    "aktionen": "rgb(94, 234, 212) / rgb(251, 191, 36) / rgb(56, 189, 248) / rgb(251, 113, 133)",
+    "schimmer": "-"
+   }
+  }
+ },
+ "light:flug": {
+  "chip": false,
+  "puls": false
+ },
+ "dark:flug": {
+  "chip": false,
+  "puls": false
+ }
+}

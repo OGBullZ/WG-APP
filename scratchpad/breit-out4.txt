@@ -1,0 +1,9 @@
+reduce aktiv: true
+body|::before drift 26s
+.live-dot pulse 1.8s
+.tab-glow rise 0.3s
+.tabitem none 0s
+.tab-view none 0s
+.sheet sheetPop 0.3s
+.overlay none 0s
+exit=0

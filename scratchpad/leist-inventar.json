@@ -1,0 +1,656 @@
+{
+ "dark": {
+  "tabs": [
+   "Heute",
+   "Haushalt",
+   "Growbox",
+   "",
+   "Putzplan",
+   "Privat",
+   "Übersicht",
+   "Mehr"
+  ],
+  "jeTab": {
+   "Heute": {
+    "rise": {
+     "gesamt": 17,
+     "imErstenBildschirm": 7
+    },
+    "gleich": {
+     "maxGleichzeitig": 15,
+     "jeName": {
+      "drift": 1,
+      "pulse": 1,
+      "transition:color": 2,
+      "tabInL": 1,
+      "rise": 9,
+      "iconBounce": 1
+     },
+     "bilder": 55
+    },
+    "blur": {
+     "anzahl": 14,
+     "imBild": 7,
+     "flaecheProzent": 63,
+     "liste": [
+      "div.navbar.navbar-wide 390x54 saturate(1.6) blur(22px)",
+      "div.group.rise 358x87 blur(14px)",
+      "div.group 358x124 blur(14px)",
+      "div.group.rise 358x110 blur(14px)",
+      "div.group 358x84 blur(14px)",
+      "div.group 358x173 blur(14px)",
+      "div.tabbar 390x84 saturate(1.6) blur(24px)"
+     ]
+    },
+    "ebenen": 16,
+    "ebenenGesamt": 22
+   },
+   "Haushalt": {
+    "rise": {
+     "gesamt": 12,
+     "imErstenBildschirm": 8
+    },
+    "gleich": {
+     "maxGleichzeitig": 26,
+     "jeName": {
+      "drift": 1,
+      "pulse": 1,
+      "transition:color": 2,
+      "tabInL": 1,
+      "rise": 10,
+      "odoRoll": 10,
+      "iconBounce": 1
+     },
+     "bilder": 55
+    },
+    "blur": {
+     "anzahl": 5,
+     "imBild": 3,
+     "flaecheProzent": 38,
+     "liste": [
+      "div.navbar 390x54 saturate(1.6) blur(22px)",
+      "div.hero.rise 358x198 blur(14px)",
+      "div.tabbar 390x84 saturate(1.6) blur(24px)"
+     ]
+    },
+    "ebenen": 12,
+    "ebenenGesamt": 18
+   },
+   "Growbox": {
+    "rise": {
+     "gesamt": 4,
+     "imErstenBildschirm": 4
+    },
+    "gleich": {
+     "maxGleichzeitig": 11,
+     "jeName": {
+      "drift": 1,
+      "pulse": 1,
+      "transition:color": 2,
+      "tabInR": 1,
+      "rise": 5,
+      "iconBounce": 1
+     },
+     "bilder": 55
+    },
+    "blur": {
+     "anzahl": 3,
+     "imBild": 3,
+     "flaecheProzent": 40,
+     "liste": [
+      "div.navbar 390x54 saturate(1.6) blur(22px)",
+      "div.hero.rise 358x218 blur(14px)",
+      "div.tabbar 390x84 saturate(1.6) blur(24px)"
+     ]
+    },
+    "ebenen": 10,
+    "ebenenGesamt": 14
+   },
+   "": {
+    "rise": {
+     "gesamt": 17,
+     "imErstenBildschirm": 7
+    },
+    "gleich": {
+     "maxGleichzeitig": 15,
+     "jeName": {
+      "drift": 1,
+      "pulse": 1,
+      "overduePulse": 1,
+      "transition:color": 2,
+      "tabInL": 1,
+      "rise": 9,
+      "iconBounce": 1
+     },
+     "bilder": 55
+    },
+    "blur": {
+     "anzahl": 14,
+     "imBild": 7,
+     "flaecheProzent": 63,
+     "liste": [
+      "div.navbar.navbar-wide 390x54 saturate(1.6) blur(22px)",
+      "div.group.rise 358x87 blur(14px)",
+      "div.group 358x124 blur(14px)",
+      "div.group.rise 358x110 blur(14px)",
+      "div.group 358x84 blur(14px)",
+      "div.group 358x173 blur(14px)",
+      "div.tabbar 390x84 saturate(1.6) blur(24px)"
+     ]
+    },
+    "ebenen": 16,
+    "ebenenGesamt": 22
+   },
+   "Putzplan": {
+    "rise": {
+     "gesamt": 6,
+     "imErstenBildschirm": 5
+    },
+    "gleich": {
+     "maxGleichzeitig": 16,
+     "jeName": {
+      "drift": 1,
+      "pulse": 1,
+      "transition:color": 2,
+      "tabInL": 1,
+      "rise": 6,
+      "assigneeIn": 3,
+      "overduePulse": 1,
+      "iconBounce": 1
+     },
+     "bilder": 54
+    },
+    "blur": {
+     "anzahl": 6,
+     "imBild": 6,
+     "flaecheProzent": 82,
+     "liste": [
+      "div.navbar 390x54 saturate(1.6) blur(22px)",
+      "div.hero.rise 358x100 blur(14px)",
+      "div.group 358x226 blur(14px)",
+      "div.group 358x138 blur(14px)",
+      "div.group 358x140 blur(14px)",
+      "div.tabbar 390x84 saturate(1.6) blur(24px)"
+     ]
+    },
+    "ebenen": 15,
+    "ebenenGesamt": 21
+   },
+   "Privat": {
+    "rise": {
+     "gesamt": 0,
+     "imErstenBildschirm": 0
+    },
+    "gleich": {
+     "maxGleichzeitig": 7,
+     "jeName": {
+      "drift": 1,
+      "pulse": 1,
+      "transition:color": 2,
+      "tabInL": 1,
+      "rise": 1,
+      "iconBounce": 1
+     },
+     "bilder": 55
+    },
+    "blur": {
+     "anzahl": 2,
+     "imBild": 2,
+     "flaecheProzent": 16,
+     "liste": [
+      "div.navbar 390x54 saturate(1.6) blur(22px)",
+      "div.tabbar 390x84 saturate(1.6) blur(24px)"
+     ]
+    },
+    "ebenen": 9,
+    "ebenenGesamt": 13
+   },
+   "Übersicht": {
+    "rise": {
+     "gesamt": 15,
+     "imErstenBildschirm": 6
+    },
+    "gleich": {
+     "maxGleichzeitig": 32,
+     "jeName": {
+      "drift": 1,
+      "pulse": 1,
+      "transition:color": 2,
+      "tabInL": 1,
+      "rise": 14,
+      "odoRoll": 5,
+      "iconBounce": 1,
+      "transition:width": 7
+     },
+     "bilder": 54
+    },
+    "blur": {
+     "anzahl": 16,
+     "imBild": 7,
+     "flaecheProzent": 70,
+     "liste": [
+      "div.navbar 390x54 saturate(1.6) blur(22px)",
+      "div.hero.rise 358x164 blur(14px)",
+      "div.group.rise 358x83 blur(14px)",
+      "div.group 358x74 blur(14px)",
+      "div.group 358x74 blur(14px)",
+      "div.group 358x101 blur(14px)",
+      "div.tabbar 390x84 saturate(1.6) blur(24px)"
+     ]
+    },
+    "ebenen": 21,
+    "ebenenGesamt": 27
+   },
+   "Mehr": {
+    "rise": {
+     "gesamt": 23,
+     "imErstenBildschirm": 7
+    },
+    "gleich": {
+     "maxGleichzeitig": 14,
+     "jeName": {
+      "drift": 1,
+      "pulse": 1,
+      "transition:color": 2,
+      "tabInR": 1,
+      "rise": 8,
+      "iconBounce": 1
+     },
+     "bilder": 50
+    },
+    "blur": {
+     "anzahl": 33,
+     "imBild": 9,
+     "flaecheProzent": 76,
+     "liste": [
+      "div.navbar 390x54 saturate(1.6) blur(22px)",
+      "button.group.rise 358x84 blur(14px)",
+      "button.group.fold-hdr 358x69 blur(14px)",
+      "button.group.fold-hdr 358x86 blur(14px)",
+      "button.group.fold-hdr 358x69 blur(14px)",
+      "button.group.fold-hdr 358x86 blur(14px)",
+      "button.group.fold-hdr 358x86 blur(14px)",
+      "button.group.fold-hdr 358x69 blur(14px)",
+      "div.tabbar 390x84 saturate(1.6) blur(24px)"
+     ]
+    },
+    "ebenen": 16,
+    "ebenenGesamt": 22
+   }
+  },
+  "blattOffen": {
+   "anzahl": 15,
+   "flaecheProzent": 163,
+   "liste": [
+    "div.navbar.navbar-wide 390x54 saturate(1.6) blur(22px)",
+    "div.group.rise 358x87 blur(14px)",
+    "div.group 358x124 blur(14px)",
+    "div.group.rise 358x110 blur(14px)",
+    "div.group 358x84 blur(14px)",
+    "div.group 358x173 blur(14px)",
+    "div.tabbar 390x84 saturate(1.6) blur(24px)",
+    "div.overlay 390x844 blur(4px)"
+   ]
+  },
+  "pixelvergleich": {
+   "Heute": {
+    "karten": 4,
+    "karten-ohne-blur": {
+     "mittel": 1.03,
+     "max": 15,
+     "anteilUeber8": "0.2%",
+     "pixel": 579960
+    },
+    "karte-mitten-im-einblenden": {
+     "mittel": 1.15,
+     "max": 6,
+     "anteilUeber8": "0%",
+     "pixel": 579960
+    }
+   },
+   "Haushalt": {
+    "karten": 1,
+    "karten-ohne-blur": {
+     "mittel": 0.86,
+     "max": 42,
+     "anteilUeber8": "0.1%",
+     "pixel": 283536
+    },
+    "karte-mitten-im-einblenden": {
+     "mittel": 0.97,
+     "max": 1,
+     "anteilUeber8": "0%",
+     "pixel": 283536
+    }
+   }
+  },
+  "fehler": []
+ },
+ "light": {
+  "tabs": [
+   "Heute",
+   "Haushalt",
+   "Growbox",
+   "",
+   "Putzplan",
+   "Privat",
+   "Übersicht",
+   "Mehr"
+  ],
+  "jeTab": {
+   "Heute": {
+    "rise": {
+     "gesamt": 17,
+     "imErstenBildschirm": 7
+    },
+    "gleich": {
+     "maxGleichzeitig": 15,
+     "jeName": {
+      "drift": 1,
+      "pulse": 1,
+      "transition:color": 2,
+      "tabInL": 1,
+      "rise": 9,
+      "iconBounce": 1
+     },
+     "bilder": 55
+    },
+    "blur": {
+     "anzahl": 14,
+     "imBild": 7,
+     "flaecheProzent": 63,
+     "liste": [
+      "div.navbar.navbar-wide 390x54 saturate(1.6) blur(22px)",
+      "div.group.rise 358x87 blur(14px)",
+      "div.group 358x124 blur(14px)",
+      "div.group.rise 358x110 blur(14px)",
+      "div.group 358x84 blur(14px)",
+      "div.group 358x173 blur(14px)",
+      "div.tabbar 390x84 saturate(1.6) blur(24px)"
+     ]
+    },
+    "ebenen": 15,
+    "ebenenGesamt": 21
+   },
+   "Haushalt": {
+    "rise": {
+     "gesamt": 12,
+     "imErstenBildschirm": 8
+    },
+    "gleich": {
+     "maxGleichzeitig": 26,
+     "jeName": {
+      "drift": 1,
+      "pulse": 1,
+      "transition:color": 2,
+      "tabInL": 1,
+      "rise": 10,
+      "odoRoll": 10,
+      "iconBounce": 1
+     },
+     "bilder": 55
+    },
+    "blur": {
+     "anzahl": 5,
+     "imBild": 3,
+     "flaecheProzent": 38,
+     "liste": [
+      "div.navbar 390x54 saturate(1.6) blur(22px)",
+      "div.hero.rise 358x198 blur(14px)",
+      "div.tabbar 390x84 saturate(1.6) blur(24px)"
+     ]
+    },
+    "ebenen": 12,
+    "ebenenGesamt": 18
+   },
+   "Growbox": {
+    "rise": {
+     "gesamt": 4,
+     "imErstenBildschirm": 4
+    },
+    "gleich": {
+     "maxGleichzeitig": 11,
+     "jeName": {
+      "drift": 1,
+      "pulse": 1,
+      "transition:color": 2,
+      "tabInR": 1,
+      "rise": 5,
+      "iconBounce": 1
+     },
+     "bilder": 56
+    },
+    "blur": {
+     "anzahl": 3,
+     "imBild": 3,
+     "flaecheProzent": 40,
+     "liste": [
+      "div.navbar 390x54 saturate(1.6) blur(22px)",
+      "div.hero.rise 358x218 blur(14px)",
+      "div.tabbar 390x84 saturate(1.6) blur(24px)"
+     ]
+    },
+    "ebenen": 10,
+    "ebenenGesamt": 14
+   },
+   "": {
+    "rise": {
+     "gesamt": 17,
+     "imErstenBildschirm": 7
+    },
+    "gleich": {
+     "maxGleichzeitig": 15,
+     "jeName": {
+      "drift": 1,
+      "pulse": 1,
+      "overduePulse": 1,
+      "transition:color": 2,
+      "tabInL": 1,
+      "rise": 9,
+      "iconBounce": 1
+     },
+     "bilder": 55
+    },
+    "blur": {
+     "anzahl": 14,
+     "imBild": 7,
+     "flaecheProzent": 63,
+     "liste": [
+      "div.navbar.navbar-wide 390x54 saturate(1.6) blur(22px)",
+      "div.group.rise 358x87 blur(14px)",
+      "div.group 358x124 blur(14px)",
+      "div.group.rise 358x110 blur(14px)",
+      "div.group 358x84 blur(14px)",
+      "div.group 358x173 blur(14px)",
+      "div.tabbar 390x84 saturate(1.6) blur(24px)"
+     ]
+    },
+    "ebenen": 15,
+    "ebenenGesamt": 21
+   },
+   "Putzplan": {
+    "rise": {
+     "gesamt": 6,
+     "imErstenBildschirm": 5
+    },
+    "gleich": {
+     "maxGleichzeitig": 16,
+     "jeName": {
+      "drift": 1,
+      "pulse": 1,
+      "transition:color": 2,
+      "tabInL": 1,
+      "rise": 6,
+      "assigneeIn": 3,
+      "overduePulse": 1,
+      "iconBounce": 1
+     },
+     "bilder": 55
+    },
+    "blur": {
+     "anzahl": 6,
+     "imBild": 6,
+     "flaecheProzent": 82,
+     "liste": [
+      "div.navbar 390x54 saturate(1.6) blur(22px)",
+      "div.hero.rise 358x100 blur(14px)",
+      "div.group 358x226 blur(14px)",
+      "div.group 358x138 blur(14px)",
+      "div.group 358x140 blur(14px)",
+      "div.tabbar 390x84 saturate(1.6) blur(24px)"
+     ]
+    },
+    "ebenen": 15,
+    "ebenenGesamt": 21
+   },
+   "Privat": {
+    "rise": {
+     "gesamt": 0,
+     "imErstenBildschirm": 0
+    },
+    "gleich": {
+     "maxGleichzeitig": 7,
+     "jeName": {
+      "drift": 1,
+      "pulse": 1,
+      "transition:color": 2,
+      "tabInL": 1,
+      "rise": 1,
+      "iconBounce": 1
+     },
+     "bilder": 55
+    },
+    "blur": {
+     "anzahl": 2,
+     "imBild": 2,
+     "flaecheProzent": 16,
+     "liste": [
+      "div.navbar 390x54 saturate(1.6) blur(22px)",
+      "div.tabbar 390x84 saturate(1.6) blur(24px)"
+     ]
+    },
+    "ebenen": 9,
+    "ebenenGesamt": 13
+   },
+   "Übersicht": {
+    "rise": {
+     "gesamt": 15,
+     "imErstenBildschirm": 6
+    },
+    "gleich": {
+     "maxGleichzeitig": 32,
+     "jeName": {
+      "drift": 1,
+      "pulse": 1,
+      "transition:color": 2,
+      "tabInL": 1,
+      "rise": 14,
+      "odoRoll": 5,
+      "iconBounce": 1,
+      "transition:width": 7
+     },
+     "bilder": 55
+    },
+    "blur": {
+     "anzahl": 16,
+     "imBild": 7,
+     "flaecheProzent": 70,
+     "liste": [
+      "div.navbar 390x54 saturate(1.6) blur(22px)",
+      "div.hero.rise 358x164 blur(14px)",
+      "div.group.rise 358x83 blur(14px)",
+      "div.group 358x74 blur(14px)",
+      "div.group 358x74 blur(14px)",
+      "div.group 358x101 blur(14px)",
+      "div.tabbar 390x84 saturate(1.6) blur(24px)"
+     ]
+    },
+    "ebenen": 21,
+    "ebenenGesamt": 27
+   },
+   "Mehr": {
+    "rise": {
+     "gesamt": 23,
+     "imErstenBildschirm": 7
+    },
+    "gleich": {
+     "maxGleichzeitig": 14,
+     "jeName": {
+      "drift": 1,
+      "pulse": 1,
+      "transition:color": 2,
+      "tabInR": 1,
+      "rise": 8,
+      "iconBounce": 1
+     },
+     "bilder": 53
+    },
+    "blur": {
+     "anzahl": 33,
+     "imBild": 9,
+     "flaecheProzent": 76,
+     "liste": [
+      "div.navbar 390x54 saturate(1.6) blur(22px)",
+      "button.group.rise 358x84 blur(14px)",
+      "button.group.fold-hdr 358x69 blur(14px)",
+      "button.group.fold-hdr 358x86 blur(14px)",
+      "button.group.fold-hdr 358x69 blur(14px)",
+      "button.group.fold-hdr 358x86 blur(14px)",
+      "button.group.fold-hdr 358x86 blur(14px)",
+      "button.group.fold-hdr 358x69 blur(14px)",
+      "div.tabbar 390x84 saturate(1.6) blur(24px)"
+     ]
+    },
+    "ebenen": 16,
+    "ebenenGesamt": 22
+   }
+  },
+  "blattOffen": {
+   "anzahl": 15,
+   "flaecheProzent": 163,
+   "liste": [
+    "div.navbar.navbar-wide 390x54 saturate(1.6) blur(22px)",
+    "div.group.rise 358x87 blur(14px)",
+    "div.group 358x124 blur(14px)",
+    "div.group.rise 358x110 blur(14px)",
+    "div.group 358x84 blur(14px)",
+    "div.group 358x173 blur(14px)",
+    "div.tabbar 390x84 saturate(1.6) blur(24px)",
+    "div.overlay 390x844 blur(4px)"
+   ]
+  },
+  "pixelvergleich": {
+   "Heute": {
+    "karten": 4,
+    "karten-ohne-blur": {
+     "mittel": 0.13,
+     "max": 7,
+     "anteilUeber8": "0%",
+     "pixel": 579960
+    },
+    "karte-mitten-im-einblenden": {
+     "mittel": 0.02,
+     "max": 2,
+     "anteilUeber8": "0%",
+     "pixel": 579960
+    }
+   },
+   "Haushalt": {
+    "karten": 1,
+    "karten-ohne-blur": {
+     "mittel": 0.02,
+     "max": 46,
+     "anteilUeber8": "0.1%",
+     "pixel": 283536
+    },
+    "karte-mitten-im-einblenden": {
+     "mittel": 0.01,
+     "max": 1,
+     "anteilUeber8": "0%",
+     "pixel": 283536
+    }
+   }
+  },
+  "fehler": []
+ }
+}

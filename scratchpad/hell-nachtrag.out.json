@@ -1,0 +1,213 @@
+{
+ "light:pick": [
+  {
+   "txt": "Torben",
+   "on": true,
+   "bg": "#38bdf8",
+   "fg": "rgb(10, 18, 12)",
+   "r": 8.87,
+   "px": "15px",
+   "w": "800"
+  },
+  {
+   "txt": "Tom",
+   "on": false,
+   "bg": "#e6ece8",
+   "fg": "rgba(11, 21, 16, 0.76)",
+   "r": 15.53,
+   "px": "15px",
+   "w": "800"
+  },
+  {
+   "txt": "Gleich teilen · 50/50",
+   "on": true,
+   "bg": "#0f766e",
+   "fg": "rgb(10, 18, 12)",
+   "r": 3.47,
+   "px": "15px",
+   "w": "800"
+  },
+  {
+   "txt": "Torben zahlt alles",
+   "on": false,
+   "bg": "#e6ece8",
+   "fg": "rgba(11, 21, 16, 0.76)",
+   "r": 15.53,
+   "px": "15px",
+   "w": "800"
+  },
+  {
+   "txt": "Tom zahlt alles",
+   "on": false,
+   "bg": "#e6ece8",
+   "fg": "rgba(11, 21, 16, 0.76)",
+   "r": 15.53,
+   "px": "15px",
+   "w": "800"
+  }
+ ],
+ "light:weg": [
+  "Was wurde gekauft?",
+  "Wie viel?"
+ ],
+ "dark:pick": [
+  {
+   "txt": "Torben",
+   "on": true,
+   "bg": "#38bdf8",
+   "fg": "rgb(10, 18, 12)",
+   "r": 8.87,
+   "px": "15px",
+   "w": "800"
+  },
+  {
+   "txt": "Tom",
+   "on": false,
+   "bg": "#1b231f",
+   "fg": "rgba(242, 246, 243, 0.72)",
+   "r": 14.71,
+   "px": "15px",
+   "w": "800"
+  },
+  {
+   "txt": "Gleich teilen · 50/50",
+   "on": true,
+   "bg": "#5eead4",
+   "fg": "rgb(10, 18, 12)",
+   "r": 12.85,
+   "px": "15px",
+   "w": "800"
+  },
+  {
+   "txt": "Torben zahlt alles",
+   "on": false,
+   "bg": "#1b231f",
+   "fg": "rgba(242, 246, 243, 0.72)",
+   "r": 14.71,
+   "px": "15px",
+   "w": "800"
+  },
+  {
+   "txt": "Tom zahlt alles",
+   "on": false,
+   "bg": "#1b231f",
+   "fg": "rgba(242, 246, 243, 0.72)",
+   "r": 14.71,
+   "px": "15px",
+   "w": "800"
+  }
+ ],
+ "dark:weg": [
+  "Was wurde gekauft?",
+  "Wie viel?"
+ ],
+ "B #34d399": {
+  "Putzplan": {
+   "geprueft": 30,
+   "funde": [
+    {
+     "txt": "Tom",
+     "fg": "#34d399",
+     "bg": "#ffffff",
+     "r": 1.92
+    },
+    {
+     "txt": "P.",
+     "fg": "#34d399",
+     "bg": "#ffffff",
+     "r": 1.92
+    },
+    {
+     "txt": "2",
+     "fg": "#34d399",
+     "bg": "#ffffff",
+     "r": 1.92
+    },
+    {
+     "txt": "Tom",
+     "fg": "#34d399",
+     "bg": "#ffffff",
+     "r": 1.92
+    },
+    {
+     "txt": "Tom",
+     "fg": "#34d399",
+     "bg": "#ffffff",
+     "r": 1.92
+    },
+    {
+     "txt": "Tom",
+     "fg": "#34d399",
+     "bg": "#ffffff",
+     "r": 1.92
+    }
+   ]
+  },
+  "Übersicht": {
+   "geprueft": 77,
+   "funde": [
+    {
+     "txt": "Tom",
+     "fg": "#34d399",
+     "bg": "#ffffff",
+     "r": 1.92
+    },
+    {
+     "txt": "Tom",
+     "fg": "#34d399",
+     "bg": "#ffffff",
+     "r": 1.92
+    },
+    {
+     "txt": "Tom",
+     "fg": "#34d399",
+     "bg": "#ffffff",
+     "r": 1.92
+    },
+    {
+     "txt": "Tom",
+     "fg": "#34d399",
+     "bg": "#f4f7f5",
+     "r": 1.78
+    },
+    {
+     "txt": "Tom",
+     "fg": "#34d399",
+     "bg": "#ffffff",
+     "r": 1.92
+    }
+   ]
+  },
+  "Haushalt": {
+   "geprueft": 43,
+   "funde": [
+    {
+     "txt": "Tom",
+     "fg": "#34d399",
+     "bg": "#f5f3e4",
+     "r": 1.72
+    },
+    {
+     "txt": "Tom",
+     "fg": "#34d399",
+     "bg": "#ffffff",
+     "r": 1.92
+    }
+   ]
+  }
+ },
+ "B #fbbf24": {
+  "Putzplan": {
+   "geprueft": 30,
+   "funde": []
+  },
+  "Übersicht": {
+   "geprueft": 77,
+   "funde": []
+  },
+  "Haushalt": {
+   "geprueft": 43,
+   "funde": []
+  }
+ }
+}

@@ -1,0 +1,18 @@
+
+=== K: Erledigt-Feier — Ort des Häkchens nach dem Umsortieren ===
+Putzplan: getippt auf erste Zeile „🚿 Bad putzenDu, danach Tom · wöchentlic" → 60 ms später steht oben „🍳 KücheTom, danach du · alle 3 TageIN 1" · Häkchen-Mitte (53|258) liegt über: „🍳 KücheTom, danach du · alle 3 TageIN 1d"
+Heute: Karte „Du bist dran" (148 px hoch) → 60 ms später liegt die Häkchen-Mitte (53|354) über: „🛒3 auf der Einkaufsliste›"
+
+=== L: Vorrats-Kachel „fast leer?" ===
+1. Tipp: Kachel-Übergang „all 0s" · Animationen: drift, pulse, toastIn · Haptik 0 · Balken „🧻 Klopapier auf die ListeRückgängig" · Zeilen 3→4 · neue Zeile bei y=1061 (Fenster 844) — UNSICHTBAR unterhalb
+2. Tipp auf „✓ auf der Liste": Animationen drift, pulse · Haptik 0 · Balken unverändert · Zeilen 4 → reagiert
+
+=== M: Einkaufsliste — Artikel über das Eingabefeld ===
+Enter: Animationen transition:background-color @field, transition:border-bottom-color @field, transition:border-left-color @field, transition:border-right-color @field, transition:border-top-color @field, transition:box-shadow @field, drift @, pulse @live-dot, rise @rise · Haptik 0 · Balken — keiner — · neue Zeile y=957 UNSICHTBAR · Fokus bleibt in „Milch, Klopapier, Müllbeutel …"
+
+=== N: Rückgängig nach × — Markierung der zurückgeholten Zeile ===
+Zeile „Klopapier" zurück: Klassen „cell" · Animationen drift @, pulse @live-dot, odoRoll @odo-d, toastIn @undo-toast, rise @btn.rise → NICHT markiert (zurückgeholte Zeile sieht aus wie jede andere)
+
+=== O: 320 px, langer Name — Erledigt-Balken ===
+dark: Balken 127 px hoch, x 16–304 (Fenster 320), Überlauf nein
+light: Balken 127 px hoch, x 16–304 (Fenster 320), Überlauf nein

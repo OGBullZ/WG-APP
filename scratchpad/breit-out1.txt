@@ -1,0 +1,35 @@
+1a Titel Heute {"titelX":224,"inhaltX":208,"inhaltB":1120}
+1a Titel Haushalt {"titelX":404,"inhaltX":388,"inhaltB":760}
+1a Titel Putzplan {"titelX":404,"inhaltX":388,"inhaltB":760}
+1a Titel Mehr {"titelX":404,"inhaltX":388,"inhaltB":760}
+1b Tab-Wechsel Frames [{"ms":25,"titelX":426,"op":"0.35","tf":"matrix(1, 0, 0, 1, 22, 0)"},{"ms":102,"titelX":415,"op":"0.67","tf":"matrix(1, 0, 0, 1, 10.8637, 0)"},{"ms":188,"titelX":405,"op":"0.98","tf":"matrix(1, 0, 0, 1, 0.645291, 0)"},{"ms":295,"titelX":404,"op":"0.99","tf":"matrix(1, 0, 0, 1, 0.0010109, 0)"}]
+1c Hover .wz-kachel gleich=true {"bg":"rgba(0, 0, 0, 0)","bgi":"linear-gradient(160deg, rgba(255, 255, 255, 0.055), rgba(255","tf":"none","fi":"none","bc":"rgba(255, 255, 255, 0.09)","br":"18px","out":"none rgba(242, 246, 243, 0.72)"} → {"bg":"rgba(0, 0, 0, 0)","bgi":"linear-gradient(160deg, rgba(255, 255, 255, 0.055), rgba(255","tf":"none","fi":"none","bc":"rgba(255, 255, 255, 0.09)","br":"18px","out":"none rgba(242, 246, 243, 0.72)"}
+1c Hover .tabbar .tabitem gleich=true {"bg":"rgba(0, 0, 0, 0)","bgi":"none","tf":"none","fi":"none","bc":"rgba(242, 246, 243, 0.62)","br":"0px","out":"none rgba(242, 246, 243, 0.62)"} → {"bg":"rgba(0, 0, 0, 0)","bgi":"none","tf":"none","fi":"none","bc":"rgba(242, 246, 243, 0.62)","br":"0px","out":"none rgba(242, 246, 243, 0.62)"}
+1c Hover .nav-search gleich=true {"bg":"rgba(0, 0, 0, 0)","bgi":"none","tf":"none","fi":"none","bc":"rgba(242, 246, 243, 0.72)","br":"11px","out":"none rgba(242, 246, 243, 0.72)"} → {"bg":"rgba(0, 0, 0, 0)","bgi":"none","tf":"none","fi":"none","bc":"rgba(242, 246, 243, 0.72)","br":"11px","out":"none rgba(242, 246, 243, 0.72)"}
+1c .tool-chip nicht gefunden
+1c Hover .fold-hdr gleich=true
+1c passive Zellen (Zuletzt erledigt): [{"i":5,"t":"🍳KücheTomvor 2 Tagen","tag":"DIV","klick":false},{"i":7,"t":"🚿Bad putzenTorbenvor 8 Tage","tag":"DIV","klick":false}]
+1c Hover auf passive Zelle "rgba(0, 0, 0, 0)" → "rgba(255, 255, 255, 0.05)"
+1d Blatt {"x":460,"y":332,"b":520,"h":336,"griff":true,"role":null,"modal":null,"fokus":"INPUT.field","imBlatt":true}
+1d Tab-Weg im Blatt ["BLATT:BUTTON 🛒 Lebensmittel","BLATT:BUTTON 🧴 Haushalt","BLATT:BUTTON 🎉 Freizeit","BLATT:BUTTON 📄 Fixkosten","BLATT:BUTTON 📦 Sonstiges","BLATT:BUTTON Weiter"]
+1d nach Escape noch offen: true
+1d nach Klick daneben offen: false
+1e Suche nach Escape offen: true
+1f Radius ohne Fokus [{"s":".tool-chip","radius":"—"},{"s":".wz-kachel","radius":"18px"},{"s":".nav-search","radius":"11px"},{"s":".tabbar .tabitem","radius":"0px"},{"s":".done-btn","radius":"13px"},{"s":".btn","radius":"17px"},{"s":".seg-btn","radius":"—"},{"s":".month-arrow","radius":"—"}]
+1f Kachel mit Tastaturfokus {"el":"wz-kachel","radius":"6px","outline":"solid 2px rgb(94, 234, 212)","fv":true}
+1f Tabitem mit Tastaturfokus {"el":"tabitem","radius":"0px","fv":true}
+1f Plus-Knopf Radius 17px → {"txt":"+","radius":"6px","fv":true}
+1g ohne Tastatur Heute {"n":0,"bsp":[]}
+1g ohne Tastatur Haushalt {"n":8,"bsp":["DIV.cell-content „Rewe Wocheneinkauf9.10\"","DIV. „€42,80je €21,40\"","DIV.cell-content „Klopapier7.10.2026 · T\"","DIV. „€8,90je €4,45\""]}
+1g ohne Tastatur Putzplan {"n":3,"bsp":["DIV.cell-content „🚿 Bad putzenDu, danac\"","DIV.cell-content „🍳 KücheTom, danach du\"","DIV.cell-content „🗑️ Müll rausbringenDu\""]}
+1g ohne Tastatur Übersicht {"n":3,"bsp":["DIV.bar-row „🛒 Lebensmittel€42,80\"","DIV.bar-row „🎉 Freizeit€24,00\"","DIV.bar-row „🧴 Haushalt€8,90\""]}
+1g ohne Tastatur Mehr {"n":3,"bsp":["DIV.cell „⬇️Als JSON exportieren\"","DIV.cell „📊Als CSV exportierenA\"","DIV.cell „⬆️Backup importierenÜb\""]}
+1h Breite Haushalt {"inhalt":760,"links":292,"rechts":292,"anteilLeer":"43%"}
+1h Breite Mehr {"inhalt":760,"links":292,"rechts":292,"anteilLeer":"43%"}
+1h Breite Übersicht {"inhalt":760,"links":292,"rechts":292,"anteilLeer":"43%"}
+2 Hell-Hover .cell rgba(0, 0, 0, 0) → rgba(255, 255, 255, 0.05)
+2 Scrollbalken-Daumen hell: rgba(255, 255, 255, 0.1)
+3 Tablet Medienmerkmale {"hover":false,"fine":false}
+3 nach Tippen (Zelle, 800 ms später) rgba(0, 0, 0, 0) → rgba(255, 255, 255, 0.05)
+4 Spaltenbreiten 1024 [434,434]
+exit1=0

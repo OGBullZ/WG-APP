@@ -1,0 +1,20 @@
+/* BREIT-Messung, Teil 4: was läuft bei „weniger Bewegung" auf dem Desktop noch? (Blatt, Overlay, Aurora, Live-Punkt, Tab-Glow) */
+import { chromium } from 'playwright';
+import { STUB } from '../test/_fbstub.mjs';
+const T = new Date().toISOString().slice(0, 10);
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1, serviceWorkers: 'block', reducedMotion: 'reduce' });
+await ctx.routeWebSocket(/./, () => {});
+await ctx.route('**/*', r => (/firebasedatabase|firebaseio|vercel|googleapis/.test(r.request().url()) ? r.abort() : r.continue()));
+await ctx.route(/firebase-(app|database)-compat[-\d.]*\.js/, r => r.fulfill({ status: 200, contentType: 'application/javascript', body: /firebase-app-compat/.test(r.request().url()) ? STUB : '' }));
+await ctx.addInitScript(([t]) => { window.__wgSeed = { users: [{ id: 'u1', name: 'Torben', color: '#38bdf8' }, { id: 'u2', name: 'Tom', color: '#fbbf24' }] }; localStorage.setItem('wg_code', JSON.stringify('TEST-LOKAL-BREIT4')); localStorage.setItem('wg_me', JSON.stringify('u1')); localStorage.setItem('wg_start_shown', JSON.stringify(t)); localStorage.setItem('wg_push_nudge', JSON.stringify({ until: Date.now() + 864e5 * 30 })); }, [T]);
+const page = await ctx.newPage();
+await page.goto('http://127.0.0.1:8099/wgapp.html', { waitUntil: 'domcontentloaded' });
+await page.locator('.tabbar').waitFor({ timeout: 30000 });
+await page.evaluate(() => window.__wg.fire()); await page.waitForTimeout(1200);
+const an = s => page.evaluate(s => { const [sel, pe] = s.split('|'); const e = document.querySelector(sel); return e ? getComputedStyle(e, pe || null).animationName + ' ' + getComputedStyle(e, pe || null).animationDuration : '—'; }, s);
+console.log('reduce aktiv:', await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches));
+for (const s of ['body|::before', '.live-dot', '.tab-glow', '.tabitem', '.tab-view']) console.log(s, await an(s));
+await page.locator('[data-testid="search-open"]').first().click(); await page.waitForTimeout(100);
+for (const s of ['.sheet', '.overlay']) console.log(s, await an(s));
+await browser.close();

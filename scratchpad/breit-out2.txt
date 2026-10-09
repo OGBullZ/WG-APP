@@ -1,0 +1,6 @@
+A Suche leer/„Kü"/„a" [{"top":383,"h":235,"feldY":465},{"top":185,"h":631,"feldY":267},{"top":3,"h":994,"feldY":85}]
+A Chips in der Suche [{"cls":"tool-chips chips-x","gesamt":6,"abgeschnitten":["Sonstiges"],"scrollW":540,"clientW":494,"scrollbar":"none"}]
+A Mausrad über Chips: scrollLeft 0 → 0
+B Assistent je Schritt (top/h/feldY/weiter) [{"top":332,"h":336,"feldY":469,"weiter":595},{"top":241,"h":519,"feldY":378,"weiter":687},{"top":204,"h":592,"feldY":null,"weiter":723}]
+C Rückgängig-Balken {"toastMitte":720,"inhaltMitte":768,"abstandUnten":96,"text":"🚿 „Bad putzen\" erledigt · TorbenWar Tom"}
+exit=0

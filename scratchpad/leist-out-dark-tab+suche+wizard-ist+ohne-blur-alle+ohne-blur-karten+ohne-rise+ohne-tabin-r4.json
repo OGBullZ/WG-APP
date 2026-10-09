@@ -1,0 +1,954 @@
+{
+ "meta": {
+  "chromium": "149.0.7827.55",
+  "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0) · {\"raster\":\"disabled_software\",\"compositing\":\"disabled_software\",\"webgl\":\"unavailable_software\"}",
+  "theme": "dark",
+  "rate": 4,
+  "runden": 5,
+  "breite": 390,
+  "hoehe": 844,
+  "fenster_ms": 800
+ },
+ "varianten": {
+  "ist": {
+   "ruhe1_1s": {
+    "script": 2.9,
+    "layout": 0,
+    "style": 25.4,
+    "task": 159.3,
+    "gpu": 853.7,
+    "renderer": 1147.5,
+    "browser": 0.5
+   },
+   "tab": {
+    "n": 25,
+    "evD_ms": {
+     "median": 64,
+     "p95": 88,
+     "max": 88,
+     "unterSchwelle": 0
+    },
+    "bildAbstaende_ms": {
+     "p50": 16.7,
+     "p95": 16.8,
+     "p99": 33.4,
+     "max": 50.1,
+     "ueber33_prozent": 1.4,
+     "ueber50_prozent": 0.1
+    },
+    "bilderProSek": 58.8,
+    "ersteLuecke_ms": 9.3,
+    "longTasks": {
+     "probenMitLT": 8,
+     "anzahlGesamt": 8,
+     "summeMedian_ms": 0,
+     "maxMax_ms": 67
+    },
+    "cls": {
+     "rohSumme": 0,
+     "ohneEingabeSumme": 0,
+     "quellen": []
+    },
+    "hauptthread_ms_je_1_1s": {
+     "script": 25.4,
+     "layout": 9.1,
+     "style": 33.8,
+     "task": 90.9,
+     "layoutN": 8,
+     "styleN": 70
+    },
+    "cpu_ms_je_1_1s": {
+     "gpu": 974.7,
+     "renderer": 1214.7,
+     "browser": 4.7
+    },
+    "proTab": {
+     "Haushalt": {
+      "evD_median": 64,
+      "evD_max": 80,
+      "ltAnzahl": 1,
+      "bilderProSek": 58.8,
+      "p95Abstand": 16.8,
+      "gpu": 646.4,
+      "script": 20.1
+     },
+     "Putzplan": {
+      "evD_median": 48,
+      "evD_max": 48,
+      "ltAnzahl": 0,
+      "bilderProSek": 60,
+      "p95Abstand": 16.8,
+      "gpu": 974.7,
+      "script": 17.5
+     },
+     "Übersicht": {
+      "evD_median": 88,
+      "evD_max": 88,
+      "ltAnzahl": 3,
+      "bilderProSek": 57.5,
+      "p95Abstand": 16.8,
+      "gpu": 994.7,
+      "script": 30.8
+     },
+     "Mehr": {
+      "evD_median": 80,
+      "evD_max": 88,
+      "ltAnzahl": 4,
+      "bilderProSek": 53.8,
+      "p95Abstand": 33.4,
+      "gpu": 1056.6,
+      "script": 39.8
+     },
+     "Heute": {
+      "evD_median": 64,
+      "evD_max": 72,
+      "ltAnzahl": 0,
+      "bilderProSek": 58.8,
+      "p95Abstand": 16.8,
+      "gpu": 951.9,
+      "script": 22.3
+     }
+    }
+   },
+   "suche": {
+    "n": 5,
+    "evD_ms": {
+     "median": 48,
+     "p95": 80,
+     "max": 80,
+     "unterSchwelle": 0
+    },
+    "bildAbstaende_ms": {
+     "p50": 16.7,
+     "p95": 33.4,
+     "p99": 33.4,
+     "max": 33.4,
+     "ueber33_prozent": 3.3,
+     "ueber50_prozent": 0
+    },
+    "bilderProSek": 47.5,
+    "ersteLuecke_ms": 9.3,
+    "longTasks": {
+     "probenMitLT": 0,
+     "anzahlGesamt": 0,
+     "summeMedian_ms": 0,
+     "maxMax_ms": 0
+    },
+    "cls": {
+     "rohSumme": 0,
+     "ohneEingabeSumme": 0,
+     "quellen": []
+    },
+    "hauptthread_ms_je_1_1s": {
+     "script": 7.6,
+     "layout": 2.3,
+     "style": -1.3,
+     "task": 21.9,
+     "layoutN": 4,
+     "styleN": 57
+    },
+    "cpu_ms_je_1_1s": {
+     "gpu": 1070.1,
+     "renderer": 1143.3,
+     "browser": 8.3
+    }
+   },
+   "wizard": {
+    "n": 5,
+    "evD_ms": {
+     "median": 48,
+     "p95": 112,
+     "max": 112,
+     "unterSchwelle": 0
+    },
+    "bildAbstaende_ms": {
+     "p50": 16.7,
+     "p95": 33.4,
+     "p99": 33.4,
+     "max": 66.7,
+     "ueber33_prozent": 6.5,
+     "ueber50_prozent": 0.6
+    },
+    "bilderProSek": 43.8,
+    "ersteLuecke_ms": 9.1,
+    "longTasks": {
+     "probenMitLT": 1,
+     "anzahlGesamt": 1,
+     "summeMedian_ms": 0,
+     "maxMax_ms": 68
+    },
+    "cls": {
+     "rohSumme": 0,
+     "ohneEingabeSumme": 0,
+     "quellen": []
+    },
+    "hauptthread_ms_je_1_1s": {
+     "script": 11.5,
+     "layout": 3.1,
+     "style": 3.5,
+     "task": 7,
+     "layoutN": 3,
+     "styleN": 54
+    },
+    "cpu_ms_je_1_1s": {
+     "gpu": 1082,
+     "renderer": 1177.1,
+     "browser": 8
+    }
+   },
+   "seitenfehler": []
+  },
+  "ohne-blur-alle": {
+   "ruhe1_1s": {
+    "script": 2.6,
+    "layout": 0,
+    "style": 19.3,
+    "task": 126.9,
+    "gpu": 175.1,
+    "renderer": 1014,
+    "browser": 1.4
+   },
+   "tab": {
+    "n": 25,
+    "evD_ms": {
+     "median": 56,
+     "p95": 72,
+     "max": 72,
+     "unterSchwelle": 0
+    },
+    "bildAbstaende_ms": {
+     "p50": 16.7,
+     "p95": 16.8,
+     "p99": 33.4,
+     "max": 66.6,
+     "ueber33_prozent": 1,
+     "ueber50_prozent": 0.2
+    },
+    "bilderProSek": 58.8,
+    "ersteLuecke_ms": 9.4,
+    "longTasks": {
+     "probenMitLT": 7,
+     "anzahlGesamt": 7,
+     "summeMedian_ms": 0,
+     "maxMax_ms": 59
+    },
+    "cls": {
+     "rohSumme": 0,
+     "ohneEingabeSumme": 0,
+     "quellen": []
+    },
+    "hauptthread_ms_je_1_1s": {
+     "script": 20.3,
+     "layout": 9.1,
+     "style": 37.1,
+     "task": 119.8,
+     "layoutN": 8,
+     "styleN": 70
+    },
+    "cpu_ms_je_1_1s": {
+     "gpu": 234.3,
+     "renderer": 1201.6,
+     "browser": 4.6
+    },
+    "proTab": {
+     "Haushalt": {
+      "evD_median": 48,
+      "evD_max": 64,
+      "ltAnzahl": 1,
+      "bilderProSek": 58.8,
+      "p95Abstand": 16.8,
+      "gpu": 223.3,
+      "script": 20.1
+     },
+     "Putzplan": {
+      "evD_median": 40,
+      "evD_max": 48,
+      "ltAnzahl": 0,
+      "bilderProSek": 60,
+      "p95Abstand": 16.7,
+      "gpu": 241.4,
+      "script": 18.4
+     },
+     "Übersicht": {
+      "evD_median": 64,
+      "evD_max": 72,
+      "ltAnzahl": 4,
+      "bilderProSek": 57.5,
+      "p95Abstand": 16.8,
+      "gpu": 237,
+      "script": 28
+     },
+     "Mehr": {
+      "evD_median": 64,
+      "evD_max": 72,
+      "ltAnzahl": 2,
+      "bilderProSek": 58.8,
+      "p95Abstand": 16.8,
+      "gpu": 236,
+      "script": 39.1
+     },
+     "Heute": {
+      "evD_median": 56,
+      "evD_max": 64,
+      "ltAnzahl": 0,
+      "bilderProSek": 58.8,
+      "p95Abstand": 16.8,
+      "gpu": 227.4,
+      "script": 24.7
+     }
+    }
+   },
+   "suche": {
+    "n": 5,
+    "evD_ms": {
+     "median": 40,
+     "p95": 48,
+     "max": 48,
+     "unterSchwelle": 0
+    },
+    "bildAbstaende_ms": {
+     "p50": 16.7,
+     "p95": 16.8,
+     "p99": 16.8,
+     "max": 16.8,
+     "ueber33_prozent": 0,
+     "ueber50_prozent": 0
+    },
+    "bilderProSek": 60,
+    "ersteLuecke_ms": 9.1,
+    "longTasks": {
+     "probenMitLT": 0,
+     "anzahlGesamt": 0,
+     "summeMedian_ms": 0,
+     "maxMax_ms": 0
+    },
+    "cls": {
+     "rohSumme": 0,
+     "ohneEingabeSumme": 0,
+     "quellen": []
+    },
+    "hauptthread_ms_je_1_1s": {
+     "script": 7.9,
+     "layout": 2.7,
+     "style": 6.3,
+     "task": 73.6,
+     "layoutN": 4,
+     "styleN": 71
+    },
+    "cpu_ms_je_1_1s": {
+     "gpu": 204.6,
+     "renderer": 1133.9,
+     "browser": 9.4
+    }
+   },
+   "wizard": {
+    "n": 5,
+    "evD_ms": {
+     "median": 32,
+     "p95": 96,
+     "max": 96,
+     "unterSchwelle": 0
+    },
+    "bildAbstaende_ms": {
+     "p50": 16.7,
+     "p95": 16.8,
+     "p99": 16.8,
+     "max": 66.6,
+     "ueber33_prozent": 0.4,
+     "ueber50_prozent": 0.4
+    },
+    "bilderProSek": 60,
+    "ersteLuecke_ms": 8.9,
+    "longTasks": {
+     "probenMitLT": 1,
+     "anzahlGesamt": 1,
+     "summeMedian_ms": 0,
+     "maxMax_ms": 81
+    },
+    "cls": {
+     "rohSumme": 0,
+     "ohneEingabeSumme": 0,
+     "quellen": []
+    },
+    "hauptthread_ms_je_1_1s": {
+     "script": 11.2,
+     "layout": 1.6,
+     "style": 16.6,
+     "task": 67.4,
+     "layoutN": 3,
+     "styleN": 71
+    },
+    "cpu_ms_je_1_1s": {
+     "gpu": 216.1,
+     "renderer": 1142.6,
+     "browser": 9.6
+    }
+   },
+   "seitenfehler": []
+  },
+  "ohne-blur-karten": {
+   "ruhe1_1s": {
+    "script": 3,
+    "layout": 0,
+    "style": 16.7,
+    "task": 120.5,
+    "gpu": 426.9,
+    "renderer": 1084.7,
+    "browser": 0.5
+   },
+   "tab": {
+    "n": 25,
+    "evD_ms": {
+     "median": 56,
+     "p95": 88,
+     "max": 96,
+     "unterSchwelle": 0
+    },
+    "bildAbstaende_ms": {
+     "p50": 16.7,
+     "p95": 16.8,
+     "p99": 33.4,
+     "max": 50.1,
+     "ueber33_prozent": 1,
+     "ueber50_prozent": 0.2
+    },
+    "bilderProSek": 58.8,
+    "ersteLuecke_ms": 8.3,
+    "longTasks": {
+     "probenMitLT": 9,
+     "anzahlGesamt": 9,
+     "summeMedian_ms": 0,
+     "maxMax_ms": 68
+    },
+    "cls": {
+     "rohSumme": 0,
+     "ohneEingabeSumme": 0,
+     "quellen": []
+    },
+    "hauptthread_ms_je_1_1s": {
+     "script": 24.9,
+     "layout": 9.4,
+     "style": 28,
+     "task": 122.5,
+     "layoutN": 8,
+     "styleN": 69
+    },
+    "cpu_ms_je_1_1s": {
+     "gpu": 488.3,
+     "renderer": 1133.6,
+     "browser": 5.1
+    },
+    "proTab": {
+     "Haushalt": {
+      "evD_median": 48,
+      "evD_max": 56,
+      "ltAnzahl": 1,
+      "bilderProSek": 58.8,
+      "p95Abstand": 16.8,
+      "gpu": 488.3,
+      "script": 14.9
+     },
+     "Putzplan": {
+      "evD_median": 56,
+      "evD_max": 72,
+      "ltAnzahl": 0,
+      "bilderProSek": 60,
+      "p95Abstand": 16.8,
+      "gpu": 497.7,
+      "script": 11
+     },
+     "Übersicht": {
+      "evD_median": 72,
+      "evD_max": 96,
+      "ltAnzahl": 3,
+      "bilderProSek": 57.5,
+      "p95Abstand": 16.8,
+      "gpu": 488.1,
+      "script": 36.9
+     },
+     "Mehr": {
+      "evD_median": 64,
+      "evD_max": 88,
+      "ltAnzahl": 2,
+      "bilderProSek": 58.8,
+      "p95Abstand": 16.8,
+      "gpu": 487.9,
+      "script": 32.7
+     },
+     "Heute": {
+      "evD_median": 72,
+      "evD_max": 80,
+      "ltAnzahl": 3,
+      "bilderProSek": 58.8,
+      "p95Abstand": 16.8,
+      "gpu": 488.9,
+      "script": 26
+     }
+    }
+   },
+   "suche": {
+    "n": 5,
+    "evD_ms": {
+     "median": 56,
+     "p95": 56,
+     "max": 56,
+     "unterSchwelle": 0
+    },
+    "bildAbstaende_ms": {
+     "p50": 16.7,
+     "p95": 16.8,
+     "p99": 16.8,
+     "max": 16.8,
+     "ueber33_prozent": 0,
+     "ueber50_prozent": 0
+    },
+    "bilderProSek": 60,
+    "ersteLuecke_ms": 8.7,
+    "longTasks": {
+     "probenMitLT": 0,
+     "anzahlGesamt": 0,
+     "summeMedian_ms": 0,
+     "maxMax_ms": 0
+    },
+    "cls": {
+     "rohSumme": 0,
+     "ohneEingabeSumme": 0,
+     "quellen": []
+    },
+    "hauptthread_ms_je_1_1s": {
+     "script": 7.5,
+     "layout": 1.9,
+     "style": 6.2,
+     "task": 83,
+     "layoutN": 4,
+     "styleN": 71
+    },
+    "cpu_ms_je_1_1s": {
+     "gpu": 920.5,
+     "renderer": 1134.3,
+     "browser": 9.8
+    }
+   },
+   "wizard": {
+    "n": 5,
+    "evD_ms": {
+     "median": 40,
+     "p95": 104,
+     "max": 104,
+     "unterSchwelle": 0
+    },
+    "bildAbstaende_ms": {
+     "p50": 16.7,
+     "p95": 16.8,
+     "p99": 16.8,
+     "max": 66.7,
+     "ueber33_prozent": 0.4,
+     "ueber50_prozent": 0.4
+    },
+    "bilderProSek": 60,
+    "ersteLuecke_ms": 9.3,
+    "longTasks": {
+     "probenMitLT": 1,
+     "anzahlGesamt": 1,
+     "summeMedian_ms": 0,
+     "maxMax_ms": 80
+    },
+    "cls": {
+     "rohSumme": 0,
+     "ohneEingabeSumme": 0,
+     "quellen": []
+    },
+    "hauptthread_ms_je_1_1s": {
+     "script": 10.9,
+     "layout": 2.8,
+     "style": 19.6,
+     "task": 92.6,
+     "layoutN": 3,
+     "styleN": 72
+    },
+    "cpu_ms_je_1_1s": {
+     "gpu": 879.9,
+     "renderer": 1194.8,
+     "browser": 8.6
+    }
+   },
+   "seitenfehler": []
+  },
+  "ohne-rise": {
+   "ruhe1_1s": {
+    "script": 2.6,
+    "layout": 0,
+    "style": 24.2,
+    "task": 147.9,
+    "gpu": 843.1,
+    "renderer": 1156.9,
+    "browser": 0.5
+   },
+   "tab": {
+    "n": 25,
+    "evD_ms": {
+     "median": 72,
+     "p95": 88,
+     "max": 88,
+     "unterSchwelle": 0
+    },
+    "bildAbstaende_ms": {
+     "p50": 16.7,
+     "p95": 16.8,
+     "p99": 33.3,
+     "max": 66.7,
+     "ueber33_prozent": 0.8,
+     "ueber50_prozent": 0.1
+    },
+    "bilderProSek": 58.8,
+    "ersteLuecke_ms": 10.1,
+    "longTasks": {
+     "probenMitLT": 5,
+     "anzahlGesamt": 5,
+     "summeMedian_ms": 0,
+     "maxMax_ms": 57
+    },
+    "cls": {
+     "rohSumme": 0,
+     "ohneEingabeSumme": 0,
+     "quellen": []
+    },
+    "hauptthread_ms_je_1_1s": {
+     "script": 23.1,
+     "layout": 7.7,
+     "style": 23.4,
+     "task": 72.6,
+     "layoutN": 5,
+     "styleN": 70
+    },
+    "cpu_ms_je_1_1s": {
+     "gpu": 957.1,
+     "renderer": 1207.9,
+     "browser": 4.2
+    },
+    "proTab": {
+     "Haushalt": {
+      "evD_median": 64,
+      "evD_max": 80,
+      "ltAnzahl": 0,
+      "bilderProSek": 58.8,
+      "p95Abstand": 16.7,
+      "gpu": 614.3,
+      "script": 18.1
+     },
+     "Putzplan": {
+      "evD_median": 48,
+      "evD_max": 56,
+      "ltAnzahl": 0,
+      "bilderProSek": 60,
+      "p95Abstand": 16.8,
+      "gpu": 957.1,
+      "script": 17.3
+     },
+     "Übersicht": {
+      "evD_median": 88,
+      "evD_max": 88,
+      "ltAnzahl": 1,
+      "bilderProSek": 58.8,
+      "p95Abstand": 16.8,
+      "gpu": 966.1,
+      "script": 30.4
+     },
+     "Mehr": {
+      "evD_median": 88,
+      "evD_max": 88,
+      "ltAnzahl": 4,
+      "bilderProSek": 56.3,
+      "p95Abstand": 33.3,
+      "gpu": 1016.7,
+      "script": 39.7
+     },
+     "Heute": {
+      "evD_median": 72,
+      "evD_max": 72,
+      "ltAnzahl": 0,
+      "bilderProSek": 60,
+      "p95Abstand": 16.7,
+      "gpu": 878.9,
+      "script": 23.1
+     }
+    }
+   },
+   "suche": {
+    "n": 5,
+    "evD_ms": {
+     "median": 48,
+     "p95": 72,
+     "max": 72,
+     "unterSchwelle": 0
+    },
+    "bildAbstaende_ms": {
+     "p50": 16.7,
+     "p95": 33.4,
+     "p99": 33.4,
+     "max": 33.4,
+     "ueber33_prozent": 3.2,
+     "ueber50_prozent": 0
+    },
+    "bilderProSek": 48.8,
+    "ersteLuecke_ms": 9.5,
+    "longTasks": {
+     "probenMitLT": 0,
+     "anzahlGesamt": 0,
+     "summeMedian_ms": 0,
+     "maxMax_ms": 0
+    },
+    "cls": {
+     "rohSumme": 0,
+     "ohneEingabeSumme": 0,
+     "quellen": []
+    },
+    "hauptthread_ms_je_1_1s": {
+     "script": 7.6,
+     "layout": 2.2,
+     "style": -0.5,
+     "task": 24.9,
+     "layoutN": 4,
+     "styleN": 60
+    },
+    "cpu_ms_je_1_1s": {
+     "gpu": 1074.3,
+     "renderer": 1187.3,
+     "browser": 7.7
+    }
+   },
+   "wizard": {
+    "n": 5,
+    "evD_ms": {
+     "median": 48,
+     "p95": 112,
+     "max": 112,
+     "unterSchwelle": 0
+    },
+    "bildAbstaende_ms": {
+     "p50": 16.7,
+     "p95": 33.4,
+     "p99": 33.4,
+     "max": 66.7,
+     "ueber33_prozent": 7.4,
+     "ueber50_prozent": 0.6
+    },
+    "bilderProSek": 45,
+    "ersteLuecke_ms": 10,
+    "longTasks": {
+     "probenMitLT": 1,
+     "anzahlGesamt": 1,
+     "summeMedian_ms": 0,
+     "maxMax_ms": 81
+    },
+    "cls": {
+     "rohSumme": 0,
+     "ohneEingabeSumme": 0,
+     "quellen": []
+    },
+    "hauptthread_ms_je_1_1s": {
+     "script": 9.8,
+     "layout": 3,
+     "style": 2.6,
+     "task": 13,
+     "layoutN": 3,
+     "styleN": 56
+    },
+    "cpu_ms_je_1_1s": {
+     "gpu": 1084.4,
+     "renderer": 1175.8,
+     "browser": 7.4
+    }
+   },
+   "seitenfehler": []
+  },
+  "ohne-tabin": {
+   "ruhe1_1s": {
+    "script": 3.5,
+    "layout": 0,
+    "style": 21.4,
+    "task": 142.9,
+    "gpu": 835.3,
+    "renderer": 1165.4,
+    "browser": 0.6
+   },
+   "tab": {
+    "n": 25,
+    "evD_ms": {
+     "median": 64,
+     "p95": 80,
+     "max": 80,
+     "unterSchwelle": 0
+    },
+    "bildAbstaende_ms": {
+     "p50": 16.7,
+     "p95": 16.8,
+     "p99": 33.4,
+     "max": 50,
+     "ueber33_prozent": 1.2,
+     "ueber50_prozent": 0
+    },
+    "bilderProSek": 58.8,
+    "ersteLuecke_ms": 9.9,
+    "longTasks": {
+     "probenMitLT": 7,
+     "anzahlGesamt": 7,
+     "summeMedian_ms": 0,
+     "maxMax_ms": 59
+    },
+    "cls": {
+     "rohSumme": 0,
+     "ohneEingabeSumme": 0,
+     "quellen": []
+    },
+    "hauptthread_ms_je_1_1s": {
+     "script": 22,
+     "layout": 8.2,
+     "style": 34.5,
+     "task": 102.4,
+     "layoutN": 7,
+     "styleN": 70
+    },
+    "cpu_ms_je_1_1s": {
+     "gpu": 938.5,
+     "renderer": 1214.5,
+     "browser": 4.2
+    },
+    "proTab": {
+     "Haushalt": {
+      "evD_median": 64,
+      "evD_max": 80,
+      "ltAnzahl": 0,
+      "bilderProSek": 58.8,
+      "p95Abstand": 16.8,
+      "gpu": 607.3,
+      "script": 18.2
+     },
+     "Putzplan": {
+      "evD_median": 40,
+      "evD_max": 40,
+      "ltAnzahl": 0,
+      "bilderProSek": 60,
+      "p95Abstand": 16.8,
+      "gpu": 938.5,
+      "script": 15.7
+     },
+     "Übersicht": {
+      "evD_median": 80,
+      "evD_max": 80,
+      "ltAnzahl": 2,
+      "bilderProSek": 58.8,
+      "p95Abstand": 16.8,
+      "gpu": 964.4,
+      "script": 30.6
+     },
+     "Mehr": {
+      "evD_median": 80,
+      "evD_max": 80,
+      "ltAnzahl": 4,
+      "bilderProSek": 55,
+      "p95Abstand": 33.4,
+      "gpu": 1030.8,
+      "script": 39.6
+     },
+     "Heute": {
+      "evD_median": 64,
+      "evD_max": 80,
+      "ltAnzahl": 1,
+      "bilderProSek": 58.8,
+      "p95Abstand": 16.8,
+      "gpu": 902.7,
+      "script": 22
+     }
+    }
+   },
+   "suche": {
+    "n": 5,
+    "evD_ms": {
+     "median": 48,
+     "p95": 80,
+     "max": 80,
+     "unterSchwelle": 0
+    },
+    "bildAbstaende_ms": {
+     "p50": 16.7,
+     "p95": 33.4,
+     "p99": 33.4,
+     "max": 33.4,
+     "ueber33_prozent": 3.1,
+     "ueber50_prozent": 0
+    },
+    "bilderProSek": 50,
+    "ersteLuecke_ms": 10,
+    "longTasks": {
+     "probenMitLT": 0,
+     "anzahlGesamt": 0,
+     "summeMedian_ms": 0,
+     "maxMax_ms": 0
+    },
+    "cls": {
+     "rohSumme": 0,
+     "ohneEingabeSumme": 0,
+     "quellen": []
+    },
+    "hauptthread_ms_je_1_1s": {
+     "script": 5.4,
+     "layout": 2,
+     "style": 3.6,
+     "task": 33.3,
+     "layoutN": 4,
+     "styleN": 60
+    },
+    "cpu_ms_je_1_1s": {
+     "gpu": 1077.5,
+     "renderer": 1188.6,
+     "browser": 7.4
+    }
+   },
+   "wizard": {
+    "n": 5,
+    "evD_ms": {
+     "median": 48,
+     "p95": 112,
+     "max": 112,
+     "unterSchwelle": 0
+    },
+    "bildAbstaende_ms": {
+     "p50": 16.7,
+     "p95": 33.4,
+     "p99": 50,
+     "max": 66.7,
+     "ueber33_prozent": 6.3,
+     "ueber50_prozent": 0.6
+    },
+    "bilderProSek": 46.3,
+    "ersteLuecke_ms": 10.1,
+    "longTasks": {
+     "probenMitLT": 1,
+     "anzahlGesamt": 1,
+     "summeMedian_ms": 0,
+     "maxMax_ms": 76
+    },
+    "cls": {
+     "rohSumme": 0,
+     "ohneEingabeSumme": 0,
+     "quellen": []
+    },
+    "hauptthread_ms_je_1_1s": {
+     "script": 7.9,
+     "layout": 2.8,
+     "style": 5.2,
+     "task": 4.8,
+     "layoutN": 3,
+     "styleN": 56
+    },
+    "cpu_ms_je_1_1s": {
+     "gpu": 1087.7,
+     "renderer": 1178.2,
+     "browser": 7.1
+    }
+   },
+   "seitenfehler": []
+  }
+ }
+}

@@ -114,6 +114,14 @@
   --disp:        'Unbounded', sans-serif;
   --mono:        'Spline Sans Mono', monospace;
   --ink:         #0a120c;   /* Schrift auf Akzentfarben — im Hellmodus weiß */
+  /* Bewegungs-Vokabular (wg-v112): eine Handvoll Dauern + Kurven statt ~25 Einzelwerte, damit alles gleich „klingt".
+     tipp = Rückmeldung auf Berührung, kurz = Ein-/Ausblenden, mittel = Blätter/Tab, wert = Zahlen/Balken.
+     raus = sanft ankommen (Standard), rein = beschleunigt abgehen, feder = Überschwingen NUR für echte Erfolge
+     (abgehakt, eingetragen) — überall sonst wirkt sie albern. */
+  --dur-tipp:120ms; --dur-kurz:180ms; --dur-mittel:260ms; --dur-wert:320ms;
+  --ease-raus:cubic-bezier(.22,1,.36,1);
+  --ease-rein:cubic-bezier(.4,0,1,1);
+  --ease-feder:cubic-bezier(.34,1.56,.64,1);
 }
 /* ── Hellmodus (Mehr → Darstellung): dunklere Akzente, damit Text auf Weiß UND weiße Schrift auf Akzent AA erreichen ── */
 [data-theme="light"] {
@@ -169,9 +177,9 @@ body::before {
     radial-gradient(42% 34% at 16% 6%,  rgba(163,230,53,.13),  transparent 62%),
     radial-gradient(38% 30% at 86% 10%, rgba(94,234,212,.11),  transparent 62%),
     radial-gradient(52% 42% at 50% 112%,rgba(196,181,253,.09), transparent 62%);
-  animation:drift 26s ease-in-out infinite alternate;
+  /* wg-v112: Verlauf steht still. Die 26-s-Drift war kaum zu sehen, hielt aber die ~14 backdrop-filter-Flächen
+     (Navbar, Tabbar, Sheets …) im Leerlauf dauernd am Neuzeichnen — gemessen ca. 4× CPU gegenüber ohne. */
 }
-@keyframes drift { to { transform:translate3d(2.5%,-2%,0) scale(1.07) rotate(1deg); } }
 body::after {
   content:''; position:fixed; inset:0; z-index:1; pointer-events:none; opacity:.05;
   background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -202,8 +210,11 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 .content { padding:16px 16px 36px; display:flex; flex-direction:column; gap:20px; }
 
 /* ── Entry animation ── */
-.rise { animation:rise .5s cubic-bezier(.22,1,.36,1) backwards; }
-@keyframes rise { from { opacity:0; transform:translateY(14px); } }
+/* wg-v112: 500 ms/14 px → var(--dur-mittel)/8 px. Bei gestaffelten Karten (je ~45 ms Verzögerung) war die Seite sonst erst
+   nach 0,5–0,7 s ruhig; 8 px reichen als „kommt von unten", ohne dass der Text beim Lesen wandert.
+   In bereits besuchten Tabs läuft .rise gar nicht mehr (.tab-view.schon, s. „7 · Tab-Wechsel"). */
+.rise { animation:rise var(--dur-mittel) var(--ease-raus) backwards; }
+@keyframes rise { from { opacity:0; transform:translateY(8px); } }
 
 /* ── Navbar ── */
 .navbar {
@@ -225,8 +236,11 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
   padding:5px 10px 5px 8px; border-radius:999px;
   border:1px solid; opacity:.95;
 }
-.live-dot { width:6px; height:6px; border-radius:50%; background:currentColor; animation:pulse 1.8s ease-in-out infinite; }
-@keyframes pulse { 0%,100%{opacity:1; box-shadow:0 0 0 0 currentColor;} 50%{opacity:.5; box-shadow:0 0 8px 1px currentColor;} }
+/* wg-v112: der Punkt steht still (LIVE/LOKAL/OFFLINE/FEHLER/CODE ALT) und pulsiert NUR, solange „SYNC…" läuft (Klasse .puls):
+   ein Dauerpuls im Normalzustand ist Unruhe ohne Aussage, und der alte box-shadow-Puls war ein Dauer-Repaint. Jetzt nur opacity. */
+.live-dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
+.live-dot.puls { animation:pulse 1.8s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.45;} }
 
 /* ── Live toast ── */
 .toast {
@@ -275,8 +289,13 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 .tabitem {
   flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap:4px; background:transparent; padding:8px 0 10px; position:relative;
-  transition:all .25s cubic-bezier(.22,1,.36,1);
+  /* wg-v112: vorher `all .25s` — alles an der Leiste (Farbe, Abstände, Größe) lief mit, und der alte Eintrag blendete
+     sich 250 ms lang AUS, während der neue sich EIN blendete → zwei Einträge gleichzeitig halb farbig.
+     Jetzt nur transform (Antipp-Verkleinerung); die Farbe überblendet allein der aktive Eintrag (.tabitem.on direkt darunter),
+     der abgewählte wird sofort grau. */
+  transition:transform var(--dur-tipp) var(--ease-raus);
 }
+.tabitem.on { transition:color var(--dur-tipp) var(--ease-raus), transform var(--dur-tipp) var(--ease-raus); }
 .tabitem:active { transform:scale(.92); }
 .tabitem span { font-size:11px; letter-spacing:.04em; font-weight:700; }
 /* wg-v81: Beschriftung bleibt einzeilig — auf Englisch brachen „Grow box" und „Cleaning plan" auf zwei Zeilen um
@@ -365,8 +384,11 @@ button.cell { color:var(--label); }
 .tabitem .tab-glow {
   position:absolute; top:0; width:22px; height:3px; border-radius:0 0 3px 3px;
   box-shadow:0 2px 12px 1px currentColor; background:currentColor;
-  animation:rise .3s ease backwards;
+  /* wg-v112: wächst von der Mitte auf (scaleX .3 → 1) statt als rise von unten einzufliegen — nur transform, und die
+     Leiste liegt auch in der Seitenleiste ab 1024 px als waagerechter Balken oben am Eintrag, die Achse passt also dort mit */
+  animation:glowIn var(--dur-kurz) var(--ease-raus) backwards;
 }
+@keyframes glowIn { from { transform:scaleX(.3); } }
 
 /* ── Groups / Cells ── */
 .group {
@@ -537,10 +559,12 @@ button.cell { color:var(--label); }
 /* Sprungziel aus der Suche (wg-v91): kurz umranden, damit man sieht, WO man gelandet ist.
    Der Rahmen bleibt auch ohne Animation stehen (siehe „Weniger Bewegung" weiter unten) — er ist die eigentliche
    Antwort auf „wo bin ich jetzt?", das Pulsieren nur die Zugabe. */
-.ziel { position:relative; border-radius:16px; box-shadow:0 0 0 2px var(--mint); animation:zielPuls 2.2s ease; }
-@keyframes zielPuls { 0%,100% { box-shadow:0 0 0 2px var(--mint); } 30% { box-shadow:0 0 0 5px rgba(94,234,212,.35); } }
+/* wg-v112: zielPuls 2,2 s → 1,2 s (der Puls sitzt bei 30 %, den Rest der Zeit stand nur der Rahmen). Halo-Farben über
+   color-mix auf --mint statt fest rgba(94,234,212,…): im Hellmodus ist --mint dunkler, das feste Hellmint war dort unsichtbar. */
+.ziel { position:relative; border-radius:16px; box-shadow:0 0 0 2px var(--mint); animation:zielPuls 1.2s ease; }
+@keyframes zielPuls { 0%,100% { box-shadow:0 0 0 2px var(--mint); } 30% { box-shadow:0 0 0 5px color-mix(in srgb, var(--mint) 35%, transparent); } }
 .ok-flash .field { animation:okFlash .9s ease; }
-@keyframes okFlash { 0% { box-shadow:0 0 0 0 rgba(94,234,212,.55); border-color:var(--mint); } 100% { box-shadow:0 0 0 14px rgba(94,234,212,0); } }
+@keyframes okFlash { 0% { box-shadow:0 0 0 0 color-mix(in srgb, var(--mint) 55%, transparent); border-color:var(--mint); } 100% { box-shadow:0 0 0 14px color-mix(in srgb, var(--mint) 0%, transparent); } }
 .ok-flash .field { border-color:var(--mint); }
 /* Filterzeilen der Suche: je eine wischbare Zeile statt umbrechender Blöcke (vorher schoben 4 Filterblöcke die Treffer
    ganz nach unten); der Rand darf nach rechts auslaufen, damit man sieht, dass es weitergeht */
@@ -837,8 +861,9 @@ button.cell { color:var(--label); }
   0%   { opacity:1; transform:translate(-50%,-50%) scale(1) rotate(0deg); }
   100% { opacity:0; transform:translate(calc(-50% + var(--px)),calc(-50% + var(--py))) scale(.5) rotate(40deg); }
 }
-.assignee-swap { display:inline-block; animation:assigneeIn .4s cubic-bezier(.22,1,.36,1); }
-@keyframes assigneeIn { from { opacity:0; transform:translateX(7px); } }
+/* wg-v112: die Bewegung kommt nicht mehr aus CSS (assigneeIn lief bei jedem Einhängen), sondern per Web Animations API aus
+   ZustName/useAenderung — nur wenn die Person wechselt. inline-block bleibt: ohne ihn wirkt transform auf inline-Text nicht. */
+.assignee-swap { display:inline-block; }
 
 /* Hinweis im Formular, wenn „Weiter" noch nicht weitergeht (wg-v96). Amber wie die Warnkarte:
    es ist ein Hinweis, kein Fehler. Erscheint erst auf den Tipp hin, nicht vorsorglich — sonst stünde
@@ -893,8 +918,10 @@ button.cell { color:var(--label); }
   32%     { background-color:var(--flash-c, rgba(94,234,212,.22)); }
 }
 
-/* 5 · Überfällig-Nudge (dezenter Ring-Puls, ~90% Ruhe) */
-.due-chip.overdue { animation:overduePulse 8s ease-in-out infinite; }
+/* 5 · Überfällig-Nudge (dezenter Ring-Puls, ~90% Ruhe)
+   wg-v112: 3 Durchläufe statt endlos (≈ 24 s) — der Hinweis soll auffallen, nicht für immer blinken; die rote Farbe
+   des Chips trägt die Aussage danach weiter. Ein Dauer-Puls hielt außerdem jede Heute-Ansicht mit Überfälligem im Repaint. */
+.due-chip.overdue { animation:overduePulse 8s ease-in-out 3; }
 @keyframes overduePulse {
   0%,89%,100% { box-shadow:0 0 0 0 rgba(251,113,133,0); }
   93%         { box-shadow:0 0 0 3px rgba(251,113,133,.30); }
@@ -920,40 +947,72 @@ button.cell { color:var(--label); }
 
 /* 7 · Tab-Wechsel direktional + Icon-Bounce */
 .tab-view { position:fixed; inset:0; z-index:2; }
-.tab-view.tab-in-r { animation:tabInR .25s cubic-bezier(.22,1,.36,1); }
-.tab-view.tab-in-l { animation:tabInL .25s cubic-bezier(.22,1,.36,1); }
-@keyframes tabInR { from { opacity:.35; transform:translateX(22px); } }
-@keyframes tabInL { from { opacity:.35; transform:translateX(-22px); } }
-.tabitem.on svg { animation:iconBounce .4s cubic-bezier(.34,1.56,.64,1); }
+/* wg-v112: die Eingangsbewegung sitzt auf dem scrollenden Teil (.scroll), nicht mehr auf der ganzen .tab-view.
+   Vorher bewegte und blendete sie auch die Kopfzeile (.navbar ist position:fixed IM .tab-view, ein transform am Vorfahren
+   nimmt sie mit): der Titel rutschte bei jedem Wechsel 22 px und startete bei 35 % Deckkraft. Die Kopfzeile steht jetzt still.
+   Werte: kurz (180 ms) statt 250 ms, 12 px statt 22 px, Deckkraft ab .6 statt .35 — nur transform/opacity.
+   Geprüft (Grep, 09.10.): in .scroll hängt nichts mit position:fixed. Sheets/Wiz/MiniSheet sind Geschwister von .scroll
+   innerhalb von .screen, das Bring-Sheet und alle Flug-/Häkchen-Effekte gehen per Portal bzw. body — sonst würde ein
+   transform am .scroll sie für die Dauer der Animation aus dem Fenster in den .scroll-Kasten ziehen. */
+.tab-view.tab-in-r .scroll { animation:tabInR var(--dur-kurz) var(--ease-raus); }
+.tab-view.tab-in-l .scroll { animation:tabInL var(--dur-kurz) var(--ease-raus); }
+@keyframes tabInR { from { opacity:.6; transform:translateX(12px); } }
+@keyframes tabInL { from { opacity:.6; transform:translateX(-12px); } }
+/* Ab 1024 px ist die Tab-Leiste senkrecht (Seitenleiste links): ein Schub von der Seite wäre dort gegenläufig zur Leiste
+   gelesen, deshalb von unten/oben (±8 px) — „weiter unten in der Leiste" = Inhalt kommt von unten. */
+@media (min-width:1024px) {
+  .tab-view.tab-in-r .scroll { animation-name:tabInRY; }
+  .tab-view.tab-in-l .scroll { animation-name:tabInLY; }
+}
+@keyframes tabInRY { from { opacity:.6; transform:translateY(8px); } }
+@keyframes tabInLY { from { opacity:.6; transform:translateY(-8px); } }
+/* Bereits besuchter Tab (wg-v112): Klasse .schon wird beim Einhängen der .tab-view fest gesetzt (s. AppInner, GESEHEN).
+   Eintritts-Animationen laufen dann nicht erneut — sie liefen vorher bei JEDEM Besuch, die Seite war erst nach 0,5–0,7 s
+   ruhig und bei 60 ms standen die Karten noch unsichtbar da. Betrifft die Eintritte beim Einhängen des Tabs (.rise, Ziffern-
+   Roll, Zuständigen-Wechsel, Pflanzen-Sprout). Folge: auch später neu eingehängte Karten IN einem besuchten Tab
+   erscheinen ohne Animation (neue Zeile nach „Hinzufügen"). wg-v112 (P3): Ziffern-Roll und Zuständigen-Wechsel sind keine
+   CSS-Animationen mehr (sondern WAAPI nur bei echter Änderung) und stehen deshalb nicht mehr in dieser Liste. */
+.tab-view.schon :is(.rise, .plant-slot, .plant-slot > svg) { animation:none; }
+.tabitem.on svg { animation:iconBounce 220ms var(--ease-feder); }
+/* wg-v112: Hub 1,26 → 1,12 und 400 → 220 ms — der Wechsel passiert bei jedem Tab-Tipp, da darf das Icon nur kurz nicken. */
 @keyframes iconBounce {
   0%   { transform:scale(1); }
-  40%  { transform:scale(1.26); }
-  70%  { transform:scale(.92); }
+  50%  { transform:scale(1.12); }
   100% { transform:scale(1); }
 }
 
 /* 8 · Odometer (Rolling Digits) */
 .odo { position:relative; white-space:nowrap; }   /* wg-v111: die Ziffern sind einzelne inline-blocks — ohne nowrap brach „€1454,36" auf 320 px zwischen ihnen um („€14 / 54, / 36") */
 .odo-sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; }
-.odo-d { display:inline-block; animation:odoRoll .3s cubic-bezier(.22,1,.36,1); }
-@keyframes odoRoll { from { transform:translateY(-.55em); opacity:0; } }
+/* wg-v112: kein CSS-odoRoll mehr (startete bei Deckkraft 0 und bei jedem Einhängen). Geänderte Ziffern bewegt CountUp per
+   Web Animations API einmal; inline-block bleibt, damit transform auf der Ziffer wirkt. */
+.odo-d { display:inline-block; }
 
-/* 10 · Growbox-Atmen */
-.plant-slot > svg { animation:breathe 6s ease-in-out infinite alternate; }
-.plant-slot:nth-child(3n)   > svg { animation-duration:6.6s; }
-.plant-slot:nth-child(3n+1) > svg { animation-duration:5.5s; }
-@keyframes breathe { from { transform:scale(1); } to { transform:scale(1.02); } }
+/* 10 · Growbox-Atmen — wg-v112 entfernt: 2 % Hub sind bei 24 px Pflanze 0,48 px (nicht zu sehen), kosteten aber als
+   Dauer-Animation je Pflanze ca. das 10-fache an CPU. Die Pflanzen stehen jetzt still; „sprout" beim Erscheinen bleibt. */
 
 /* Reduced-Motion: alle neuen dekorativen Animationen aus */
 @media (prefers-reduced-motion: reduce) {
   .fly-chip, .tp-check, .tp-check path, .tp-particle, .hero-pulse, .settle-stamp,
-  .assignee-swap, .sl-leaving, .sl-leaving .cell-title::after, .flash,
-  .due-chip.overdue, .tab-view.tab-in-r, .tab-view.tab-in-l, .tabitem.on svg,
-  .plant-slot > svg, .odo-d, .sl-alldone,
-  .rise, .ok-flash, .ziel, .geht {   /* wg-v83: .rise (überall genutzt) fehlte hier — beim Einbau der neuen Animationen aufgefallen */
+  .sl-leaving, .sl-leaving .cell-title::after, .flash,   /* wg-v112 (P3): .assignee-swap / .odo-d raus — beide animieren nicht mehr per CSS, der Code prüft REDUCE() selbst */
+  .due-chip.overdue, .tab-view.tab-in-r .scroll, .tab-view.tab-in-l .scroll, .tabitem.on svg,   /* wg-v112: Eingangsbewegung sitzt jetzt am .scroll */
+  .plant-slot > svg, .sl-alldone,
+  .rise, .ok-flash, .ziel, .geht,   /* wg-v83: .rise (überall genutzt) fehlte hier — beim Einbau der neuen Animationen aufgefallen */
+  /* wg-v112: die Lücken, die beim Nachmessen offen waren — alles, was beim Tab-/Blattwechsel, Suchen, Sync-Eingang
+     oder PIN-Fehler lief, obwohl „Weniger Bewegung" an war. .ok-flash .field: okFlash hängt am FELD, die Regel oben
+     traf nur den Wrapper .ok-flash selbst. */
+  body::before, .live-dot, .tab-glow, .sheet, .overlay, .toast, .undo-toast, .wiz-hint,
+  .pin-wrap.err .pin-dots, .ok-flash .field, .onb-msg, .onb-li, .plant-slot {
     animation:none !important;
   }
   .fly-chip, .tp-check, .tp-particle, .settle-stamp { display:none !important; }
+  /* wg-v112 Sicherheitsnetz für künftige Animationen: die ausdrückliche Liste oben vergisst früher oder später etwas
+     Neues (.rise fehlte darin schon in wg-v83, und Übergänge/transition stehen gar nicht darin). Deshalb zusätzlich alles auf 1 ms zwingen. 1 ms statt „none": Endzustände
+     (forwards/backwards) und animationend/transitionend bleiben erhalten, sonst hängt Code, der auf sie wartet. */
+  *, *::before, *::after {
+    animation-duration:1ms !important; animation-delay:0s !important; animation-iteration-count:1 !important;
+    transition-duration:1ms !important; scroll-behavior:auto !important;
+  }
 }
 </style>
 </head>
@@ -1010,7 +1069,7 @@ window.__WG_EN = {" – €{0} über dem Budget":" – €{0} over budget"," –
 
 
 <script type="text/jsx-src" id="jsx-src">
-const { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } = React;
+const { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo, createContext, useContext } = React;   /* wg-v112: useLayoutEffect für useAenderung (Bewegung vor dem ersten Malen anlegen) */
 
 /* ── Helpers ── */
 const ls   = (k,fb) => { try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;} };
@@ -1198,7 +1257,7 @@ const haptik = (ms = 12) => { try { if (!REDUCE()) navigator.vibrate?.(ms); } ca
 
 /* 2 · Putz-Task erledigt: Häkchen-Draw + Emoji-Partikel + Vibration (Übergabe-Crossfade macht React) */
 const celebrateTask = (btnEl, emoji, color) => {
-  try { navigator.vibrate(30); } catch {}
+  haptik(30);   /* wg-v112: vorher rohes navigator.vibrate(30) — vibrierte auch bei „Weniger Bewegung"; haptik() prüft REDUCE() und fängt Fehler selbst ab */
   if (REDUCE() || !btnEl) return;
   const r = btnEl.getBoundingClientRect();
   const cx = r.left + r.width/2, cy = r.top + r.height/2;
@@ -2256,45 +2315,71 @@ const ChkIco = () => (
   </svg>
 );
 
-/* ── Animated count-up number (Odometer-Stil: Ziffern rollen einzeln vertikal) ──
-   API unverändert (value, dec, prefix, suffix). Der finale sichtbare Textinhalt bleibt
-   identisch zum bisherigen Output: eine SR-/Text-Spiegelung (.odo-sr, visuell versteckt,
-   aber in innerText/Screenreader) trägt IMMER den Zielwert — die rollenden Ziffern sind
-   aria-hidden. Dauer (650ms) nicht länger als zuvor. */
+/* ── useAenderung (wg-v112) ──
+   Ruft fn(alt, neu) nach dem Rendern (noch vor dem Malen), wenn sich `key` seit dem letzten Commit WIRKLICH geändert hat.
+   - Nie beim ersten Einhängen: wer einen Tab betritt, sieht den Zustand, keine „Änderung" (vorher rollten dabei alle Ziffern ein).
+   - Nie bei bloßem Neurendern mit gleichem key (Sync meldet hundertmal denselben Wert).
+   - fn läuft über einen Ref → immer die Closure des aktuellen Renders (aktueller value), ohne dass fn in den Abhängigkeiten stehen muss.
+   Nur für die ANZEIGE gedacht: die Daten sind da längst geschrieben (Regel „verzögertes Schreiben" — hier nie Listen zurückschreiben). */
+function useAenderung(key, fn) {
+  const prev = useRef(key);
+  const fnRef = useRef(fn);
+  fnRef.current = fn;
+  useLayoutEffect(() => {
+    const alt = prev.current;
+    prev.current = key;
+    if (alt !== key) fnRef.current(alt, key);
+  }, [key]);
+}
+
+/* Einmalige kurze Bewegung per Web Animations API (wg-v112): das Element kommt aus der Richtung `von` an (z. B. 'translate(0,.4em)').
+   - 220 ms, Kurve = --ease-raus als Literal (WAAPI kann kein var() in easing).
+   - Deckkraft nur .3 → 1 (nie 0): die Zahl bleibt von der ersten Sekunde an lesbar.
+   - Unter „Weniger Bewegung" gar nicht: die CSS-Regel im reduce-Block erfasst WAAPI-Animationen NICHT, also hier selbst prüfen.
+   - try/catch: rein kosmetisch — ein Browser ohne animate() zeigt den Wert eben ohne Bewegung (der Wert steht ja längst im DOM). */
+function bewegeEinmal(el, von) {
+  if (!el || REDUCE() || typeof el.animate !== 'function') return;
+  try { el.animate([{ transform: von, opacity: .3 }, { transform: 'translate(0,0)', opacity: 1 }], { duration: 220, easing: 'cubic-bezier(.22,1,.36,1)' }); } catch {}
+}
+
+/* ── Animierte Zahl (Odometer-Stil) ──
+   API unverändert (value, dec, prefix, suffix). Textinhalt identisch zum bisherigen Output: eine SR-/Text-Spiegelung
+   (.odo-sr, visuell versteckt, aber in innerText/Screenreader) trägt IMMER den Zielwert; die Ziffern darunter sind aria-hidden.
+   wg-v112: KEIN Hochzählen und kein Neu-Mounten mehr. Vorher setzte ein 650-ms-Lauf jedes Bild einen neuen Wert, und jede geänderte
+   Ziffer startete odoRoll bei Deckkraft 0 — in 21 von 29 Bildern war mindestens die Hälfte unsichtbar, lesbar erst nach ~855 ms,
+   und schon beim bloßen Betreten eines Tabs rollten alle Ziffern ein. Jetzt steht der Zielwert sofort da; ändert er sich später,
+   bewegen sich genau die Stellen, deren Zeichen sich geändert haben, einmal (steigt der Wert: von unten, fällt er: von oben). */
 function CountUp({ value, dec=2, prefix='', suffix='' }) {
-  const [v, setV] = useState(value);
-  const prev = useRef(value);
-  useEffect(() => {
-    const from = prev.current, to = value;
-    prev.current = value;
-    if (from === to) return;
-    /* wg-v95: „Weniger Bewegung" schaltete bisher nur den Roll-Effekt der Ziffern ab (`.odo-d` in der
-       reduce-Regel) — der Wert lief trotzdem 650 ms lang hoch. Ein hochzählender Betrag IST Bewegung.
-       Jetzt springt er sofort auf den Zielwert. Gefunden beim Durchgehen der Animationen, nicht von einem Test. */
-    if (REDUCE()) { setV(to); return; }
-    const t0 = performance.now(), dur = 650;
-    let raf;
-    const step = t => {
-      const p = Math.min((t - t0) / dur, 1);
-      const e = 1 - Math.pow(1 - p, 3);
-      setV(from + (to - from) * e);
-      if (p < 1) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [value]);
   // Dezimaltrennzeichen wie überall sonst über fmt: Komma auf Deutsch, Punkt auf Englisch
   const dz    = n => { const s = Number(n).toFixed(dec); return LANG === 'en' ? s : s.replace('.', ','); };
-  const str   = prefix + dz(v) + suffix;
   const final = prefix + dz(value) + suffix;
+  const wurzel = useRef(null);
+  const vorWert = useRef(value);   // letzter Wert, nur für die Richtung der Bewegung
+  useAenderung(final, (alt, neu) => {
+    const steigt = value >= vorWert.current;
+    const a = [...alt], b = [...neu], off = b.length - a.length;
+    const stellen = wurzel.current ? wurzel.current.querySelectorAll('.odo-d') : [];
+    /* von rechts ausgerichtet vergleichen: die Einerstelle bleibt die Einerstelle, auch wenn sich die Länge ändert (99,99 → 100,00);
+       eine neu hinzugekommene Stelle (kein Gegenstück im alten Wert) zählt als geändert */
+    b.forEach((ch, i) => { if (a[i - off] !== ch) bewegeEinmal(stellen[i], steigt ? 'translate(0,.4em)' : 'translate(0,-.4em)'); });
+  });
+  useLayoutEffect(() => { vorWert.current = value; }, [value]);   /* steht NACH useAenderung: der Rückruf liest noch den alten Wert */
   return (
-    <span className="odo" aria-label={final}>
+    <span className="odo" aria-label={final} ref={wurzel}>
       <span className="odo-sr">{final}</span>
       <span aria-hidden="true">
-        {[...str].map((ch,i) => <span key={i}><span key={ch} className="odo-d">{ch}</span></span>)}
+        {[...final].map((ch,i) => <span key={i}><span className="odo-d">{ch}</span></span>)}
       </span>
     </span>
   );
+}
+
+/* Zuständiger Name im Putzplan (wg-v112): rutscht nur ein, wenn die zuständige Person wirklich wechselt (id ändert sich).
+   Vorher hing key={u?.id} am Span und die CSS-Animation lief bei jedem Einhängen des Tabs, ohne dass sich etwas geändert hatte. */
+function ZustName({ id, color, children }) {
+  const ref = useRef(null);
+  useAenderung(id, () => bewegeEinmal(ref.current, 'translate(7px,0)'));
+  return <span ref={ref} className="assignee-swap" style={{color,fontWeight:700}}>{children}</span>;
 }
 
 /* ── Ring (single value) ── */
@@ -2867,8 +2952,9 @@ function NBar({ title, color, status, wide }) {
         </button>
         {pillText && (
           /* Offline-Warteschlange (wg-v85): wartende Änderungen als Zahl in der Pille */
-          <div className="live-pill" data-testid="live-pill" title={pendingN > 0 && !live ? TT("{0} Änderungen warten auf Netz", pendingN) : undefined} style={{color:pillColor,borderColor:pillColor+'44',background:live?'rgba(163,230,53,.07)':'transparent'}}>
-            <span className="live-dot"/>{pillText}{pendingN > 0 && !live && status !== 'privat' ? ` · ${pendingN}` : ''}
+          <div className="live-pill" data-testid="live-pill" title={pendingN > 0 && !live ? TT("{0} Änderungen warten auf Netz", pendingN) : undefined} style={{color:pillColor,borderColor:`color-mix(in srgb, ${pillColor} 30%, transparent)`,background:live?'rgba(163,230,53,.07)':'transparent'}}>
+            {/* wg-v112: Rand = 30 % der Pillenfarbe (vorher pillColor+'44' → „var(--lime)44" ist ungültig, der Rand fiel auf die volle Farbe zurück). Punkt pulsiert nur bei SYNC… (online + connecting), sonst steht er */}
+            <span className={status==='connecting' && online ? 'live-dot puls' : 'live-dot'}/>{pillText}{pendingN > 0 && !live && status !== 'privat' ? ` · ${pendingN}` : ''}
           </div>
         )}
       </div>
@@ -8282,7 +8368,7 @@ function Putzplan() {
                       <span className="cell-title">{t.em} {t.name}</span>
                       <span className="cell-sub" data-testid="chore-wer">
                         {fest && <>{TT("Nur")} </>}
-                        <span key={u?.id} className="assignee-swap" style={{color:u?.color,fontWeight:700}}>{nm(u, !fest)}</span>
+                        <ZustName id={u?.id} color={u?.color}>{nm(u, !fest)}</ZustName>
                         {dU && <>{TT(", danach")} {danachId===t.assignee && <>{TT("wieder")} </>}<span style={{color:dU.color,fontWeight:600}}>{nm(dU, false)}</span></>}
                         {/* wg-v97: Rhythmus bleibt zusammen — sonst brach „alle 3 / Tage" um. wg-v110: der Trennpunkt gehört mit in den
                             Block, sonst blieb beim Umbruch ein „·" am Zeilenende hängen („Du, danach Tom ·" / „wöchentlich").
@@ -10108,6 +10194,11 @@ function PushPrompt({ onClose }){
     </div>, document.body);
 }
 
+/* wg-v112: Tabs, die in dieser Sitzung schon einmal gerendert wurden. Nur beim ERSTEN Besuch läuft das Einblenden der
+   Karten (.rise …); danach bekommt die .tab-view die Klasse „schon" und zeigt alles sofort. Bewusst modulweit statt State:
+   es soll ein Neumounten von AppInner nicht zurücksetzen, und ein Seiten-Neuladen setzt es von selbst zurück. */
+const GESEHEN = new Set();
+
 function AppInner() {
   const { mods, remotePulse, D, me, pushSave, status, wgCode, setFn, fbCfg } = useD();
   // App-Kürzel (?a=…) einmal lesen und aus der Adresse entfernen — sonst liefe es bei jedem Neuladen erneut
@@ -10127,6 +10218,13 @@ function AppInner() {
   const [dir,setDir] = useState(1); // Slide-Richtung: +1 neuer Tab rechts, -1 links
   const idxOf = (id) => TABS.findIndex(t => t.id===id);
   const setTab = (id) => { setDir(idxOf(id) >= idxOf(tab) ? 1 : -1); setTab_(id); ss('wg_tab', id); };
+  /* wg-v112: ist der angezeigte Tab neu für diese Sitzung? Wird beim Rendern bestimmt (vor allen Effekten) und je Tab
+     festgehalten — so bleibt der Wert für die ganze Lebensdauer dieser .tab-view gleich, auch wenn AppInner wegen Daten
+     (Sync, Live-Einträge) hundertmal neu rendert; erst DANN kommt der Tab in GESEHEN. Ein Ref statt useMemo: useMemo darf
+     laut React jederzeit zweimal laufen, und beim zweiten Lauf stünde der Tab schon im Set → fälschlich „schon". */
+  const gesehenRef = useRef(null);
+  if (!gesehenRef.current || gesehenRef.current.tab !== tab) { gesehenRef.current = { tab, schon: GESEHEN.has(tab) }; GESEHEN.add(tab); }
+  const tabSchon = gesehenRef.current.schon;
   // Sprung aus der Suche (wg-v85): Ereignis 'wg-tab' mit Ziel-Tab; ist das Modul aus, landet man im Haushalt bzw. unter Mehr
   useEffect(() => {
     const h = e => {
@@ -10302,7 +10400,7 @@ function AppInner() {
   }, [remotePulse]);
   return (
     <>
-      <div key={tab} className={`tab-view ${dir>=0?'tab-in-r':'tab-in-l'}`}>
+      <div key={tab} className={`tab-view ${dir>=0?'tab-in-r':'tab-in-l'}${tabSchon?' schon':''}`}>
         {/* Seitenüberschrift: das Dokument hatte bisher gar keine Überschrift —
             Screenreader konnten nicht sagen, welcher Bereich offen ist. */}
         <h1 className="sr-only">{(TABS.find(t=>t.id===tab)||{}).label || TT("WG")}</h1>

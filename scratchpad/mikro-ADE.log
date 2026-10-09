@@ -1,0 +1,35 @@
+
+=== A: Drück-Zustände (sichtbare Knöpfe, die eine :active-Regel treffen) ===
+Heute: 23 Knöpfe · eigener Drück-Zustand 20 · nur über .cell-Zeile 1 · OHNE 2
+     .hit ×2: Putzplan › | + Eintrag
+Haushalt: 20 Knöpfe · eigener Drück-Zustand 7 · nur über .cell-Zeile 10 · OHNE 3
+     .seg-btn ×2: 💶 Ausgaben | 🛒 Einkaufsliste (3)
+     .hit ×1: Growbox28%€15,25›
+Haushalt/Einkaufsliste: 25 Knöpfe · eigener Drück-Zustand 3 · nur über .cell-Zeile 9 · OHNE 13
+     .seg-btn ×2: 💶 Ausgaben | 🛒 Einkaufsliste (3)
+     .rise ×1: 🛒 Unterwegs? Mitbring
+     .hit ×2: Bearbeiten
+     inline-style ×8: Klopapier ist fast lee | Müllbeutel ist fast le | Spülmittel ist fast le | Waschmittel ist fast l | Küchenrolle ist fast l | Spültabs ist fast leer
+Growbox: 13 Knöpfe · eigener Drück-Zustand 9 · nur über .cell-Zeile 4 · OHNE 0
+Putzplan: 8 Knöpfe · eigener Drück-Zustand 6 · nur über .cell-Zeile 0 · OHNE 2
+     .hit ×2: So funktioniert's | + Aufgabe anlegen
+Übersicht: 9 Knöpfe · eigener Drück-Zustand 3 · nur über .cell-Zeile 0 · OHNE 6
+     .seg-btn ×3: Vorheriger Monat | Oktober 2026 | Nächster Monat
+     .hit ×1: + 3 Wochen
+     .group ×2: Bericht öffnenKategori | 📅 Jahresrückblick 202
+Mehr: 9 Knöpfe · eigener Drück-Zustand 1 · nur über .cell-Zeile 0 · OHNE 8
+     .group ×7: 🧭Was kann die App?All | 🔗WG-Code & Verbindung | 🎨Ansicht & KalenderMo | 💾Daten & BackupArchiv | 🏠WohnungInfos, Wartun | 👥PersonenWer bist du,
+     inline-style ×1: Alle lokalen Daten lös
+SUMME: 107 Knöpfe, eigener Drück-Zustand 49 (46 %), nur Zeile 24, ohne 34 (32 %)
+
+=== D: Rückgängig-Balken ===
+1. Meldung: {"text":"„Milch\" gelöschtRückgängig","anims":0}
+2. Meldung 60 ms nach zweitem ×: {"gleicherKnoten":true,"text":"„Brot\" gelöschtRückgängig","laufendeAnims":[]}  (gleicher Knoten + keine Animation = Wechsel nur am Text erkennbar)
+Balken verschwindet: {"wegNachMs":4381} — Abgangsanimation: keine Regel vorhanden (nur toastIn)
+Offline-Pille: „OFFLINE · 2" → online: „LIVE" · Balken: {"text":"✓ Alles angekommen","btns":["Rückgängig"]}
+„Rückgängig" auf „✓ Alles angekommen" getippt → Daten UNVERÄNDERT (Knopf tut nichts)
+?a=muell ohne Müll-Aufgabe → Balken: {"text":"Keine Müll-Aufgabe im Putzplan","btns":["Rückgängig"]}
+
+=== E: Drück-Zustand erzwungen (CDP) ===
+dark: Zeilen-Hintergrund normal rgba(0, 0, 0, 0) → gedrückt rgba(255, 255, 255, 0.05) (Karte rgba(0, 0, 0, 0)) · mittlere Pixeldifferenz 9.12 von 255
+light: Zeilen-Hintergrund normal rgba(0, 0, 0, 0) → gedrückt rgba(255, 255, 255, 0.05) (Karte rgba(0, 0, 0, 0)) · mittlere Pixeldifferenz 0 von 255

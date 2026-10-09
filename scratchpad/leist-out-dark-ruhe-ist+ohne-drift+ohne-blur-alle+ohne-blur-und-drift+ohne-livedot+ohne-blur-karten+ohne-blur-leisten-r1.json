@@ -1,0 +1,217 @@
+{
+ "meta": {
+  "chromium": "149.0.7827.55",
+  "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0) · {\"raster\":\"disabled_software\",\"compositing\":\"disabled_software\",\"webgl\":\"unavailable_software\"}",
+  "theme": "dark",
+  "rate": 1,
+  "runden": 5,
+  "breite": 390,
+  "hoehe": 844,
+  "fenster_ms": 800
+ },
+ "varianten": {
+  "ist": {
+   "ruhe1_1s": {
+    "script": 0.8,
+    "layout": 0,
+    "style": 5,
+    "task": 34.5,
+    "gpu": 835.4,
+    "renderer": 73,
+    "browser": 0.5
+   },
+   "ruheTabs": {
+    "Heute": {
+     "gpu_prozent_eines_kerns": 75,
+     "renderer_prozent": 6.4,
+     "browser_prozent": 0
+    },
+    "Putzplan": {
+     "gpu_prozent_eines_kerns": 85.4,
+     "renderer_prozent": 6.4,
+     "browser_prozent": 0
+    },
+    "Mehr": {
+     "gpu_prozent_eines_kerns": 90.4,
+     "renderer_prozent": 5.7,
+     "browser_prozent": 0
+    }
+   },
+   "seitenfehler": []
+  },
+  "ohne-drift": {
+   "ruhe1_1s": {
+    "script": 0.9,
+    "layout": 0,
+    "style": 3,
+    "task": 32.8,
+    "gpu": 129.1,
+    "renderer": 69.6,
+    "browser": 0.5
+   },
+   "ruheTabs": {
+    "Heute": {
+     "gpu_prozent_eines_kerns": 11.6,
+     "renderer_prozent": 6.1,
+     "browser_prozent": 0
+    },
+    "Putzplan": {
+     "gpu_prozent_eines_kerns": 41.5,
+     "renderer_prozent": 5.8,
+     "browser_prozent": 0
+    },
+    "Mehr": {
+     "gpu_prozent_eines_kerns": 35.9,
+     "renderer_prozent": 5.5,
+     "browser_prozent": 0
+    }
+   },
+   "seitenfehler": []
+  },
+  "ohne-blur-alle": {
+   "ruhe1_1s": {
+    "script": 1,
+    "layout": 0,
+    "style": 6,
+    "task": 49.4,
+    "gpu": 175.2,
+    "renderer": 78.6,
+    "browser": 0.6
+   },
+   "ruheTabs": {
+    "Heute": {
+     "gpu_prozent_eines_kerns": 14.7,
+     "renderer_prozent": 6.7,
+     "browser_prozent": 0
+    },
+    "Putzplan": {
+     "gpu_prozent_eines_kerns": 13.9,
+     "renderer_prozent": 6.8,
+     "browser_prozent": 0
+    },
+    "Mehr": {
+     "gpu_prozent_eines_kerns": 15.1,
+     "renderer_prozent": 6.3,
+     "browser_prozent": 0
+    }
+   },
+   "seitenfehler": []
+  },
+  "ohne-blur-und-drift": {
+   "ruhe1_1s": {
+    "script": 0.9,
+    "layout": 0,
+    "style": 3.2,
+    "task": 33.5,
+    "gpu": 18.7,
+    "renderer": 65.1,
+    "browser": 0.7
+   },
+   "ruheTabs": {
+    "Heute": {
+     "gpu_prozent_eines_kerns": 1.5,
+     "renderer_prozent": 5.4,
+     "browser_prozent": 0
+    },
+    "Putzplan": {
+     "gpu_prozent_eines_kerns": 1.7,
+     "renderer_prozent": 5.9,
+     "browser_prozent": 0
+    },
+    "Mehr": {
+     "gpu_prozent_eines_kerns": 1.7,
+     "renderer_prozent": 5.5,
+     "browser_prozent": 0
+    }
+   },
+   "seitenfehler": []
+  },
+  "ohne-livedot": {
+   "ruhe1_1s": {
+    "script": 1.4,
+    "layout": 0,
+    "style": 3.6,
+    "task": 16.9,
+    "gpu": 901.2,
+    "renderer": 39.6,
+    "browser": 0.6
+   },
+   "ruheTabs": {
+    "Heute": {
+     "gpu_prozent_eines_kerns": 80.9,
+     "renderer_prozent": 1.8,
+     "browser_prozent": 0
+    },
+    "Putzplan": {
+     "gpu_prozent_eines_kerns": 87.7,
+     "renderer_prozent": 4,
+     "browser_prozent": 0
+    },
+    "Mehr": {
+     "gpu_prozent_eines_kerns": 98.2,
+     "renderer_prozent": 2,
+     "browser_prozent": 0
+    }
+   },
+   "seitenfehler": []
+  },
+  "ohne-blur-karten": {
+   "ruhe1_1s": {
+    "script": 0.8,
+    "layout": 0,
+    "style": 5,
+    "task": 36.7,
+    "gpu": 390.2,
+    "renderer": 71.7,
+    "browser": 0.5
+   },
+   "ruheTabs": {
+    "Heute": {
+     "gpu_prozent_eines_kerns": 35.4,
+     "renderer_prozent": 6.2,
+     "browser_prozent": 0
+    },
+    "Putzplan": {
+     "gpu_prozent_eines_kerns": 34.5,
+     "renderer_prozent": 6.1,
+     "browser_prozent": 0
+    },
+    "Mehr": {
+     "gpu_prozent_eines_kerns": 33.7,
+     "renderer_prozent": 5.5,
+     "browser_prozent": 0
+    }
+   },
+   "seitenfehler": []
+  },
+  "ohne-blur-leisten": {
+   "ruhe1_1s": {
+    "script": 0.9,
+    "layout": 0,
+    "style": 4.4,
+    "task": 33.8,
+    "gpu": 629.3,
+    "renderer": 72.3,
+    "browser": 0.5
+   },
+   "ruheTabs": {
+    "Heute": {
+     "gpu_prozent_eines_kerns": 56.4,
+     "renderer_prozent": 6.6,
+     "browser_prozent": 0
+    },
+    "Putzplan": {
+     "gpu_prozent_eines_kerns": 63.9,
+     "renderer_prozent": 6.3,
+     "browser_prozent": 0
+    },
+    "Mehr": {
+     "gpu_prozent_eines_kerns": 72.2,
+     "renderer_prozent": 5.4,
+     "browser_prozent": 0
+    }
+   },
+   "seitenfehler": []
+  }
+ }
+}
