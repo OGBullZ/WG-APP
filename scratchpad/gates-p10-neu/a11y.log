@@ -1,0 +1,9 @@
+Ô£ô K0 Kontrast wirklich gemessen (ÔëÑ 80 % der Textstellen) ÔÇö 568 gemessen, 0 ├╝bersprungen
+Ô£ô K1 jede Textfarbe erreicht WCAG-AA-Kontrast (hell + dunkel, alle Hauptseiten) ÔÇö 0 Stellen (node test/a11y.mjs --bericht)
+Ô£ô T1 jedes Tap-Ziel mindestens 40 px ÔÇö 0 Stellen (node test/a11y.mjs --bericht)
+Ô£ô T2 Tab-Beschriftungen einzeilig und ungek├╝rzt (390 und 360 px) ÔÇö gek├╝rzt: 
+Ô£ô F1 Tastatur-Fokus sichtbar (dunkel) ÔÇö {"tag":"BUTTON","outline":true,"shadow":false}
+Ô£ô F2 Tastatur-Fokus sichtbar (hell) ÔÇö {"tag":"BUTTON","outline":true,"shadow":false}
+Ô£ô E1 keine Seitenfehler
+
+7 ok, 0 fehlgeschlagen

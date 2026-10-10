@@ -1,0 +1,60 @@
+
+=== PASS ===
+a1 leere WG: ÔÇ×Noch kein Putzplan ┬À Einrichten ÔÇ║" statt der Ô£¿-Zeile ÔÇö {"leer":"­ƒº¢ Noch kein Putzplan ┬À Einrichten ÔÇ║","frei":0}
+a2 ÔÇª und nirgends ÔÇ×nichts im Putzplan ÔÇª f├ñllig" (kein Lob f├╝r einen Plan, den es nicht gibt)
+a3 Tipp auf die Zeile springt in den Putzplan ÔÇö Putzplan
+a4 Plan mit nur fremden Aufgaben: Ô£¿-Zeile wie bisher, keine Einladung ÔÇö {"frei":1,"leer":0}
+a5 vorher: eigene Aufgabe f├ñllig ÔåÆ Karte ÔÇ×Du bist dran", keine Zeile darunter ÔÇö {"karte":true,"frei":0,"leer":0}
+a6 erledigt: bei 100 und 250 ms steht die Karte noch (Schatten) und die Ô£¿-Zeile NOCH NICHT darunter ÔÇö [{"karte":true,"frei":0,"leer":0},{"karte":true,"frei":0,"leer":0}]
+a7 ÔÇª nach dem Schatten (900 ms): Karte weg, Ô£¿ steht da, keine Einladung (der Plan existiert ja) ÔÇö {"karte":false,"frei":1,"leer":0}
+a8 ÔÇ×Weniger Bewegung": kein Schatten, Ô£¿ sofort (Erhaltung) ÔÇö {"karte":false,"frei":1}
+b1 leerer Haushalt: ÔÇ×Noch nichts eingetragen" + ÔÇ×Die erste Ausgabe zeigt hier, wer wem was schuldet" ÔÇö Noch nichts eingetragenDie erste Ausgabe zeigt hier, wer wem was schuldet
+b2 ÔÇª kein ­ƒÄë, keine 0-%-Legende (Haushalt/Growbox), kein ÔÇ×0%" ÔÇö {"legende":0,"mitte":"+"}
+b3 ÔÇª Geisterring: Spur in var(--spur), KEIN sichtbarer Bogen, kein Schein (filter ├╝berall none), ÔÇ×+" in der Mitte ÔÇö {"n":2,"spurOk":true,"sichtbar":[],"filter":["none","none"],"mitte":"+"}
+b4 ÔÇª der separate .empty-Block darunter (ÔÇ×Noch keine Ausgaben") entf├ñllt ÔÇö {"empty":0}
+b5 erster Eintrag: der Ring W├äCHST ├╝ber mehrere Bilder (vorhandene Dash-Transition), springt nicht ÔÇö 79 Bilder, 43 verschiedene L├ñngen, 0 ÔåÆ 355.1
+b6 ÔÇª danach Legende statt Leerkarte ÔÇö {"legende":1,"leer":0}
+b7 Posten offen: Legende da, keine Leerkarte, kein ­ƒÄë ÔÇö {"leg":1,"leer":0,"party":false}
+b8 Eintr├ñge vorhanden und alles abgerechnet: ­ƒÄë bleibt, Legende da, keine Leerkarte ÔÇö {"leg":1,"leer":0,"party":true}
+c1 0 Pflanzen: Zeile ÔÇ×Mit + tr├ñgst du eure Pflanzen ein ÔÇö danach teilt sich die Kostenrechnung" ÔÇö Mit + tr├ñgst du eure Pflanzen ein ÔÇö danach teilt sich die Kostenrechnung
+c2 ÔÇª Ring = Geisterring (Spur, KEIN Bogen in Personenfarbe sichtbar); die 50-%-Angaben neben den Steppern bleiben ÔÇö {"sichtbar":[],"prozent":2}
+c3 erstes ÔÇ×+" (Torben): der Ring w├ñchst ├╝ber mehrere Bilder ÔÇª ÔÇö 44 L├ñngen, 0 ÔåÆ 414.8
+c4 ÔÇª in Torbens Farbe (#38bdf8), die Zeile ist weg ÔÇö [{"stroke":"rgb(56, 189, 248)","op":1,"dash":414.832}]
+c5 zweites ÔÇ×+" (Tom): beide Personenfarben im Ring ÔÇö [{"stroke":"rgb(56, 189, 248)","op":1,"dash":205.916},{"stroke":"rgb(251, 191, 36)","op":1,"dash":205.916}]
+c6 mit Pflanzen (2 : 3): volle Ringfarben, keine Zeile (Erhaltung) ÔÇö [{"stroke":"rgb(56, 189, 248)","op":1,"dash":164.133},{"stroke":"rgb(251, 191, 36)","op":1,"dash":247.699}]
+d1 Monat ohne Ausgaben: EIN Block ÔÇ×Noch keine Ausgaben im {Monat}" mit Knopf ÔÇ×Ausgabe eintragen" ÔÇö ­ƒôèNoch keine Ausgaben im Oktober 2026Ausgabe eintragen
+d2 ÔÇª kein ÔÇ×Ôé¼0,00"-Hero, kein Monatsbericht, kein ÔÇ×+ 3 Wochen" (Kalender leer) ÔÇö {"hero":false,"bericht":false,"kalMehr":0}
+d3 ÔÇª Verlauf: nur EIN Monat mit Daten ÔåÆ Zeile ÔÇ×Der Verlauf erscheint ab dem zweiten Monat", kein Diagramm ÔÇö {"verlauf":0,"spaeter":"Der Verlauf erscheint ab dem zweiten Monat"}
+d4 Monat zur├╝ck (mit Ausgaben): Hero + Monatsbericht da, Leerblock weg ÔÇö {"hero":true,"bericht":true,"leer":null,"monat":"ÔÇ╣September 2026ÔÇ║"}
+d5 wieder vor: Leerblock wieder da, Hero weg (Monatswahl bleibt bedienbar) ÔÇö {"leer":"­ƒôèNoch keine Ausgaben im Oktober 2026Ausgabe eintragen","hero":false}
+d6 ÔÇ×Ausgabe eintragen" springt in den Haushalt ÔÇö Haushalt
+d7 zwei Monate mit Daten: Verlauf-Diagramm da, keine Zeile, Hero statt Leerblock ÔÇö {"verlauf":1,"spaeter":0,"leer":0,"hero":true}
+d8 nur der aktuelle Monat hat Daten: Hero da, Verlauf erst ab dem zweiten Monat (Zeile) ÔÇö {"verlauf":0,"spaeter":1,"leer":0}
+d9 komplett leere WG: Leerblock, weder Verlauf noch Verlauf-Zeile ÔÇö {"leer":1,"spaeter":0,"verlauf":0}
+d10 leerer Monat, aber Termine im Kalender: ÔÇ×+ 3 Wochen" bleibt (Erhaltung) ÔÇö {"leer":1,"kalMehr":1,"tage":1}
+e1 welcome bleibt mittig (justify-content: center) ÔÇö {"step":"welcome","top":0,"hoch":640,"sicht":640,"y":231,"btnTop":null,"btnBottom":null,"ih":640,"justify":"center"}
+e2 M├╝ll-Chips: ein flex-wrap-Streifen (weniger Zeilen als Chips, nichts ├╝ber den Rand), Reihenfolge Rest ÔåÆ Bio ÔåÆ Papier ÔåÆ Gelb ÔåÆ Glas ÔÇö {"namen":["ÔÜ½ Restm├╝ll","­ƒƒñ Biom├╝ll","­ƒöÁ Papier","­ƒƒí Gelber Sack","­ƒƒó Glas"],"tops":2,"an":[false,false,false,false,false],"datum":[],"rechts":297.53125,"cardR":320}
+e3 ohne gew├ñhlten Chip kein Datum/Rhythmus ÔÇö []
+e4 Datum/Rhythmus nur f├╝r den Chip im Fokus: Papier ÔåÆ eines ┬À Gelb dazu ÔåÆ eines (Gelb) ┬À Papier antippen ÔåÆ Fokus Papier, beide bleiben an ÔÇö [["Papier: n├ñchste Abholung"],["Gelber Sack: n├ñchste Abholung"],["Papier: n├ñchste Abholung"],[false,false,true,true,false]]
+e5 ÔÇª nochmal Papier (im Fokus) schaltet aus, der Fokus wandert zu Gelb ÔÇö [[false,false,false,true,false],["Gelber Sack: n├ñchste Abholung"]]
+e6 Putz-Schritt MIT ge├Âffnetem Datum-Feld: ÔÇ×Weiter" im Fenster ÔÇö {"step":"putz","top":0,"hoch":1021,"sicht":640,"y":162,"btnTop":566,"btnBottom":620,"ih":640,"justify":"flex-start"}
+e7 nach ÔÇ×Weiter" steht die Karte oben (scrollTop 0) ÔÇö in jedem Schritt, der vorher gescrollt war ÔÇö [["people",14,0],["wg",0,0],["mods",179,0],["putz",381,0],["money",0,0],["push",21,0],["invite",0,0]]
+e8 ├£berschrift in allen Arbeits-Schritten auf derselben H├Âhe (┬▒4 px) ÔÇö [["people",162],["wg",162],["mods",162],["putz",162],["money",162],["push",162],["invite",162]]
+e9 ÔÇ×Weiter" liegt in JEDEM Arbeits-Schritt im Fenster (kein Scrollen n├Âtig) ÔÇö [["people",566,620,640],["wg",409,463,640],["mods",566,620,640],["putz",566,620,640],["money",532,586,640],["push",579,633,640],["invite",488,542,640]]
+e10 Arbeits-Schritte oben ausgerichtet (flex-start) ÔÇö [["people","flex-start"],["wg","flex-start"],["mods","flex-start"],["putz","flex-start"],["money","flex-start"],["push","flex-start"],["invite","flex-start"]]
+e11 done bleibt mittig ÔÇö {"step":"done","top":0,"hoch":640,"sicht":640,"y":264,"btnTop":null,"btnBottom":null,"ih":640,"justify":"center"}
+f1 Kachel-W├Ârter passen in die Innenbreite UND stehen gerendert nicht ├╝ber zwei Zeilen ÔÇö keine Silbentrennung, kein Wortbruch (alle Reiter, 390 px) ÔÇö 19 Kacheln gepr├╝ft
+f2 Haushalt-Kacheln: ÔÇ×Monatsbudget" ganz, ÔÇ×Regelm├ñ├ƒig" statt ÔÇ×Wiederkehrend" ÔÇö ["Monatsbudget","Sparziel","Miete","Regelm├ñ├ƒig"]
+f3 Schriftgr├Â├ƒe der Kachel-Beschriftung 11,5 px ÔÇö ["11.5px"]
+f4 Kachel ÔÇ×Regelm├ñ├ƒig" ├Âffnet weiter das Formular ÔÇ×Wiederkehrend (monatlich)"
+g1 Putzplan leer: <Leer> ÔÇö ÔÇ×Noch kein Plan", Knopf ÔÇ×Standard-Plan laden" (Aufz├ñhlung NICHT im Knopf), kleine Zeile mit der Aufz├ñhlung darunter, zweiter Knopf ÔÇ×Eigene Aufgabe" ÔÇö {"text":"­ƒº¢Noch kein PlanStandard-Plan ladenM├╝ll, Papier, Glas, K├╝che, Bad, SaugenEigene Aufgabe","knoepfe":["Standard-Plan laden","Eigene Aufgabe"],"haupt":"Standard-Plan laden","klein":["Noch kein Plan","M├╝ll, Papier, Glas, K├╝che, Bad, Saugen"],"rise":true,"leer":true,"aufzaehlungImKnopf":false,"reihenfolge":["DIV:­ƒº¢","SPAN:Noch kein Pl","BUTTON:Standard-Pla","SPAN:M├╝ll, Papier","BUTTON:Eigene Aufga"]}
+g2 ÔÇ×Eigene Aufgabe" ├Âffnet das Formular (Name der Aufgabe)
+g3 ÔÇ×Standard-Plan laden" legt die Aufgaben an (6) und die Leerkarte verschwindet ÔÇö 6
+g4 Einkaufsliste leer: <Leer> ÔÇ×Liste ist leer ÔÇö was fehlt?" ohne zweiten Knopf ÔÇö {"text":"­ƒøÆListe ist leer ÔÇö was fehlt?","rise":true,"ico":true,"knoepfe":0}
+g5 Abos leer: <Leer> ÔÇ×Noch keine Abos" (Eingang .rise, kein zweiter Knopf) ÔÇö {"text":"­ƒöäNoch keine Abos","rise":true,"knoepfe":0}
+z1 keine Seitenfehler
+
+=== FAIL ===
+(keine)
+
+53 gr├╝n, 0 rot

@@ -1,0 +1,69 @@
+   ┬À Heute: 29 gepr├╝ft, 0 ohne R├╝ckmeldung
+   ┬À Haushalt/Ausgaben: 24 gepr├╝ft, 0 ohne R├╝ckmeldung
+   ┬À Haushalt/Einkaufsliste: 24 gepr├╝ft, 0 ohne R├╝ckmeldung
+   ┬À Putzplan: 12 gepr├╝ft, 0 ohne R├╝ckmeldung
+   ┬À Mehr: 69 gepr├╝ft, 0 ohne R├╝ckmeldung
+
+=== PASS ===
+a2 .del-btn: Ruhe ├╝bergeht transform (R├╝ckfeder .18 s = --dur-kurz) ÔÇö {"p":"transform","d":"0.18s","t":"none"}
+a2b .del-btn gedr├╝ckt: auf 94 % (matrix .94) und ├£bergang 60 ms ÔÇö {"p":"transform","d":"0.06s","t":"matrix(0.94, 0, 0, 0.94, 0, 0)"}
+a3 Tap-Highlight: <html> und klickbare divs (.cell) ohne grauen Systemblitz ÔÇö {"html":"rgba(0, 0, 0, 0)","div":"rgba(0, 0, 0, 0)","tbh":"84px"}
+a3b Handy: --tb-h bleibt 84px (nur ab 1024 px 0) ÔÇö 84px
+a Reichweite: mindestens 90 Elemente auf Heute, Haushalt, Putzplan, Mehr gepr├╝ft (sonst ist ÔÇ×keiner ohne R├╝ckmeldung" kein Beleg) ÔÇö 158 gepr├╝ft
+a JEDER sichtbare Knopf / klickbare Zeilen-Inhalt zeigt beim Dr├╝cken etwas (transform / Fl├ñche / Schatten / Filter) ÔÇö 0 von 158 ohne R├╝ckmeldung: 
+b0 Probe: das emulierte Tablet meldet KEIN Hover und keinen feinen Zeiger (sonst misst der Test nichts) ÔÇö {"hover":false,"fein":false}
+b1 Tippen auf eine Zeile: 300 ms sp├ñter h├Âchstens ein Rest der Dr├╝ck-T├Ânung (< .02), kein Hover (.05) ÔÇö rgba(0, 0, 0, 0)|none ÔåÆ rgba(255, 255, 255, 0.004)|none
+b1b ... und nach 1 s ist die Zeile wieder genau im Ruhezustand ÔÇö rgba(0, 0, 0, 0)|none ÔåÆ rgba(0, 0, 0, 0)|none
+b2 Probe: die Zeile ist :hover (Mausposition liegt darauf)
+b3 klickbare Zeile unter dem Zeiger: keine T├Ânung ohne (hover:hover) ÔÇö rgba(0, 0, 0, 0)|none ÔåÆ rgba(0, 0, 0, 0)|none
+b4 Werkzeug-Kachel unter dem Zeiger: ohne (hover:hover) unver├ñndert
+c0 dark Probe: 1440-Fenster mit Maus meldet Hover + feinen Zeiger ÔÇö {"hover":true,"fein":true}
+c dark Hover Tab-Eintrag (nicht aktiv): Stil UND Bild ├ñndern sich (Bildabweichung ÔëÑ 1,5; kein scale) ÔÇö Stil true, Bild 11.48, transform none
+c dark Hover Suchknopf: Stil UND Bild ├ñndern sich (Bildabweichung ÔëÑ 1,5; kein scale) ÔÇö Stil true, Bild 9.25, transform none
+c dark Hover Werkzeug-Kachel: Stil UND Bild ├ñndern sich (Bildabweichung ÔëÑ 1,5; kein scale) ÔÇö Stil true, Bild 4.92, transform none
+c dark Hover klickbare Zeile (Heute): Stil UND Bild ├ñndern sich (Bildabweichung ÔëÑ 1,5; kein scale) ÔÇö Stil true, Bild 10.45, transform none
+c dark Hover Chip in der Suche (ungew├ñhlt): Stil UND Bild ├ñndern sich (Bildabweichung ÔëÑ 1,5; kein scale) ÔÇö Stil true, Bild 4.05, transform none
+c dark Hover Segment (nicht gew├ñhlt): Stil UND Bild ├ñndern sich (Bildabweichung ÔëÑ 1,5; kein scale) ÔÇö Stil true, Bild 11.27, transform none
+c dark Hover klickbare Zeile (Haushalt-Posten, .klick): Stil UND Bild ├ñndern sich (Bildabweichung ÔëÑ 1,5; kein scale) ÔÇö Stil true, Bild 10.32, transform none
+c dark Hover ÔÇ×Zuletzt erledigt"-Zeile (passiv): bleibt still (Stil gleich, Bildabweichung < 0,3) ÔÇö Stil false, Bild 0
+c dark Hover Monatspfeil: Stil UND Bild ├ñndern sich (Bildabweichung ÔëÑ 1,5; kein scale) ÔÇö Stil true, Bild 6.04, transform none
+c dark Hover Faltkopf unter Mehr: Stil UND Bild ├ñndern sich (Bildabweichung ÔëÑ 1,5; kein scale) ÔÇö Stil true, Bild 10.3, transform none
+c dark Faltkopf beh├ñlt den Verlauf (--card) beim Hover ÔÇö linear-gradient(160deg, rgba(255, 255, 255, 0.055), rgba(255
+c0 light Probe: 1440-Fenster mit Maus meldet Hover + feinen Zeiger ÔÇö {"hover":true,"fein":true}
+c light Hover Tab-Eintrag (nicht aktiv): Stil UND Bild ├ñndern sich (Bildabweichung ÔëÑ 1,5; kein scale) ÔÇö Stil true, Bild 10.83, transform none
+c light Hover Suchknopf: Stil UND Bild ├ñndern sich (Bildabweichung ÔëÑ 1,5; kein scale) ÔÇö Stil true, Bild 8.31, transform none
+c light Hover Werkzeug-Kachel: Stil UND Bild ├ñndern sich (Bildabweichung ÔëÑ 1,5; kein scale) ÔÇö Stil true, Bild 15.16, transform none
+c light Hover klickbare Zeile (Heute): Stil UND Bild ├ñndern sich (Bildabweichung ÔëÑ 1,5; kein scale) ÔÇö Stil true, Bild 12.57, transform none
+c light Hover Chip in der Suche (ungew├ñhlt): Stil UND Bild ├ñndern sich (Bildabweichung ÔëÑ 1,5; kein scale) ÔÇö Stil true, Bild 10.95, transform none
+c light Hover Segment (nicht gew├ñhlt): Stil UND Bild ├ñndern sich (Bildabweichung ÔëÑ 1,5; kein scale) ÔÇö Stil true, Bild 9.82, transform none
+c light Hover klickbare Zeile (Haushalt-Posten, .klick): Stil UND Bild ├ñndern sich (Bildabweichung ÔëÑ 1,5; kein scale) ÔÇö Stil true, Bild 12.77, transform none
+c light Hover ÔÇ×Zuletzt erledigt"-Zeile (passiv): bleibt still (Stil gleich, Bildabweichung < 0,3) ÔÇö Stil false, Bild 0
+c light Hover Monatspfeil: Stil UND Bild ├ñndern sich (Bildabweichung ÔëÑ 1,5; kein scale) ÔÇö Stil true, Bild 11.36, transform none
+c light Hover Faltkopf unter Mehr: Stil UND Bild ├ñndern sich (Bildabweichung ÔëÑ 1,5; kein scale) ÔÇö Stil true, Bild 12.16, transform none
+c light Faltkopf beh├ñlt den Verlauf (--card) beim Hover ÔÇö linear-gradient(160deg, rgb(255, 255, 255), rgb(248, 250, 24
+c Wache: es gibt Hover-Regeln (Reichweite ÔëÑ 12) ÔÇö 12 Regeln
+c Wache: jede :hover-Regel steht in (hover:hover) and (pointer:fine)
+c Wache: kein pauschales `.cell:hover` (nur button.cell und .klick)
+d1 Kachel per Tab erreicht, Ring gezeichnet (2 px solid) ÔÇö {"r":"18px","ring":"solid 2px","off":"2px","fv":true}
+d2 Kachel-Radius mit Fokus = ohne Fokus (18 px, nicht 6 px) ÔÇö 18px ÔåÆ 18px
+d3 Tab-Eintrag per Tab: Ring 2 px, Abstand ÔêÆ4 px (innen), Ecken 14 px ÔÇö {"r":"14px","off":"-4px","ring":"solid 2px","fv":true}
+d4 Haken-Kreis mit Fokus: Radius unver├ñndert (rund), Ring gezeichnet ÔÇö 50% ÔåÆ {"r":"50%","ring":"solid 2px","off":"2px","fv":true}
+d5 Textknopf im Abschnittskopf (Heute): Radius 6 px, Ring gezeichnet ÔÇö {"r":"6px","ring":"solid 2px","off":"2px","fv":true}
+e0 390 Handy Probe: Suche zeigt viele Treffer (ÔëÑ 60 Zeilen) und 4 Filterreihen ÔÇö 60 Treffer, 4 Reihen ┬À 70 Treffer ┬À Ausgaben zusammen Ôé¼2765,00
+e1 390 Handy jede Filterreihe ÔëÑ 36 px hoch (vorher 9ÔÇô12 px) ÔÇö H├Âhen 40/40/40/40 px
+e2 390 Handy flex-shrink:0 an der Reihe ÔÇö {"shrink":"0","wrap":"nowrap","overflowX":"auto"}
+e3 390 Handy wischbar bleibt: nowrap + overflow-x:auto ÔÇö {"shrink":"0","wrap":"nowrap","overflowX":"auto"}
+e0 1440 Maus Probe: Suche zeigt viele Treffer (ÔëÑ 60 Zeilen) und 4 Filterreihen ÔÇö 60 Treffer, 4 Reihen ┬À 70 Treffer ┬À Ausgaben zusammen Ôé¼2765,00
+e1 1440 Maus jede Filterreihe ÔëÑ 36 px hoch (vorher 9ÔÇô12 px) ÔÇö H├Âhen 88/40/88/88 px
+e2 1440 Maus flex-shrink:0 an der Reihe ÔÇö {"shrink":"0","wrap":"wrap","overflowX":"visible"}
+e3 1440 Maus Maus: umbrechend statt wischend (wrap + overflow sichtbar), nichts ragt seitlich heraus ÔÇö {"shrink":"0","wrap":"wrap","overflowX":"visible","breit":[0,0,0,0]}
+f1 ab 1024 px: --tb-h = 0px (Leiste steht links) ÔÇö 0px
+f2 R├╝ckg├ñngig-Balken mittig ├╝ber der Inhaltsspalte (┬▒4 px) ÔÇö Balken 768.0, Spalte 768.0 (Seitenleiste 96)
+f3 R├╝ckg├ñngig-Balken h├Âchstens 40 px ├╝ber dem unteren Rand (vorher 96) ÔÇö 12.0 px
+f4 Live-Toast mittig ├╝ber der Inhaltsspalte (┬▒1 px) ÔÇö 768.0 statt 768
+f5 Code-Hinweis (.moved-banner) mittig ├╝ber der Inhaltsspalte (┬▒1 px) ÔÇö 768.0 statt 768
+
+=== FAIL ===
+(keine)
+
+57 gr├╝n, 0 rot

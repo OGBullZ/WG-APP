@@ -1,0 +1,8 @@
+  OK  1 Hashes in firebase.json passen zur aktuellen wgapp.html ÔÇö Ô£ô CSP-Hashes passen zu wgapp.html
+  OK  2 script-src ohne unsafe-inline
+  OK  3 f├╝nf Hashes (4 Inline-Skripte + Kompilat)
+  OK  4 Gegenprobe: ge├ñndertes Inline-Skript wird erkannt
+  OK  5 Gegenprobe: ge├ñnderter App-Code wird erkannt
+  OK  6 --write tr├ñgt die neuen Hashes ein, danach passt --check
+
+6 ok, 0 fehlgeschlagen

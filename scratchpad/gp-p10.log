@@ -1,0 +1,62 @@
+
+=== PASS ===
+a0 Vorbedingung: Dran-Karte, Push-Hinweis und Zeilen-Block stehen auf Heute — {"dran":298,"push":191,"rows":466,"rand":"rgba(251, 191, 36, 0.28)","neutral":"rgba(255, 255, 255, 0.09)","gewicht":"600","titel":"🚿 Bad putzen"}
+a5 [bleibt] ohne fällige eigene Aufgabe: Push-Hinweis VOR der ✨-Zeile (Reihenfolge wie bisher) — {"push":191,"frei":298,"dran":false}
+c0 Vorbedingung: Index-Karte und sechs Gruppen gefunden — 7 Karten
+c5 [bleibt] der Bestätigungsdialog erscheint (nichts wird ohne Rückfrage gelöscht)
+c6 [bleibt] „Abbrechen" lässt Daten und WG-Code stehen
+d2 [bleibt] mit „Tom zahlt alles"-Posten: „Wer trägt was" ist da — {"hero":159,"summe":357,"bezahlt":425,"traegt":542,"katH":659,"top":1634,"verlauf":849,"punkte":1463,"demnaechst":1020,"bericht":1134,"jahr":1391,"raster":1262}
+d3 Vorbedingung: alle zwölf Abschnitte sichtbar — fehlt: 
+e6 [bleibt] „Zyklus starten" öffnet den Zyklus-Assistenten
+f2 [bleibt] … der Knopf „🧾 1 abgehakt · Betrag vom Kassenzettel eintragen" ist danach sichtbar — 🧾 1 abgehakt · Betrag vom Kassenzettel eintragen
+f4 [bleibt] … und der Knopf ist danach aus dem Baum (kein totes Element) — 0 Stück
+h0 Vorbedingung: im Schritt „Prüfen & aufteilen" sind Zahler und „Gleich teilen" gewählt — [{"t":"Torben","farbe":"rgb(10, 18, 12)","flaeche":"rgb(56, 189, 248)"},{"t":"Gleich teilen · 50/50","farbe":"rgb(10, 18, 12)","flaeche":"rgb(15, 118, 110)"}]
+h5 [bleibt] dunkel: gewählte .pick-btn weiter ≥ 4,5:1 — [{"t":"Torben","r":8.87},{"t":"Gleich teilen · 50/50","r":12.85}]
+i1 Migration lief (Torben hat jetzt seinen PayPal.me-Namen) — sonst misst der Test nichts — {"von":723,"bis":669,"spanne":53.5,"hinweis":false,"pp":"TorbenSteen"}
+j1 [bleibt] 320 px: Ring-Beschriftung (jetzt 10 px) steht einzeilig und passt in den Innenkreis des Rings — {"zeilen":1,"breite":73.3,"ring":104,"links":15,"rechts":15,"ueberlauf":0,"innen":81}
+j2 [bleibt] 320 px Haushalt: kein horizontaler Überlauf — 0 px
+j3 [bleibt] 320 px Putzplan (langer Aufgabenname + „13 Tage überfällig"): kein Überlauf, Chips im Rahmen — {"ueberlauf":0,"raus":[],"chips":["13d ÜBERFÄLLIG"],"titelBreiten":[75,136,129]}
+z1 keine Seitenfehler
+
+=== FAIL ===
+a1 die Dran-Karte steht über dem Push-Hinweis (die überfällige Aufgabe ist die Handlung, der Hinweis nur Hinweis) — Dran y=298 · Push y=191
+a2 … und der Push-Hinweis folgt erst NACH dem Zeilen-Block — Zeilen y=466 · Push y=191
+a3 Rand der Dran-Karte neutral (kein Amber): gleich var(--border), Dringlichkeit tragen „überfällig" + Haken — rgba(251, 191, 36, 0.28) (neutral rgba(255, 255, 255, 0.09))
+a4 Titel der Aufgabe in der Dran-Karte fett (700) — 🚿 Bad putzen → 600
+b1 keine sichtbare Schrift unter 10 px — Heute, Haushalt, Growbox, Putzplan, Übersicht, Mehr (390 px, Belastungsdaten) — Haushalt: 9px „ich schulde" | Übersicht: 9px „Mai", 9px „Jun", 9px „Jul"
+b2 Quelltext: keine Schriftgröße unter 10 px (fontSize:… / font-size:…px) — fontSize:8.5 | fontSize:9 | fontSize:9 | fontSize:9 | fontSize:9 | fontSize:9 | fontSize:9 | fontSize:8
+b3 Verlauf (6 Monate): Werte ≥ 10 px, Monatsnamen ≥ 11 px — {"zahlen":[9,9,9],"monate":[9,9,9,9,9,9]}
+b4 Putzplan · Punkte: Werte ≥ 10 px, Monatsnamen ≥ 11 px — null
+b5 .hero-lbl hat die Größe des Abschnittskopfs (11 px) und .18em Sperrung — hero 10 · hdr 11 · 2.2px
+b6 .sum-lbl 11 px mit .18em wie der Abschnittskopf — {"px":10,"ls":"1.6px"}
+b7 .due-chip 11 px — Regel 10 · sichtbarer Chip 10
+b8 Putzplan-Chip sagt „N Tage überfällig" wie Heute (kein „13d ÜBERFÄLLIG" mehr) — ["13d ÜBERFÄLLIG"]
+b8b Englisch: Putzplan-Chip „13 days overdue" (nicht „dayse") — ["13d OVERDUE"]
+b8c Englisch: Dran-Karte auf Heute „13 days overdue" — 13 daye overdue
+b9 Ring-Beschriftung „bekomme ich": 10 px mit .06em — {"px":9,"ls":"1.26px"}
+b10 Ring-Beschriftung „Pflanzen": 10 px mit .06em — {"px":10,"ls":"1.4px"}
+c1 Abstand zwischen den Mehr-Karten höchstens 12 px — [20,20,20,20,20,20]
+c2 Fold-Titel 16 px / 700 (auch die Index-Karte „Was kann die App?") — Gruppe 15px/800 · Index 15px/800
+c3 „Alle lokalen Daten löschen": Textknopf ohne Rand und Fläche, ≥ 44 px hoch, rot — {"rand":"1px","flaeche":"rgba(251, 113, 133, 0.06)","h":50,"farbe":"rgb(251, 113, 133)","abstand":20}
+c4 … 20 px abgesetzt von der letzten Karte — und damit deutlich weiter als die Karten untereinander (> Kartenabstand + 5 px) — 20 px, Karten 20 px
+d1 reines 50/50: „Wer trägt was" fehlt (zeigte 117 px ohne Aussage) — {"hero":159,"summe":357,"bezahlt":425,"traegt":542,"katH":659,"top":1607,"verlauf":822,"punkte":1436,"demnaechst":993,"bericht":1107,"jahr":1364,"raster":1235}
+d4 „Größte Posten" steht vor „Verlauf" — Posten 1634 · Verlauf 849
+d5 Reihenfolge: Hero · Σ · bezahlt · trägt · Kategorien · Größte Posten · Verlauf · Putz-Punkte · Demnächst · Monatsbericht · Jahresrückblick · Raster — hero:159 summe:357 bezahlt:425 traegt:542 katH:659 top:1634 verlauf:849 punkte:1463 demnaechst:1020 bericht:1134 jahr:1391 raster:1262
+e1 genau EIN Vollbreit-Knopf: „+ Grow-Ausgabe" — ["🌱 Zyklus starten","+ Grow-Ausgabe","+ Ernte erfassen"]
+e2 „+ Ernte" ist eine Kopf-Aktion im Ernten-Kopf (.hit, Wortlaut „Ernte" im Namen) — null
+e3 … Trefferfläche ≥ 40 px hoch (::after 45 px; im Test trifft elementFromPoint ≥ 38 px am Stück) — Fläche undefined px · getroffen undefined px
+e4 „🌱 Zyklus starten" ist ein kleiner Knopf (.mini-btn) in der Kostensplit-Karte — {"klasse":"btn btn-sec rise","breite":358,"imHero":false,"h":54}
+e5 [bleibt] „+ Ernte" öffnet das Ernte-Blatt
+f1 erster Haken: die Liste rückt stetig nach unten (kein Sprung > 30 px, ≥ 4 Bilder mit Bewegung, ≈ 74 px insgesamt) — {"gesamt":74,"maxSprung":74,"bewegt":1}
+f3 Haken wieder zurück: Knopf geht, die Liste rückt stetig nach oben — {"gesamt":-74,"maxSprung":74,"bewegt":1}
+g1 letzte eigene Aufgabe erledigt: der Inhalt darunter springt nie um mehr als 30 px (Schatten schließt seine Höhe) — {"gesamt":-129,"maxSprung":168,"bewegt":2,"schattenWeg":true}
+g2 eine von zwei Aufgaben erledigt: die zweite Zeile rückt stetig nach (kein Sprung > 30 px, ≥ 4 Bilder mit Bewegung) — {"gesamt":-122,"maxSprung":122,"bewegt":1,"schattenWeg":true}
+h1 hell: gewählte .pick-btn (auch „Gleich teilen" auf dunklem Minze) haben ≥ 4,5:1 — [{"t":"Torben","r":8.87},{"t":"Gleich teilen · 50/50","r":3.47}]
+h2 hell: Haarlinie unter der Navbar ist nicht mehr weiß — rgba(255, 255, 255, 0.05)
+h3 hell: Rand des Blatts ist nicht mehr weiß — rgba(255, 255, 255, 0.07)
+h4 hell: Rand des Rückgängig-Balkens ist nicht mehr weiß — rgba(255, 255, 255, 0.1)
+h6 jedes .pick-btn auf einem Token-Hintergrund hat die Klasse tok (Mint, Violett, Grün, Rot) — 2 gefunden, ohne tok: 2
+i2 der Inhalt unter der Bilanz wandert nie (Spanne < 4 px über 6,5 s, auch nicht bei der Migration) — {"von":723,"bis":669,"spanne":53.5,"hinweis":false,"pp":"TorbenSteen"}
+j4 … und der Chip presst den Namen nicht zusammen: jede Titelspalte ≥ 100 px breit (der Chip rutscht sonst in eine eigene Zeile) — [75,136,129]
+
+17 grün, 39 rot

@@ -105,7 +105,8 @@ check('9 Trocknung blendet den Gieß-Block aus', await page.locator('.mini-btn',
 check('9b Hinweis erklärt warum', await page.locator('.cell-title', { hasText: 'Trocknung läuft' }).count() === 1);
 
 // --- 6) Ernte beendet den laufenden Zyklus ---
-await page.locator('.btn', { hasText: 'Ernte erfassen' }).click();
+// wg-v112 (P10): „+ Ernte" ist jetzt eine Kopf-Aktion im Ernten-Kopf (sichtbarer Text „+ Ernte", Name für Leser/Tests „Ernte erfassen")
+await page.getByRole('button', { name: 'Ernte erfassen' }).click();
 await page.waitForTimeout(400);
 await page.locator('.sheet-acts .btn', { hasText: 'Weiter' }).click();       // Datum = heute
 await page.waitForTimeout(250);
@@ -119,7 +120,8 @@ const afterHarv = await page.evaluate(() => JSON.parse(localStorage.getItem('wg_
 check('10 Ernte gespeichert', (afterHarv.gh || []).length === 1 && afterHarv.gh[0].grams === 42.5);
 check('10b Zyklus auf das Ernte-Datum beendet', afterHarv.gz[0].end === todayISO());
 check('10c Ernte ist mit dem Zyklus verknüpft', afterHarv.gz[0].ghId === afterHarv.gh[0].id);
-check('11 ohne offenen Zyklus erscheint der Start-Button', await page.locator('.btn', { hasText: 'Zyklus starten' }).count() === 1);
+// wg-v112 (P10): der Start-Knopf ist ein kleiner .mini-btn in der Kostensplit-Karte (vorher Vollbreit-.btn)
+check('11 ohne offenen Zyklus erscheint der Start-Button', await page.locator('.mini-btn', { hasText: 'Zyklus starten' }).count() === 1);
 check('11b Zyklus-Karte ist weg', await page.locator('.phase-chip').count() === 0);
 
 // --- 6b) Fehleingabe: Ernte wieder löschen muss den Zyklus zurückholen ---
@@ -137,7 +139,7 @@ check('11f Rückgängig holt die Ernte zurück', (afterUndo.gh || []).length ===
 check('11g Rückgängig beendet den Zyklus wieder', !!afterUndo.gz[0].end && afterUndo.gz[0].ghId === afterUndo.gh[0].id);
 
 // --- 7) Neuen Zyklus über den Wizard anlegen ---
-await page.locator('.btn', { hasText: 'Zyklus starten' }).click();
+await page.locator('.mini-btn', { hasText: 'Zyklus starten' }).click();
 await page.waitForTimeout(400);
 await page.locator('.sheet-acts .btn', { hasText: 'Weiter' }).click();       // Start = heute
 await page.waitForTimeout(250);
@@ -211,7 +213,7 @@ for (let i = 0; i < 2; i++) {
 }
 await p2.locator('.tabbar .tabitem', { hasText: 'Growbox' }).click();
 await p2.waitForTimeout(500);
-check('16 leerer Grow-Tab zeigt den Start-Button statt einer leeren Karte', await p2.locator('.btn', { hasText: 'Zyklus starten' }).count() === 1);
+check('16 leerer Grow-Tab zeigt den Start-Button statt einer leeren Karte', await p2.locator('.mini-btn', { hasText: 'Zyklus starten' }).count() === 1);
 check('16b Grow-Tab rendert trotzdem den Split-Hero', await p2.locator('.hero').count() === 1);
 
 check('17 keine Konsolen-/Seitenfehler', errors.length === 0);

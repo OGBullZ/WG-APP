@@ -1,0 +1,64 @@
+Ô£ô A1 Standard ist Deutsch
+Ô£ô A2 Umschalten merkt sich die Sprache und l├ñdt neu
+Ô£ô A3 Tab-Leiste auf Englisch
+Ô£ô B1 ÔÇ×Heute" hei├ƒt Today, Begr├╝├ƒung auf Englisch ÔÇö 10
+Hello, Torben
+Saturday 10 October
+­ƒº╣ YOUR TURN
+Cleaning p
+Ô£ô B2 Datum im englischen Format (Wochentag ausgeschrieben) ÔÇö 10
+Hello, Torben
+Saturday 10 October
+­ƒº╣ YOUR TURN
+Cleaning plan ÔÇ║
+­ƒÜ┐ Bad putzen
+2 days overdue
+Tomorrow
+Can't do it
+­ƒøÆ
+1
+Ô£ô B3 Haushalt hei├ƒt Household, KEIN Betrag mit Komma ÔÇö ­ƒÆÂ Expenses
+­ƒøÆ Shopping list (1)
+YOUR BALANCE
+Ôé¼
+20.00
+20.00
+I OWE
+Household
+100%
+Ôé¼20.00
+Grow box
+0%
+Ôé¼0.00
+ÔÇ║
+Torben
+Tom
+Ôé¼
+20.00
+20.00
+Paying in one tap works as 
+Ô£ô B4 ÔÇ×Mehr" zeigt englische Gruppen
+Ô£ô B5 keine Seitenfehler
+Ô£ô C0 alle gepr├╝ften Tabs gefunden (kurze EN-Namen, einzeilig) ÔÇö fehlt: 
+Ô£ô C4 Tab-Beschriftungen einzeilig und ungek├╝rzt ÔÇö []
+Ô£ô C1 keine deutschen Reste auf den Hauptseiten
+Ô£ô C3 kein W├Ârterbuch-Eintrag steht un├╝bersetzt auf der Seite
+Ô£ô C2 keine Seitenfehler
+Ô£ô E1 Ausgaben-Formular hei├ƒt auf Englisch ÔÇ×+ Add expense"
+Ô£ô E2 Formular durchgehend englisch ÔÇö EXPENSE ÔÅÄ Cancel ÔÅÄ What did you buy? ÔÅÄ ­ƒøÆ Groceries ÔÅÄ ­ƒº┤ Household ÔÅÄ ­ƒÄë Leisure ÔÅÄ ­ƒôä Fixed costs ÔÅÄ ­ƒôª Other ÔÅÄ Next
+Ô£ô E8v Miet-Karte mit ÔÇ×Next month" gefunden ÔÇö 1
+Ô£ô E8 Miet-Zeilen im Folgemonat englisch (ÔÇ×open") ÔÇö Torben ┬À Ôé¼450.00
+open
+Paid Ô£ô ÔÅÄ Tom ┬À Ôé¼450.00
+open
+Ô£ô E3 Ersteinrichtung englisch ÔÇö Today ÔÅÄ TODAY ÔÅÄ SYNCÔÇª ÔÅÄ 10 ÔÅÄ Hello ÔÅÄ Saturday 10 October ÔÅÄ ­ƒæï WHO ARE YOU ON THIS PHONE? ÔÅÄ Torben ÔÅÄ Tom ÔÅÄ Only needed once. Without it, clea
+Ô£ô D1 auf Deutsch weiterhin deutsch, Betr├ñge mit Komma
+Ô£ô D2 deutsche Betr├ñge (Komma)
+Ô£ô D3 keine Seitenfehler
+Ô£ô E4 keine HTML-Entities in Texten (Quelltext und W├Ârterbuch)
+Ô£ô E5 kein deutscher Template-String ohne TT() (Quelltext, datenunabh├ñngig)
+Ô£ô E7v Push-Aufrufe im Quelltext gefunden (Pr├╝fer nicht leer) ÔÇö 47
+Ô£ô E7 jeder Push-Text l├ñuft durch TT() (Titel UND Text)
+Ô£ô E6 auch Texte aus Listen (TT(variable)) sind ├╝bersetzt
+
+26 ok, 0 fehlgeschlagen

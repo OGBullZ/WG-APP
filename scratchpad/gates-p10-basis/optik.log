@@ -1,0 +1,23 @@
+  Ô£ô A1 Kopfkarte ist eine eigene Fl├ñche, kein loser Text
+  Ô£ô A2 Tageszahl, Begr├╝├ƒung, Datum und WG-Name stehen drin ÔÇö 10 ┬À Guten Morgen, Torben ┬À Samstag, 10. Oktober ┬À ­ƒÅá Nordstadt
+  Ô£ô A3 die Tageszahl ist gro├ƒ genug, um Anker zu sein ÔÇö 42px
+  Ô£ô A4 Zahl und Fl├ñche tragen dieselbe Farbe
+  Ô£ô B1 morgens, tags├╝ber und abends sind es drei verschiedene Stimmungen ÔÇö 7h=morgen 13h=tag 21h=abend
+  Ô£ô B2 ÔÇª und drei verschiedene Farben ÔÇö rgb(251, 191, 36) | rgb(94, 234, 212) | rgb(129, 140, 248)
+  Ô£ô C1 Karten haben eine Lichtkante (Tiefe statt flacher Kasten) ÔÇö rgba(0, 0, 0, 0.4) 0px 24px 56px 0px, rgba(255, 255, 255, 0.08) 0px 1px 0px 0px inset
+  Ô£ô C2 im Hellmodus eine eigene, sichtbare Kante (nicht die geerbte dunkle) ÔÇö 0.9 ┬À rgba(0, 0, 0, 0.08) 0px 12px 32px 0px, rgba(255, 255, 255, 0.9) 0px 1px 0px 0px 
+  Ô£ô C3 die Kopfkarte ist mitversorgt
+  Ô£ô D1 der Schimmer liegt hinter dem Inhalt, nicht dar├╝ber
+  Ô£ô D2 die Begr├╝├ƒung beh├ñlt die normale Textfarbe (nur die Zahl ist farbig) ÔÇö {"zahl":"rgb(94, 234, 212)","gruss":"rgb(242, 246, 243)","normal":"rgb(242, 246, 243)"}
+  Ô£ô E1 der Tageszeit-Ton ist im Hellmodus ein eigener (nicht der geerbte helle) ÔÇö hell rgba(15,118,110,.15) ┬À dunkel rgba(94,234,212,.26)
+  Ô£ô E2 ÔÇª und dunkel genug, dass man ihn auf der wei├ƒen Karte sieht ÔÇö Helligkeit 0.142
+  Ô£ô E3 dunkel: die Tageszahl hat eine eigene, sichtbare Fl├ñche ÔÇö {"deckkraft":0.26,"rundung":16}
+  Ô£ô E3 hell: die Tageszahl hat eine eigene, sichtbare Fl├ñche ÔÇö {"deckkraft":0.15,"rundung":16}
+  Ô£ô E4 dunkel: die Warnkarte setzt sich ab (eigener Rand UND eigene Fl├ñche) ÔÇö {"randGleich":false,"flaecheGleich":false,"warnRand":"rgba(251, 191, 36, 0.34)"}
+  Ô£ô E4 hell: die Warnkarte setzt sich ab (eigener Rand UND eigene Fl├ñche) ÔÇö {"randGleich":false,"flaecheGleich":false,"warnRand":"rgba(251, 191, 36, 0.34)"}
+  Ô£ô E5 jede Gruppe unter ÔÇ×Mehr" hat ein Farbfeld, und die T├Âne sind verschieden ÔÇö {"felder":7,"verschiedeneToene":7}
+  Ô£ô E6 ÔÇª und der Hellmodus hat eigene Akzentwerte ÔÇö hell 154,74,6 ┬À dunkel 251,191,36
+  Ô£ô E7 kein Platzhalter wird abgeschnitten (auch wenn der Knopf daneben lang ist) ÔÇö []
+  Ô£ô Z1 keine Seitenfehler
+
+21 von 21 Pr├╝fungen bestanden

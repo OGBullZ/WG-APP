@@ -1,0 +1,17 @@
+Ô£ô A1 leere WG: alle 11 Werkzeuge als Chips ÔÇö Chips: status,wash,fridge,meal,board,msg,book,rules,poll,repair,login
+Ô£ô A2 leere WG: keine leere Werkzeug-Karte ÔÇö Karten: 
+Ô£ô A3 Heute ist kurz (Ôëñ 1,6 Bildschirmh├Âhen) ÔÇö 706 px
+Ô£ô A4 jedes Chip-Werkzeug ist unsichtbar eingeh├ñngt (Nebenaufgaben laufen weiter) ÔÇö ["status","wash","fridge","meal","board","msg","book","rules","poll","repair","login"]
+Ô£ô B1 Kachel ÔÇ×K├╝hlschrank" ├Âffnet direkt das Eingabeblatt, keine leere Karte im Feed
+Ô£ô B2 Abbrechen: Kachel bleibt, nichts gespeichert
+Ô£ô B2b Kachel ÔÇ×Ank├╝ndigung" ├Âffnet ein Blatt mit der Karte
+Ô£ô B3 keine Seitenfehler
+Ô£ô C0 Start ohne Springen (Layout-Verschiebung CLS < 0,02) ÔÇö CLS 0.002
+Ô£ô C1 K├╝hlschrank mit Eintrag: Karte da, kein Chip ÔÇö Karten fridge,repair ┬À Chips status,wash,meal,board,msg,book,rules,poll,login
+Ô£ô C2 offene Reparatur: Karte da, kein Chip
+Ô£ô C3 leere Werkzeuge bleiben Chips
+Ô£ô D1 Reihenfolge: Jetzt dran ÔåÆ Neu ÔåÆ Eingeben ÔåÆ Werkzeuge ÔåÆ Chips ÔÇö {"rows":333.796875,"news":409.796875,"quick":515.796875,"werkzeug":589.796875,"chips":927.796875}
+Ô£ô D2 keine Seitenfehler
+Ô£ô E1 Chips auf Englisch ÔÇö ADD ┬À ­ƒÖï ┬À Status ┬À ­ƒº║ ┬À Machine ┬À ­ƒºè ┬À Fridge ┬À ­ƒìØ ┬À Meal plan ┬À ­ƒùô´©Å ┬À Announcement ┬À ­ƒÆ¼ ┬À Quick note ┬À ­ƒøü ┬À Bookings ┬À ­ƒô£ ┬À House rules ┬À ­ƒù│´©Å ┬À Poll ┬À ­ƒöº ┬À Broken ┬À ­ƒöæ ┬À Share login
+
+15 ok, 0 fehlgeschlagen

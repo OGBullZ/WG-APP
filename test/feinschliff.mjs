@@ -39,7 +39,7 @@ const SEED = {
   rp: map([{ id: 'r1', text: 'Heizung Bad', status: 'offen', ts: Date.now() - 3 * 864e5, by: 'u2' }]),
 };
 
-async function open({ breite = 390, theme = 'dark', tab = 'heute' } = {}) {
+async function open({ breite = 390, theme = 'dark', tab = 'heute', seed = SEED } = {}) {   // seed (wg-v112, P9): V braucht Daten in zwei Monaten
   const ctx = await browser.newContext({ viewport: { width: breite, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
   await ctx.routeWebSocket(/./, () => {});
   const page = await ctx.newPage();
@@ -55,7 +55,7 @@ async function open({ breite = 390, theme = 'dark', tab = 'heute' } = {}) {
     localStorage.setItem('wg_theme', JSON.stringify(th));
     localStorage.setItem('wg_tab', JSON.stringify(tb));
     localStorage.setItem('wg_push_nudge', JSON.stringify({ until: Date.now() + 864e5 * 30 }));
-  }, [SEED, T, theme, tab]);
+  }, [seed, T, theme, tab]);
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   await page.locator('.tabbar').waitFor({ timeout: 30000 });
   await page.evaluate(() => window.__wg.fire());
@@ -192,7 +192,10 @@ check('M3 hell: kein Saum', tonneHell === 'none', tonneHell);
 // ── V (wg-v101): Verlauf-Diagramm der Übersicht nur mit Ausgaben — und beim Wiedererscheinen mit sichtbaren Balken ──
 // Falle: useInView beobachtet nur, was beim ersten Rendern da ist. Taucht das Diagramm erst nach einem Monatswechsel auf,
 // blieben die Balken als bedingter Block auf Höhe 0 — deshalb ist es eine eigene Komponente. Geprüft wird genau dieser Weg.
-const V = await open({ tab: 'stats' });
+// wg-v112 (P9): das Diagramm gibt es erst ab ZWEI Monaten mit Daten (vorher eine Zeile „Der Verlauf erscheint ab dem zweiten Monat",
+// geprüft in test/leer_v112.mjs) — dieser Test hängt deshalb einen Posten aus dem Vormonat an. Die Falle (useInView) bleibt dieselbe.
+const vormonat15 = (d => iso(new Date(d.getFullYear(), d.getMonth() - 1, 15)))(new Date());
+const V = await open({ tab: 'stats', seed: { ...SEED, hs: { ...SEED.hs, ...map([{ id: 'hv', name: 'Strom', price: 60, paidBy: 'u2', date: vormonat15, settled: true, cat: 'home' }]) } } });
 const verlauf = V.page.locator('[data-testid="verlauf6"]');
 const balkenHoch = async () => { await verlauf.scrollIntoViewIfNeeded(); await V.page.waitForTimeout(900);
   return verlauf.evaluate(el => Math.max(...[...el.querySelectorAll('.group > div > div')].map(b => b.getBoundingClientRect().height))); };

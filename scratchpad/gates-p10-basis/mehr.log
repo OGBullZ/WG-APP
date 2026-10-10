@@ -1,0 +1,105 @@
+Ô£ô S1 Toms Status sichtbar
+Ô£ô S2 eigener Status gespeichert, gilt bis Mitternacht ÔÇö {"id":"u1","text":"­ƒôÜ Lerne ÔÇô bitte leise","back":"","until":1791669599000,"seq":1791624593135}
+Ô£ô S3 Anzeige ÔÇ×Du: ÔÇª" + Zur├╝ck-Knopf
+Ô£ô S4 ÔÇ×Zur├╝ck" entfernt den Status
+Ô£ô F1 Heute: Rauchmelder f├ñllig, Entkalken nicht ÔÇö ­ƒÜ¿
+Rauchmelder testen
+Wartung f├ñllig ┬À alle 12 Mon.
+Erledigt Ô£ô
+­ƒñØ
+Bohrmaschine von Nachbar zur├╝ckholen
+├╝ber der Zeit
+Zur├╝ck Ô£ô
+Ô£ô F2 Heute: Bohrmaschine zur├╝ckholen (├╝berf├ñllig), Beamer nicht ÔÇö ­ƒÜ¿
+Rauchmelder testen
+Wartung f├ñllig ┬À alle 12 Mon.
+Erledigt Ô£ô
+­ƒñØ
+Bohrmaschine von Nachbar zur├╝ckholen
+├╝ber der Zeit
+Zur├╝ck Ô£ô
+Ô£ô F3 ÔÇ×Erledigt" setzt last = heute
+Ô£ô P1 Ergebnis vor der eigenen Stimme verborgen
+Ô£ô P2 Stimme gespeichert
+Ô£ô P3 alle gestimmt ÔåÆ entschieden + Push
+Ô£ô P4 neue Umfrage (| im Text entsch├ñrft, anonym, Frist +3) ÔÇö {"id":"xvcdj7fl","q":"Pizza oder Sushi?","opts":"Pizza|Su/shi","by":"u1","ts":1791624595277,"until":"2026-10-13","anon":true,"seq":1791624595277}
+Ô£ô P5 Push ÔÇ×Umfrage"
+Ô£ô W1 Wartung: Vorlagen ohne schon Angelegtes
+Ô£ô W2 Vorlage ÔåÆ Aufgabe alle 3 Monate, noch nie gemacht
+Ô£ô W3 Anzeige ÔÇ×noch nie ÔÇô jetzt f├ñllig"
+Ô£ô L1 Ausleihe: ├╝berf├ñllig rot markiert
+Ô£ô L2 geliehen, R├╝ckgabe in 14 Tagen ÔÇö {"id":"28y48evh","what":"Leiter","person":"Frau Meier","dir":"in","since":"2026-10-10","due":"2026-10-24","by":"u1","seq":1791624597413}
+Ô£ô L3 ÔÇ×Zur├╝ck" entfernt
+Ô£ô K1 Kaution, leer = gleich verteilt ÔÇö {"id":"k","total":1000,"c_u1":500,"c_u2":500,"seq":1791624598615}
+Ô£ô K2 R├╝ckzahlung 900 auf mein Konto ÔåÆ Tom bekommt 40 % = 360 von mir ÔÇö [{"id":"6sw549x4","date":"2026-10-10","settled":false,"name":"­ƒöæ Kaution zur├╝ck: Anteil Tom","price":360,"paidBy":"u2","owedBy":"u1","cat":"fix","ub":true,"seq":1791624600232}]
+Ô£ô K2b als Umbuchung markiert (z├ñhlt nicht als Ausgabe, wg-v107)
+Ô£ô K3 Kaution als zur├╝ck markiert
+Ô£ô G1 Angaben gespeichert (v = 1)
+Ô£ô G2 Link mit Schl├╝ssel, nicht mit dem Code
+Ô£ô G3 ung├╝ltig machen: v = 2, Link weg
+Ô£ô A1 ├£bergabe-Seite: Kaution ÔÇö Ôé¼1000,00 ┬À Torben Ôé¼600,00 ┬À Tom Ôé¼400,00 ┬À zur├╝ck Ôé¼900,00
+Ô£ô V1 Monatsverbrauch interpoliert (Jan 31 T., Feb 28 T. von 200) ÔÇö 2025-01:105.08 2025-02:94.92 2025-03:100.00
+Ô£ô V2 Juni 200 > 1,3 ├ù Schnitt ÔåÆ Hinweis; ohne Vorjahr kein Vergleich ÔÇö Vorjahresvergleich ab einem Jahr Ablesungen ┬À ÔÜá´©Å deutlich ├╝ber dem Schnitt (100 kWh)
+Ô£ô R1 Monatsbericht: Summe des Monats ohne die Kaution-Umbuchung ÔÇö Gesamt: Ôé¼110,00 ┬À 3 Posten
+Ô£ô R2 pro Person bezahlt/Anteil (ohne Umbuchung) ÔÇö Torben	bezahlt Ôé¼50,00	Anteil Ôé¼65,00	ÔêÆÔé¼15,00
+Tom	bezahlt Ôé¼60,00	Anteil Ôé¼45,00	+Ôé¼15,00
+Ô£ô B1 Korb: nur Fehlendes z├ñhlen (Brot steht schon drauf)
+Ô£ô B2 Milch auf der Liste, Brot nicht doppelt
+Ô£ô B3 danach ÔÇ×Alles schon auf der Liste"
+Ô£ô Z1 keine Seitenfehler
+Ô£ô X1 offene Betr├ñge ÔåÆ gesperrt
+Ô£ô X2 Hinweis: Kautions-Anteil geht ├╝ber
+Ô£ô X3 Kim ersetzt Tom (neue id, Einzug heute, alle mit joined) ÔÇö [{"id":"u1","name":"Torben","color":"#38bdf8","joined":"2026-10-10"},{"id":"di7aicu0","name":"Kim","color":"#a78bfa","joined":"2026-10-10"}]
+Ô£ô X4 Toms Aufgabe geht an Kim
+Ô£ô X5 Kautions-Anteil ├╝bernommen
+Ô£ô X6 Toms Status weg
+Ô£ô X7 Putz-Z├ñhlung beginnt am Einzug (alte Eintr├ñge z├ñhlen nicht) ÔÇö {"u1":0,"di7aicu0":0}
+Ô£ô X8 Push ÔÇ×zieht ein"
+Ô£ô X9 keine Seitenfehler
+Ô£ô S5 abgelaufener Status verschwindet
+Ô£ô Q1 Heute: Gesamt 66,25 mit Aufschl├╝sselung ÔÇö ­ƒÆ©
+Du schuldest Tom Ôé¼66,25 (Haushalt Ôé¼58,25 + Growbox Ôé¼8,00)
+ÔÇ║
+Ô£ô Q2 ├£bersicht ÔÇ×insgesamt" = dieselbe Zahl (Growbox nach Pflanzen, nicht 50/50) ÔÇö schuldet Tom insgesamt Ôé¼66,25
+Ô£ô Q3 Start-Pop-up rechnet gleich ÔÇö -66.25
+Ô£ô Q4 keine Seitenfehler
+Ô£ô N1 eigenes Ger├ñt ohne Push ÔåÆ ÔÇ×Benachrichtigungen sind aus"
+Ô£ô N2 Tom hat ein Ger├ñt (uid) ÔåÆ kein Hinweis zu Tom
+Ô£ô N3 ÔÇ×Einschalten" ÔåÆ Mehr, Benachrichtigungen aufgeklappt
+Ô£ô N8 blockiert ÔåÆ Hinweis auf Einstellungen, kein Knopf ÔÇö ­ƒöö
+Benachrichtigungen sind blockiert
+In den Handy-Einstellungen erlauben ÔÇô sonst fehlen M├╝ll, Putzplan und Zahlungen.
+Ô£ô N4 Tom ohne Push ÔåÆ Hinweis mit WhatsApp-Link
+Ô£ô N5 ohne Service Worker kein Eigen-Hinweis (nichts behaupten)
+Ô£ô N6 ÔÇ×Sp├ñter" blendet 7 Tage aus
+Ô£ô N7 keine Seitenfehler
+Ô£ô K1 falsche IBAN (Pr├╝fziffer) ÔåÆ Warnung
+Ô£ô K2 g├╝ltige IBAN ÔåÆ Ô£ô in 4er-Bl├Âcken
+Ô£ô K3 Inhaber + IBAN gespeichert (Anzeigename bleibt) ÔÇö [{"id":"u1","name":"Torben","color":"#38bdf8"},{"id":"u2","name":"Tom","color":"#fbbf24","holder":"Tom-Luca Beispiel","iban":"de89 3704 0044 0532 0130 00"}]
+Ô£ô L1 fremdes Profil: Felder schreibgesch├╝tzt + Hinweis
+Ô£ô L2 Tippen in fremde IBAN ├ñndert nichts
+Ô£ô L3 ÔÇ×Das bin ich" f├╝r eine andere Person fragt nach
+Ô£ô L4 abgebrochen ÔåÆ weiter Tom
+Ô£ô K8 als Gl├ñubiger: ÔÇ×Bankdaten an Torben schicken"
+Ô£ô K7 keine Seitenfehler
+Ô£ô K4 ich schulde Tom ÔåÆ ├£berweisung an den Kontoinhaber
+Ô£ô K5 IBAN kopiert (ohne Leerzeichen)
+Ô£ô K6 ÔÇ×Alles kopieren": Empf├ñnger, IBAN, Betrag, Zweck ÔÇö Empf├ñnger: Tom-Luca Beispiel
+IBAN: DE89 3704 0044 0532 0130 00
+Betrag: 20,00 Ôé¼
+Verwendungszweck: WG-Ausgleich Torben
+Ô£ô V10 Haushalt zeigt den verrechneten Betrag 58,25 ÔÇö Torben
+Tom
+Ôé¼
+58,25
+58,25
+Ô£ô V11 Aufschl├╝sselung Haushalt ÔêÆ66,25 ┬À Growbox +8,00
+Ô£ô V12 PayPal/IBAN-Betrag = 58,25 (Tom hat PayPal? nein ÔåÆ Hinweis; Zahlungsmeldung mit 58,25)
+Ô£ô V13 Heute: dieselbe Zahl
+Ô£ô V14 Abrechnen schlie├ƒt Haushalt UND Growbox ÔÇö [[{"seq":100,"id":"v1","name":"Einkauf","price":132.5,"paidBy":"u2","date":"2026-10-10","settled":true,"settledAt":"2026-10-10","settlementId":"qvd48s8e"}],[{"seq":100,"id":"g1","name":"Erde","price":16,"paidBy":"u1","date":"2026-10-10","settled":true,"settledAt":"2026-10-10","settlementId":"nr9oyxba"}]]
+Ô£ô V15 Abrechnung: 58,25 von Torben an Tom; Growbox-Eintrag mit 0 (├╝ber Haushalt) ÔÇö [{"id":"qvd48s8e","mod":"hs","date":"2026-10-10","total":132.5,"n":1,"fromId":"u1","toId":"u2","amount":58.25,"withGi":true,"seq":1791624673185},{"id":"nr9oyxba","mod":"gi","date":"2026-10-10","total":16,"n":1,"fromId":"u1","toId":"u2","amount":0,"viaHs":"qvd48s8e","seq":1791624673184}]
+Ô£ô V16 R├╝ckg├ñngig ├Âffnet beide wieder
+Ô£ô V17 keine Seitenfehler
+Ô£ô D1 Regeln f├╝r st/vo/lh/wa/kt/wk/ga
+
+77 ok, 0 fehlgeschlagen

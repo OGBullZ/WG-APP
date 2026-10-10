@@ -1,0 +1,63 @@
+
+=== PASS ===
+a0 Vorbedingung: Dran-Karte, Push-Hinweis und Zeilen-Block stehen auf Heute ÔÇö {"dran":191,"push":435,"rows":359,"rand":"rgba(255, 255, 255, 0.09)","neutral":"rgba(255, 255, 255, 0.09)","gewicht":"700","titel":"­ƒÜ┐ Bad putzen"}
+a1 die Dran-Karte steht ├╝ber dem Push-Hinweis (die ├╝berf├ñllige Aufgabe ist die Handlung, der Hinweis nur Hinweis) ÔÇö Dran y=191 ┬À Push y=435
+a2 ÔÇª und der Push-Hinweis folgt erst NACH dem Zeilen-Block ÔÇö Zeilen y=359 ┬À Push y=435
+a3 Rand der Dran-Karte neutral (kein Amber): gleich var(--border), Dringlichkeit tragen ÔÇ×├╝berf├ñllig" + Haken ÔÇö rgba(255, 255, 255, 0.09) (neutral rgba(255, 255, 255, 0.09))
+a4 Titel der Aufgabe in der Dran-Karte fett (700) ÔÇö ­ƒÜ┐ Bad putzen ÔåÆ 700
+a5 [bleibt] ohne f├ñllige eigene Aufgabe: Push-Hinweis VOR der Ô£¿-Zeile (Reihenfolge wie bisher) ÔÇö {"push":191,"frei":298,"dran":false}
+b1 keine sichtbare Schrift unter 10 px ÔÇö Heute, Haushalt, Growbox, Putzplan, ├£bersicht, Mehr (390 px, Belastungsdaten)
+b2 Quelltext: keine Schriftgr├Â├ƒe unter 10 px (fontSize:ÔÇª / font-size:ÔÇªpx)
+b3 Verlauf (6 Monate): Werte ÔëÑ 10 px, Monatsnamen ÔëÑ 11 px ÔÇö {"zahlen":[10,10,10],"monate":[11,11,11,11,11,11]}
+b4 Putzplan ┬À Punkte: Werte ÔëÑ 10 px, Monatsnamen ÔëÑ 11 px ÔÇö {"zahlen":[10,10,10,10],"monate":[11,11,11,11,11,11]}
+b5 .hero-lbl hat die Gr├Â├ƒe des Abschnittskopfs (11 px) und .18em Sperrung ÔÇö hero 11 ┬À hdr 11 ┬À 1.98px
+b6 .sum-lbl 11 px mit .18em wie der Abschnittskopf ÔÇö {"px":11,"ls":"1.98px"}
+b7 .due-chip 11 px ÔÇö Regel 11 ┬À sichtbarer Chip 11
+b8 Putzplan-Chip sagt ÔÇ×N Tage ├╝berf├ñllig" wie Heute (kein ÔÇ×13d ├£BERF├äLLIG" mehr) ÔÇö ["13 Tage ├╝berf├ñllig"]
+b8b Englisch: Putzplan-Chip ÔÇ×13 days overdue" (nicht ÔÇ×dayse") ÔÇö ["13 days overdue"]
+b8c Englisch: Dran-Karte auf Heute ÔÇ×13 days overdue" ÔÇö 13 days overdue
+b9 Ring-Beschriftung ÔÇ×bekomme ich": 10 px mit .06em ÔÇö {"px":10,"ls":"0.6px"}
+b10 Ring-Beschriftung ÔÇ×Pflanzen": 10 px mit .06em ÔÇö {"px":10,"ls":"0.6px"}
+c0 Vorbedingung: Index-Karte und sechs Gruppen gefunden ÔÇö 7 Karten
+c1 Abstand zwischen den Mehr-Karten h├Âchstens 12 px ÔÇö [10,10,10,10,10,10]
+c2 Fold-Titel 16 px / 700 (auch die Index-Karte ÔÇ×Was kann die App?") ÔÇö Gruppe 16px/700 ┬À Index 16px/700
+c3 ÔÇ×Alle lokalen Daten l├Âschen": Textknopf ohne Rand und Fl├ñche, ÔëÑ 44 px hoch, rot ÔÇö {"rand":"0px","flaeche":"rgba(0, 0, 0, 0)","h":44,"farbe":"rgb(251, 113, 133)","abstand":20}
+c4 ÔÇª 20 px abgesetzt von der letzten Karte ÔÇö und damit deutlich weiter als die Karten untereinander (> Kartenabstand + 5 px) ÔÇö 20 px, Karten 10 px
+c5 [bleibt] der Best├ñtigungsdialog erscheint (nichts wird ohne R├╝ckfrage gel├Âscht)
+c6 [bleibt] ÔÇ×Abbrechen" l├ñsst Daten und WG-Code stehen
+d1 reines 50/50: ÔÇ×Wer tr├ñgt was" fehlt (zeigte 117 px ohne Aussage) ÔÇö {"hero":159,"summe":359,"bezahlt":427,"traegt":null,"katH":544,"top":707,"verlauf":888,"punkte":1059,"demnaechst":1230,"bericht":1344,"jahr":1472,"raster":1544}
+d2 [bleibt] mit ÔÇ×Tom zahlt alles"-Posten: ÔÇ×Wer tr├ñgt was" ist da ÔÇö {"hero":159,"summe":359,"bezahlt":427,"traegt":544,"katH":661,"top":851,"verlauf":1100,"punkte":1271,"demnaechst":1442,"bericht":1556,"jahr":1684,"raster":1756}
+d3 Vorbedingung: alle zw├Âlf Abschnitte sichtbar ÔÇö fehlt: 
+d4 ÔÇ×Gr├Â├ƒte Posten" steht vor ÔÇ×Verlauf" ÔÇö Posten 851 ┬À Verlauf 1100
+d5 Reihenfolge: Hero ┬À ╬ú ┬À bezahlt ┬À tr├ñgt ┬À Kategorien ┬À Gr├Â├ƒte Posten ┬À Verlauf ┬À Putz-Punkte ┬À Demn├ñchst ┬À Monatsbericht ┬À Jahresr├╝ckblick ┬À Raster ÔÇö hero:159 summe:359 bezahlt:427 traegt:544 katH:661 top:851 verlauf:1100 punkte:1271 demnaechst:1442 bericht:1556 jahr:1684 raster:1756
+e1 genau EIN Vollbreit-Knopf: ÔÇ×+ Grow-Ausgabe" ÔÇö ["+ Grow-Ausgabe"]
+e2 ÔÇ×+ Ernte" ist eine Kopf-Aktion im Ernten-Kopf (.hit, Wortlaut ÔÇ×Ernte" im Namen) ÔÇö {"text":"+ Ernte","label":"Ernte erfassen","hit":true,"treffer":39,"flaeche":45,"imKopf":true}
+e3 ÔÇª Trefferfl├ñche ÔëÑ 40 px hoch (::after 45 px; im Test trifft elementFromPoint ÔëÑ 38 px am St├╝ck) ÔÇö Fl├ñche 45 px ┬À getroffen 39 px
+e4 ÔÇ×­ƒî▒ Zyklus starten" ist ein kleiner Knopf (.mini-btn) in der Kostensplit-Karte ÔÇö {"klasse":"mini-btn","breite":138,"imHero":true,"h":44}
+e5 [bleibt] ÔÇ×+ Ernte" ├Âffnet das Ernte-Blatt
+e6 [bleibt] ÔÇ×Zyklus starten" ├Âffnet den Zyklus-Assistenten
+f1 erster Haken: die Liste r├╝ckt stetig nach unten (kein Sprung > 30 px, ÔëÑ 4 Bilder mit Bewegung, Ôëê 74 px insgesamt) ÔÇö {"gesamt":74,"maxSprung":20.1,"bewegt":10}
+f2 [bleibt] ÔÇª der Knopf ÔÇ×­ƒº¥ 1 abgehakt ┬À Betrag vom Kassenzettel eintragen" ist danach sichtbar ÔÇö ­ƒº¥ 1 abgehakt ┬À Betrag vom Kassenzettel eintragen
+f3 Haken wieder zur├╝ck: Knopf geht, die Liste r├╝ckt stetig nach oben ÔÇö {"gesamt":-74,"maxSprung":20,"bewegt":10}
+f4 [bleibt] ÔÇª und der Knopf ist danach aus dem Baum (kein totes Element) ÔÇö 0 St├╝ck
+g1 letzte eigene Aufgabe erledigt: der Inhalt darunter springt nie um mehr als 30 px (Schatten schlie├ƒt seine H├Âhe) ÔÇö {"gesamt":-129,"maxSprung":14.5,"bewegt":15,"schattenWeg":true}
+g2 eine von zwei Aufgaben erledigt: die zweite Zeile r├╝ckt stetig nach (kein Sprung > 30 px, ÔëÑ 4 Bilder mit Bewegung) ÔÇö {"gesamt":-122,"maxSprung":14.6,"bewegt":14,"schattenWeg":true}
+h0 Vorbedingung: im Schritt ÔÇ×Pr├╝fen & aufteilen" sind Zahler und ÔÇ×Gleich teilen" gew├ñhlt ÔÇö [{"t":"Torben","farbe":"rgb(10, 18, 12)","flaeche":"rgb(56, 189, 248)"},{"t":"Gleich teilen ┬À 50/50","farbe":"rgb(255, 255, 255)","flaeche":"rgb(15, 118, 110)"}]
+h1 hell: gew├ñhlte .pick-btn (auch ÔÇ×Gleich teilen" auf dunklem Minze) haben ÔëÑ 4,5:1 ÔÇö [{"t":"Torben","r":8.87},{"t":"Gleich teilen ┬À 50/50","r":5.47}]
+h2 hell: Haarlinie unter der Navbar ist nicht mehr wei├ƒ ÔÇö rgba(11, 21, 16, 0.08)
+h3 hell: Rand des Blatts ist nicht mehr wei├ƒ ÔÇö rgba(11, 21, 16, 0.1)
+h4 hell: Rand des R├╝ckg├ñngig-Balkens ist nicht mehr wei├ƒ ÔÇö rgba(11, 21, 16, 0.14)
+h5 [bleibt] dunkel: gew├ñhlte .pick-btn weiter ÔëÑ 4,5:1 ÔÇö [{"t":"Torben","r":8.87},{"t":"Gleich teilen ┬À 50/50","r":12.85}]
+h6 jedes .pick-btn auf einem Token-Hintergrund hat die Klasse tok (Mint, Violett, Gr├╝n, Rot) ÔÇö 2 gefunden, ohne tok: 0
+i1 Migration lief (Torben hat jetzt seinen PayPal.me-Namen) ÔÇö sonst misst der Test nichts ÔÇö {"von":657,"bis":657,"spanne":0,"hinweis":false,"pp":"TorbenSteen"}
+i2 der Inhalt unter der Bilanz wandert nie (Spanne < 4 px ├╝ber 6,5 s, auch nicht bei der Migration) ÔÇö {"von":657,"bis":657,"spanne":0,"hinweis":false,"pp":"TorbenSteen"}
+j1 [bleibt] 320 px: Ring-Beschriftung (jetzt 10 px) steht einzeilig und passt in den Innenkreis des Rings ÔÇö {"zeilen":1,"breite":72.6,"ring":104,"links":16,"rechts":16,"ueberlauf":0,"innen":81}
+j2 [bleibt] 320 px Haushalt: kein horizontaler ├£berlauf ÔÇö 0 px
+j3 [bleibt] 320 px Putzplan (langer Aufgabenname + ÔÇ×13 Tage ├╝berf├ñllig"): kein ├£berlauf, Chips im Rahmen ÔÇö {"ueberlauf":0,"raus":[],"chips":["13 Tage ├╝berf├ñllig"],"titelBreiten":[201,133,125]}
+j4 ÔÇª und der Chip presst den Namen nicht zusammen: jede Titelspalte ÔëÑ 100 px breit (der Chip rutscht sonst in eine eigene Zeile) ÔÇö [201,133,125]
+z1 keine Seitenfehler
+
+=== FAIL ===
+(keine)
+
+56 gr├╝n, 0 rot

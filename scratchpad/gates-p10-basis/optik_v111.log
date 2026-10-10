@@ -1,0 +1,25 @@
+Ô£ô R 320px de: nichts ragt aus Fenster oder Karte (6 Tabs)
+Ô£ô R 360px de: nichts ragt aus Fenster oder Karte (6 Tabs)
+Ô£ô R 390px de: nichts ragt aus Fenster oder Karte (6 Tabs)
+Ô£ô R 320px en: nichts ragt aus Fenster oder Karte (6 Tabs)
+Ô£ô R 360px en: nichts ragt aus Fenster oder Karte (6 Tabs)
+Ô£ô R 390px en: nichts ragt aus Fenster oder Karte (6 Tabs)
+Ô£ô R0 Reichweite: 36 Tab-Ansichten gemessen ÔÇö 36
+Ô£ô Z1 320px: Betrag in der Ring-Mitte passt in den Innenraum ÔÇö {"ring":104,"betragB":64,"innen":81,"betragZeilen":1,"text":"Ôé¼1454,361454,36","bannerH":19,"bannerFs":16,"legende":[9,9]}
+Ô£ô Z2 320px: Betrag im Abrechnungsband einzeilig ÔÇö {"h":19,"fs":16}
+Ô£ô L1 320px: Legende ÔÇö Name st├Â├ƒt nicht in die Prozentzahl (Abstand ÔëÑ 4 px) ÔÇö [9,9]
+Ô£ô Z3 320px: Ring kontrolliert verkleinert (104 statt 128 px), nicht gestaucht ÔÇö 104
+Ô£ô Z1 390px: Betrag in der Ring-Mitte passt in den Innenraum ÔÇö {"ring":128,"betragB":79,"innen":100,"betragZeilen":1,"text":"Ôé¼1454,361454,36","bannerH":19,"bannerFs":16,"legende":[9,9]}
+Ô£ô Z2 390px: Betrag im Abrechnungsband einzeilig ÔÇö {"h":19,"fs":16}
+Ô£ô L1 390px: Legende ÔÇö Name st├Â├ƒt nicht in die Prozentzahl (Abstand ÔëÑ 4 px) ÔÇö [9,9]
+Ô£ô Z4 390px: Ring in voller Gr├Â├ƒe (128 px) ÔÇö 128
+Ô£ô T1 EN: ÔÇ×Ô£ô I paid Ôé¼1454.36" ÔÇö ohne zweites ÔÇ×paid" ÔÇö Ô£ô I paid Ôé¼1454.36
+Ô£ô T2 EN: Vorstreck-Hinweis als ganzer Satz ÔÇö Next to pay up front: you ÔÇô Konstantinos covered Ôé¼4356.
+Ô£ô T3 EN: kein ÔÇ×paid ÔÇª paid" und kein ÔÇ×it would be you due" mehr irgendwo
+Ô£ô T4 DE unver├ñndert: ÔÇ×Ich habe Ôé¼1454,36 bezahlt" + ÔÇ×Diesmal w├ñre du ÔÇª Konstantinos hat zuletzt Ôé¼4356,77 vorgestreckt, du Ôé¼1258,56." ÔÇö Diesmal w├ñre du mit Auslegen dran ÔÇô Konstantinos hat zuletzt Ôé¼4356,77 vorgestreckt, du Ôé¼1258,56.
+Ô£ô G1 Anteile stehen unter dem Titel (beide Personen mit Betrag) ÔÇö {"anteile":"Maximilian-Alexander Ôé¼94,75 Konstantinos Ôé¼94,75","inTitelSpalte":true,"titelB":102,"preisB":61,"abstand":16}
+Ô£ô G2 Titelspalte auf 320 px ÔëÑ 95 px breit (vorher ~60) ÔÇö {"anteile":"Maximilian-Alexander Ôé¼94,75 Konstantinos Ôé¼94,75","inTitelSpalte":true,"titelB":102,"preisB":61,"abstand":16}
+Ô£ô G3 Abstand Abrechnungsband ÔåÆ Hinweis ÔëÑ 8 px (vorher ÔêÆ4: Hinweis lag im Band) ÔÇö {"anteile":"Maximilian-Alexander Ôé¼94,75 Konstantinos Ôé¼94,75","inTitelSpalte":true,"titelB":102,"preisB":61,"abstand":16}
+Ô£ô B1 Fokus im Namensfeld: ein Rahmen (kein outline), Fokus trotzdem sichtbar (Schein) ÔÇö {"tag":"INPUT","field":true,"outline":"none","schatten":true,"zeileH":31,"chipH":29}
+
+23 ok, 0 FAIL

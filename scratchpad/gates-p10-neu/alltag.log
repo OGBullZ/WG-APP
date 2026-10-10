@@ -1,0 +1,52 @@
+  OK  A1 M├╝llabfuhr rechnet wie der Server ÔÇö 2026-09-17|2026-09-17|2026-10-01|2026-12-01|0|13|-2
+  OK  B1 Vorrat-Karte mit Vorlagen
+  OK  B2 ÔÇ×Bald leer: Kaffee" (alle 10 Tage, zuletzt vor 9)
+  OK  B3 M├╝llbeutel ÔåÆ Einkaufsliste
+  OK  B4 Meldung gespeichert (outs = heute) ÔÇö [{"id":"v-m├╝llbeutel","name":"M├╝llbeutel","em":"­ƒùæ´©Å","outs":"2026-10-10","seq":1791628250173},{"seq":100,"id":"v-kaffee","name":"Kaffee","em":"Ôÿò","outs":"2026-09-11,2026-09-21,2026-10-01"}]
+  OK  B5 Push ÔÇ×fast leer" (Typ shop)
+  OK  B6 zweiter Tipp ÔåÆ kein Doppel-Eintrag
+  OK  C1 nach dem Abhaken: ÔÇ×1 abgehakt ┬À Betrag eintragen"
+  OK  C2 Name vorbelegt
+  OK  C3 Ausgabe 12,50 Ôé¼ ┬À Lebensmittel ┬À ich ÔÇö {"id":"4156mvz3","name":"Einkauf: Milch","price":12.5,"paidBy":"u1","date":"2026-10-10","owedBy":null,"cat":"food","shop":null,"settled":false,"seq":1791628252949}
+  OK  C4 abgehakte Milch aus der Liste, Knopf weg
+  OK  D1 abgelaufener Lauf: ÔÇ×ist fertig" + Push an die anderen (Starter = ich)
+  OK  D2 je Ger├ñt nur einmal gemeldet (ein Merker-Schl├╝ssel)
+  OK  D2b vor 5 Std. fertig ÔåÆ keine Push mehr, aber sichtbar
+  OK  D3 ÔÇ×Ausger├ñumt" entfernt den Lauf
+  OK  D4 Trockner 30 Min. gestartet ÔÇö {"id":"yo1bhvok","kind":"trock","by":"u1","start":1791628255250,"mins":30,"end":1791630055250,"seq":1791628255250}
+  OK  D5 Anzeige ÔÇ×noch 30 Min." + Start-Push
+  OK  E1 Preset ÔåÆ Push + Eintrag sichtbar
+  OK  E2 eigene Nachricht
+  OK  F1 seit 20 Tagen gemeldet ÔåÆ rot ÔÇ×nachhaken"
+  OK  F2 neu: ÔÇ×noch nicht gemeldet" + Push
+  OK  F2a L├Âschen zeigt sich erst als Abgang
+  OK  F2b offener Eintrag l├Âschbar
+  OK  F3 gemeldet mit Datum
+  OK  G1 Meldung angelegt (13,75 Ôé¼ an Tom) + Push settle ÔÇö {"id":"4s8imjr2","mod":"hs","from":"u1","to":"u2","amount":13.75,"ts":1791628259556,"status":"open","seq":1791628259556}
+  OK  G2 Schuldner sieht ÔÇ×wartet auf Best├ñtigung"
+  OK  H1 Tonne angelegt: ÔÇ×Papier ┬À morgen"
+  OK  H2 gekoppelt: ÔÇ×vor jeder ­ƒöÁ Papier-Abholung" + heute f├ñllig (Vorabend) ÔÇö ­ƒôª Papier raus | Du, danach Tom ┬À vor jeder ­ƒöÁ Papier-Abholung | HEUTE
+  OK  H3 pk gespeichert
+  OK  I1 Abwesenheit gespeichert + Push
+  OK  I1b vergangene Abwesenheit bleibt erhalten (Fairness-Fenster)
+  OK  I2 meine Aufgaben gehen an Tom ÔÇö ["u2","u2"]
+  OK  I3 Reihenfolge ├╝berspringt mich
+  OK  I4 Eintr├ñge aus der Abwesenheit z├ñhlen nicht
+  OK  I5 Banner im Haushalt: ÔÇ×Du bist weg"
+  OK  J1 Jahresr├╝ckblick mit Summe (40 + 12,50) ÔÇö ­ƒôà Jahresr├╝ckblick 2026 | Ôé¼52,50 | ÔÇ║
+  OK  J2 keine Fehler auf der Seite
+  OK  G2b gleicher Betrag ÔåÆ kein Abweichungs-Hinweis
+  OK  G3 Gl├ñubiger sieht ÔÇ×Torben hat Ôé¼20,00 bezahlt"
+  OK  G4 best├ñtigt ÔåÆ Posten abgerechnet, Meldung ok, Abrechnung erfasst ÔÇö {"pr":[{"seq":100,"id":"p1","mod":"hs","from":"u1","to":"u2","amount":20,"ts":1791628265182,"status":"ok","at":1791628270473}],"stl":[{"id":"j663j15p","mod":"hs","date":"2026-10-10","total":40,"n":1,"fromId":"u1","toId":"u2","amount":20,"seq":1791628270473}]}
+  OK  G5a Betrag ge├ñndert ÔåÆ ÔÇ×Offen sind inzwischen Ôé¼25,00"
+  OK  G5b Nachfrage erscheint
+  OK  G5c Abbrechen ÔåÆ nichts abgerechnet, Meldung bleibt offen
+  OK  G5 ÔÇ×Nicht angekommen" ÔåÆ Status no + Push, nichts abgerechnet
+  OK  K1 Manifest: sechs K├╝rzel mit Name und Symbol ÔÇö ["./?a=ausgabe","./?a=muell","./?a=liste","./?a=waesche","./?a=putz","./?a=suche"]
+  OK  K2 ?a=ausgabe ÔåÆ Haushalt + Ausgaben-Formular offen, Adresse bereinigt ÔÇö http://localhost:8099/wgapp.html
+  OK  K3 ?a=liste ÔåÆ Einkaufsliste
+  OK  K4 ?a=waesche ÔåÆ Timer-Fenster
+  OK  K5 ?a=muell ÔåÆ M├╝ll abgehakt (mit R├╝ckg├ñngig), Putzplan offen
+  OK  K6 Neuladen hakt nicht erneut ab (Parameter weg)
+
+50 ok, 0 fehlgeschlagen

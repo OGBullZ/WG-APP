@@ -1,0 +1,102 @@
+Ô£ô C1 keine Check-in-Karte, obwohl eine offene Runde in den Daten liegt
+Ô£ô C2 ÔÇ×Wie l├ñuft's in der WG?" steht nirgends
+Ô£ô C3 alte Antwort bleibt in den Daten (nichts gel├Âscht) ÔÇö [{"seq":100,"id":"2026-10-u2","ym":"2026-10","userId":"u2","score":3,"wish":"Mehr l├╝ften","ts":1}]
+Ô£ô K1 sortiert nach Datum, Abgelaufenes zuerst ÔÇö ["K├ñse\nseit 1 Tag abgelaufen\nWeg Ô£ô","Milch ┬À Tom\nl├ñuft morgen ab\nWeg Ô£ô"]
+Ô£ô K2 ÔÇ×l├ñuft morgen ab" + Besitzer ÔÇö Milch ┬À Tom
+l├ñuft morgen ab
+Weg Ô£ô
+Ô£ô K3 neuer Eintrag: +3 Tage, geh├Ârt mir ÔÇö [{"id":"y31s6i2w","name":"Joghurt","exp":"2026-10-13","owner":"u1","seq":1791624798951},{"seq":100,"id":"k1","name":"Milch","exp":"2026-10-11","owner":"u2"},{"seq":99,"id":"k2","name":"K├ñse","exp":"2026-10-09"}]
+Ô£ô K3b Entfernen zeigt sich erst als Abgang
+Ô£ô K4 ÔÇ×Weg Ô£ô" entfernt
+Ô£ô E1 Fairness-Zeile z├ñhlt nur vergangene 30 Tage
+Ô£ô E2 ­ƒøÆ f├╝gt nur Fehlendes hinzu (Tomaten stehen schon drauf, Gro├ƒ/klein egal) ÔÇö ["Nudeln","Brot","Bier","Tomaten","Chips","Saft","Wasser"]
+Ô£ô E3 Push ÔÇ×Zutaten f├╝r ÔÇª" (Typ shop)
+Ô£ô E4 Vorschlag: Tom kocht (hat seltener gekocht)
+Ô£ô E5 erster freier Tag vorbelegt (heute ist belegt ÔåÆ morgen)
+Ô£ô E6 Gericht gespeichert ÔÇö [{"id":"15u6qcqa","date":"2026-10-11","dish":"Chili","cook":"u2","ings":"Bohnen, Mais","seq":1791624801164},{"seq":100,"id":"e1","date":"2026-10-07","dish":"Pizza","cook":"u1"},{"seq":99,"id":"e2","date":"2026-10-02","dish":"Curry","cook":"u1"},{"seq":98,"id":"e0","date":"2026-08-31","dish":"Suppe","cook":"u2"},{"seq":97,"id":"e3","date":"2026-10-10","dish":"Nudelauflauf","cook":"u1","ings":"Nudeln, tomaten"}]
+Ô£ô E7 Wochenliste zeigt beide Gerichte
+Ô£ô R1 fremder Vorschlag: ÔÇ×Einverstanden" angeboten
+Ô£ô R2 nach Zustimmung gilt die Regel
+Ô£ô R3 eigener Vorschlag: ich stimme zu, Tom noch nicht ÔÇö {"id":"mvtz6ncl","text":"Ruhe ab 22 Uhr","by":"u1","ts":1791624802133,"ok_u1":true,"seq":1791624802133}
+Ô£ô R4 ÔÇ×wartet auf Tom" + nur ÔÇ×Zur├╝ckziehen" ÔÇö Ruhe ab 22 Uhr
+wartet auf Tom
+Zur├╝ckziehen
+Ô£ô R5 Push an Tom
+Ô£ô S1 Ziel mit Summe ÔÇö ­ƒÉÀ GEMEINSAM SPAREN
++ Ziel
+Mikrowelle ┬À Ôé¼120,00 / Ôé¼120,00
+Torben Ôé¼60,00 ┬À Tom Ôé¼60,00 ┬À Geld bei Torben
+Einzahlen
+Gekauft
+Ô£ô S2 Einzahlung addiert (c_u1 60 ÔåÆ 65)
+Ô£ô S3 R├╝ckg├ñngig nimmt sie zur├╝ck
+Ô£ô S4 Kaufpreis = Ziel vorbelegt
+Ô£ô S5 zwei Posten: Kauf (ich zahle, 50/50) + Toms Einzahlung an mich ÔÇö [{"id":"6stzkb3p","date":"2026-10-10","settled":false,"name":"­ƒÉÀ Mikrowelle","price":120,"paidBy":"u1","owedBy":null,"cat":"home","sg":"g1","ub":false,"seq":1791624804812},{"id":"vrch74wv","date":"2026-10-10","settled":false,"name":"­ƒÉÀ Mikrowelle: Einzahlung Tom","price":60,"paidBy":"u2","owedBy":"u1","sg":"g1","ub":true,"seq":1791624804811}]
+Ô£ô S6 beide je 60 eingezahlt ÔåÆ niemand schuldet etwas
+Ô£ô S7 Ziel erledigt, Karte leer
+Ô£ô S8 neues Ziel, ich verwalte
+Ô£ô G1 Artikel zur Auswahl
+Ô£ô G2 Vorschau ÔÇ×Gemeinsam Ôé¼15 (je Ôé¼7,50) ┬À nur du Ôé¼5" ÔÇö Gemeinsam Ôé¼15,00 (je Ôé¼7,50) ┬À nur du Ôé¼5,00
+Ô£ô G3 gemeinsamer Teil 15 Ôé¼ (50/50) ÔÇö {"id":"wxv7zd4u","name":"Einkauf: Brot","price":15,"paidBy":"u1","date":"2026-10-10","owedBy":null,"cat":"food","shop":null,"settled":false,"seq":1791624809075}
+Ô£ô G4 eigener Teil 5 Ôé¼ trage ich selbst ÔÇö {"id":"340i5ben","date":"2026-10-10","settled":false,"name":"Einkauf nur Torben: Bier","price":5,"paidBy":"u1","owedBy":"u1","cat":"food","seq":1791624809077}
+Ô£ô G5 Tom schuldet nur 7,50 aus dem Einkauf
+Ô£ô G6 Abgehaktes aus der Liste
+Ô£ô G7 Tom zahlt: mein Teil 4 Ôé¼ trage ich, Rest 6 Ôé¼ 50/50 ÔÇö [{"id":"2f1q7ad5","date":"2026-10-10","settled":false,"name":"Einkauf nur Torben: Chips","price":4,"paidBy":"u2","owedBy":"u1","cat":"food","seq":1791624812295},{"id":"2a50g6pi","name":"Einkauf: Saft","price":6,"paidBy":"u2","date":"2026-10-10","owedBy":null,"cat":"food","shop":null,"settled":false,"seq":1791624812293}]
+Ô£ô G8 ÔåÆ ich schulde Tom 7 Ôé¼
+Ô£ô G9 ÔÇ×Tom zahlt alles" bleibt, wie gew├ñhlt (keine Aufteilung) ÔÇö [{"id":"94xhb0ye","name":"Einkauf: Wasser","price":8,"paidBy":"u1","date":"2026-10-10","owedBy":"u2","cat":"food","shop":null,"settled":false,"seq":1791624815212}]
+Ô£ô N0 ohne Abrechnung: Kachel statt Karte
+Ô£ô N1 Vorschau nach Anteil 60/40 ÔÇö Torben Ôé¼180,00 ┬À Tom Ôé¼120,00
+Ô£ô N1b Abrechnungsjahr nimmt nur Ziffern (max. 4): ÔÇ×x20y24z9" getippt ÔåÆ 2024 ÔÇö Wert: ÔÇ×2024"
+Ô£ô N2 Nachzahlung: je Person ein Posten, ich habe bezahlt ÔÇö [{"id":"bbeomvt7","date":"2026-10-10","settled":false,"name":"­ƒÅá Nebenkosten 2024 ÔÇô Nachzahlung (Torben)","price":180,"paidBy":"u1","owedBy":"u1","cat":"fix","nk":true,"seq":1791624816849},{"id":"psfp1ioa","date":"2026-10-10","settled":false,"name":"­ƒÅá Nebenkosten 2024 ÔÇô Nachzahlung (Tom)","price":120,"paidBy":"u1","owedBy":"u2","cat":"fix","nk":true,"seq":1791624816848}]
+Ô£ô N3 Tom schuldet 120
+Ô£ô N4 Guthaben bei Tom ÔåÆ Tom schuldet mir meine H├ñlfte (40) ÔÇö [{"id":"ycf2328g","date":"2026-10-10","settled":false,"name":"­ƒÅá Nebenkosten 2025 ÔÇô Guthaben-Anteil Torben","price":40,"paidBy":"u1","owedBy":"u2","cat":"fix","nk":true,"ub":true,"seq":1791624817935}]
+Ô£ô N5 Liste zeigt die Abrechnungen
+Ô£ô V1 Sprach-Vorlage
+Ô£ô I1 gespeichert mit Besitzer
+Ô£ô I2 gruppiert + Garantie-Warnung ÔÇö ­ƒøï´©Å INVENTAR ┬À WEM GEH├ûRT WAS
++ Gegenstand
+Torben ┬À 1
+Sofa
+Ôé¼250,00 ┬À Garantie noch 10 Tage
+├ù
+Ô£ô A1 ├£bergabe-Seite: Z├ñhler, Mangel, Inventar ÔÇö Drucken / als PDF speichern
+Schlie├ƒen
+├£bergabe WG ┬À 10.10.2026
+
+Torben & Tom
+
+Z├ñhlerst├ñnde
+ÔÜí Strom	12.345,6 kWh	8.10.2026
+­ƒÆº Wasser	ÔÇô bitte ablesen ÔÇô	
+­ƒöÑ Gas	ÔÇô bitte ablesen ÔÇô	
+Offene M├ñngel (1)
+Heizung tropft ÔÇô gemeldet am 6.10.2026
+Inventar
+Sofa	Torben	Ôé¼250,00
+Offene Betr├ñge
+
+Tom schuldet Torben Ôé¼
+Ô£ô A2 offene Betr├ñge = Bilanz ÔÇö Tom schuldet Torben Ôé¼168,50 / 168.5
+Ô£ô A3 Druckansicht: nur die Seite, ohne Kn├Âpfe und Tab-Leiste
+Ô£ô A4 Schlie├ƒen
+Ô£ô Z1 keine Seitenfehler
+Ô£ô V2 Haushalt offen, Schnell-Zeile vorbelegt
+Ô£ô V3 Hinweis ÔÇ×per Sprache" + kein Formular
+Ô£ô V4 Adresse bereinigt
+Ô£ô V5 eingetragen
+Ô£ô V6 keine Seitenfehler
+Ô£ô V7 ohne Text ÔåÆ Formular
+Ô£ô V8 ohne ÔÇ×Wer bist du" ÔåÆ Formular mit ÔÇ×Pizza" vorbelegt
+Ô£ô V9 keine Seitenfehler
+Ô£ô N6 drei Personen: kein Anteil-Schieber
+Ô£ô N7 gleich verteilt, Cent-Rest an die Letzte ÔÇö Torben Ôé¼33,33 ┬À Tom Ôé¼33,33 ┬À Kim Ôé¼33,34
+Ô£ô N8 drei Posten, Summe 100 ÔÇö [33.33,33.33,33.34]
+Ô£ô N9 keine Seitenfehler
+Ô£ô N10 zwei Personen 100,01 ÔåÆ 50,01 + 50,00 ÔÇö Torben Ôé¼50,01 ┬À Tom Ôé¼50,00
+Ô£ô C6 keine Seitenfehler
+Ô£ô R6 g├╝ltige Regel aufgehoben ÔåÆ Push
+Ô£ô S9 Aufl├Âsen: Ziel weg, Toms 30 Ôé¼ als Schuld des Verwalters ÔÇö [{"id":"rcbqle7e","date":"2026-10-10","settled":false,"name":"­ƒÉÀ Grill aufgel├Âst: Einzahlung Tom zur├╝ck","price":30,"paidBy":"u2","owedBy":"u1","sg":"g2","ub":true,"seq":1791624857103}]
+Ô£ô I3 Besitzer nicht mehr in der WG ÔåÆ Gruppe ÔÇ×Ehemalige"
+Ô£ô D1 Regeln f├╝r sg/ep/kf/inv/rg/ci
+
+70 ok, 0 fehlgeschlagen

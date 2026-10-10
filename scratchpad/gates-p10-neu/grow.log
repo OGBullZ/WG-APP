@@ -1,0 +1,47 @@
+  OK  1 Kopfzeile z├ñhlt den Zyklus-Tag (Tag 40)
+  OK  1b Kopfzeile tr├ñgt das Phasen-Emoji
+  OK  2 vier Phasen-Chips
+  OK  2b Vegetativ ist aktiv markiert
+  OK  2c aktiver Chip ist als gedr├╝ckt annotiert (a11y)
+  OK  3 Fortschritt nennt Tag in der Phase
+  OK  3b typische Dauer sichtbar
+  OK  3c ├£berschreitung wird beziffert + n├ñchste Phase vorgeschlagen
+  OK  3d Balken kappt bei 100 % statt ├╝berzulaufen
+  OK  4 Gie├ƒ-Zeile meldet 2 Tage ├╝berf├ñllig
+  OK  4b Untertitel nennt Abstand, Person, Intervall und Z├ñhler
+  OK  5 lastW steht auf heute
+  OK  5b lastWBy ist das eigene Ger├ñt (u1)
+  OK  5c Gie├ƒ-Z├ñhler hochgez├ñhlt (7 ÔåÆ 8)
+  OK  6 Anzeige springt auf ÔÇ×Gie├ƒen in 3 Tagen"
+  OK  6b Untertitel sagt ÔÇ×Zuletzt heute"
+  OK  7 Phase gewechselt auf blu
+  OK  7b pAt neu gesetzt (Phasen-Uhr startet heute)
+  OK  7c Zyklus-Start unver├ñndert
+  OK  8 Fortschritt zeigt Tag 1 der Bl├╝te (typisch 63)
+  OK  8b kein ÔÇ×dr├╝ber"-Hinweis mehr
+  OK  9 Trocknung blendet den Gie├ƒ-Block aus
+  OK  9b Hinweis erkl├ñrt warum
+  OK  10 Ernte gespeichert
+  OK  10b Zyklus auf das Ernte-Datum beendet
+  OK  10c Ernte ist mit dem Zyklus verkn├╝pft
+  OK  11 ohne offenen Zyklus erscheint der Start-Button
+  OK  11b Zyklus-Karte ist weg
+  OK  11c gel├Âschte Ernte ├Âffnet den Zyklus wieder
+  OK  11d Zyklus beh├ñlt Phase und Startdatum
+  OK  11e Zyklus-Karte ist wieder da
+  OK  11f R├╝ckg├ñngig holt die Ernte zur├╝ck
+  OK  11g R├╝ckg├ñngig beendet den Zyklus wieder
+  OK  12 Intervall-Stepper startet beim Standard 3
+  OK  13 neuer Zyklus angelegt
+  OK  13b Phase aus dem Wizard ├╝bernommen
+  OK  13c Intervall 5 aus dem Stepper ├╝bernommen
+  OK  13d frisch = noch nicht gegossen
+  OK  14 alter Zyklus bleibt als beendeter Eintrag erhalten
+  OK  15 Anzeige nennt ÔÇ×Noch nicht gegossen"
+  OK  15b nie gegossen zeigt keine absurde ├£berf├ñllig-Zahl
+  OK  15c Phasen-├£berschreitung wird trotzdem beziffert
+  OK  16 leerer Grow-Tab zeigt den Start-Button statt einer leeren Karte
+  OK  16b Grow-Tab rendert trotzdem den Split-Hero
+  OK  17 keine Konsolen-/Seitenfehler
+
+45 ok, 0 fehlgeschlagen

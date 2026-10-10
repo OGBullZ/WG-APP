@@ -1,0 +1,107 @@
+=== MESSWERTE hell ===
+{"seg_flaeche":1.116,"seg_rand":1.47,"segbtn_on_flaeche":1.204,"chkleer_rand":3.445,"donut_spur":1.18,"cell_active":1.131,"step_inaktiv":1.18,"sheet_griff":1.473,"field_focus_rand":5.283,"datetoggle_rand":1.473,"datetoggle_flaeche":1.117,"wizsum_rand":1.473,"wizsum_flaeche":1.117,"einkauf_chkleer_rand":3.445,"stepper_flaeche":1.117,"stepper_rand":1.476,"stepper_active":1.283,"donebtn_rand_tom":4.005,"donebtn_haken":4.005,"fairbar_spur":1.18,"bartrack_spur":1.18,"ohnekat_text":6.011,"ohnekat_text_grow":6.011,"ohnekat_balken":5.618,"ring_spur":1.18,"subbar_bg":1.18,"emoji_on_ring":5.283}
+=== MESSWERTE dunkel ===
+{"seg_flaeche":1.119,"seg_rand":1.178,"segbtn_on_flaeche":1.419,"chkleer_rand":2.398,"donut_spur":1.202,"cell_active":1.134,"step_inaktiv":1.179,"sheet_griff":1.474,"field_focus_rand":3.892,"datetoggle_rand":1.214,"datetoggle_flaeche":1.147,"wizsum_rand":1.214,"wizsum_flaeche":1.147,"einkauf_chkleer_rand":2.398,"stepper_flaeche":1.167,"stepper_rand":1.24,"stepper_active":1.363,"donebtn_rand_tom":2.731,"donebtn_haken":10.037,"fairbar_spur":1.202,"bartrack_spur":1.202,"ohnekat_text":6.919,"ohnekat_text_grow":6.919,"ohnekat_balken":6.194,"ring_spur":1.202,"subbar_bg":1.202,"emoji_on_ring":3.819}
+=== BEWEGT ===
+{"light":{"cellDauer":{"aktiv":"0s","ruhe":"0.2s"},"stepperDauer":{"aktiv":"0s","ruhe":"0.15s"},"flash":{"anim":"remoteFlash","bg":"oklab(0.753499 -0.0842682 -0.11049 / 0.45)"},"chip":{"anim":null,"bg":"rgb(15, 118, 110)","schatten":"rgba(11, 21, 16, 0.18) 0px 6px 16px 0px","liste":[{"c":"rgba(11, 21, 16, 0.18)","x":0,"y":6,"blur":16,"spread":0}],"bgRatio":5.074,"textRatio":5.473},"puls":{"anim":"heroPulseHell","schatten":"rgba(0, 0, 0, 0.08) 0px 12px 32px 0px, rgba(15, 118, 110, 0.984) 0px 0px 0px 1.96836px, oklab(0.510931 -0.0854972 -0.00957105 / 0.157469) 0px 0px 0px 6.88926px","liste":[{"c":"rgba(0, 0, 0, 0.08)","x":0,"y":12,"blur":32,"spread":0},{"c":"rgba(15, 118, 110, 0.984)","x":0,"y":0,"blur":0,"spread":1.96836}],"ringRatio":4.927},"haken":{"anim":null,"stroke":"color(srgb 0.607843 0.482353 0.109804)","strokeRatio":4.005}},"dark":{"cellDauer":{"aktiv":"0s","ruhe":"0.2s"},"stepperDauer":{"aktiv":"0s","ruhe":"0.15s"},"flash":{"anim":"remoteFlash","bg":"oklab(0.753499 -0.0842682 -0.11049 / 0.22)"},"chip":{"anim":null,"bg":"rgb(94, 234, 212)","schatten":"rgba(0, 0, 0, 0.45) 0px 8px 24px 0px, rgb(94, 234, 212) 0px 0px 16px 0px","liste":[{"c":"rgba(0, 0, 0, 0.45)","x":0,"y":8,"blur":24,"spread":0},{"c":"rgb(94, 234, 212)","x":0,"y":0,"blur":16,"spread":0}],"bgRatio":13.46,"textRatio":12.85},"puls":{"anim":"heroPulse","schatten":"rgba(0, 0, 0, 0.4) 0px 24px 56px 0px, rgba(94, 234, 212, 0.984) 0px 0px 0px 1.96836px, rgba(94, 234, 212, 0.984) 0px 0px 35.4305px 3.93672px","liste":[{"c":"rgba(0, 0, 0, 0.4)","x":0,"y":24,"blur":56,"spread":0},{"c":"rgba(94, 234, 212, 0.984)","x":0,"y":0,"blur":0,"spread":1.96836},{"c":"rgba(94, 234, 212, 0.984)","x":0,"y":0,"blur":35.4305,"spread":3.93672}],"ringRatio":13.032},"haken":{"anim":null,"stroke":"rgb(251, 191, 36)","strokeRatio":10.782}}}
+
+=== PASS ===
+A0 alle Messpunkte gefunden (kein stilles ├£berspringen)
+A0 keine Seitenfehler
+A1 Assistent: inaktiver Schritt (.step-seg) (light: 1.18 ÔëÑ 1.1)
+A2 .bar-track (├£bersicht) (light: 1.18 ÔëÑ 1.1)
+A3 Donut-Spur (Haushalt-Bilanz) (light: 1.18 ÔëÑ 1.1)
+A4 Ring-Spur (Abos) (light: 1.18 ÔëÑ 1.1)
+A5 .sub-bar-bg (Abo-Karte) (light: 1.18 ÔëÑ 1.1)
+A6 .fair-bar (Putzplan) (light: 1.18 ÔëÑ 1.1)
+A7 .seg Fl├ñche (light: 1.116 ÔëÑ 1.1)
+A8 .seg Rand (light: 1.47 ÔëÑ 1.4)
+A9 .stepper Fl├ñche (light: 1.117 ÔëÑ 1.1)
+A10 .stepper Rand (light: 1.476 ÔëÑ 1.4)
+A11 .wiz-sum Rand (light: 1.473 ÔëÑ 1.4)
+A11b .wiz-sum Fl├ñche (light: 1.117 ÔëÑ 1.1)
+A12 .date-toggle Rand (light: 1.473 ÔëÑ 1.4)
+A12b .date-toggle Fl├ñche (light: 1.117 ÔëÑ 1.1)
+A13 .sheet-handle (light: 1.473 ÔëÑ 1.4)
+A14 gew├ñhltes Segment hebt sich vom Feld ab (wei├ƒes Pl├ñttchen) (light: 1.204 ÔëÑ 1.05)
+A15 .emoji-btn.on Ring (light: 5.283 ÔëÑ 3)
+A16 .field:focus Rand (light: 5.283 ÔëÑ 3)
+A17 .chk-leer Rand (Haushalt) (light: 3.445 ÔëÑ 3)
+A18 Einkaufsliste: leerer Kreis (light: 3.445 ÔëÑ 3)
+A18b Einkaufsliste: die leeren Kreise tragen die Klasse chk-leer ÔÇö Anzahl 2
+A19 .done-btn Rand (Putzplan, erste Zeile) (light: 4.005 ÔëÑ 3)
+A19b .done-btn Haken (light: 4.005 ÔëÑ 3)
+A20 .cell:active T├Ânung (light: 1.131 ÔëÑ 1.1)
+A21 .stepper button:active T├Ânung (light: 1.283 ÔëÑ 1.1)
+A22 :active ohne ├£bergang (0 s), Ruhezustand blendet aus (.cell) ÔÇö {"aktiv":"0s","ruhe":"0.2s"}
+A22b :active ohne ├£bergang (0 s) auch am Stepper-Knopf, Ruhezustand blendet aus ÔÇö {"aktiv":"0s","ruhe":"0.15s"}
+A23 ÔÇ×Ohne Kategorie" Name (Haushalt) (light: 6.011 ÔëÑ 4.5)
+A23b ÔÇ×Ohne Kategorie" Name (Growbox) (light: 6.011 ÔëÑ 4.5)
+A23c ÔÇ×Ohne Kategorie" Balken gegen seine Spur (light: 5.618 ÔëÑ 1.5)
+A23d beide ÔÇ×Ohne Kategorie"-Zeilen (Haushalt + Growbox) vorhanden ÔÇö Anzahl 2
+A24 hell: .bar-fill ohne Schein ÔÇö none
+A24b hell: .tab-glow ohne Schein ÔÇö none
+A24c hell: Donut-B├Âgen ohne drop-shadow (Haushalt + Growbox) ÔÇö none | none
+A24d hell: aktueller Assistent-Schritt ohne Schein ÔÇö none
+A24e hell: ÔÇ×Weiter" mit dem kleinen weichen Schatten (0 6px 16px) ÔÇö rgba(11, 21, 16, 0.16) 0px 6px 16px 0px
+A25 hell: .field:focus mit Minze-Hof (kein Limette) ÔÇö rgba(15, 118, 110, 0.14) 0px 0px 0px 3px
+A26 ÔÇ×Kaputt & Vermieter": Symbol abgedunkelt (hell), ├£berschrift unver├ñndert ÔÇö {"filter":"brightness(0.55) contrast(1.25)","kopf":"­ƒöº KAPUTT & VERMIETER"}
+A26b dunkel: Symbol bleibt unver├ñndert (kein Filter) ÔÇö {"filter":"none","kopf":"­ƒöº KAPUTT & VERMIETER"}
+B1 Fremd-Markierung: Animation gefunden
+B1a hell: Fremd-Markierung am H├Âhepunkt ÔëÑ 40 % deckend (war 22 %) ÔÇö Deckkraft 0.45 (oklab(0.753499 -0.0842682 -0.11049 / 0.45))
+B1b dunkel: Fremd-Markierung unver├ñndert 22 % ÔÇö Deckkraft 0.22 (oklab(0.753499 -0.0842682 -0.11049 / 0.22))
+B2 Ausgabe-Chip erschien
+B2a hell: Chip hebt sich vom Untergrund ab (ÔëÑ 3:1) ÔÇö vorher blasses Pastell ÔÇö 5.074 (rgb(15, 118, 110))
+B2a2 hell: Chip ist der dunklere Akzent (--mint #0f766e), nicht das feste Pastell #5eead4 ÔÇö rgb(15, 118, 110)
+B2b hell: Chip-Schrift lesbar (ÔëÑ 4,5:1) ÔÇö 5.473
+B2c hell: Chip ohne Leuchten ÔÇö genau EIN Schatten ÔÇö rgba(11, 21, 16, 0.18) 0px 6px 16px 0px
+B2d dunkel: Chip leuchtet weiter (zwei Schatten, der zweite in der Akzentfarbe) ÔÇö rgba(0, 0, 0, 0.45) 0px 8px 24px 0px, rgb(94, 234, 212) 0px 0px 16px 0px
+B3 Hero-Puls l├ñuft auch im schon besuchten Haushalt-Tab (Animation gefunden)
+B3a hell: eigener Keyframe heroPulseHell ÔÇö heroPulseHell
+B3b hell: scharfer Ring (2 px) gegen den Untergrund ÔëÑ 3:1 ÔÇö 4.927 ÔÇö rgba(0, 0, 0, 0.08) 0px 12px 32px 0px, rgba(15, 118, 110, 0.984) 0px 0px 0px 1.96836px, oklab(0.510931 -0.0854972 -0.00957105 / 0.157469) 0px 0px 0px 6.88926px
+B3c hell: keine Wolke ÔÇö alle Akzent-Schatten sind scharf (Unsch├ñrfe 0) ÔÇö rgba(0, 0, 0, 0.08) 0px 12px 32px 0px, rgba(15, 118, 110, 0.984) 0px 0px 0px 1.96836px, oklab(0.510931 -0.0854972 -0.00957105 / 0.157469) 0px 0px 0px 6.88926px
+B3d dunkel: Hero-Puls unver├ñndert (heroPulse mit gro├ƒem Akzent-Schein) ÔÇö heroPulse ÔÇö rgba(0, 0, 0, 0.4) 0px 24px 56px 0px, rgba(94, 234, 212, 0.984) 0px 0px 0px 1.96836px, rgba(94, 234, 212, 0.984) 0px 0px 35.4305px 3.93672px
+B4 Haken beim Erledigen: Zeichnung erschien
+B4a hell: Haken-Strich (Tom-Gelb) ÔëÑ 3:1 gegen die Karte ÔÇö vorher 1,67:1 ÔÇö 4.005 (color(srgb 0.607843 0.482353 0.109804))
+C-seg_flaeche dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 1.119, HEAD 1.094
+C-seg_rand dunkel absichtlich ge├ñndert (Vertrag 4: Rand .06 ÔåÆ var(--sep) .08 (1,12 ÔåÆ 1,18:1) ÔÇö Hairline, bewusst vorgegeben) ÔÇö jetzt 1.178, HEAD 1.119
+C-segbtn_on_flaeche dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 1.419, HEAD 1.407
+C-chkleer_rand dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 2.398, HEAD 2.398
+C-donut_spur dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 1.202, HEAD 1.202
+C-cell_active dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 1.134, HEAD 1.134
+C-step_inaktiv dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 1.179, HEAD 1.214
+C-sheet_griff dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 1.474, HEAD 1.474
+C-field_focus_rand dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 3.892, HEAD 3.892
+C-datetoggle_rand dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 1.214, HEAD 1.251
+C-datetoggle_flaeche dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 1.147, HEAD 1.117
+C-wizsum_rand dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 1.214, HEAD 1.214
+C-wizsum_flaeche dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 1.147, HEAD 1.117
+C-einkauf_chkleer_rand dunkel absichtlich ge├ñndert (Vertrag 10: Einkaufsliste nutzt jetzt chk-leer (vorher Inline var(--sep))) ÔÇö jetzt 2.398, HEAD null
+C-stepper_flaeche dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 1.167, HEAD 1.134
+C-stepper_rand dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 1.24, HEAD 1.24
+C-stepper_active dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 1.363, HEAD 1.359
+C-donebtn_rand_tom dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 2.731, HEAD 2.731
+C-donebtn_haken dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 10.037, HEAD 10.037
+C-fairbar_spur dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 1.202, HEAD 1.202
+C-bartrack_spur dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 1.202, HEAD 1.202
+C-ohnekat_text dunkel absichtlich ge├ñndert (Vertrag 1: Wei├ƒ-Alpha .25 ÔåÆ --label3 (dunkel 2,26:1 ÔåÆ lesbar)) ÔÇö jetzt 6.919, HEAD 2.256
+C-ohnekat_text_grow dunkel absichtlich ge├ñndert (Vertrag 1) ÔÇö jetzt 6.919, HEAD 2.256
+C-ohnekat_balken dunkel absichtlich ge├ñndert (Vertrag 1) ÔÇö jetzt 6.194, HEAD 2.269
+C-ring_spur dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 1.202, HEAD 1.24
+C-subbar_bg dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 1.202, HEAD 1.167
+C-emoji_on_ring dunkel unver├ñndert gegen├╝ber HEAD (┬▒0,05) ÔÇö jetzt 3.819, HEAD 3.819
+C-0 Dunkel-Baseline hat alle Messpunkte dieser Fassung
+C1 dunkel: Donut-B├Âgen mit Hex-Farbe behalten ihren Schein (drop-shadow) ÔÇö drop-shadow(color(srgb 0.219608 0.741176 0.972549 / 0.33) 0px 0px 6px)
+C2 dunkel: aktueller Assistent-Schritt leuchtet in der AKZENTfarbe (nicht currentColor) ÔÇö rgb(94, 234, 212) 0px 0px 8px 0px
+C3 dunkel: ÔÇ×Weiter" beh├ñlt den gro├ƒen Schatten ÔÇö rgba(0, 0, 0, 0.3) 0px 12px 32px 0px
+C4 dunkel: :active ebenfalls ohne ├£bergang (.cell und Stepper) ÔÇö [{"aktiv":"0s","ruhe":"0.2s"},{"aktiv":"0s","ruhe":"0.15s"}]
+D1 JSX-Quelltext gefunden (Wache l├ñuft wirklich) ÔÇö 732872 Zeichen
+D2 Wei├ƒ-Alpha-Literale in JSX-Inline-Styles Ôëñ 0 ÔÇö gefunden: 0
+D3 Scrollbalken hell: dunkler Daumen (rgba(0,0,0,.2)) ÔÇö background: rgba(0, 0, 0, 0.2);
+D4 Firefox: scrollbar-color in BEIDEN Themen, hinter der Firefox-Weiche ÔÇö dunkel true, hell true
+D5 scrollbar-color nirgends ohne Weiche (w├╝rde in Chrome ::-webkit-scrollbar abschalten) ÔÇö false
+
+=== FAIL ===
+(keine)
+
+94 gr├╝n, 0 rot

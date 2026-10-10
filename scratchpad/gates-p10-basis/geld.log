@@ -1,0 +1,77 @@
+  Ô£ô A1 genau ein Fragen-Knopf: nur beim fremden, offenen Posten ÔÇö gefunden: 1
+  Ô£ô A2 Blatt zeigt den Posten ÔÇö ÔØô WAS WAR DAS?
+Abbrechen
+Pizza ┬À Ôé¼12,50 ┬À 10.10.2026
+Fragen
+  Ô£ô A3 leere Frage speichert nichts
+  Ô£ô A4 Frage h├ñngt am Posten, mit Fragestellerin ÔÇö {"seq":100,"id":"h1","name":"Pizza","price":12.5,"paidBy":"u2","date":"2026-10-10","settled":false,"cat":"food","q":"Wof├╝r genau war die?","qBy":"u1"}
+  Ô£ô A5 Frage steht in der Zeile
+  Ô£ô A6 Push geht als wichtige Art `msg` raus ÔÇö {"code":"TEST-LOKAL-GELD","from":"gau6ga39ESYU98","title":"ÔØô Torben fragt zu ÔÇ×PizzaÔÇ£","body":"Wof├╝r genau war die?","tag
+  Ô£ô A7 nach der Frage kein Fragen-Knopf mehr
+  Ô£ô A8 Torben darf seine eigene Frage nicht beantworten
+  Ô£ô A9 Tom bekommt den Antwort-Knopf, keinen Fragen-Knopf ÔÇö antworten=1 fragen=0
+  Ô£ô A10 Antwort-Blatt zeigt die Frage
+  Ô£ô A11 Antwort steht in der Zeile
+  Ô£ô A12 Antwort-Push ist ebenfalls `msg` ÔÇö {"code":"TEST-LOKAL-GELD","from":"8hmkwhch436CJA","title":"­ƒÆ¼ Tom antwortet zu ÔÇ×PizzaÔÇ£","body":"F├╝r den Filmabend am Fre
+  Ô£ô A13 beantwortete Frage zeigt keinen Knopf mehr
+  Ô£ô A14 abgerechneter Posten verl├ñsst die Einzelposten und hat keinen Fragen-Knopf ÔÇö EINZELPOSTEN Kino 10.10.2026 ┬À Torben Ôé¼20,00 je Ôé¼10,00 ├ù
+  Ô£ô C1 Vorschlag da und nennt den richtigen Posten ÔÇö ­ƒÆí Kommt ÔÇ×NetflixÔÇ£ jeden Monat?
+3├ù in verschiedenen Monaten ┬À zuletzt Ôé¼12,99
+­ƒöü Automatisch eintragen
+Nein danke
+  Ô£ô C2 schwankende Preise ergeben keinen Vorschlag
+  Ô£ô C3 zwei Monate reichen nicht
+  Ô£ô C4 Vorschlag zeigt Anzahl und Schnittpreis ÔÇö ­ƒÆí Kommt ÔÇ×NetflixÔÇ£ jeden Monat?
+3├ù in verschiedenen Monaten ┬À zuletzt Ôé¼12,99
+­ƒöü Automatisch eintragen
+Nein danke
+  Ô£ô C5 Wiederkehrender Posten entsteht mit Name, Preis und Zahler ÔÇö {"id":"vhbm0qw6","name":"Netflix","price":12.99,"paidBy":"u1","owedBy":null,"cat":null,"since":"2026-10","seq":1791624771246}
+  Ô£ô C6 Start ist dieser Monat, weil er noch keinen Netflix-Posten hat ÔÇö 2026-10 statt 2026-10
+  Ô£ô C7 R├╝ckmeldung nennt Posten und Startmonat ÔÇö ­ƒöü ÔÇ×NetflixÔÇ£ l├ñuft jetzt automatisch ab 2026-10
+R├╝ckg├ñngig
+  Ô£ô C8 Vorschlag ist danach weg
+  Ô£ô C9 l├ñuft dieser Monat schon, startet das Abo im n├ñchsten ÔÇö 2026-11 statt 2026-11
+  Ô£ô C10 nach ÔÇ×Nein danke" ist der Vorschlag weg
+  Ô£ô C11 Ablehnung liegt geteilt in `cf` (gilt auf allen Ger├ñten) ÔÇö [{"id":"aboNo","namen":"netflix","seq":1791624783729}]
+  Ô£ô C12 Ablehnung h├ñlt den Neustart aus
+  Ô£ô F1 Knopf zur Jahres├╝bersicht ist da
+  Ô£ô F1b eingeklappt genau dann, wenn nicht Dez/Jan ÔÇö zu=true
+  Ô£ô F1c nach dem Aufklappen ist der Druck-Knopf sichtbar
+  Ô£ô F2 Blatt ├Âffnet sich
+  Ô£ô F3 Jahr und Namen stehen im Kopf ÔÇö Drucken / PDF
+Schlie├ƒen
+Jahres├╝bersicht 2026
+
+Torben, Tom ┬À erstellt am 10.10.2026
+
+Ausgaben je Monat
+Januar	Ôé¼150,00	ÔÇô	Ôé¼
+  Ô£ô F4 Januar z├ñhlt beide Posten zusammen (150) ÔÇö Januar	Ôé¼150,00	ÔÇô	Ôé¼150,00
+  Ô£ô F5 Februar enth├ñlt den archivierten Posten (40) ÔÇö Februar	Ôé¼40,00	ÔÇô	Ôé¼40,00
+  Ô£ô F6 M├ñrz trennt Haushalt (30) und Growbox (20) und summiert 50 ÔÇö M├ñrz	Ôé¼30,00	Ôé¼20,00	Ôé¼50,00
+  Ô£ô F7 Gesamtsumme 240 ÔÇö Gesamt			Ôé¼240,00
+  Ô£ô F8 Torben: 130 bezahlt, 120 getragen, +10 Differenz, 2├ù Miete ÔÇö Torben	Ôé¼130,00	Ôé¼120,00	Ôé¼10,00	2├ù
+  Ô£ô F9 Tom: 110 bezahlt, 120 getragen, ÔêÆ10 Differenz, keine Miete ÔÇö Tom	Ôé¼110,00	Ôé¼120,00	ÔêÆÔé¼10,00	ÔÇô
+  Ô£ô F10 Kategorien tauchen auf ÔÇö 	ÔÇô	ÔÇô
+November	ÔÇô	ÔÇô	ÔÇô
+Dezember	ÔÇô	ÔÇô	ÔÇô
+Gesamt			Ôé¼240,00
+
+Spalten: Haushalt ┬À Growbox ┬À zusammen
+
+Nach Kategorie
+Lebensmittel	Ôé¼170,00
+Haushalt	Ôé¼50,00
+Ohne Kategorie	Ôé¼20,00
+Je Person
+Person	bezahlt	getragen	Differenz	Miete bezahlt
+Torben	Ôé¼130,00	Ôé¼120,00	Ôé¼10,00	2├ù
+Tom	Ôé¼110,00	Ôé¼120,00	ÔêÆÔé¼10,00	ÔÇô
+
+ÔÇ×getragenÔÇ£ = Anteil nach Aufteilung. Archivierte Posten sind enthalten; laufende Abrechnungen nicht verrechnet.
+  Ô£ô F11 Drucken-Knopf l├Âst den Druckdialog aus
+  Ô£ô F12 Druck-CSS blendet alles au├ƒer dem Blatt aus
+  Ô£ô F13 Blatt l├ñsst sich schlie├ƒen
+  Ô£ô Z1 keine Seitenfehler
+
+42 von 42 Pr├╝fungen bestanden

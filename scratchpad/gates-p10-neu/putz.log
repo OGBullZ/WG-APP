@@ -1,0 +1,70 @@
+  OK  A1 Gleichstand, beide nie ÔåÆ Einteilung bleibt ÔÇö b
+  OK  A2 Gleichstand ÔåÆ wer l├ñnger nicht dran war ÔÇö a
+  OK  A3 wer seltener ÔåÆ ist dran ÔÇö b
+  OK  A4 Eintr├ñge ├ñlter als 90 Tage z├ñhlen nicht ÔÇö a
+  OK  A5 andere Aufgaben z├ñhlen nicht mit ÔÇö a
+  OK  A6 nur eine Person ÔåÆ immer sie ÔÇö a
+  OK  A7 F├ñlligkeit: nie ÔåÆ 0, heute+3 ÔåÆ 3, vor 2 Tagen t├ñglich ÔåÆ -1 ÔÇö [0,3,-1]
+  OK  A8 Punkte: Standard 2, 3, "1"ÔåÆ1, UnsinnÔåÆ2 ÔÇö [2,3,1,2]
+  OK  B1 Haushalt-Karte sichtbar
+  OK  B2 ÔÇª nur Bad (meins, f├ñllig) ÔÇö nicht M├╝ll (Toms), nicht K├╝che (heute erledigt) ÔÇö ­ƒº╣ DU BIST DRAN | Putzplan ÔÇ║ | ­ƒÜ┐ Bad putzen | heute f├ñllig | Morgen | Kann nicht
+  OK  B3 Tab-Punkt am Putzplan
+  OK  C1 M├╝ll: Tom ist dran + Stand Torben 5├ù / Tom 2├ù (alter Eintrag z├ñhlt nicht) ÔÇö ­ƒùæ´©Å M├╝ll rausbringen | Tom, danach wieder Tom ┬À alle 3 Tage | 2 Tage ├╝berf├ñllig ÔÇö title: Letzte 30 Tage: Torben 5├ù, Tom 2├ù
+  OK  C1b die Zeile hat nur noch eine Unterzeile (kein ÔÇ×ist dran", kein ÔÇ×5 : 2") ÔÇö ­ƒùæ´©Å M├╝ll rausbringen | Tom, danach wieder Tom ┬À alle 3 Tage | 2 Tage ├╝berf├ñllig
+  OK  C2 Bad: ÔÇ×Du" ist dran
+  OK  C3 mit Verlauf: Regel eingeklappt, Ôôÿ-Knopf da
+  OK  C4 Ôôÿ zeigt die Regel
+  OK  C6 ohne Tonne/Abwesenheit: zwei Kacheln, keine sichtbaren Karten ÔÇö ["pickup","away"]
+  OK  C7 Kachel antippen ÔåÆ Abholtermin-Blatt direkt offen, leere Karte nicht im Feed
+  OK  C7b Abbrechen: Blatt zu, Kachel bleibt
+  OK  C8 kein ├ù mehr an den Aufgaben
+  OK  C9 ÔÇ×Aufgabe l├Âschen" im Bearbeiten-Fenster entfernt die Aufgabe
+  OK  C10 R├╝ckg├ñngig holt sie zur├╝ck
+  OK  C5 Verlauf: 1ÔÇô4 Zeilen, relative Angabe, kein volles Datum ÔÇö ["­ƒùæ´©Å\nM├╝ll rausbringen\nTorben\nvor 2 Tagen","­ƒùæ´©Å\nM├╝ll rausbringen\nTom\nvor 5 Tagen","­ƒùæ´©Å\nM├╝ll rausbringen\nTorben\nvor 8 Tagen"]
+  OK  C3 Einsatz: Torben 4 P., Tom 2 P. ÔÇö EINSATZ ┬À LETZTE 30 TAGE Ôôÿ Torben 4 P. Tom 2 P. Wer den Haken setzt, bekommt die Aufgabe gutgeschrieben. Dran ist, wer sie seltener gemacht hat. Kurz z├ñhlt 1, mittel 2, gro├ƒ 3 Punkte. ­ƒöÑ z├ñhlt Aufgaben, die du nicht ├╝berf├ñllig werden l├ñsst.
+  OK  D1 Eintrag geht an Torben (wer den Haken setzt) ÔÇö {"id":"y7wig426","taskId":"m","name":"M├╝ll rausbringen","em":"­ƒùæ´©Å","userId":"u1","date":"2026-10-10","pts":1,"late":0,"miss":"u2","seq":1791628069248}
+  OK  D2 Tom bleibt dran (2 < 6) ÔÇö u2
+  OK  D3 M├╝ll heute erledigt ÔÇö 2026-10-10
+  OK  D4 Stand steigt auf Torben 6├ù / Tom 2├ù (title der Zeile, seit v101)
+  OK  D5 Push: ÔÇ×Torben hat ÔÇª erledigt" / ÔÇ×Tom, du bist dran" ÔÇö {"code":"TEST-LOKAL-PUTZ","from":"4a883r8xSKMW4S","title":"Ô£à Torben hat ÔÇ×M├╝ll rausbringen\" erledigt","body":"Tom, du bist dran! (Torben 6├ù ┬À Tom 2├ù)","tag":"wg-putz","type":"done"}
+  OK  D6 Eintrag beim Server angekommen
+  OK  E1 R├╝ckg├ñngig: Eintrag weg
+  OK  E2 R├╝ckg├ñngig: F├ñlligkeit + Einteilung wie vorher ÔÇö {"id":"m","name":"M├╝ll rausbringen","em":"­ƒùæ´©Å","interval":3,"pts":1,"assignee":"u2","lastDone":"2026-10-05","seq":3,"snooze":null}
+  OK  E3 R├╝ckg├ñngig auch beim Server
+  OK  F1 Bad ├╝ber die Haushalt-Karte erledigt ÔåÆ Tom ist dran ÔÇö {"id":"b","name":"Bad putzen","em":"­ƒÜ┐","interval":7,"pts":3,"assignee":"u2","lastDone":"2026-10-10","seq":2,"snooze":null}
+  OK  F2 Karte verschwindet (nichts mehr f├ñllig f├╝r mich)
+  OK  F3 Tab-Punkt verschwindet
+  OK  F4 Push nennt Tom als N├ñchsten ÔÇö Tom, du bist dran! (Torben 1├ù ┬À Tom 0├ù)
+  OK  F5 Einsatz z├ñhlt Punkte: Bad = 3 ÔåÆ Torben 7 P. ÔÇö EINSATZ ┬À LETZTE 30 TAGE Ôôÿ Torben 7 P. Tom 2 P.
+  OK  G1 Vorlagen ohne schon vorhandene Aufgaben ÔÇö ­ƒôª Altpapier | ÔÖ╗´©Å Altglas & Pfand | ­ƒì¢´©Å Sp├╝lmaschine ausr├ñumen | ­ƒº╣ Staubsaugen | ­ƒ¬ú Wischen | ­ƒºè K├╝hlschrank auswischen | ­ƒº║ Handt├╝cher waschen | ­ƒ¬ƒ Fenster putzen | ­ƒî┐ Pflanzen gie├ƒen | ­ƒÉ¥ Tier f├╝ttern | ­ƒÉê Katzenklo | ­ƒ¬┤ Blumen d├╝ngen | ­ƒÉá Aquarium
+  OK  G2 Altpapier: ­ƒôª, alle 14 Tage, 1 Punkt, Torben f├ñngt an ÔÇö {"id":"6ymx4u68","name":"Altpapier","em":"­ƒôª","interval":14,"pts":1,"pk":null,"assignee":"u1","fix":null,"lastDone":null,"seq":1791628074335}
+  OK  G3 Zeile zeigt ÔÇ×alle 2 Wochen"
+  OK  H1 K├╝che jetzt 3 Punkte, Rest unver├ñndert
+  OK  I1 ├£bersicht: ÔÇ×Putzplan ┬À Punkte"
+  OK  J1 Neustart ohne Fehler
+  OK  K1 Duell-Rechnung (choreWeek/choreCrown) ist weg
+  OK  K5 Serie z├ñhlt eigene p├╝nktliche in Folge, fremde Versp├ñtung egal, eigene bricht ÔÇö 2
+  OK  K6 alte Eintr├ñge ohne late brechen die Serie ÔÇö 1
+  OK  K7 vom anderen gerettet (miss) bricht die Serie ÔÇö 1
+  OK  K8 eigene ├╝berf├ñllige Aufgabe ÔåÆ Serie 0, fremde egal ÔÇö 0/1
+  OK  L1 Haushalt-Karte zeigt eigene Serie ­ƒöÑ 2 ÔÇö ­ƒº╣ DU BIST DRAN­ƒöÑ 2
+Putzplan ÔÇ║
+  OK  L2 kein Wochen-Duell, keine ­ƒææ im Putzplan ÔÇö EINSATZ ┬À LETZTE 30 TAGE Ôôÿ Torben 6 P. Tom 9 P.
+  OK  L3 Kopfkarte = Einsatz-Balken ÔÇö EINSATZ ┬À LETZTE 30 TAGE Ôôÿ Torben 6 P. Tom 9 P.
+  OK  L6 R├╝ckmeldung ÔÇ×­ƒöÑ 3" ÔÇö ­ƒº╣ ÔÇ×Staubsaugen" erledigt ┬À ­ƒöÑ 3 ┬À Torben War Tom R├╝ckg├ñngig
+  OK  L7 Push nennt ÔÇ×­ƒöÑ 3 p├╝nktlich in Folge" ÔÇö Tom, du bist dran! (Torben 4├ù ┬À Tom 3├ù) ┬À ­ƒöÑ 3 p├╝nktlich in Folge
+  OK  L9 Eintrag: late 0, keine miss ÔÇö {"id":"xapqr1pe","taskId":"d","name":"Staubsaugen","em":"­ƒº╣","userId":"u1","date":"2026-10-10","pts":2,"late":0,"seq":1791628084347}
+  OK  L10 Retten: late 0 f├╝r mich, miss = Tom ÔÇö {"id":"r41i12ij","taskId":"o","name":"Altglas","em":"ÔÖ╗´©Å","userId":"u1","date":"2026-10-10","pts":1,"late":0,"miss":"u2","seq":1791628085314}
+  OK  L11 Retten z├ñhlt in meine Serie: R├╝ckmeldung ÔÇ×­ƒöÑ 4" ÔÇö ÔÖ╗´©Å ÔÇ×Altglas" erledigt ┬À ­ƒöÑ 4 ┬À Torben War Tom R├╝ckg├ñngig
+  OK  M1 Schalter unter Mehr, Standard ÔÇ×An"
+  OK  M2 aus ÔåÆ gespeichert (Ger├ñt + Push-Einstellung game) ÔÇö {"mods":{"heute":true,"haus":true,"grow":true,"putz":true,"fin":true,"abos":false,"stats":true,"game":false},"pp":{"exp":false,"shop":false,"putz":true,"settle":true,"remind":true,"board":false,"msg":true,"wash":true,"away":false,"repair":false,"game":false,"done":false,"digest":false,"quiet":false,"qs":22,"qe":8,"pv":2}}
+  OK  M3 Haushalt-Karte bleibt, aber ohne ­ƒöÑ ÔÇö ­ƒº╣ DU BIST DRAN
+Putzplan ÔÇ║
+  OK  M4 kein Wochen-Duell, Einsatz + Stand bleiben
+  OK  M5 Abhaken ohne ­ƒöÑ in R├╝ckmeldung und Push ÔÇö ­ƒº╣ ÔÇ×Staubsaugen" erledigt ┬À Torben
+War Tom
+R├╝ckg├ñngig | Tom, du bist dran! (Torben 4├ù ┬À Tom 3├ù)
+  OK  M6 Serien-Daten werden trotzdem geschrieben (late) ÔÇö {"id":"3qd2hq2u","taskId":"d","name":"Staubsaugen","em":"­ƒº╣","userId":"u1","date":"2026-10-10","pts":2,"late":0,"seq":1791628093363}
+  OK  M7 wieder an ÔåÆ Serie z├ñhlt den Haken von eben mit (­ƒöÑ 4) ÔÇö ÔÖ╗´©Å ÔÇ×Altglas" erledigt ┬À ­ƒöÑ 4 ┬À Torben War Tom R├╝ckg├ñngig
+
+64 ok, 0 fehlgeschlagen

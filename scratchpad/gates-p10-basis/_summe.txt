@@ -1,0 +1,22 @@
+
+hier_v112	FEHLT
+ux	exit 0	114s	47 ok, 0 fehlgeschlagen
+heute	exit 0	19s	15 ok, 0 fehlgeschlagen
+mehr	exit 0	87s	77 ok, 0 fehlgeschlagen
+putz	exit 0	36s	64 ok, 0 fehlgeschlagen
+grow	exit 0	35s	45 ok, 0 fehlgeschlagen
+geld	exit 0	47s	42 von 42 Pr├╝fungen bestanden
+plus	exit 0	66s	70 ok, 0 fehlgeschlagen
+alltag	exit 0	69s	50 ok, 0 fehlgeschlagen
+english	exit 0	47s	26 ok, 0 fehlgeschlagen
+a11y	exit 0	32s	7 ok, 0 fehlgeschlagen
+optik	exit 0	35s	21 von 21 Pr├╝fungen bestanden
+optik_v111	exit 0	119s	23 ok, 0 FAIL
+bewegung_v112	exit 0	132s	bewegung_v112: 90 ok, 0 FAIL
+hell_v112	exit 0	66s	94 gr├╝n, 0 rot
+druck_v112	exit 0	95s	57 gr├╝n, 0 rot
+listen_v112	exit 0	138s	58 gr├╝n, 0 rot
+putzfeier_v112	exit 0	42s	putzfeier_v112: 37 ok, 0 FAIL
+leer_v112	exit 0	125s	53 gr├╝n, 0 rot
+csp_hash	exit 0	24s	6 ok, 0 fehlgeschlagen
+FERTIG

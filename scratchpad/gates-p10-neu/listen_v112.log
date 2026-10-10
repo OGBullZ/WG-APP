@@ -1,0 +1,65 @@
+
+=== PASS ===
+a1 Haushalt-Kreis: die Zeile gleitet weg (Klasse geht, Animation abgang l├ñuft) ÔÇö {"geht":true,"anim":["abgang"]}
+a2 ÔÇª der Kreis f├╝llt sich im selben Bild (chk-an + Haken statt chk-leer) ÔÇö chk-btn chk-an
+a3 ÔÇª F├╝llfarbe steht nach der F├╝llzeit (nicht transparent) ÔÇö rgb(94, 234, 212)
+a4 ÔÇª Haptik wie beim Haken in der Einkaufsliste ÔÇö 1├ù vibriert
+a5 ÔÇª w├ñhrenddessen ist der Posten noch offen (nichts ├╝berst├╝rzt)
+a6 danach ist der Posten abgerechnet (Daten) und steht nicht mehr bei den Einzelposten ÔÇö {"settled":true,"inListe":false}
+a7 ÔÇª der Balken meldet ÔÇ×Pizza abgerechnet" mit R├╝ckg├ñngig ÔÇö ÔÇ×Pizza" abgerechnet R├╝ckg├ñngig | R├╝ckg├ñngig
+a8 R├╝ckg├ñngig stellt den Posten offen wieder her (Daten + Zeile) ÔÇö {"offen":true,"da":true}
+a9 ÔÇª und markiert ihn (Klasse flash, Animation remoteFlash l├ñuft) ÔÇö {"flash":true,"anim":"remoteFlash"}
+a10 ÔÇª in der Farbe dieses Ger├ñts (Torben blau), nicht in der des Zahlers (Tom gelb) ÔÇö rgba(56,189,248,1)
+a11 die Markierung verschwindet nach Ôëê 1,3 s wieder
+b1 Einkauf-├ù: die Zeile gleitet weg (geht, abgang l├ñuft, 0,42 s) ÔÇö {"geht":true,"anim":["abgang"],"dauer":"0.42s","noch":4}
+b2 ÔÇª w├ñhrenddessen steht der Eintrag noch in den Daten ÔÇö 4
+b3 ÔÇª danach ist er weg, R├╝ckg├ñngig-Balken da
+b4v Vorbedingung: das zweite ├ù kam, w├ñhrend das erste noch glitt
+b4 zwei ├ù kurz nacheinander ÔåÆ beide weg, der dritte Eintrag bleibt ÔÇö ["Eier"]
+b5 R├╝ckg├ñngig holt den Eintrag zur├╝ck und markiert ihn ÔÇö {"da":true,"flash":true,"anzahl":2}
+b6 Einkauf-Haken: Strich + Abgang laufen, 0,45 s gesamt ÔÇö {"l":true,"dauer":"0.45s","name":"slLeave","strich":"slStrike"}
+b7 ÔÇª danach ist ÔÇ×Eier" erledigt (Daten)
+b8 Growbox-├ù: die Zeile gleitet weg (abgang l├ñuft), Daten noch da ÔÇö {"geht":true,"anim":["abgang"],"noch":3}
+b9 ÔÇª danach weg, Balken ÔÇ×gel├Âscht" mit R├╝ckg├ñngig
+b10 Growbox-Kreis: Zeile gleitet, Kreis f├╝llt sich (Limette), Haptik, Daten erst danach ÔÇö {"geht":true,"anim":["abgang"],"klasse":"chk-btn chk-an","haken":true,"vib":1,"c":"var(--lime)","offen":true}
+b11 ÔÇª danach abgerechnet, Balken ÔÇ×Erde abgerechnet" ÔÇö {"s":true,"balken":"ÔÇ×Erde\" abgerechnet\nR├╝ckg├ñngig"}
+b12 Growbox: danach nur noch die abgerechnete Erde (T├Âpfe und D├╝nger weg)
+c1 Haushalt-├ù: die Zeile darunter r├╝ckt stetig nach (kein Sprung > 30 px, ÔëÑ 4 Bilder mit Bewegung, ÔëÑ 80 % der Zeilenh├Âhe) ÔÇö {"h":68,"gesamt":68,"maxSprung":8.640625,"bewegt":13,"bilder":63}
+c2 Messung stimmt: die Zeile oberhalb bewegt sich nicht ÔÇö {"h":68,"gesamt":0,"maxSprung":0,"bewegt":0,"bilder":62}
+c3 Haushalt-Kreis: die Zeile darunter r├╝ckt stetig nach ÔÇö {"h":68,"gesamt":68,"maxSprung":8.625,"bewegt":13,"bilder":63}
+c4 Einkauf-├ù: die Zeile darunter r├╝ckt stetig nach ÔÇö {"h":85,"gesamt":85,"maxSprung":10.78125,"bewegt":13,"bilder":63}
+c5 Einkauf-Haken (zweiter Haken): die Zeile darunter r├╝ckt stetig nach ÔÇö {"h":85,"gesamt":85,"maxSprung":15.734375,"bewegt":9,"bilder":63}
+d0 Vorbedingung: der zweite Kreis kam, w├ñhrend die erste Zeile noch glitt
+d1 der Balken zeigt zuerst die erste, dann die zweite Meldung ÔÇö {"ersteOk":true,"zweiteOk":true}
+d2 ÔÇª und wurde NEU eingesetzt (anderer Knoten, alter ist weg) ÔÇö kein blo├ƒer Texttausch ÔÇö {"neu":true,"alterWeg":true}
+d3 ÔÇª toastIn l├ñuft f├╝r die zweite Meldung von vorn (junge Animation) ÔÇö [{"n":"toastIn","t":0}]
+d4 beide Posten sind abgerechnet (Daten) ÔÇö [true,true]
+e1 ÔÇ×Ô£ô Alles angekommen" erscheint
+e2 ÔÇª ohne R├╝ckg├ñngig-Knopf (war ein toter Knopf) und ohne Restzeit-Leiste ÔÇö {"da":true,"knoepfe":0,"klasse":"undo-toast","status":true,"leiste":"none"}
+f1 der Balken-Text hat role="status"
+f2 Restzeit-Leiste l├ñuft (2 px, linear ├╝ber 5 s) ÔÇö {"leiste":"restzeit","dauer":"5s","hoch":"2px","klasse":"undo-toast hat-knopf","status":"ÔÇ×Pizza\" gel├Âscht"}
+f3 role="status" tr├ñgt den Meldungstext ÔÇö ÔÇ×Pizza" gel├Âscht
+f4 nach R├╝ckg├ñngig blendet der Balken aus (Klasse aus, toastAus) und verschwindet dann ÔÇö {"vor":{"leiste":"restzeit","dauer":"5s","hoch":"2px","klasse":"undo-toast hat-knopf","status":"ÔÇ×Pizza\" gel├Âscht"},"aus":true,"ausAnim":"toastAus","nochDa":true,"weg":true}
+f5 mit Zusatzknopf (ÔÇ×War Tom") l├ñuft die Leiste 8 s ÔÇö {"klasse":"undo-toast zwei hat-knopf","dauer":"8s","text":"­ƒÜ┐ ÔÇ×Bad putzen\" erledigt ┬À Torben\nWar Tom\nR├╝ckg├ñngig"}
+g1 eigener Schnell-Eintrag steht in der Liste und ist markiert (flash, meine Farbe) ÔÇö {"da":true,"fl":true,"c":"rgba(56,189,248,1)"}
+g2 ÔÇª die Markierung geht nach Ôëê 1,3 s wieder weg
+g3 neuer Einkaufs-Eintrag (+) ist markiert ÔÇö {"da":true,"fl":true}
+g4 neuer K├╝hlschrank-Eintrag ist markiert ÔÇö {"da":true,"fl":true}
+g5 ÔÇ×Zuletzt erledigt": der neue Eintrag (oberste Zeile) ist markiert ÔÇö {"fl":true,"erste":"­ƒÜ┐ Bad putzen Torben heute"}
+h1 390 px: Probe wirksam ÔÇö erst der Hinweis, dann (Migration) der Knopf ÔÇö {"hinweisAnfang":true,"kam":true}
+h2 390 px: die Schnell-Eingabe wandert dabei um < 4 px ÔÇö 493 ÔåÆ 493 px
+h1 1440 px: Probe wirksam ÔÇö erst der Hinweis, dann (Migration) der Knopf ÔÇö {"hinweisAnfang":true,"kam":true}
+h2 1440 px: die Schnell-Eingabe wandert dabei um < 4 px ÔÇö 493 ÔåÆ 493 px
+i1 Weniger Bewegung: Kreis wirkt sofort (Daten Ôëñ 150 ms), keine Abgangs-Animation, kein .geht ÔÇö und der Balken ÔÇ×abgerechnet" steht trotzdem da ÔÇö {"sofort":true,"laeuft":0,"geht":0,"balken":"ÔÇ×Pizza\" abgerechnet R├╝ckg├ñngig"}
+i2 ÔÇª der Balken hat keine Restzeit-Leiste und verschwindet ohne 160-ms-Ausblenden ÔÇö {"leiste":"none","sofortWeg":true}
+i3 ÔÇª die Markierung ist ein ruhiger 2-px-Rand statt Animation ÔÇö {"fl":true,"anim":"none","schatten":"rgb(56, 189, 248) 0px 0px 0px 2px inset"}
+i4 ÔÇª Einkauf-├ù wirkt ebenfalls sofort, ohne Animation ÔÇö {"sofort":true,"geht":0}
+i5 ÔÇª Growbox-Kreis ebenso (inkl. Balken ÔÇ×abgerechnet") ÔÇö {"sofort":true,"geht":0,"balken":"ÔÇ×T├Âpfe\" abgerechnet R├╝ckg├ñngig"}
+j1 App weg (visibilitychange) mitten im Abgang: Abrechnen ist sofort gespeichert ÔÇö {"vorher":false,"sofort":true}
+j2 App weg (pagehide) mitten im Abgang: Abrechnen ist sofort gespeichert ÔÇö {"vorher":false,"sofort":true}
+z1 keine Seitenfehler
+
+=== FAIL ===
+(keine)
+
+58 gr├╝n, 0 rot
