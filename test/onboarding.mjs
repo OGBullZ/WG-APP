@@ -100,7 +100,7 @@ check('A12 Einladen: Code + WhatsApp-Link mit ?join=', !!code && decodeURICompon
   const hello = await page.locator('[data-testid="today-hello"]').innerText();
   check('A15 Heute: „Hallo, Lena" + WG-Name', /Lena/.test(hello) && /🌿 WG Sonnenallee/.test(hello), hello);
   await page.waitForTimeout(1200);
-  check('A16 kein Start-Fenster direkt danach', await page.locator('.overlay').count() === 0);
+  check('A16 kein Start-Fenster direkt danach', await page.locator('.overlay:not(.zu)').count() === 0);   /* wg-v112 (P7): :not(.zu) — der Einrichtungs-Assistent selbst hängt nicht an useZu, aber ein schließendes Blatt gilt überall als zu */
   await page.reload(); await page.locator('.tabbar').waitFor(); await page.waitForTimeout(800);
   check('A17 nach Neuladen kein Assistent mehr', await page.locator('[data-testid="onboarding"]').count() === 0);
   check('A18 keine Seitenfehler', A.errs.length === 0, A.errs.join(' | '));

@@ -25,7 +25,7 @@ page.on('pageerror', e => errors.push(e.message));
 const pass = [], fail = [];
 const check = (n, c, extra = '') => (c ? pass : fail).push(n + (extra ? ` — ${extra}` : ''));
 // Anfang des Fenstertexts (nicht nur die erste Zeile — beim Push-Fenster steht dort nur „🔔")
-const overlays = () => page.evaluate(() => [...document.querySelectorAll('.overlay')].map(o => o.innerText.replace(/\s+/g, ' ').slice(0, 40)));
+const overlays = () => page.evaluate(() => [...document.querySelectorAll('.overlay:not(.zu)')].map(o => o.innerText.replace(/\s+/g, ' ').slice(0, 40)));
 
 await page.goto(url, { waitUntil: 'domcontentloaded' });
 await page.locator('.tabbar').waitFor({ timeout: 60000 });

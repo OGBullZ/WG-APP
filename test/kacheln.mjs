@@ -40,7 +40,7 @@ await page.goto(url, { waitUntil: 'domcontentloaded' });
 await page.locator('.tabbar').waitFor({ timeout: 30000 });
 await page.evaluate(() => window.__wg.fire());
 await page.waitForTimeout(1300);
-const blatt = page.locator('.overlay .sheet');
+const blatt = page.locator('.overlay:not(.zu) .sheet');   /* wg-v112 (P7): :not(.zu) — ein Blatt im 180-ms-Schließfenster zählt als zu, die Zählung hängt so nicht an Wartezeiten */
 const kachel = k => page.locator(`.wz-kachel[data-chip="${k}"]`);
 
 // ── K: Raster ──
@@ -127,10 +127,10 @@ check('Z2 keine Seitenfehler', errs.length === 0, errs.slice(0, 2).join(' | '));
   await p.evaluate(() => window.__wg.fire());
   await p.waitForTimeout(1300);
   await p.locator('.wz-kachel[data-chip="poll"]').click(); await p.waitForTimeout(500);
-  check('H1 ohne Person: Tipp auf „Umfrage" öffnet kein Blatt …', await p.locator('.overlay .sheet').count() === 0);
+  check('H1 ohne Person: Tipp auf „Umfrage" öffnet kein Blatt …', await p.locator('.overlay:not(.zu) .sheet').count() === 0);
   check('H2 … sondern sagt, was fehlt („Wähle zuerst oben, wer du bist.")', await p.getByText('Wähle zuerst oben, wer du bist.').count() >= 1);
   await p.locator('.wz-kachel[data-chip="fridge"]').click(); await p.waitForTimeout(500);
-  check('H3 Kachel ohne Personen-Abhängigkeit (Kühlschrank) öffnet trotzdem — kein Hinweis-Dauerfeuer', await p.locator('.overlay .sheet').count() === 1);
+  check('H3 Kachel ohne Personen-Abhängigkeit (Kühlschrank) öffnet trotzdem — kein Hinweis-Dauerfeuer', await p.locator('.overlay:not(.zu) .sheet').count() === 1);
   await c.close();
 }
 await browser.close();

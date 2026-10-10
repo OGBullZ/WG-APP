@@ -81,17 +81,17 @@ async function tippe(page, titel, anker = '') {
   await page.waitForFunction(([a, t]) => [...document.querySelectorAll(`[data-testid="${a}"].ziel, [data-fold="${a}"].ziel`)]
       .some(e => { const b = e.getBoundingClientRect(); return e.offsetParent !== null && b.top >= 0 && b.top < innerHeight; })
     || (document.querySelector('[data-testid="sprung-hinweis"]')?.textContent || '').includes(t)
-    || !!document.querySelector('.overlay .sheet'), [anker, titel], { timeout: 2400 }).catch(() => {});
+    || !!document.querySelector('.overlay:not(.zu) .sheet'), [anker, titel], { timeout: 2400 }).catch(() => {});   /* wg-v112 (P7): :not(.zu) in allen Blatt-Zählungen dieser Datei — ein schließendes Blatt zählt als zu */
   // Blatt offen: bei Karten-Werkzeugen (`blatt: true`) steht die Karte IM Blatt und wird erst beim nächsten Versuch
   // des Sprungs (260 ms) markiert — so lange abwarten
-  if (await page.locator('.overlay .sheet').count()) await page.waitForTimeout(700);
+  if (await page.locator('.overlay:not(.zu) .sheet').count()) await page.waitForTimeout(700);
   await page.waitForTimeout(80);
   return true;
 }
 // Offenes Blatt per Tipp neben das Blatt schließen (alle Overlays schließen so); true = es war eins offen
 const blattZu = async page => {
-  if (!(await page.locator('.overlay .sheet').count())) return false;
-  await page.locator('.overlay').first().click({ position: { x: 12, y: 12 } }); await page.waitForTimeout(300);
+  if (!(await page.locator('.overlay:not(.zu) .sheet').count())) return false;
+  await page.locator('.overlay:not(.zu)').first().click({ position: { x: 12, y: 12 } }); await page.waitForTimeout(300);
   return true;
 };
 const lage = (page, anker) => page.evaluate(a => {
@@ -162,7 +162,7 @@ await S.page.waitForTimeout(300);
 await tippe(S.page, 'Waschmaschine', 'wash-card');
 // wg-v105: wie der Tipp auf die Kachel — das Timer-Blatt ist direkt offen, nichts Verstecktes wird markiert
 const wasch = await S.page.evaluate(() => ({
-  blatt: (document.querySelector('.overlay .sheet')?.innerText || '').slice(0, 60),
+  blatt: (document.querySelector('.overlay:not(.zu) .sheet')?.innerText || '').slice(0, 60),
   markiertVersteckt: [...document.querySelectorAll('[data-testid="wash-card"].ziel')].some(e => e.offsetParent === null),
   hinweis: document.querySelector('[data-testid="sprung-hinweis"]')?.textContent || '' }));
 check('C1 ein leeres Werkzeug öffnet beim Sprung sein Eingabeblatt (nicht die versteckte Kopie markiert, kein Hinweis)', /Timer starten/i.test(wasch.blatt) && !wasch.markiertVersteckt && !wasch.hinweis, JSON.stringify(wasch));
@@ -198,7 +198,7 @@ check('U1 „Vorrat" öffnet die Einkaufsliste und zeigt die Karte', u1.seg === 
 await tippe(S.page, 'Miete', 'rent-card');
 const u2 = await lage(S.page, 'rent-card');
 // Miete ist in dieser WG leer → seit wg-v105 öffnet der Sprung das Einrichten-Blatt (wie die Kachel) statt der leeren Karte
-const u2Blatt = /Miete/i.test(   /* i: der Blatt-Titel steht per CSS in Großbuchstaben */await S.page.locator('.overlay .sheet').innerText().catch(() => ''));
+const u2Blatt = /Miete/i.test(   /* i: der Blatt-Titel steht per CSS in Großbuchstaben */await S.page.locator('.overlay:not(.zu) .sheet').innerText().catch(() => ''));
 check('U2 von dort zurück: „Miete" schaltet wieder auf die Ausgaben (und öffnet „Miete einrichten")', u2.seg === 'aus' && (u2Blatt || (u2.sichtbar && u2.markiert)), JSON.stringify({ ...u2, u2Blatt }));
 await blattZu(S.page);
 

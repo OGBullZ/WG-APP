@@ -103,7 +103,7 @@ await page.locator('[data-chip="wiederkehrend"]').click(); await page.waitForTim
 check('C0b Chip „Wiederkehrend" öffnet das Formular direkt', await page.locator('.sheet:visible').count() === 1);
 await page.getByRole('button', { name: 'Abbrechen' }).first().click(); await page.waitForTimeout(300);
 await page.locator('[data-chip="budget"]').click(); await page.waitForTimeout(300);
-await page.getByLabel('Monatsbudget').fill('100');
+await page.getByRole('textbox', { name: 'Monatsbudget' }).fill('100');   /* wg-v112 (P7): das Blatt heißt jetzt auch „Monatsbudget" (role=dialog + aria-label) — getByLabel träfe Blatt UND Feld */
 await page.locator('.sheet').getByRole('button', { name: 'Speichern' }).click(); await page.waitForTimeout(400);
 d = await data();
 check('C1 Budget gespeichert (bud total)', d.bud.some(b => b.id === 'total' && b.limit === 100));
