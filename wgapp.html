@@ -114,6 +114,18 @@
   --disp:        'Unbounded', sans-serif;
   --mono:        'Spline Sans Mono', monospace;
   --ink:         #0a120c;   /* Schrift auf Akzentfarben — im Hellmodus weiß */
+  /* wg-v112 (P4, Hellmodus): weiße Alpha-Flächen sind auf Weiß unsichtbar (1,00:1) — gemessen an Balken-Spuren, Ring/Donut,
+     Assistent-Schritten, Druck-Tönung. Statt je Stelle ein Hell-Override gibt es Tokens; DUNKEL-Werte = die bisherigen Literale.
+     --spur = leere Spur hinter Balken/Ring/Schritten · --druck = Tönung beim Drücken/Überfahren einer Zeile ·
+     --rand-bedien = Rand von Segment/Stepper/Summenzeile (dunkel = --sep wie vorher; hell eigener, dunklerer Wert, weil
+     --sep hell nur 1,2:1 hat) · --flash-a = Deckkraft der Fremd-Markierung (hell kräftiger, .22 ist auf Weiß kaum zu sehen) ·
+     --schatten-weiter = Schatten des „Weiter"-Knopfs im Assistenten (hell kleiner und weicher). */
+  --spur:        rgba(255,255,255,.07);
+  --druck:       rgba(255,255,255,.05);
+  --druck-knopf: rgba(255,255,255,.10);   /* kleine Knöpfe (Stepper): dunkel war .10 statt .05, sonst wird die Tönung dort blasser */
+  --rand-bedien: var(--sep);
+  --flash-a:     22%;
+  --schatten-weiter: 0 12px 32px rgba(0,0,0,.3);
   /* Bewegungs-Vokabular (wg-v112): eine Handvoll Dauern + Kurven statt ~25 Einzelwerte, damit alles gleich „klingt".
      tipp = Rückmeldung auf Berührung, kurz = Ein-/Ausblenden, mittel = Blätter/Tab, wert = Zahlen/Balken.
      raus = sanft ankommen (Standard), rein = beschleunigt abgehen, feder = Überschwingen NUR für echte Erfolge
@@ -132,6 +144,10 @@
   --label:#0b1510; --label2:rgba(11,21,16,.76); --label3:rgba(11,21,16,.66); --label4:rgba(11,21,16,.64); --sep:rgba(0,0,0,.09);
   --lime:#3f6212; --mint:#0f766e; --violet:#6d28d9; --indigo:#4338ca; --red:#be123c; --green:#166534; --amber:#9a4a06; --sky:#0369a1;
   --ink:#ffffff;
+  /* wg-v112 (P4): Hellwerte der Tokens aus :root. Spur 1,18:1 / Druck-Tönung 1,13:1 gegen die weiße Karte (vorher 1,00:1),
+     Bedienflächen-Rand ≈1,5:1 (gemessen; --sep wäre nur 1,22:1, .16 ergab 1,405 — zu knapp an der 1,4-Grenze) */
+  --spur:rgba(11,21,16,.08); --druck:rgba(11,21,16,.06); --druck-knopf:rgba(11,21,16,.12); --rand-bedien:rgba(11,21,16,.18); --flash-a:45%;
+  --schatten-weiter:0 6px 16px rgba(11,21,16,.16);
 }
 [data-theme="light"] body::before { opacity:.35; }
 [data-theme="light"] body::after { opacity:.02; }
@@ -190,11 +206,25 @@ button { font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transp
 /* Maus/Touch ohne Fokusring, Tastatur MIT — vorher war jeder Fokus unsichtbar (WCAG 2.4.7) */
 input:focus, button:focus, textarea:focus { outline:none; }
 input:focus-visible, button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
-  outline:2px solid var(--mint); outline-offset:2px; border-radius:6px;
+  outline:2px solid var(--mint); outline-offset:2px;
 }
+/* wg-v112 (P8): kein pauschales border-radius:6px mehr im Fokusring. Es formte beim Fokus das ELEMENT um (Kacheln 18 → 6 px,
+   der runde +-Knopf wurde eckig) — der Ring folgt dem Radius des Elements ohnehin selbst. Zwei Ausnahmen mit eigener Regel:
+   reine Textknöpfe im Abschnittskopf (kein eigener Radius → sonst ein eckiger Kasten um das Wort) und die Tab-Leiste
+   (Ring 4 px NACH INNEN, sonst kappt ihn der Rand von Leiste/Seitenleiste; Radius 14 passt zur Hover-Fläche). */
+.section-hdr button:focus-visible, .section-hdr a:focus-visible { border-radius:6px; }
+.tabitem:focus-visible { outline-offset:-4px; border-radius:14px; }
 ::-webkit-scrollbar { width:8px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1); border-radius:999px; }
+/* wg-v112 (P4): hell war der Balken weiß auf Weiß (unsichtbar) → dunkler Daumen mit 20 % */
+[data-theme="light"] ::-webkit-scrollbar-thumb { background:rgba(0,0,0,.2); }
+/* Firefox kennt ::-webkit-scrollbar nicht, nur scrollbar-color. 🪤 In Chrome (ab 121) schaltet jedes scrollbar-color die
+   ::-webkit-scrollbar-Gestaltung oben AB → nur hinter der Firefox-Weiche (-moz-appearance) setzen, sonst ändert sich Chrome. */
+@supports (-moz-appearance:none) {
+  html { scrollbar-color:rgba(255,255,255,.18) transparent; }
+  [data-theme="light"] { scrollbar-color:rgba(0,0,0,.3) transparent; }
+}
 input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 
 .disp { font-family:var(--disp); }
@@ -402,7 +432,10 @@ button.cell { color:var(--label); }
   display:flex; align-items:center; padding:14px 16px; gap:13px; min-height:54px;
   position:relative; transition:background .2s ease;
 }
-.cell:active { background:rgba(255,255,255,.05); }
+/* wg-v112 (P4): Drück-Tönung über --druck (hell dunkle Tönung statt weiß-auf-weiß). transition-duration:0s: die Tönung ist
+   beim Drücken SOFORT da und blendet erst beim Loslassen mit den .2 s der Grundregel aus — sonst war sie bei einem kurzen
+   Tipp (< 200 ms) noch gar nicht angekommen. */
+.cell:active { background:var(--druck); transition-duration:0s; }
 .cell+.cell::before { content:''; position:absolute; top:0; left:52px; right:0; height:1px; background:var(--sep); }
 .cell-icon { width:36px; height:36px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
 .cell-content { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
@@ -511,8 +544,10 @@ button.cell { color:var(--label); }
 /* ── Paid bars ── */
 .bar-row { display:flex; align-items:center; gap:10px; }
 .bar-name { font-size:13px; font-weight:700; width:74px; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.bar-track { flex:1; height:8px; border-radius:999px; background:rgba(255,255,255,.07); overflow:hidden; }
+.bar-track { flex:1; height:8px; border-radius:999px; background:var(--spur); overflow:hidden; }   /* wg-v112 (P4): --spur statt Weiß-Alpha */
 .bar-fill { height:100%; border-radius:999px; transition:width .7s cubic-bezier(.22,1,.36,1); box-shadow:0 0 10px currentColor; }
+/* wg-v112 (P4): der Schein (currentColor) ist ein Dunkel-Effekt; auf Weiß wird er zu einem schmutzigen Hof um den Balken */
+[data-theme="light"] .bar-fill, [data-theme="light"] .tabitem .tab-glow { box-shadow:none; }
 .bar-val { font-size:12.5px; font-weight:600; width:74px; text-align:right; flex-shrink:0; color:var(--label2); }
 
 /* ── Debt banner ── */
@@ -548,13 +583,17 @@ button.cell { color:var(--label); }
 .mini-btn:active { transform:scale(.95); filter:brightness(1.1); }
 
 /* ── Segmented ── */
-.seg { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.06); border-radius:15px; padding:4px; display:flex; gap:4px; }
+/* wg-v112 (P4): Fläche --bg4, Rand --rand-bedien (dunkel = --sep, hell eigener Wert) statt Weiß-Alpha — hell sah man das
+   Segment-Feld, den Stepper, die Summenzeile und den Datums-Knopf nicht als Bedienfläche */
+.seg { background:var(--bg4); border:1px solid var(--rand-bedien); border-radius:15px; padding:4px; display:flex; gap:4px; }
 .seg-btn {
   flex:1; height:38px; border:none; border-radius:11px;
   font-size:13px; font-weight:700; letter-spacing:0;
   transition:all .22s ease; background:transparent; color:var(--label2);
 }
 .seg-btn.on { background:rgba(255,255,255,.12); color:var(--label); box-shadow:0 4px 14px rgba(0,0,0,.25); }
+/* wg-v112 (P4): hell ein weißes „Plättchen" auf dem grauen Feld, das mit zwei weichen Schatten abhebt (Weiß-Alpha wäre unsichtbar) */
+[data-theme="light"] .seg-btn.on { background:#fff; box-shadow:0 1px 2px rgba(11,21,16,.08), 0 2px 8px rgba(11,21,16,.08); }
 /* Eingetragen-Rückmeldung (wg-v83): die Schnellzeile leuchtet einmal kurz in Minze auf */
 /* Sprungziel aus der Suche (wg-v91): kurz umranden, damit man sieht, WO man gelandet ist.
    Der Rahmen bleibt auch ohne Animation stehen (siehe „Weniger Bewegung" weiter unten) — er ist die eigentliche
@@ -569,22 +608,32 @@ button.cell { color:var(--label); }
 /* Filterzeilen der Suche: je eine wischbare Zeile statt umbrechender Blöcke (vorher schoben 4 Filterblöcke die Treffer
    ganz nach unten); der Rand darf nach rechts auslaufen, damit man sieht, dass es weitergeht */
 /* .tool-chips.chips-x: doppelte Klasse, sonst gewinnt die spätere Regel „.tool-chips { flex-wrap:wrap }" */
-.tool-chips.chips-x { flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-right:-16px; padding-right:16px; }
+.tool-chips.chips-x { flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-right:-16px; padding-right:16px; flex-shrink:0; }
 .tool-chips.chips-x::-webkit-scrollbar { display:none; }
 .tool-chips.chips-x > .tool-chip { flex:0 0 auto; }
+/* wg-v112 (P8): flex-shrink:0 — echter Fehler auch am Handy (BREIT-2). Die Reihe sitzt in einer Spalte mit Höhenbegrenzung (Blatt),
+   und `overflow-x:auto` setzt den Mindestwert der Höhe auf 0 (min-height:auto gilt nur bei overflow:visible) → bei vielen
+   Treffern schrumpfte sie von 40 auf 9–12 px und schnitt die Chips ab. Mit der Maus (kein Wischen möglich, das Mausrad scrollt eine
+   waagerechte Reihe nicht) umbrechen statt wischen: dort ist overflow:visible, die Reihe hat ihre Höhe wieder von allein. */
+@media (hover:hover) and (pointer:fine) {
+  .tool-chips.chips-x { flex-wrap:wrap; overflow:visible; margin-right:0; padding-right:0; }
+}
 /* Such-Knopf in der Kopfzeile (wg-v85) */
 .nav-search { display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:11px; border:none; background:transparent; color:var(--label2); cursor:pointer; }
 .nav-search:active { transform:scale(.92); }
 /* Schnellzugriff-Chips auf Heute (wg-v82): leere Werkzeuge als eine Reihe statt je einer Karte */
 .tool-chips { display:flex; flex-wrap:wrap; gap:8px; }
-.tool-chip { min-height:40px; padding:0 14px; border-radius:999px; border:1px solid var(--border); background:var(--card); color:var(--label); font-family:inherit; font-size:13.5px; font-weight:700; cursor:pointer; transition:transform .15s ease, background .2s ease; }
+.tool-chip { min-height:40px; padding:0 14px; border-radius:999px; border:1px solid var(--border); background:var(--card); color:var(--label); font-family:inherit; font-size:13.5px; font-weight:700; cursor:pointer; transition:transform var(--dur-tipp) var(--ease-raus), background var(--dur-tipp) var(--ease-raus); }   /* wg-v112 (P8): Dauern aus dem Vokabular (vorher .15 s / .2 s) */
 .tool-chip:active { transform:scale(.95); }
 /* Werkzeug-Kacheln (wg-v105): festes Raster statt Chip-Wand unterschiedlicher Breite — Symbol in einer Fläche, Name
    darunter (max. 2 Zeilen). auto-fill: auf dem Handy 4 je Reihe, breiter mehr, wenige Kacheln bleiben links. */
 .wz-gitter { display:grid; grid-template-columns:repeat(auto-fill, minmax(76px, 1fr)); gap:8px; }
 .wz-kachel { display:flex; flex-direction:column; align-items:center; gap:7px; min-height:84px; padding:12px 4px 10px;
   border-radius:18px; border:1px solid var(--border); background:var(--card); color:var(--label2); font-family:inherit;
-  font-size:12px; font-weight:700; line-height:1.25; text-align:center; cursor:pointer; transition:transform .15s ease, background .2s ease; }
+  font-size:12px; font-weight:700; line-height:1.25; text-align:center; cursor:pointer;
+  /* wg-v112 (P8): Dauern aus dem Vokabular (vorher .15 s / .2 s) + border-color für die Hover-Kante. `background` wechselt
+     Verlauf → Vollfläche und springt dabei (Verläufe lassen sich nicht überblenden); die Kante blendet. */
+  transition:transform var(--dur-tipp) var(--ease-raus), background var(--dur-tipp) var(--ease-raus), border-color var(--dur-tipp) var(--ease-raus); }
 .wz-kachel:active { transform:scale(.95); }
 .wz-ico { display:grid; place-items:center; width:40px; height:40px; border-radius:13px; background:var(--bg3); font-size:21px; line-height:1; }
 /* Silbentrennung statt Bruch an beliebiger Stelle: mit `anywhere` stand „Monatsbudg|et" auf dem Handy (im Bild gesehen) */
@@ -612,12 +661,18 @@ button.cell { color:var(--label); }
 }
 @keyframes sheetUp { from{transform:translateY(100%)} }
 .sheet-handle { width:38px; height:5px; border-radius:999px; background:rgba(255,255,255,.14); margin:0 auto 18px; flex:none; }
+[data-theme="light"] .sheet-handle { background:rgba(11,21,16,.18); }   /* wg-v112 (P4): hell weiß auf Weiß → Griff unsichtbar (1,00:1); jetzt 1,5:1 */
 .sheet-hdr { padding:0 20px 16px; display:flex; justify-content:space-between; align-items:center; flex:none; }
 .sheet-title { font-family:var(--disp); font-size:14px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
 /* padding statt 0: WCAG 2.2 verlangt 24px Tap-Ziel, vorher 78x17 */
 .cancel-btn { font-size:15px; font-weight:600; color:var(--label3); background:none; border:none; padding:6px 4px; }
 .step-bar { display:flex; gap:5px; padding:0 20px 20px; flex:none; }
-.step-seg { flex:1; height:3px; border-radius:2px; transition:all .3s; }
+/* wg-v112 (P4): Schritte per Klassen statt Inline-Farben. Inaktiv = --spur (volle Deckkraft; vorher Weiß-Alpha .08 mal
+   opacity .6 → hell unsichtbar), erreicht = Akzentfarbe des Assistenten (--seg, vom JSX gesetzt). Der Schein um den AKTUELLEN
+   Schritt nur im Dunkeln und in der Akzentfarbe (vorher currentColor = Schriftfarbe, also ein weißlicher Hof statt farbig). */
+.step-seg { flex:1; height:3px; border-radius:2px; transition:all .3s; background:var(--spur); }
+.step-seg.on { background:var(--seg); }
+:root:not([data-theme="light"]) .step-seg.jetzt { box-shadow:0 0 8px var(--seg); }
 .sheet-body { padding:0 20px; display:flex; flex-direction:column; gap:14px; overflow-y:auto; -webkit-overflow-scrolling:touch; flex:1 1 auto; min-height:0; }
 .chip-scroll { scrollbar-width:none; -ms-overflow-style:none; }
 /* Wischzeile (wg-v111) läuft bis an den Blattrand aus (wie .chips-x in der Suche) — ein angeschnittener Chip zeigt „da kommt noch mehr" */
@@ -625,10 +680,10 @@ button.cell { color:var(--label); }
 .chip-scroll::-webkit-scrollbar { display:none; }
 .sheet-lbl { font-size:14px; color:var(--label2); font-weight:600; }
 .sheet-sublbl { font-size:11px; color:var(--label3); font-weight:700; letter-spacing:.08em; text-transform:uppercase; margin-bottom:9px; }
-.wiz-sum { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:12px 15px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.wiz-sum { background:var(--bg4); border:1px solid var(--rand-bedien); border-radius:14px; padding:12px 15px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
 .wiz-sum .nm { font-weight:700; font-size:15px; color:var(--label); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .wiz-sum .am { font-family:var(--mono); font-weight:800; font-size:19px; color:var(--mint); flex:none; }
-.date-toggle { width:100%; text-align:left; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.09); border-radius:14px; padding:14px 16px; font-size:15px; color:var(--label2); cursor:pointer; }
+.date-toggle { width:100%; text-align:left; background:var(--bg4); border:1px solid var(--rand-bedien); border-radius:14px; padding:14px 16px; font-size:15px; color:var(--label2); cursor:pointer; }
 .sheet-acts { padding:20px 20px calc(18px + var(--safe-bot)); display:flex; gap:10px; flex:none; }
 
 /* ── Inputs ── */
@@ -638,6 +693,9 @@ button.cell { color:var(--label); }
   transition:box-shadow .2s ease, border-color .2s ease, background .2s ease;
 }
 .field:focus { background:rgba(255,255,255,.08); border-color:rgba(163,230,53,.5); box-shadow:0 0 0 3px rgba(163,230,53,.13); }
+/* wg-v112 (P4): hell war der Fokus fast unsichtbar (Limetten-Rand 50 % auf Weiß). Jetzt Minze-Rand voll (5,5:1) + weicher Hof;
+   Hintergrund bleibt Weiß (die Grundregel oben würde sonst ein transparentes Weiß daraus machen) */
+[data-theme="light"] .field:focus { background:#fff; border-color:var(--mint); box-shadow:0 0 0 3px rgba(15,118,110,.14); }
 /* wg-v111: Textfelder gelten in Chrome bei JEDEM Fokus als :focus-visible → der türkise Tastaturring (oben) lag zusätzlich
    um den eigenen Fokusstil: zwei Rahmen. Das Feld zeigt den Fokus selbst (Rand + Schein), also hier ohne outline. */
 .field:focus-visible { outline:none; }
@@ -647,6 +705,9 @@ button.cell { color:var(--label); }
    kein Kästchen. Im Hellmodus unnötig, dort heben sich alle fünf Farben vom Weiß ab. */
 .em-saum { filter:drop-shadow(0 0 1px rgba(255,255,255,.8)) drop-shadow(0 0 .5px rgba(255,255,255,.6)); }
 [data-theme="light"] .em-saum { filter:none; }
+/* wg-v112 (P4): Silber-Emoji (🔧) sind hell kaum zu sehen — in der Überschrift „Kaputt & Vermieter" ein blassviolettes Etwas
+   (gesehen im Nahbild, ≈1,3:1 auf Weiß; dunkel unauffällig). Farb-Emoji lassen sich nicht umfärben, ein Filter aufs Zeichen schon. */
+[data-theme="light"] .em-blass { filter:brightness(.55) contrast(1.25); }
 /* Terminliste (wg-v102): links „Heute"/„Fr., 3.10." in fester Spalte, rechts je Termin eine Zeile */
 /* Eingeklappter Jahresrückblick (wg-v103): eine ruhige Zeile mit Summe, Tipp klappt auf */
 .jahr-zeile { display:flex; align-items:center; gap:10px; width:100%; min-height:52px; padding:14px 16px; border:none;
@@ -677,17 +738,21 @@ button.cell { color:var(--label); }
 .emoji-grid { display:flex; flex-wrap:wrap; gap:8px; }
 .emoji-btn { width:44px; height:44px; border:none; border-radius:11px; font-size:22px; background:var(--bg3); transition:all .15s; }
 .emoji-btn.on { background:var(--bg4); box-shadow:0 0 0 1.5px rgba(255,255,255,.4); }
+/* wg-v112 (P4): hell war „gewählt" kaum von „nicht gewählt" zu unterscheiden (weißer Ring auf Weiß) → weiße Kachel + Minze-Ring 2 px */
+[data-theme="light"] .emoji-btn.on { background:#fff; box-shadow:0 0 0 2px var(--mint); }
 .color-row { display:flex; gap:10px; flex-wrap:wrap; }
 .color-btn { width:32px; height:32px; border-radius:50%; border:none; transition:all .15s; }
 .color-btn.on { box-shadow:0 0 0 2px var(--bg), 0 0 0 4px currentColor; }
 
 /* ── Stepper (Grow Pflanzen) ── */
-.stepper { display:flex; align-items:center; gap:2px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:3px; flex-shrink:0; }
+.stepper { display:flex; align-items:center; gap:2px; background:var(--bg4); border:1px solid var(--rand-bedien); border-radius:12px; padding:3px; flex-shrink:0; }
 .stepper button {
   width:34px; height:34px; border-radius:9px; background:transparent; color:var(--label2);
   font-size:20px; font-weight:600; line-height:1; transition:all .15s; display:flex; align-items:center; justify-content:center;
 }
-.stepper button:active { background:rgba(255,255,255,.1); color:var(--label); transform:scale(.92); }
+/* wg-v112 (P4): wie .cell:active, aber die Knopf-Stufe --druck-knopf (dunkel .10 = wie vorher); Tönung sofort (0 s),
+   nur das Ausblenden läuft über die .15 s der Grundregel */
+.stepper button:active { background:var(--druck-knopf); color:var(--label); transform:scale(.92); transition-duration:0s; }
 .stepper .st-val { font-family:var(--mono); font-size:17px; font-weight:700; min-width:30px; text-align:center; }
 
 /* ── Plant slots ── */
@@ -701,6 +766,9 @@ button.cell { color:var(--label); }
 .ring-wrap>svg { inset:0; }
 @media (max-width:379px) { .ring-schmal { --ring-k:.8125; } }   /* 128 → 104 px: lässt der Legende ~130 statt ~100 px */   /* wg-v111: im Flex neben der Legende schrumpfte der Kasten, das SVG nicht → Ring links abgeschnitten */
 .ring-wrap>svg { position:absolute; }
+/* wg-v112 (P4): Schein um die Donut-Bögen nur im Dunkeln (auf Weiß ein grauer Hof). 33 % = das frühere Hex-Alpha „55" (0x55/255);
+   --arc setzt der Donut je Bogen. :root:not(…) statt [data-theme="dark"], weil vor dem Setzen des Attributs (erster Frame) keins da ist. */
+:root:not([data-theme="light"]) .donut-arc { filter:drop-shadow(0 0 6px color-mix(in srgb, var(--arc) 33%, transparent)); }
 .ring-inner { position:relative; display:flex; flex-direction:column; align-items:center; gap:1px; }
 .ring-inner .num, .bal-banner .num { white-space:nowrap; }   /* wg-v111: „€" und Zähler sind getrennte Knoten → brachen zwischen sich um */
 /* Legende neben dem Bilanz-Ring (wg-v111, vorher inline): eine Zeile je Bereich — Punkt · Name · Prozent · Betrag (· ›) */
@@ -723,7 +791,7 @@ button.cell { color:var(--label); }
 /* ── Sub cards ── */
 .sub-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 .sub-card { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:14px; display:flex; flex-direction:column; gap:4px; position:relative; overflow:hidden; }
-.sub-bar-bg { position:absolute; bottom:0; left:0; right:0; height:2px; background:rgba(255,255,255,.06); }
+.sub-bar-bg { position:absolute; bottom:0; left:0; right:0; height:2px; background:var(--spur); }   /* wg-v112 (P4): --spur */
 .sub-bar { height:100%; border-radius:0 1px 1px 0; transition:width .6s ease; }
 
 /* ── Summary (Finanzen) ── */
@@ -775,27 +843,99 @@ button.cell { color:var(--label); }
 /* Leerer Abhak-Kreis (Ausgaben, Growbox): `--sep` (8 %) war dunkel kaum, hell fast gar nicht zu sehen — man erkannte nicht,
    dass man dort tippen kann. Mittelwert zwischen Trennlinie und Nebenschrift, gilt in beiden Themen. */
 .chk-leer { border:1.5px solid color-mix(in srgb, var(--label3) 45%, transparent); background:none; }
+/* wg-v112 (P4): hell lag der Rand bei ≈2:1 gegen die Karte (Nicht-Text-Kontrast braucht 3:1) → 75 % statt 45 % (70 % maß 3,11:1,
+   zu knapp) */
+[data-theme="light"] .chk-leer { border-color:color-mix(in srgb, var(--label3) 75%, transparent); }
 /* Rückfrage-Knopf: das Emoji ❓ ist ROT und lässt sich nicht einfärben — an jedem fremden Posten sah es wie ein Fehler aus.
    Jetzt ein ruhiges, gezeichnetes „?" im Kreis; auffällig (💬, bernstein) bleibt nur, was eine Antwort braucht. */
 .frage-ico { display:grid; place-items:center; width:22px; height:22px; border-radius:50%; border:1.5px solid color-mix(in srgb, var(--label3) 55%, transparent); color:var(--label3); font-size:12.5px; font-weight:800; line-height:1; }
-.fair-bar { display:flex; height:10px; border-radius:999px; overflow:hidden; background:rgba(255,255,255,.07); gap:2px; }
+.fair-bar { display:flex; height:10px; border-radius:999px; overflow:hidden; background:var(--spur); gap:2px; }   /* wg-v112 (P4): --spur */
 .fair-seg { transition:width .7s cubic-bezier(.22,1,.36,1); border-radius:999px; }
-.done-btn { width:40px; height:40px; border-radius:13px; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1.5px solid var(--sep); background:rgba(255,255,255,.03); transition:all .2s; }
+/* wg-v112 (P4): Rand + Haken des Erledigt-Knopfs kommen aus EINER Herleitung (--haken / --rand), das JSX setzt nur --p (Personenfarbe).
+   Dunkel = wie vorher (Rand 40 % Deckkraft = '#rrggbb66', Haken voll). Hell: Personenfarbe 60 % in Fast-Schwarz gemischt — Tom-Gelb
+   #fbbf24 hatte als Rand/Haken 1,67:1 auf Weiß, jetzt 4,0:1. .tp-check (Haken-Zeichnung beim Erledigen, celebrateTask) nutzt
+   dieselben Tokens, damit der fliegende Haken genau auf dem Knopf-Haken landet. */
+.done-btn, .tp-check { --haken:var(--p,#888); --rand:color-mix(in srgb, var(--p,#888) 40%, transparent); }
+[data-theme="light"] .done-btn, [data-theme="light"] .tp-check { --haken:color-mix(in srgb, var(--p,#888) 60%, #0b1510); --rand:var(--haken); }
+.done-btn svg { stroke:var(--haken); }
+.done-btn { width:40px; height:40px; border-radius:13px; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1.5px solid var(--rand); background:rgba(255,255,255,.03); transition:all .2s; }
 .done-btn:active { transform:scale(.88); }
+
+/* ── Tipp-Rückmeldung (wg-v112, P8) ──
+   Gemessen (MIKRO-5): 34 von 107 sichtbaren Knöpfen gaben beim Drücken NICHTS zurück (Segment-Reiter, Monatspfeile, Textknöpfe
+   mit .hit, „fast leer?"-Kacheln, Gruppenkarten unter „Mehr"). Dazu bekamen 32 klickbare divs den grauen Android-Systemblitz,
+   Knöpfe nicht (button hatte -webkit-tap-highlight-color schon, div erbte nichts) → eine Regel an der Wurzel (Eigenschaft erbt). */
+html { -webkit-tap-highlight-color:transparent; }
+/* Zielwert: ein Knopf, der gedrückt wird, schrumpft kurz auf 94 % (60 ms rein, var(--dur-kurz) zurück).
+   :where() = Spezifität 0 → eine vorhandene eigene `transition` (.seg-btn „all .22s", .chk-btn „all .2s", .cell …) bleibt unberührt,
+   alle ohne eigene bekommen die Rückfeder. Die :active-Regeln dagegen haben Gewicht (0,2,0), damit transition-duration:60ms
+   auch gegen „all .22s" gewinnt. `.hit:not(.cell)`: Zeilen-Knöpfe („Mängelanzeige erzeugen …") skalieren NICHT — eine
+   volle Zeile, die um 6 % schrumpft, wirkt kaputt; sie tönen stattdessen (button.cell:active, unten).
+   `.month-arrow:disabled`: ein ausgegrauter Pfeil darf nicht nachgeben. */
+:where(.chk-btn, .del-btn, .seg-btn, .month-arrow, .hit, .press, .press-breit, button:not([class])) { transition:transform var(--dur-kurz) var(--ease-raus); }
+.chk-btn:active, .del-btn:active, .seg-btn:active:not(:disabled), .hit:not(.cell):active, .press:active,
+.month-arrow:active:not(:disabled) { transform:scale(.94); transition-duration:60ms; }
+/* Fangnetz: Knöpfe OHNE Klasse (66 inline gestaltete im Quelltext: Theme-/Schrift-/Sprach-Wahl unter „Mehr", „Kopieren", „Ändern",
+   Pin-Knöpfe, „Alle lokalen Daten löschen" …) hatten nichts, was sie treffen konnte — gemessen 16 der 17 Ausreißer auf Mehr.
+   Spezifität 0 (:where): jede Klassen-Regel gewinnt — `.stepper button:active` (.92, 0 s), `.btn` (.97) usw. bleiben unberührt.
+   Die einzige BREITE klassenlose Fläche (Daten löschen, volle Breite) bekommt `.press-breit`: 94 % wären dort ~20 px je Seite. */
+:where(button:not([class])):where(:active:not(:disabled)) { transform:scale(.94); transition-duration:60ms; }
+.press-breit:active { transform:scale(.97); transition-duration:60ms; }
+/* Anklickbarer Abschnittskopf (Posten-Details · Anzeigen/Verbergen): ein Text in voller Breite schrumpft nicht, er blendet ab */
+.section-hdr.klick { transition:opacity var(--dur-kurz) var(--ease-raus); }
+.section-hdr.klick:active { opacity:.55; transition-duration:60ms; }
+/* Gruppenkarten, die selbst Knöpfe sind (Faltköpfe unter „Mehr", Jahresrückblick, „Was kann die App?"): Tönung als Inset-Schatten
+   statt background — `.group` malt seine Fläche als Verlauf (--card); ein `background:` würde ihn ersetzen und die Karte flach
+   machen (hell: der opake Verlauf verdeckte eine Hintergrundfarbe ganz). Die beiden Außenschatten der Karte stehen mit drin,
+   sonst fiele der Schlagschatten beim Drücken weg. */
+button.group { transition:box-shadow var(--dur-tipp) var(--ease-raus); }
+button.group:active { box-shadow:var(--shadow), var(--kante), inset 0 0 0 999px var(--druck); transition-duration:0s; }
+/* `.group.cell` (Grow-Karte auf Heute) trägt zusätzlich P4s `.cell:active { background }` — das würde den Verlauf ersetzen */
+button.group.cell:active { background:var(--card); }
+/* Zeilen, die selbst Knöpfe sind (Suchtreffer, Zähler, „+ n weitere" …): ALLE tragen ein inline `background:none`/`var(--bg2)`,
+   das background aus `.cell:active` (P4) schlägt dort also nie durch — gemessen: die Tönung kam nur bei div-Zeilen an.
+   Inset-Schatten liegt über der Fläche, unter dem Inhalt und folgt dem Radius (das Zeilen-Blatt „Mitbewohner-Wechsel" hat 14 px). */
+button.cell:not(.group) { transition:box-shadow .2s ease; }
+button.cell:not(.group):active:not(:disabled) { box-shadow:inset 0 0 0 999px var(--druck); transition-duration:0s; }
 
 /* ── Desktop / PC ── */
 @media (min-width:700px) {
   .content { max-width:640px; margin:0 auto; width:100%; }
   .navbar { padding-left:max(18px, calc(50vw - 320px)); padding-right:max(16px, calc(50vw - 320px)); }
   .tabbar { padding-left:calc(50vw - 290px); padding-right:calc(50vw - 290px); }
-  .cell:hover { background:rgba(255,255,255,.05); }
-  .btn:hover { filter:brightness(1.1); transform:translateY(-1px); }
-  .done-btn:hover { background:rgba(255,255,255,.09); }
   .sub-grid { grid-template-columns:1fr 1fr 1fr; }
   .overlay { align-items:center; justify-content:center; padding:24px; }
   .sheet { max-width:520px; border-radius:24px; animation:sheetPop .3s cubic-bezier(.22,1,.36,1); }
 }
 @keyframes sheetPop { from { opacity:0; transform:translateY(20px) scale(.97); } }
+
+/* ── Hover nur mit echter Maus (wg-v112, P8) ──
+   Vorher standen .cell:hover, .btn:hover, .done-btn:hover unter min-width:700px. Ein Tablet (834 px) ist breit genug, meldet
+   nach einem Fingertipp aber Hover an der zuletzt berührten Stelle weiter → die Tönung „klebte" ~800 ms (BREIT-3, gemessen).
+   (hover:hover) and (pointer:fine) trifft nur Geräte, deren PRIMÄRES Eingabegerät eine Maus ist. Folge: auch ein schmales
+   Desktop-Fenster bekommt jetzt Hover (vorher erst ab 700 px). Fläche über --druck/--bg4/--druck-knopf statt festem Weiß
+   (hell unsichtbar). Hover = leise Fläche, KEIN scale — das bleibt dem Drücken vorbehalten. */
+@media (hover:hover) and (pointer:fine) {
+  /* Nur Zeilen, die etwas tun: Knopf-Zeilen und div-Zeilen mit .klick. Passive Zeilen („Zuletzt erledigt") bleiben still —
+     vorher tönte jede .cell, auch die, auf die ein Klick nichts auslöst (BREIT-4). */
+  .cell.klick:hover { background:var(--druck); }
+  button.cell:not(.group):hover:not(:disabled) { box-shadow:inset 0 0 0 999px var(--druck); }   /* Inset statt background: s. button.cell:active */
+  button.group:hover { box-shadow:var(--shadow), var(--kante), inset 0 0 0 999px var(--druck); }   /* Faltköpfe unter „Mehr": Verlauf bleibt */
+  .btn:hover { filter:brightness(1.1); transform:translateY(-1px); }
+  .done-btn:hover { background:rgba(255,255,255,.09); }
+  [data-theme="light"] .done-btn:hover { background:var(--druck-knopf); }   /* wg-v112 (P4): weiß-auf-weiß war hell unsichtbar */
+  /* Neu (BREIT-3/4): bisher reagierte nichts davon auf die Maus. 120 ms (--dur-tipp), sanft ankommen. */
+  .wz-kachel:hover { background:var(--bg4); border-color:color-mix(in srgb, var(--label) 18%, transparent); }
+  .tool-chip:hover { background:var(--bg4); }   /* gewählte Chips tragen inline `background` und bleiben unberührt */
+  .tabitem:not(.on) { border-radius:14px; transition:transform var(--dur-tipp) var(--ease-raus), background-color var(--dur-tipp) var(--ease-raus); }
+  .tabitem:not(.on):hover { background:var(--bg4); }
+  .nav-search { transition:transform var(--dur-kurz) var(--ease-raus), background-color var(--dur-tipp) var(--ease-raus); }
+  .nav-search:hover { background:var(--bg4); }
+  /* Segment: --bg4 liegt auf dem Segment-Feld, das SELBST --bg4 ist → die beiden Schichten addieren sich (≈12 % statt 6 %), sichtbar */
+  .seg-btn:not(.on):hover { background:var(--bg4); transition-duration:var(--dur-tipp); transition-timing-function:var(--ease-raus); }
+  /* Monatspfeil hat im Ruhezustand schon .07 (dunkel) / .05 (hell) — --bg4 wäre dort BLASSER als ohne Hover → die Knopf-Stufe */
+  .month-arrow:not(:disabled):hover { background:var(--druck-knopf); }
+}
 
 /* ── Breite Bildschirme ab 1024 px (wg-v83, Optik „Desktop & Tablet nutzen die Breite") ──
    Vorher eine 640-px-Spalte: auf 1366 px blieben 53 % leer, die Tab-Leiste lag unten wie am Handy.
@@ -804,8 +944,12 @@ button.cell { color:var(--label); }
      column-count: fließende Spalten schieben Karten beim Aufklappen zwischen den Spalten hin und her
    - übrige Seiten einspaltig, aber breiter (760 px) */
 @media (min-width:1024px) {
-  :root { --rail:96px; --wide:1120px; }
+  :root { --rail:96px; --wide:1120px; --tb-h:0px; }   /* wg-v112 (P8): --tb-h:0px — die Leiste steht hier links; vorher saßen Rückgängig-Balken und Code-Hinweis 84 px über dem unteren Rand (BREIT-10). Sonst nur in .screen (dort schon 0), .tabbar (height:auto), Balken/Hinweis gelesen */
   .screen { padding-bottom:0; padding-left:var(--rail); }
+  /* wg-v112 (P8): Toasts mittig über der INHALTSSPALTE statt über dem ganzen Fenster (rechts neben der Seitenleiste, Mitte =
+     Seitenleiste + halber Rest). translateX(-50%) bleibt; .moved-banner hat ab 700 px ein eigenes `left:50%` + transform, das
+     hier (später im Quelltext, gleiche Gewichtung) überstimmt wird. */
+  .toast, .undo-toast, .moved-banner { left:calc(var(--rail) + (100vw - var(--rail)) / 2); }
   /* +16px = Innenabstand von .content, damit der Titel bündig über den Karten steht */
   .navbar { left:var(--rail); padding-left:max(24px, calc((100vw - var(--rail) - 760px) / 2 + 16px)) !important; padding-right:max(24px, calc((100vw - var(--rail) - 760px) / 2 + 16px)) !important; }
   .tabbar { top:0; bottom:0; left:0; right:auto; width:var(--rail); height:auto; flex-direction:column; justify-content:center; align-items:stretch; gap:4px; padding:16px 0 !important; border-top:none; border-right:1px solid rgba(255,255,255,.05); }
@@ -832,11 +976,15 @@ button.cell { color:var(--label); }
 .fly-chip {
   position:fixed; z-index:500; pointer-events:none;
   font-family:var(--mono); font-weight:800; font-size:15px; line-height:1;
-  padding:6px 12px; border-radius:999px; color:#0a120c;
+  padding:6px 12px; border-radius:999px; color:var(--ink);   /* wg-v112 (P4): --ink (dunkel #0a120c wie vorher, hell weiß auf dem dunkleren Akzent) */
   background:var(--fc,#5eead4);
   box-shadow:0 8px 24px rgba(0,0,0,.45), 0 0 16px var(--fc,#5eead4);
   animation:flyChip .62s cubic-bezier(.5,0,.25,1) forwards;
 }
+/* wg-v112 (P4): hell kein Leuchten (auf Weiß ein Hof) und ein weicher Schatten statt des schwarzen 45-%-Klotzes.
+   --fc kommt jetzt als var(--mint)/var(--lime) vom Aufrufer (flyExpense) — im Hellmodus also die DUNKLEREN Akzente, auf denen
+   weiße Schrift trägt; das feste #5eead4/#a3e635 war hell ein blasses Pastell. */
+[data-theme="light"] .fly-chip { box-shadow:0 6px 16px rgba(11,21,16,.18); }
 @keyframes flyChip {
   0%   { transform:translate(-50%,-50%) scale(.55); opacity:0; }
   16%  { transform:translate(-50%,-50%) scale(1);   opacity:1; }
@@ -848,10 +996,17 @@ button.cell { color:var(--label); }
   0%,100% { box-shadow:var(--shadow); }
   35%     { box-shadow:var(--shadow), 0 0 0 2px var(--pulse-c,var(--mint)), 0 0 36px 4px var(--pulse-c,var(--mint)); }
 }
+/* wg-v112 (P4): hell ist die 36-px-Wolke ein milchiger Fleck auf Weiß. Stattdessen ein SCHARFER Ring (2 px Akzent) mit
+   dünnem, leicht getönten Hof (7 px, 16 %). Gleiche Dauer/Taktung wie dunkel, nur die Form des Schadens ist anders. */
+[data-theme="light"] .hero-pulse { animation-name:heroPulseHell; }
+@keyframes heroPulseHell {
+  0%,100% { box-shadow:var(--shadow); }
+  35%     { box-shadow:var(--shadow), 0 0 0 2px var(--pulse-c,var(--mint)), 0 0 0 7px color-mix(in srgb, var(--pulse-c,var(--mint)) 16%, transparent); }
+}
 
 /* 2 · Putz erledigt — Häkchen-Draw + Partikel + Übergabe */
 .tp-check { position:fixed; z-index:500; pointer-events:none; }
-.tp-check path { stroke-dasharray:26; stroke-dashoffset:26; animation:tpDraw .45s cubic-bezier(.65,0,.35,1) forwards; }
+.tp-check path { stroke:var(--haken); stroke-dasharray:26; stroke-dashoffset:26; animation:tpDraw .45s cubic-bezier(.65,0,.35,1) forwards; }   /* wg-v112 (P4): --haken (siehe .done-btn), vorher stroke-Attribut aus JS */
 @keyframes tpDraw { to { stroke-dashoffset:0; } }
 .tp-particle {
   position:fixed; z-index:500; pointer-events:none; font-size:15px; line-height:1;
@@ -915,8 +1070,10 @@ button.cell { color:var(--label); }
 .flash { animation:remoteFlash 1.2s ease; }
 @keyframes remoteFlash {
   0%,100% { background-color:transparent; }
-  32%     { background-color:var(--flash-c, rgba(94,234,212,.22)); }
+  32%     { background-color:color-mix(in srgb, var(--flash-c, #5eead4) var(--flash-a, 22%), transparent); }
 }
+/* wg-v112 (P4): Farbe (--flash-c, volle Deckkraft vom JSX) und Deckkraft (--flash-a, :root 22 % wie vorher, hell 45 %) sind
+   getrennt, damit das Thema die Stärke bestimmt — .22 war auf Weiß kaum zu sehen, die Fremd-Markierung ging unter. */
 
 /* 5 · Überfällig-Nudge (dezenter Ring-Puls, ~90% Ruhe)
    wg-v112: 3 Durchläufe statt endlos (≈ 24 s) — der Hinweis soll auffallen, nicht für immer blinken; die rote Farbe
@@ -972,7 +1129,10 @@ button.cell { color:var(--label); }
    Roll, Zuständigen-Wechsel, Pflanzen-Sprout). Folge: auch später neu eingehängte Karten IN einem besuchten Tab
    erscheinen ohne Animation (neue Zeile nach „Hinzufügen"). wg-v112 (P3): Ziffern-Roll und Zuständigen-Wechsel sind keine
    CSS-Animationen mehr (sondern WAAPI nur bei echter Änderung) und stehen deshalb nicht mehr in dieser Liste. */
-.tab-view.schon :is(.rise, .plant-slot, .plant-slot > svg) { animation:none; }
+/* wg-v112 (P4): :not(.hero-pulse) — der Hero trägt .rise UND (kurz) .hero-pulse. `animation:none` (Spezifität 0,3,0) schlug den
+   Hero-Puls (0,1,0) in jedem schon besuchten Tab: Chip flog los, der Hero reagierte nicht (am HEAD gemessen: keine Animation am
+   Element, sobald der Haushalt-Tab zum 2. Mal betreten war — der Erstbesuch pulste, deshalb fiel es nie auf). */
+.tab-view.schon :is(.rise, .plant-slot, .plant-slot > svg):not(.hero-pulse) { animation:none; }
 .tabitem.on svg { animation:iconBounce 220ms var(--ease-feder); }
 /* wg-v112: Hub 1,26 → 1,12 und 400 → 220 ms — der Wechsel passiert bei jedem Tab-Tipp, da darf das Icon nur kurz nicken. */
 @keyframes iconBounce {
@@ -1227,7 +1387,9 @@ const hexRgba = (hex, a=.22) => {
   } catch { return `rgba(94,234,212,${a})`; }
 };
 
-/* 1 · Ausgabe-Chip fliegt von unten zur Hero-Summe, danach pulsiert der Hero kurz */
+/* 1 · Ausgabe-Chip fliegt von unten zur Hero-Summe, danach pulsiert der Hero kurz.
+   wg-v112 (P4): `color` darf eine CSS-Variable sein ('var(--mint)') — sie landet nur in --fc/--pulse-c (setProperty) und wird erst
+   im CSS aufgelöst, also je Thema dunkel/hell richtig. Nie hier zu einem Hexwert auflösen. */
 const flyExpense = (amount, color, targetEl) => {
   if (REDUCE() || !targetEl) return;
   const chip = document.createElement('div');
@@ -1269,7 +1431,10 @@ const celebrateTask = (btnEl, emoji, color) => {
   svg.style.left = r.left+'px'; svg.style.top = r.top+'px';
   const path = document.createElementNS(NS,'path');
   path.setAttribute('d','M20 6L9 17l-5-5');
-  path.setAttribute('fill','none'); path.setAttribute('stroke', color);
+  /* wg-v112 (P4): Farbe nur als --p; die Strichfarbe (hell abgedunkelt) leitet .tp-check path im CSS her — dieselbe Herleitung wie
+     beim Haken auf dem Knopf (.done-btn), sonst käme sie hier ein zweites Mal und könnte abweichen */
+  svg.style.setProperty('--p', color);
+  path.setAttribute('fill','none');
   path.setAttribute('stroke-width','3'); path.setAttribute('stroke-linecap','round'); path.setAttribute('stroke-linejoin','round');
   svg.appendChild(path); document.body.appendChild(svg);
   setTimeout(() => svg.remove(), 620);
@@ -2388,7 +2553,7 @@ function Ring({ pct, size=58, sw=4.5, color='var(--lime)', children }) {
   return (
     <div className="ring-wrap" style={{width:size,height:size}}>
       <svg width={size} height={size} style={{transform:'rotate(-90deg)'}}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,.08)" strokeWidth={sw}/>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--spur)" strokeWidth={sw}/>{/* wg-v112 (P4): Spur über Token (hell sichtbar) */}
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={sw}
           strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round"
           style={{transition:'stroke-dashoffset .5s ease'}}/>
@@ -2412,15 +2577,19 @@ function Donut({ segs, size=148, sw=15, schmal=false, children }) {
     const dash=Math.max(s.frac*c-3,0), start=acc; acc+=s.frac;
     if (dash<=0) return null;
     return (
-      <circle key={i} cx={size/2} cy={size/2} r={r} fill="none" stroke={s.color} strokeWidth={sw}
+      /* wg-v112 (P4): der Schein (vorher inline drop-shadow) sitzt jetzt in .donut-arc und gilt nur im Dunkeln; --arc = Farbe des Bogens.
+         🪤 --arc NUR bei Hex-Farben: der alte Inline-Filter `${s.color}55` war bei var(--mint) / rgba(…) UNGÜLTIG (Filter still verworfen),
+         diese Bögen hatten also nie einen Schein. Ohne --arc ist color-mix() im CSS ebenfalls ungültig → derselbe Zustand (kein Schein).
+         Ihn jetzt dort einzuführen wäre eine sichtbare Dunkel-Änderung. */
+      <circle key={i} className="donut-arc" cx={size/2} cy={size/2} r={r} fill="none" stroke={s.color} strokeWidth={sw}
         strokeDasharray={`${dash} ${c-dash}`} strokeDashoffset={-start*c} strokeLinecap="round"
-        style={{transition:'stroke-dasharray .8s cubic-bezier(.22,1,.36,1), stroke-dashoffset .8s cubic-bezier(.22,1,.36,1)', filter:`drop-shadow(0 0 6px ${s.color}55)`}}/>
+        style={{...(/^#/.test(s.color)?{'--arc':s.color}:null), transition:'stroke-dasharray .8s cubic-bezier(.22,1,.36,1), stroke-dashoffset .8s cubic-bezier(.22,1,.36,1)'}}/>
     );
   });
   return (
     <div className={`ring-wrap${schmal?' ring-schmal':''}`} style={{'--ring':`${size}px`}}>
       <svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`} style={{transform:'rotate(-90deg)'}}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,.07)" strokeWidth={sw}/>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--spur)" strokeWidth={sw}/>{/* wg-v112 (P4): Spur über Token */}
         {arcs}
       </svg>
       <div className="ring-inner">{children}</div>
@@ -2477,7 +2646,8 @@ function Wiz({ open, onClose, title, color, steps, onFinish, initial, quickOk, q
         </div>
         <div className="step-bar">
           {steps.map((_,i)=>(
-            <div key={i} className="step-seg" style={{background:i<=step?color:'rgba(255,255,255,.08)',boxShadow:i<=step?`0 0 8px ${i===step?'currentColor':'transparent'}`:'none',opacity:i<=step?1:.6}}/>
+            /* wg-v112 (P4): Farben/Schein im CSS (.step-seg), hier nur Zustand (on = erreicht, jetzt = aktueller Schritt) + Akzent */
+            <div key={i} className={`step-seg${i<=step?' on':''}${i===step?' jetzt':''}`} style={{'--seg':color}}/>
           ))}
         </div>
         <div className="sheet-body" onKeyDown={e=>{ if(e.key==='Enter'&&e.target.tagName!=='TEXTAREA'){ e.preventDefault(); next(); } }}>
@@ -2501,7 +2671,7 @@ function Wiz({ open, onClose, title, color, steps, onFinish, initial, quickOk, q
               erwartet. „disabled" zu behaupten wäre inhaltlich falsch, und Playwright (wie manche
               Hilfstechnik) hält den Knopf dann für nicht klickbar — der Tipp käme nie an, und damit
               auch die Erklärung nicht. Stattdessen verweist der Knopf auf den Hinweis, sobald er da ist. */}
-          <button className="btn" data-testid="wiz-next" aria-describedby={hinweis && !ok ? 'wiz-hint' : undefined} style={{background:ok?color:'var(--bg3)',color:ok?'var(--ink)':'var(--label3)',boxShadow:ok?`0 12px 32px ${'rgba(0,0,0,.3)'}`:'none'}} onClick={next}>
+          <button className="btn" data-testid="wiz-next" aria-describedby={hinweis && !ok ? 'wiz-hint' : undefined} style={{background:ok?color:'var(--bg3)',color:ok?'var(--ink)':'var(--label3)',boxShadow:ok?'var(--schatten-weiter)':'none'}} onClick={next}>
             {last?TT("Fertig"):TT("Weiter")}
           </button>
         </div>
@@ -6271,7 +6441,7 @@ function StockCard() {
           {all.map(it=>{
             const on = onList(it.name), left = stockLeft(it), warn = !on && left!==null && left<=2;
             return (
-              <button key={it.id} data-testid="stock-btn" onClick={()=>edit?hide(it):out(it)} aria-label={edit?TT("{0} ausblenden", it.name):TT("{0} ist fast leer", it.name)}
+              <button key={it.id} className="press" /* wg-v112 (P8): press = Drück-Rückmeldung (scale .94), gemessen: diese 8 Kacheln hatten keine */ data-testid="stock-btn" onClick={()=>edit?hide(it):out(it)} aria-label={edit?TT("{0} ausblenden", it.name):TT("{0} ist fast leer", it.name)}
                 style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,padding:'10px 4px',borderRadius:12,border:`1px solid ${warn?'var(--amber)':'transparent'}`,
                   background:on&&!edit?'rgba(94,234,212,.10)':'var(--bg3)',color:on&&!edit?'var(--mint)':'var(--label)',fontWeight:700,fontSize:12,fontFamily:'inherit',cursor:'pointer',lineHeight:1.2}}>
                 <span style={{fontSize:20}}>{it.em}</span>{it.name}
@@ -6583,7 +6753,9 @@ function RepairCard() {
   };
   return (
     <div className="rise" data-testid="repair-card" style={{animationDelay:'85ms'}}>
-      <div className="section-hdr">{TT("🔧 Kaputt & Vermieter")}</div>
+      {/* wg-v112 (P4): das Symbol als eigenes Span (hell abdunkeln, siehe .em-blass); Text bleibt aus demselben TT-Schlüssel
+          (EN unverändert „Broken & landlord"), nur ohne das führende Symbol */}
+      <div className="section-hdr"><span className="em-blass">🔧</span> {TT("🔧 Kaputt & Vermieter").replace(/^🔧\s*/, '')}</div>
       <div className="group">
         {openL.map(row)}
         {showDone && doneL.slice(0,10).map(row)}
@@ -6993,7 +7165,7 @@ function Haushalt({goGrow, goPutz}) {
   };
   const delRec = id => { const r=recs.find(x=>x.id===id); set('rec',recs.filter(x=>x.id!==id)); undo(TT("„{0}\" beendet", r?.name||'Posten'), ()=>setFn('rec', cur => cur.some(x=>x.id===id)?cur:[r,...cur])); };
 
-  const add    = d => { const amt=parseNum(d.price)||0; set('hs',[{id:uid(),name:d.name||'Einkauf',price:amt,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),owedBy:d.owedBy||null,cat:d.cat||null,shop:(d.shop||'').trim()||null,settled:false},...items]); flyExpense(amt,'#5eead4',heroRef.current); notifyOthers(TT("💸 {0} hat {1} € eingetragen", meName, fmt(amt)), d.name||'Einkauf', "wg-exp", "exp"); };
+  const add    = d => { const amt=parseNum(d.price)||0; set('hs',[{id:uid(),name:d.name||'Einkauf',price:amt,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),owedBy:d.owedBy||null,cat:d.cat||null,shop:(d.shop||'').trim()||null,settled:false},...items]); flyExpense(amt,'var(--mint)',heroRef.current) /* wg-v112 (P4): Token statt festem Pastell — hell der dunklere Akzent */; notifyOthers(TT("💸 {0} hat {1} € eingetragen", meName, fmt(amt)), d.name||'Einkauf', "wg-exp", "exp"); };
   // Vergessenes schnell melden: landet in der Einkaufsliste + Sofort-Push „bitte bring X mit" an den anderen
   const sendBring = () => {
     const n=bringName.trim(); if(!n){ return; }
@@ -7361,7 +7533,7 @@ function Haushalt({goGrow, goPutz}) {
                     const payer=users.find(u=>u.id===item.paidBy);
                     const fl=flashIds.has(item.id);
                     return(
-                      <div key={item.id} className={`cell${fl?' flash':''}${geht.has(item.id)?' geht':''}`} style={fl?{'--flash-c':hexRgba(payer?.color||'#5eead4')}:undefined}>
+                      <div key={item.id} className={`cell klick${fl?' flash':''}${geht.has(item.id)?' geht':''}`} style={fl?{'--flash-c':hexRgba(payer?.color||'#5eead4',1)}:undefined} /* wg-v112 (P4): volle Deckkraft, die Stärke (--flash-a) kommt vom Thema · (P8): klick = Name/Betrag öffnen die Bearbeitung → Zeile reagiert auf die Maus */>
                         <button className="chk-btn chk-leer" title={TT("Als abgerechnet markieren")} onClick={()=>toggle(item.id)}/>
                         <div className="cell-content" style={{cursor:'pointer'}} onClick={()=>setEditItem(item)}>
                           <span className="cell-title">{item.name}</span>
@@ -7390,7 +7562,7 @@ function Haushalt({goGrow, goPutz}) {
               <SettlementHistory settlements={settlements} users={users} accent="var(--mint)"/>
               {settled.length>0&&(
                 <div className="rise">
-                  <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center',cursor:'pointer'}} onClick={()=>setShowSettled(s=>!s)}>
+                  <div className="section-hdr klick" /* wg-v112 (P8): klick = Drück-Rückmeldung (blendet ab), sonst reagierte die Zeile auf nichts */ style={{display:'flex',justifyContent:'space-between',alignItems:'center',cursor:'pointer'}} onClick={()=>setShowSettled(s=>!s)}>
                     <span>{TT("Posten-Details ·")} {settled.length}</span>
                     <span style={{color:'var(--mint)'}}>{showSettled?TT("Verbergen"):TT("Anzeigen")}</span>
                   </div>
@@ -7460,9 +7632,11 @@ function Haushalt({goGrow, goPutz}) {
                     const u=users.find(x=>x.id===i.addedBy);
                     const fl=flashIds.has(i.id);
                     return(
-                      <div key={i.id} className={`cell${i.done?' dim':''}${leaving===i.id?' sl-leaving':''}${fl?' flash':''}`} style={fl?{'--flash-c':hexRgba(u?.color||'#5eead4')}:undefined}>
-                        <button className="chk-btn" aria-label={i.done?TT("{0} wieder öffnen", i.name):TT("{0} abhaken", i.name)} aria-pressed={!!i.done}
-                          style={{border:`1.5px solid ${i.done?'var(--mint)':'var(--sep)'}`,background:i.done?'var(--mint)':'none'}} onClick={()=>checkL(i)}>
+                      <div key={i.id} className={`cell${i.done?' dim':''}${leaving===i.id?' sl-leaving':''}${fl?' flash':''}`} style={fl?{'--flash-c':hexRgba(u?.color||'#5eead4',1)}:undefined}>
+                        {/* wg-v112 (P4): offen = Klasse chk-leer (Rand hell ≥ 3:1, wie in Haushalt/Growbox) statt Inline-Rand var(--sep) (hell 1,2:1);
+                            erledigt behält den vollen Minze-Kreis inline. --flash-c: volle Deckkraft, Stärke aus --flash-a. */}
+                        <button className={`chk-btn${i.done?'':' chk-leer'}`} aria-label={i.done?TT("{0} wieder öffnen", i.name):TT("{0} abhaken", i.name)} aria-pressed={!!i.done}
+                          style={i.done?{border:'1.5px solid var(--mint)',background:'var(--mint)'}:undefined} onClick={()=>checkL(i)}>
                           {i.done&&<ChkIco/>}
                         </button>
                         <div className="cell-content">
@@ -7570,7 +7744,7 @@ function Grow() {
   const pctStr = id => (id===users[0]?.id ? p0 : 100-p0) + '%';
   const setP   = (uid2,v) => set('gp',{...plants,[uid2]:Math.max(0,parseInt(v)||0)});
 
-  const add    = d => { const amt=parseNum(d.price)||0; set('gi',[{id:uid(),name:d.name||'Grow',price:amt,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),cat:d.cat||null,settled:false},...items]); flyExpense(amt,'#a3e635',heroRef.current); notifyOthers(TT("🌱 {0} hat {1} € eingetragen", meName, fmt(amt)), d.name||'Grow', "wg-exp", "exp"); };
+  const add    = d => { const amt=parseNum(d.price)||0; set('gi',[{id:uid(),name:d.name||'Grow',price:amt,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),cat:d.cat||null,settled:false},...items]); flyExpense(amt,'var(--lime)',heroRef.current) /* wg-v112 (P4): Token statt festem Pastell */; notifyOthers(TT("🌱 {0} hat {1} € eingetragen", meName, fmt(amt)), d.name||'Grow', "wg-exp", "exp"); };
   const save   = d => set('gi',items.map(i=>i.id===editItem.id?{...i,name:d.name||i.name,price:parseNum(d.price)||i.price,paidBy:d.paidBy||i.paidBy,date:d.date||i.date,cat:d.cat||null}:i));
   const toggle = id => set('gi',items.map(i=>i.id===id?{...i,settled:!i.settled,settledAt:!i.settled?todayISO():null}:i));
   const del    = id => { const it=items.find(i=>i.id===id); set('gi',items.filter(i=>i.id!==id)); undo(TT("„{0}\" gelöscht", it?.name||'Ausgabe'), ()=>setFn('gi', cur => cur.some(i=>i.id===id)?cur:[it,...cur])); };
@@ -7879,7 +8053,7 @@ function Grow() {
                 {open.map(item=>{
                   const payer=users.find(u=>u.id===item.paidBy);
                   return(
-                    <div key={item.id} className="cell">
+                    <div key={item.id} className="cell klick">
                       <button className="chk-btn chk-leer" title={TT("Als abgerechnet markieren")} onClick={()=>toggle(item.id)}/>
                       <div className="cell-content" style={{cursor:'pointer'}} onClick={()=>setEditItem(item)}>
                         <span className="cell-title">{item.name}</span>
@@ -7905,7 +8079,7 @@ function Grow() {
             <SettlementHistory settlements={settlements} users={users} accent="var(--lime)"/>
             {settled.length>0&&(
               <div className="rise">
-                <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center',cursor:'pointer'}} onClick={()=>setShowSettled(s=>!s)}>
+                <div className="section-hdr klick" /* wg-v112 (P8): klick = Drück-Rückmeldung (blendet ab), sonst reagierte die Zeile auf nichts */ style={{display:'flex',justifyContent:'space-between',alignItems:'center',cursor:'pointer'}} onClick={()=>setShowSettled(s=>!s)}>
                   <span>{TT("Posten-Details ·")} {settled.length}</span>
                   <span style={{color:'var(--lime)'}}>{showSettled?TT("Verbergen"):TT("Anzeigen")}</span>
                 </div>
@@ -8165,8 +8339,9 @@ function ChoreQuick({ goPutz }) {
           const d = choreDueIn(t);
           return (
             <div key={t.id} className="cell" style={{flexWrap:'wrap'}}>
-              <button className="done-btn" style={{borderColor:(meU?.color||'#888')+'66'}} aria-label={TT("{0} erledigt", t.name)} title={TT("{0} erledigt", t.name)} onClick={e=>done(t,e.currentTarget)}>
-                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={meU?.color||'#888'} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"><path d={ICONS.check}/></svg>
+              {/* wg-v112 (P4): nur --p (Personenfarbe); Rand + Haken leitet .done-btn im CSS her (hell abgedunkelt) */}
+              <button className="done-btn" style={{'--p':meU?.color||'#888'}} aria-label={TT("{0} erledigt", t.name)} title={TT("{0} erledigt", t.name)} onClick={e=>done(t,e.currentTarget)}>
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"><path d={ICONS.check}/></svg>
               </button>
               {/* minWidth: wird es eng, rutschen „Morgen"/„Kann nicht" in eine eigene Zeile, statt den Namen zu zerbrechen
                   (vorher „Bad / putzen" auf zwei Zeilen neben zwei 54-px-Knöpfen) — wg-v82 */}
@@ -8357,9 +8532,10 @@ function Putzplan() {
                 const fest=choreFix(t, users), danachId=users.length>1 && !fest ? choreDanach(t, log, users) : null, dU=users.find(x=>x.id===danachId);
                 const nm=(x, gross)=>x?.id===me ? (gross ? TT("Du") : TT("du")) : x?.name;
                 return(
-                  <div key={t.id} className="cell" data-testid="chore-row">
-                    <button className="done-btn" style={{borderColor:(u?.color||'#888')+'66'}} aria-label={TT("{0} erledigt", t.name)} title={TT("{0} erledigt", t.name)} onClick={e=>done(t,e.currentTarget)}>
-                      <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={u?.color||'#888'} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"><path d={ICONS.check}/></svg>
+                  <div key={t.id} className="cell klick" data-testid="chore-row">
+                    {/* wg-v112 (P4): nur --p (Personenfarbe); Rand + Haken leitet .done-btn im CSS her (hell abgedunkelt) */}
+                    <button className="done-btn" style={{'--p':u?.color||'#888'}} aria-label={TT("{0} erledigt", t.name)} title={TT("{0} erledigt", t.name)} onClick={e=>done(t,e.currentTarget)}>
+                      <svg width={16} height={16} viewBox="0 0 24 24" fill="none" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"><path d={ICONS.check}/></svg>
                     </button>
                     {/* wg-v101: eine Unterzeile „Du · wöchentlich" statt „Du bist dran · 1:0 · wöchentlich". Den Stand „1:0"
                         verstand niemand ohne Erklärung, die Fairness zeigt der Balken oben — er steht jetzt im title. */}
@@ -8667,7 +8843,7 @@ function Finanzen() {
                 :(
                   <div className="group">
                     {monTxs.map(t=>(
-                      <div key={t.id} className="cell">
+                      <div key={t.id} className="cell klick">
                         <div className="cell-icon" style={{background:t.type==='inc'?'rgba(74,222,128,.13)':'rgba(251,113,133,.13)',fontSize:15}}>
                           {t.type==='inc'?'📈':'📉'}
                         </div>
@@ -8693,7 +8869,7 @@ function Finanzen() {
                 :(
                   <div className="group">
                     {fixed.map(f=>(
-                      <div key={f.id} className="cell">
+                      <div key={f.id} className="cell klick">
                         <div className="cell-icon" style={{background:'rgba(196,181,253,.13)',fontSize:15}}>📌</div>
                         <div className="cell-content" style={{cursor:'pointer'}} onClick={()=>setEditFix(f)}>
                           <span className="cell-title">{f.name}</span>
@@ -9373,7 +9549,7 @@ function Einstellungen() {
               </button>
             </div>
             {arc.length>0 && (
-              <div className="cell" style={{cursor:'pointer'}} onClick={()=>setShowArchive(true)}>
+              <div className="cell klick" style={{cursor:'pointer'}} onClick={()=>setShowArchive(true)}>
                 <div className="cell-icon" style={{background:'rgba(148,163,184,.12)',fontSize:15}}>📂</div>
                 <div className="cell-content">
                   <span className="cell-title">{TT("Archiv ansehen")}</span>
@@ -9393,21 +9569,21 @@ function Einstellungen() {
             </div>
           )}
           <div className="group">
-            <div className="cell" style={{cursor:'pointer'}} onClick={exportData}>
+            <div className="cell klick" style={{cursor:'pointer'}} onClick={exportData}>
               <div className="cell-icon" style={{background:'rgba(74,222,128,.12)',fontSize:15}}>⬇️</div>
               <div className="cell-content">
                 <span className="cell-title">{TT("Als JSON exportieren")}</span>
                 <span className="cell-sub">{TT("Lädt eine Backup-Datei herunter")}</span>
               </div>
             </div>
-            <div className="cell" style={{cursor:'pointer'}} onClick={exportCsv}>
+            <div className="cell klick" style={{cursor:'pointer'}} onClick={exportCsv}>
               <div className="cell-icon" style={{background:'rgba(56,189,248,.12)',fontSize:15}}>📊</div>
               <div className="cell-content">
                 <span className="cell-title">{TT("Als CSV exportieren")}</span>
                 <span className="cell-sub">{TT("Ausgaben + Abrechnungen für Excel/Sheets")}</span>
               </div>
             </div>
-            <div className="cell" style={{cursor:'pointer'}} onClick={()=>fileInputRef.current?.click()}>
+            <div className="cell klick" style={{cursor:'pointer'}} onClick={()=>fileInputRef.current?.click()}>
               <div className="cell-icon" style={{background:'rgba(94,234,212,.12)',fontSize:15}}>⬆️</div>
               <div className="cell-content">
                 <span className="cell-title">{TT("Backup importieren")}</span>
@@ -9651,7 +9827,7 @@ function Einstellungen() {
         </div>
         </Fold>
 
-        <button style={{width:'100%',height:50,border:'1px solid rgba(251,113,133,.25)',borderRadius:16,background:'rgba(251,113,133,.06)',color:'var(--red)',fontSize:15,fontWeight:700}}
+        <button className="press-breit" /* wg-v112 (P8): volle Breite → Drück-Rückmeldung nur .97 statt .94 */ style={{width:'100%',height:50,border:'1px solid rgba(251,113,133,.25)',borderRadius:16,background:'rgba(251,113,133,.06)',color:'var(--red)',fontSize:15,fontWeight:700}}
             onClick={async()=>{if(await askConfirm({title:TT("Alle lokalen Daten löschen"),body:TT("Entfernt alle Daten und Einstellungen auf diesem Gerät. Über den WG-Code synchronisierte Daten auf anderen Geräten bleiben erhalten — der private Finanzbereich (nur lokal, inkl. PIN) ist danach unwiderruflich weg."),okLabel:TT("Löschen"),danger:true})){['wg_data','fb_cfg','wg_code','wg_modules','wg_me','wg_priv','wg_priv_pin','wg_priv_tab_v1'].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>
           {TT("Alle lokalen Daten löschen")}
         </button>
@@ -9845,7 +10021,8 @@ function Statistik() {
     const sums = {};
     hsMonth.forEach(i => { const k = (i.cat && CAT_COLORS[i.cat]) ? i.cat : 'none'; sums[k] = (sums[k]||0) + i.price; });
     return Object.entries(sums).map(([k,v]) => {
-      if (k==='none') return { k, v, em:'➖', label: TT("Ohne Kategorie"), color:'rgba(255,255,255,.25)' };
+      /* wg-v112 (P4): var(--label3) statt Weiß-Alpha .25 — die Farbe ist Schrift UND Balken; hell 1,00:1 (nur der Betrag war zu sehen), dunkel 2,26:1 */
+      if (k==='none') return { k, v, em:'➖', label: TT("Ohne Kategorie"), color:'var(--label3)' };
       const [,em,label] = CATS.find(c=>c[0]===k);
       return { k, v, em, label, color:CAT_COLORS[k] };
     }).filter(b=>b.v>0).sort((a,b)=>b.v-a.v);
@@ -9866,7 +10043,7 @@ function Statistik() {
     const sums = {};
     giMonth.forEach(i => { const k = (i.cat && GROW_CAT_COLORS[i.cat]) ? i.cat : 'none'; sums[k] = (sums[k]||0) + i.price; });
     return Object.entries(sums).map(([k,v]) => {
-      if (k==='none') return { k, v, em:'➖', label: TT("Ohne Kategorie"), color:'rgba(255,255,255,.25)' };
+      if (k==='none') return { k, v, em:'➖', label: TT("Ohne Kategorie"), color:'var(--label3)' };   /* wg-v112 (P4): wie bei catBuckets */
       const [,em,label] = GROW_CATS.find(c=>c[0]===k);
       return { k, v, em, label, color:GROW_CAT_COLORS[k] };
     }).filter(b=>b.v>0).sort((a,b)=>b.v-a.v);
