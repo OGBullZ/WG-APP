@@ -492,6 +492,21 @@ for (const [kz, art] of [['j1', 'visibilitychange'], ['j2', 'pagehide']]) {
   }, art);
   check(`${kz} App weg (${art}) mitten im Abgang: Abrechnen ist sofort gespeichert`, j.vorher === false && j.sofort === true, JSON.stringify(j));
 }
+// j3 (wg-v113): dieselbe Frage für den Einkaufs-Haken — checkL hat einen EIGENEN 450-ms-Zeitgeber (nicht useAbgang)
+{
+  const J3 = await auf({ tab: 'haus' });
+  await einkauf(J3.page);
+  const j3 = await J3.page.evaluate(async () => {
+    window.__zeile('Milch').querySelector('.chk-btn').click();
+    await window.__bis(() => document.querySelector('.sl-leaving'), 200);
+    const vorher = window.__daten('sl').find(x => x.name === 'Milch').done;
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    const sofort = window.__daten('sl').find(x => x.name === 'Milch').done;
+    return { vorher, sofort };
+  });
+  check('j3 App weg mitten im Einkaufs-Haken: Haken ist sofort gespeichert', j3.vorher === false && j3.sofort === true, JSON.stringify(j3));
+}
 
 const fehler = alle.flatMap(s => s.errs).filter(e => !/ResizeObserver/.test(e));
 check('z1 keine Seitenfehler', fehler.length === 0, fehler.slice(0, 3).join(' | '));
