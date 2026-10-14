@@ -1429,6 +1429,11 @@ const MONTHS_EN = ['January','February','March','April','May','June','July','Aug
 const WD_EN = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 const fmt  = n => (LANG === 'en' ? Number(n||0).toFixed(2) : Number(n||0).toFixed(2).replace('.', ','));     // 8,50 bzw. 8.50
+/* Salden auf Cent runden, VORZEICHENSYMMETRISCH (wg-v113). Derselbe Saldo wird an drei Stellen auf verschiedenen Wegen summiert
+   (Bilanz-Ring = eigener Saldo, Ausgleich-Karte = Saldo des anderen, Heute = myBalance) — die Werte unterscheiden sich nur im
+   Fließkomma-Rauschen (~1e-12). Liegt der Betrag genau auf einem halben Cent (z. B. 24,01 € geteilt), kippte toFixed das Rauschen
+   in verschiedene Richtungen: Ring „€1375,41", Karte „€1375,40". Hier: halbe Cent immer weg von der Null, Rauschen bis 1e-9 € toleriert. */
+const cent = n => { const v = Number(n) || 0; const r = Math.round(Math.abs(v) * 100 + 1e-7) / 100; return v < 0 ? -r : r; };
 // Mit Tausenderpunkt (1.450,00) — für den privaten Finanzbereich, wo Gehalt/Miete
 // in der Größenordnung liegen, in der fmt ohne Trenner schwer lesbar wird.
 const fmtT = n => Number(n||0).toLocaleString(LOC(), { minimumFractionDigits:2, maximumFractionDigits:2 });
@@ -7798,12 +7803,12 @@ function Haushalt({goGrow, goPutz}) {
   const giShare = (me&&growOn) ? gc.tCost*gc.share(me) : 0;          // mein offener Grow-Anteil (nach Pflanzen-Split)
   const myCost  = hsShare + giShare;                                // was ich diesen Zyklus insgesamt trage
   const hsNet   = me ? (bals.find(b=>b.id===me)?.net||0) : 0;
-  const totalNet= hsNet + (growOn?gNet:0);                          // netto: bereits Ausgelegtes verrechnet
+  const totalNet= cent(hsNet + (growOn?gNet:0));                    // netto: bereits Ausgelegtes verrechnet; cent: gleicher Betrag wie Karte/Heute (wg-v113)
   // Verrechnen (wg-v72): Ist in der Growbox etwas offen, zeigt der Haushalt-Ausgleich EINEN Betrag (Haushalt ± Growbox)
   // und „Alles abrechnen" schließt beide. Vorher: PayPal/Banner 66,25 € (nur Haushalt), obwohl torbe aus der Growbox
   // 8 € bekommt → zu zahlen waren 58,25 € (gemeldet 19.09.). Nur bei 2 Personen: dort ist „wer schuldet wem" eindeutig.
   const giOpen  = growOn && gc.tCost > 0.004 && users.length === 2;
-  const payBals = giOpen ? bals.map(b=>({ ...b, net: b.net + gc.net(b.id) })) : bals;
+  const payBals = (giOpen ? bals.map(b=>({ ...b, net: b.net + gc.net(b.id) })) : bals).map(b=>({ ...b, net: cent(b.net) }));   /* cent (wg-v113): Karte = Ring */
   const hsPct   = myCost>0 ? Math.round(hsShare/myCost*100) : 0;
   const giPct   = 100 - hsPct;
   /* wg-v113 (P11): „Ausgleich"-Karte (s. <Bal>). Gibt es sie, wandern „Unterm Strich verrechnet …" und „Diesmal wäre … dran" als
@@ -11028,7 +11033,7 @@ function myBalance(D, me, mods){
   const growOn = mods.grow!==false;
   const g = (me&&growOn) ? growCalc(D).net(me) : 0;
   const other = users.length === 2 ? (users.find(u=>u.id!==me) || null) : null;   // ab 3 Personen kein festes Gegenüber
-  return { total: hs+g, hs, g, growOn, other };
+  return { total: cent(hs+g), hs, g, growOn, other };   /* cent (wg-v113): Heute „X schuldet dir" = Bilanz-Ring = Ausgleich-Karte */
 }
 
 /* Idiotensicheres Start-Pop-up: großer offener Betrag, wenn me beim Öffnen Schulden hat. */

@@ -316,6 +316,32 @@ for (const w of [320, 360, 390]) {
   await zu(S);
 }
 
+// ══════════ k · ein Betrag an drei Stellen: Ring = Ausgleich-Karte = Heute (Hauptloop, wg-v113) ══════════
+// Gefunden im P11-Bericht: Stress-Seed, Ring „€1375.41 owed to me", Karte „€1375.40". Ursache: drei Herleitungen desselben Saldos
+// (eigener Saldo, Saldo des anderen, myBalance) unterscheiden sich im Fließkomma-Rauschen; auf einem halben Cent kippte toFixed
+// in verschiedene Richtungen. Fix: cent() vorzeichensymmetrisch an allen drei Stellen.
+{
+  // halber-Cent-Seed: 24,01 € geteilt (12,005) + Growbox mit Pflanzen-Dritteln (3,333…)
+  const SEED_HALB = { users: U, hs: map([{ id: 'x1', name: 'Halber Cent', price: 24.01, paidBy: 'u2', date: T, settled: false, cat: 'food' }]),
+    gi: map([{ id: 'x2', name: 'Drittel', price: 10, paidBy: 'u1', date: T, settled: false, cat: 'erde' }]), gp: { u1: 1, u2: 2 } };
+  const betrag = s => { const m = String(s || '').match(/€\s?([\d.,]+)/); return m ? m[1] : null; };
+  for (const [n, seed, me, lang] of [['Stress/u1/en', SEED_S, 'u1', 'en'], ['Stress/u1/de', SEED_S, 'u1', 'de'], ['Stress/u2/de', SEED_S, 'u2', 'de'],
+    ['HalberCent/u1', SEED_HALB, 'u1', 'de'], ['HalberCent/u2', SEED_HALB, 'u2', 'de']]) {
+    const K = await open({ seed, me, lang });
+    await K.page.waitForTimeout(400);
+    const haus = await K.page.evaluate(() => ({
+      ring: document.querySelector('.hero .ring-inner .odo-sr')?.textContent || document.querySelector('.hero .ring-inner')?.innerText || '',
+      karte: document.querySelector('[data-testid="ausgleich"] .bal-betrag')?.textContent || '',
+    }));
+    await K.page.locator('.tabbar .tabitem').nth(0).click();
+    await K.page.waitForTimeout(900);
+    const heute = await K.page.evaluate(() => document.querySelector('[data-testid="today-bal"]')?.innerText || '');
+    const w = { ring: betrag('€' + haus.ring.replace(/^€/, '')), karte: betrag(haus.karte), heute: betrag(heute) };
+    check(`k ${n}: Ring = Karte = Heute (${w.ring})`, !!w.ring && w.ring === w.karte && w.karte === w.heute, JSON.stringify(w));
+    await zu(K);
+  }
+}
+
 // ══════════ i · [bleibt] Wortlaut, testids, Rollen ══════════
 {
   const S = await open({ seed: SEED_VOLL, me: 'u2' });
