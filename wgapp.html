@@ -589,12 +589,22 @@ button.cell { color:var(--label); }
 [data-theme="light"] .bar-fill, [data-theme="light"] .tabitem .tab-glow { box-shadow:none; }
 .bar-val { font-size:12.5px; font-weight:600; width:74px; text-align:right; flex-shrink:0; color:var(--label2); }
 
-/* ── Debt banner ── */
-.bal-banner {
-  display:flex; align-items:center; justify-content:center; gap:8px;
-  background:rgba(251,191,36,.08); border:1px solid rgba(251,191,36,.22);
-  border-radius:14px; padding:12px 16px; font-size:14px; letter-spacing:-.01em;
-}
+/* ── „Ausgleich"-Karte (wg-v113, P11) ──
+   EINE Karte statt vier Streifen (Banner, Zahlungsknopf, Bankdaten, drei zentrierte Grau-Hinweise): oben die Zeile „Tom → Torben €27,20",
+   darunter der Zahlungsknopf, darunter kleine Fußzeilen. Anlass (test/shots/hier/hier-390-dark-Haushalt-oben.png): derselbe Betrag 3× im
+   ersten Bild, zwei gefüllte 358×54-Knöpfe (PayPal-Blau + Minze) — jetzt ist „+ Ausgabe hinzufügen" der einzige 54-px-Vollbreitknopf.
+   .group liefert Fläche/Rand/Schatten (Hell bleibt dadurch neutral, nicht amber); nur Dunkel bekommt den dezent warmen Ton des alten Banners.
+   :root:not(…) statt [data-theme="dark"]: vor dem Setzen des Attributs (erster Frame) gibt es keins. */
+.ausgleich { padding:14px; display:flex; flex-direction:column; gap:10px; }
+:root:not([data-theme="light"]) .group.ausgleich { background:rgba(251,191,36,.07); border-color:rgba(251,191,36,.22); }
+/* Kopfzeile: Namen + Pfeil als EIN Textfluss (bricht bei langen Namen natürlich um), der Betrag rechts (bei Platzmangel darunter, rechtsbündig) */
+.bal-banner { display:flex; align-items:center; flex-wrap:wrap; gap:2px 8px; font-size:14px; letter-spacing:-.01em; }
+.bal-paar { min-width:0; overflow-wrap:anywhere; }
+.bal-paar svg { vertical-align:-3px; }   /* Pfeil auf der Textlinie (Abstand kommt von den Leerzeichen um ihn) */
+.bal-betrag { margin-left:auto; font-weight:700; font-size:16px; color:var(--label); }   /* statisch (kein Zähler): der Ring trägt den lauten Betrag */
+/* Kleiner Knopf in der Karte: 44 px (Mindest-Trefferfläche) statt 54 — der eine große Knopf der Seite ist „+ Ausgabe hinzufügen".
+   min-height + auto: bricht ein langer Name („€1384,10 an Maximilian-Alexander per PayPal", 320 px) in zwei Zeilen, wächst der Knopf mit. */
+.btn.btn-klein { height:auto; min-height:44px; padding:0 14px; border-radius:13px; font-size:15px; line-height:1.25; }
 
 /* ── Buttons ── */
 .btn {
@@ -837,10 +847,12 @@ button.cell { color:var(--label); }
 .ring-inner .num, .bal-banner .num { white-space:nowrap; }   /* wg-v111: „€" und Zähler sind getrennte Knoten → brachen zwischen sich um */
 /* Legende neben dem Bilanz-Ring (wg-v111, vorher inline): eine Zeile je Bereich — Punkt · Name · Prozent · Betrag (· ›) */
 .bil-leg  { flex:1; min-width:0; display:flex; flex-direction:column; gap:14px; }
-.bil-row  { display:flex; align-items:center; gap:9px; }
+.bil-row  { display:flex; align-items:center; gap:8px; }   /* wg-v113 (P11): 9 → 8 px — mit dem lauteren Betrag (14/700) ragte der Growbox-Pfeil auf 390 px bei 4-stelligen Euro-Beträgen 3 px über die Spalte (vorher der Betrag selbst 4 px); die <380-Fassung setzt column-gap:9px selbst */
 .bil-name { flex:1; font-size:13.5px; font-weight:700; color:var(--label2); text-align:left; }
-.bil-pct  { font-size:17px; font-weight:800; color:var(--label); }
-.bil-eur  { font-size:11.5px; color:var(--label2); min-width:52px; text-align:right; white-space:nowrap; }
+/* wg-v113 (P11): der Betrag ist die Auskunft, das Prozent nur die Einordnung → Betrag 14/700 in --label, Prozent 12/600 in --label3
+   (vorher umgekehrt: Prozent 17/800 laut, Betrag 11,5 px leise) */
+.bil-pct  { font-size:12px; font-weight:600; color:var(--label3); }
+.bil-eur  { font-size:14px; font-weight:700; color:var(--label); min-width:52px; text-align:right; white-space:nowrap; }
 .bil-chev { color:var(--label3); font-size:16px; line-height:1; margin-left:1px; }
 /* Schmal (320–379 px): neben dem Ring bleiben auch geschrumpft nur ~130 px — eine Zeile brauchte 186 px und ragte aus der Karte.
    Zeile 1: Punkt · Name · Prozent; Zeile 2 (eingerückt wie der Name): Betrag · ›. 🪤 Name ohne min-width:0 —
@@ -3073,7 +3085,7 @@ function Wiz({ open, onClose, title, color, steps, onFinish, initial, quickOk, q
 
 /* Überweisung an den Gläubiger: Schuldner kopiert IBAN/Betrag/alles, Gläubiger teilt seine Bankdaten.
    Nur wenn eine gültige IBAN hinterlegt ist; der Gast-Link zeigt sie nie (guestView nimmt nur WLAN/Regeln/Müll). */
-function BankBox({ c, d, amount, me }) {
+function BankBox({ c, d, amount, me, flach }) {
   const [msg,setMsg] = useState('');
   if (!ibanValid(c.iban)) return null;
   const holder = (c.holder||'').trim() || c.name;
@@ -3081,18 +3093,21 @@ function BankBox({ c, d, amount, me }) {
   const copy = async (t, label) => { setMsg(await copyTxt(t) ? TT("{0} kopiert ✓", label) : TT("Kopieren ging nicht – bitte markieren.")); setTimeout(()=>setMsg(''), 2500); };
   const share = async () => { try { if (navigator.share) { await navigator.share({ title: TT("Bankverbindung"), text:all }); return; } } catch {} copy(all, TT("Bankdaten")); };
   const b = { width:'auto', padding:'8px 12px', fontSize:13, flex:1 };
+  /* wg-v113 (P11): `flach` = Teil der „Ausgleich"-Karte (<Bal>) statt eigene Karte: kein eigener Kasten (.group/Abstand), nur eine
+     Haarlinie als Trenner; die Knöpfe sind 44 px (.btn-klein) wie der Zahlungsknopf darüber, sonst stünden hier wieder 54-px-Streifen */
+  const kl = flach ? ' btn-klein' : '';
   return (
-    <div className="group rise" data-testid="bank-box" style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:8,marginTop:-4}}>
+    <div className={flach ? undefined : 'group rise'} data-testid="bank-box" style={flach ? {display:'flex',flexDirection:'column',gap:8,borderTop:'1px solid var(--sep)',paddingTop:12} : {padding:'12px 14px',display:'flex',flexDirection:'column',gap:8,marginTop:-4}}>
       <div style={{fontSize:13,color:'var(--label2)'}}>{TT("🏦 Überweisung an")} <b style={{color:'var(--label)'}}>{holder}</b></div>
       <div data-testid="bank-iban" className="num" style={{fontSize:15.5,fontWeight:700,letterSpacing:.3,userSelect:'all',wordBreak:'break-all'}}>{ibanFmt(c.iban)}</div>
       {me===c.id ? (
-        <button className="btn btn-sec" onClick={share}>{TT("Bankdaten an")} {d.name} {TT("schicken")}</button>
+        <button className={`btn btn-sec${kl}`} onClick={share}>{TT("Bankdaten an")} {d.name} {TT("schicken")}</button>
       ) : (
         <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
           {/* kurze Beschriftung (passt einzeilig aufs Handy), voller Name für Screenreader */}
-          <button className="btn btn-sec" style={b} aria-label={TT("IBAN kopieren")} onClick={()=>copy(ibanClean(c.iban), 'IBAN')}>{TT("📋 IBAN")}</button>
-          <button className="btn btn-sec" style={b} aria-label={TT("€{0} kopieren", fmt(amount))} onClick={()=>copy(fmt(amount), 'Betrag')}>📋 €{fmt(amount)}</button>
-          <button className="btn btn-sec" style={b} aria-label={TT("Alles kopieren")} onClick={()=>copy(all, 'Alles')}>{TT("📋 Alles")}</button>
+          <button className={`btn btn-sec${kl}`} style={b} aria-label={TT("IBAN kopieren")} onClick={()=>copy(ibanClean(c.iban), 'IBAN')}>{TT("📋 IBAN")}</button>
+          <button className={`btn btn-sec${kl}`} style={b} aria-label={TT("€{0} kopieren", fmt(amount))} onClick={()=>copy(fmt(amount), 'Betrag')}>📋 €{fmt(amount)}</button>
+          <button className={`btn btn-sec${kl}`} style={b} aria-label={TT("Alles kopieren")} onClick={()=>copy(all, 'Alles')}>{TT("📋 Alles")}</button>
         </div>
       )}
       {msg && <span data-testid="bank-msg" style={{fontSize:12.5,color:'var(--green)',fontWeight:700}}>{msg}</span>}
@@ -3122,14 +3137,24 @@ const planText = (plan, users) => plan.map(t=>`${nameOfU(users,t.from)}→${name
 
 /* ── Schulden-Banner ── */
 const PP_LOGO = <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7.2 21.3l.5-3.1h3.6c3.8 0 6.4-1.9 7-5.5.5-3-.9-4.9-3.9-4.9H8.7c-.5 0-.9.4-1 .9L5.2 20.4c-.1.5.3.9.7.9h1.3zm2.4-9.9h2.1c1.2 0 1.9.6 1.7 1.8-.2 1.4-1.2 2.1-2.7 2.1H9l.6-3.9z"/></svg>;
-function Bal({ bals, noShare, mod = 'hs', onSettle }) {
+/* wg-v113 (P11): gibt es die „Ausgleich"-Karte? Nur bei zwei Personen mit Schuldner UND Gläubiger (ab drei zeigt <BalPlan> eine Liste).
+   <Bal> und der Haushalt-Tab fragen beide hier — der Tab hängt seine Hinweise (`fuss`) nur dann in die Karte, wenn es sie gibt;
+   eine zweite, eigene Herleitung an der Aufrufstelle würde irgendwann abweichen. */
+const ausgleichPaar = (bals, users) => {
+  if ((users||[]).length > 2) return null;
+  const d = bals.find(b=>b.net<-.01), c = bals.find(b=>b.net>.01);
+  return d && c ? { d, c } : null;
+};
+/* `fuss` (wg-v113, P11): Fußzeilen, die der Aufrufer in die Karte legen will („Unterm Strich verrechnet …", „Diesmal wäre … dran") */
+function Bal({ bals, noShare, mod = 'hs', onSettle, fuss }) {
   const { me, D, setFn, notifyOthers, askConfirm } = useD();
   const [shared,setShared] = useState(false);
   const plan = settlePlan(bals);
   // Ab drei Personen kann es mehrere Überweisungen geben → eigene Liste (zwei Personen: unverändert ein Paar)
   if ((D.users||[]).length > 2) return <BalPlan plan={plan} mod={mod} onSettle={onSettle}/>;
-  const d=bals.find(b=>b.net<-.01), c=bals.find(b=>b.net>.01);
-  if(!d||!c) return null;
+  const paar = ausgleichPaar(bals, D.users);
+  if(!paar) return null;
+  const { d, c } = paar;
   const amount=Math.abs(d.net);
   // Schuldner d zahlt an Gläubiger c → dessen PayPal.me-Link.
   const link = ppLink(c.pp, amount);
@@ -3150,8 +3175,10 @@ function Bal({ bals, noShare, mod = 'hs', onSettle }) {
     if (ok) onSettle?.();   // Abrechnen schickt selbst „hat abgerechnet"
     else notifyOthers(TT("⚠️ {0}: Zahlung nicht angekommen", nameOfU(D.users, req.to)), TT("€{0} · bitte prüfen", fmt(req.amount)), 'wg-pay-'+mod, "settle");
   };
-  const payBox = req ? (
-    me===req.to ? (
+  /* wg-v113 (P11): die Zahlungsmeldung teilt sich auf. „Angekommen?" an den Gläubiger (pay-confirm) bleibt eine EIGENE Karte hinter dem
+     Ausgleich — sie verlangt eine Entscheidung, wie bisher mit türkisem Rand. Alles andere (Warten-Zeile, „Nicht angekommen"-Hinweis,
+     „Ich habe bezahlt") gehört zum Ausgleich und steht IN der Karte: der Knopf 44 px (.btn-klein), die Zeilen klein und linksbündig. */
+  const payBestaetigen = (req && me===req.to) ? (
       <div className="group rise" data-testid="pay-confirm" style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:10,border:'1px solid rgba(94,234,212,.35)'}}>
         <div style={{fontSize:14,fontWeight:700}}>💶 {TT("{0} hat €{1} bezahlt", nameOfU(D.users, req.from), fmt(req.amount))}</div>
         {Math.abs(req.amount - amount) > 0.01 && <div data-testid="pay-diff" style={{fontSize:12.5,color:'var(--amber)',fontWeight:600}}>{TT("Offen sind inzwischen €")}{fmt(amount)}.</div>}
@@ -3160,13 +3187,15 @@ function Bal({ bals, noShare, mod = 'hs', onSettle }) {
           <button className="btn btn-sec" style={{flex:1}} onClick={()=>answer(false)}>{TT("Nicht angekommen")}</button>
         </div>
       </div>
-    ) : me===req.from ? (
-      <div className="rise" data-testid="pay-wait" style={{fontSize:12.5,color:'var(--label2)',textAlign:'center'}}>{TT("⏳ Wartet auf Bestätigung von")} {nameOfU(D.users, req.to)}</div>
+  ) : null;
+  const payKarte = req ? (
+    me===req.from ? (
+      <div className="rise cell-sub" data-testid="pay-wait" style={{color:'var(--label2)',lineHeight:1.5}}>{TT("⏳ Wartet auf Bestätigung von")} {nameOfU(D.users, req.to)}</div>
     ) : null
   ) : me===d.id ? (
     <>
-      {rejected && <div className="rise" style={{fontSize:12.5,color:'var(--red)',textAlign:'center',fontWeight:700}}>⚠️ {c.name}{TT(": Zahlung nicht angekommen")}</div>}
-      <button className="btn btn-sec rise" data-testid="pay-claim" onClick={claim}>{TT("✓ Ich habe €{0} bezahlt", fmt(amount))}</button>
+      {rejected && <div className="rise" style={{fontSize:12.5,color:'var(--red)',fontWeight:700,lineHeight:1.5}}>⚠️ {c.name}{TT(": Zahlung nicht angekommen")}</div>}
+      <button className="btn btn-sec btn-klein" data-testid="pay-claim" onClick={claim}>{TT("✓ Ich habe €{0} bezahlt", fmt(amount))}</button>
     </>
   ) : null;
   // Gläubiger teilt seinen Zahlungslink (native Share-Sheet → WhatsApp etc.; sonst Clipboard).
@@ -3178,43 +3207,51 @@ function Bal({ bals, noShare, mod = 'hs', onSettle }) {
   };
   return (
     <>
-      <div className="bal-banner rise">
-        <span style={{color:d.color,fontWeight:800}}>{d.name}</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--label3)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14m-5-5l5 5-5 5"/></svg>
-        <span style={{color:c.color,fontWeight:800}}>{c.name}</span>
-        <span className="num" style={{fontWeight:700,fontSize:16,color:'var(--amber)'}}>€<CountUp value={amount}/></span>
+      {/* wg-v113 (P11): EINE Karte „Ausgleich" (.group-Optik, s. CSS „Ausgleich-Karte"): Kopfzeile · Zahlungsknopf (44 px) · Bankdaten ·
+          „Ich habe bezahlt" · Fußzeilen (`fuss`). Vorher vier lose Streifen mit zwei 54-px-Knöpfen und drei zentrierten Grau-Hinweisen.
+          Der Betrag in der Kopfzeile ist statischer Text (kein CountUp): der Ring zeigt denselben Betrag schon laut — ein zweiter Zähler
+          daneben zählte früher parallel mit und war doppelte Auskunft. Innenabstände kommen vom Karten-Gap (10 px), kein marginTop:-4 mehr. */}
+      <div className="group ausgleich rise" data-testid="ausgleich">
+      <div className="bal-banner">
+        <span className="bal-paar"><span style={{color:d.color,fontWeight:800}}>{d.name}</span> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--label3)" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14m-5-5l5 5-5 5"/></svg> <span style={{color:c.color,fontWeight:800}}>{c.name}</span></span>
+        <span className="num bal-betrag">€{fmt(amount)}</span>
       </div>
       {/* wg-v112 (P6): Layout-Sprung ~1,4–5 s nach dem Laden (Hinweis → hoher Knopf). URSACHE (gemessen mit scratchpad/p2-zahlungslink.mjs:
           Hinweis bei 0,3/1,5/3 s, Knopf bei 6 s): die Einmal-Migration im DataProvider trägt Torbens PayPal.me-Namen NACH, 3,5 s nach dem
           ersten Sync (Zeitgeber, „erst nach dem Sync, sonst überschreibt der Server-Load die Ergänzung"). Davor hat `c.pp` keinen Wert → Hinweis
-          („Per Klick zahlen geht, sobald …", 19–38 px), danach ein Link → Knopf (54 px). Betrifft nur WGs, in denen u1 „Torben" noch kein pp hat
+          („Per Klick zahlen geht, sobald …", 19–38 px), danach ein Link → Knopf (54 px, seit wg-v113: 44 px). Betrifft nur WGs, in denen u1 „Torben" noch kein pp hat
           (frische WG, Testdaten); in der echten WG steht pp längst.
           LÖSUNG = nur Platz reservieren, die Migration bleibt unangetastet (sie schreibt Daten, ein Eingriff wäre riskanter als der Sprung):
           wartet die Migration noch (ppNachtragFaellig — dieselbe Bedingung wie dort) und folgt ein Knopf, hat der Hinweis die Knopfhöhe,
-          Text mittig. Folgt kein Knopf (Gläubiger in der Growbox, noShare), bliebe der Platz leer → dann keine Reservierung. */}
+          Text mittig. Folgt kein Knopf (Gläubiger in der Growbox, noShare), bliebe der Platz leer → dann keine Reservierung.
+          wg-v113 (P11): gilt unverändert IN der Karte — Hinweis und Knopf stehen im selben Platz direkt unter der Kopfzeile, die Reservierung
+          ist jetzt 44 px (= .btn-klein), Text linksbündig mittig in der Höhe. */}
       {/* wg-v112 (P10): Growbox-Gläubiger (noShare) in der Wartezeit der Einmal-Migration: dort folgt KEIN Knopf, der Hinweis verschwand also
           nach 3,5 s ersatzlos und der ganze Inhalt darunter sprang um Hinweis + Abstand (19–38 + 20 px). Die Migration trägt gleich
           einen Link nach, „PayPal fehlt" wäre in dem Moment ohnehin falsch → der Hinweis erscheint in diesem einen Zustand gar nicht erst
           (statt Platz für Nichts zu reservieren). Alle anderen Fälle bleiben: Haushalt (Knopf folgt, Platz reserviert) und echte Lücken. */}
       {!link ? ((ibanValid(c.iban) || (isCreditor && noShare && ppNachtragFaellig(c))) ? null :
-        <div className="rise" data-testid="pay-hinweis" style={{fontSize:12.5,color:'var(--label3)',textAlign:'center',marginTop:-4,lineHeight:1.5,padding:'0 8px',...((ppNachtragFaellig(c) && !(isCreditor && noShare)) ? {minHeight:54,display:'flex',alignItems:'center',justifyContent:'center'} : null)}}>
+        <div className="cell-sub" data-testid="pay-hinweis" style={{lineHeight:1.5,...((ppNachtragFaellig(c) && !(isCreditor && noShare)) ? {minHeight:44,display:'flex',alignItems:'center'} : null)}}>
           <span>{TT("Per Klick zahlen geht, sobald")} {c.name} {TT("unter")} <b>{TT("Mehr → Personen")}</b> {TT("PayPal oder eine IBAN hinterlegt.")}</span>{/* <span>: im Flex-Fall (Platz reserviert) bliebe sonst jedes Textstück ein eigener Flex-Posten */}
         </div>
       ) : isCreditor ? (
         noShare ? null : (
-        <button className="btn rise" onClick={shareLink}
-          style={{background:'#0070ba',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',gap:8,border:'none',marginTop:-4}}>
+        <button className="btn btn-klein" onClick={shareLink}
+          style={{background:'#0070ba',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',gap:8,border:'none'}}>
           {PP_LOGO}{shared ? TT("Link kopiert ✓") : TT("Zahlungslink an {0} teilen", d.name)}
         </button>
         )
       ) : (
-        <a className="btn rise" href={link} target="_blank" rel="noopener noreferrer"
-          style={{background:'#0070ba',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',gap:8,textDecoration:'none',marginTop:-4}}>
+        <a className="btn btn-klein" href={link} target="_blank" rel="noopener noreferrer"
+          style={{background:'#0070ba',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',gap:8,textDecoration:'none'}}>
           {PP_LOGO}€{fmt(amount)} {TT("an")} {c.name} {TT("per PayPal")}
         </a>
       )}
-      <BankBox c={c} d={d} amount={amount} me={me}/>
-      {payBox}
+      <BankBox c={c} d={d} amount={amount} me={me} flach/>
+      {payKarte}
+      {fuss}
+      </div>
+      {payBestaetigen}
     </>
   );
 }
@@ -4102,13 +4139,15 @@ const advanceNext = (D, users) => {
   if (max.sum - min.sum < 20) return null;   // unter 20 € Unterschied ist es egal
   return { next: min, max };
 };
-function AdvanceHint() {
+/* `inKarte` (wg-v113, P11): als Fußzeile der „Ausgleich"-Karte (.cell-sub: klein, linksbündig, ohne eigene Bewegung — die Karte steigt
+   als Ganzes ein); ohne Schulden gibt es die Karte nicht, dann steht der Hinweis wie bisher allein (zentriert, Grau) */
+function AdvanceHint({ inKarte }) {
   const { D, me } = useD();
   const users = D.users || [];
   const a = advanceNext(D, users);
   if (!a) return null;
   return (
-    <div className="rise" data-testid="advance-hint" style={{fontSize:12.5,color:'var(--label2)',textAlign:'center',padding:'0 8px',lineHeight:1.5}}>
+    <div className={inKarte ? 'cell-sub' : 'rise'} data-testid="advance-hint" style={inKarte ? {lineHeight:1.5} : {fontSize:12.5,color:'var(--label2)',textAlign:'center',padding:'0 8px',lineHeight:1.5}}>
       {/* wg-v111: ganzer Satz statt Bruchstücke (EN las sich „This time it would be you due to pay up front – Tom has last time €5 paid up front");
           zwei Fassungen, weil „du hast" / „Tom hat" verschieden konjugiert */}
       {a.max.id===me
@@ -7767,6 +7806,18 @@ function Haushalt({goGrow, goPutz}) {
   const payBals = giOpen ? bals.map(b=>({ ...b, net: b.net + gc.net(b.id) })) : bals;
   const hsPct   = myCost>0 ? Math.round(hsShare/myCost*100) : 0;
   const giPct   = 100 - hsPct;
+  /* wg-v113 (P11): „Ausgleich"-Karte (s. <Bal>). Gibt es sie, wandern „Unterm Strich verrechnet …" und „Diesmal wäre … dran" als
+     Fußzeilen IN die Karte (`fuss`); sonst (kein Schuldner, ab 3 Personen) steht der Vorstreck-Hinweis wie bisher allein.
+     „Verrechnet" gibt es nur bei giOpen (= genau 2 Personen) — also immer mit Karte, deshalb keine Einzelfassung ohne sie. */
+  const kartePaar = ausgleichPaar(payBals, users);
+  const balParts = (() => {
+    if (!(giOpen && payBals.some(b=>Math.abs(b.net)>0.01))) return null;
+    const d = payBals.find(b=>b.net<-0.01), hsD = bals.find(b=>b.id===d?.id)?.net||0, gD = gc.net(d?.id);
+    return <div className="cell-sub" data-testid="bal-parts" style={{lineHeight:1.5}}>
+      {/* nowrap-Spans: Vorzeichen und Betrag dürfen nicht an der Zeilenkante auseinanderfallen („Haushalt −" / „€27,20", im schmalen Kartenraum gesehen) */}
+      {TT("Unterm Strich verrechnet: Haushalt")} <span style={{whiteSpace:'nowrap'}}>{hsD<0?'−':'+'}€{fmt(Math.abs(hsD))}</span> {TT("· Growbox")} <span style={{whiteSpace:'nowrap'}}>{gD<0?'−':'+'}€{fmt(Math.abs(gD))}</span> {TT("(aus Sicht von")} {d?.name})
+    </div>;
+  })();
 
   /* Abrechnen: Ausgleich (wer→wem, wie viel) festhalten + offene Posten als abgerechnet markieren */
   const settleAll = () => {
@@ -8002,11 +8053,7 @@ function Haushalt({goGrow, goPutz}) {
           </>
           )}
           <DebtWatch/>
-          <Bal bals={payBals} mod="hs" onSettle={settleAll}/>
-          {giOpen && payBals.some(b=>Math.abs(b.net)>0.01) && (() => { const d = payBals.find(b=>b.net<-0.01), hsD = bals.find(b=>b.id===d?.id)?.net||0, gD = gc.net(d?.id);
-            return <div className="rise" data-testid="bal-parts" style={{fontSize:12.5,color:'var(--label2)',textAlign:'center',marginTop:-4}}>
-              {TT("Unterm Strich verrechnet: Haushalt")} {hsD<0?'−':'+'}€{fmt(Math.abs(hsD))} {TT("· Growbox")} {gD<0?'−':'+'}€{fmt(Math.abs(gD))} {TT("(aus Sicht von")} {d?.name})
-            </div>; })()}
+          <Bal bals={payBals} mod="hs" onSettle={settleAll} fuss={kartePaar ? <>{balParts}<AdvanceHint inKarte/></> : null}/>
           {!giOpen && growOn && gNet<-0.01 && (
             <button className="rise" onClick={goGrow}
               style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginTop:-4,padding:'11px 14px',borderRadius:14,border:'1px solid rgba(163,230,53,.28)',background:'rgba(163,230,53,.06)',color:'var(--lime)',fontWeight:700,fontSize:13.5,fontFamily:'inherit',cursor:'pointer',animationDelay:'55ms'}}>
@@ -8014,7 +8061,7 @@ function Haushalt({goGrow, goPutz}) {
               {TT("Growbox: noch")} <span className="num">€{fmt(-gNet)}</span> {TT("offen · im Grow-Tab ›")}
             </button>
           )}
-          <AdvanceHint/>
+          {!kartePaar && <AdvanceHint/>}
           <QuickExpense onFull={name=>{ setWizInit(name ? { name, paidBy:me||undefined } : null); setWiz(true); }}/>
           {/* Budget, Sparziel, Miete: mit Inhalt als Karte, leer als Kachel, die direkt das Eingabeblatt öffnet (wg-v103 Chips,
               wg-v105 Kacheln — s. WerkzeugGitter). Vorher standen alle leer als eigene Blöcke mit Erklärtext da. */}
@@ -8025,7 +8072,8 @@ function Haushalt({goGrow, goPutz}) {
             const deb = payBals.find(b=>b.net<-0.01), cred = payBals.find(b=>b.net>0.01);
             if (me && users.length>2 && payBals.find(b=>b.id===me)?.net < -0.01) return <div className="rise" data-testid="settle-hint" style={{fontSize:12.5,color:'var(--label2)',textAlign:'center'}}>{TT("Abrechnen macht, wer Geld bekommt – sobald es da ist.")}</div>;
             if (me && deb && deb.id===me) return <div className="rise" data-testid="settle-hint" style={{fontSize:12.5,color:'var(--label2)',textAlign:'center'}}>{TT("Abrechnen macht")} {cred?.name}{TT(", sobald das Geld da ist – oben „Ich habe bezahlt“ tippen.")}</div>;
-            return <button className="btn btn-sec rise" style={{animationDelay:'80ms'}} onClick={settleAll}>{TT("✓ Alles abrechnen (")}{open.length}{giOpen ? TT(" + {0} Growbox", gc.open.length) : ''})</button>;
+            /* wg-v113 (P11): .btn-klein (44 statt 54 px) — „+ Ausgabe hinzufügen" soll der einzige große Knopf der Seite sein */
+            return <button className="btn btn-sec btn-klein rise" style={{animationDelay:'80ms'}} onClick={settleAll}>{TT("✓ Alles abrechnen (")}{open.length}{giOpen ? TT(" + {0} Growbox", gc.open.length) : ''})</button>;
           })()}
           {recs.length>0&&(
             <div className="rise" style={{animationDelay:'90ms'}}>

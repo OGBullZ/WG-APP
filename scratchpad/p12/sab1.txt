@@ -1,0 +1,39 @@
+=== FAIL ===
+d1 [bleibt] 834 Heute: Zonen-Hüllen ohne eigenen Kasten (display:contents) — zz-paar
+d1 [bleibt] 834 Haushalt: Zonen-Hüllen ohne eigenen Kasten (display:contents) — zz-paar, zz-l, zz-r
+d1 [bleibt] 834 Growbox: Zonen-Hüllen ohne eigenen Kasten (display:contents) — zz-paar, zz-l, zz-r
+d1 [bleibt] 834 Putzplan: Zonen-Hüllen ohne eigenen Kasten (display:contents) — zz-paar, zz-r zz-oben, zz-l, zz-r zz-unten
+d1 [bleibt] 834 Privat: Zonen-Hüllen ohne eigenen Kasten (display:contents) — zz-paar, zz-l zz-oben, zz-r, zz-l zz-unten
+d1 [bleibt] 834 Abos: Zonen-Hüllen ohne eigenen Kasten (display:contents) — zz-paar, zz-l, zz-r
+d1 [bleibt] 834 Übersicht: Zonen-Hüllen ohne eigenen Kasten (display:contents) — zz-paar, zz-l, zz-r
+d1 [bleibt] 834 Mehr: Zonen-Hüllen ohne eigenen Kasten (display:contents) — zz-paar, zz-l, zz-r
+d1 [bleibt] 834 Haushalt-Liste: Zonen-Hüllen ohne eigenen Kasten (display:contents) — zz-paar, zz-l, zz-r
+d2 [bleibt] 834 Heute: Hüllen auspacken verschiebt nichts (±1 px, 7 Blöcke, 3 Hüllen) — #2 today-rows [113,286,608,110] vs today-rows [113,306,608,110] | #3 push-nudge [113,396,608,70] vs push-n
+d2 [bleibt] 834 Haushalt: Hüllen auspacken verschiebt nichts (±1 px, 8 Blöcke, 3 Hüllen) — #2 ausgleich [113,338,608,161] vs ausgleich [113,358,608,161] | #3 quick-expense [113,499,608,54] vs qu
+d2 [bleibt] 834 Growbox: Hüllen auspacken verschiebt nichts (±1 px, 6 Blöcke, 3 Hüllen) — #1 rise [113,399,608,222] vs rise [113,419,608,222] | #2 btn [113,621,608,54] vs btn [113,661,608,54] | 
+d2 [bleibt] 834 Putzplan: Hüllen auspacken verschiebt nichts (±1 px, 5 Blöcke, 4 Hüllen) — #1 rise [113,170,608,233] vs rise [113,190,608,233] | #2 DIV [113,403,608,94] vs DIV [113,443,608,94] |
+d2 [bleibt] 834 Privat: Hüllen auspacken verschiebt nichts (±1 px, 8 Blöcke, 4 Hüllen) — #2 summary [113,172,608,101] vs summary [113,192,608,101] | #3 seg [113,273,608,48] vs seg [113,313,608,4
+d2 [bleibt] 834 Abos: Hüllen auspacken verschiebt nichts (±1 px, 4 Blöcke, 3 Hüllen) — #1 btn [113,195,608,54] vs btn [113,215,608,54] | #2 sub-grid [113,249,608,172] vs sub-grid [113,289,608,17
+d2 [bleibt] 834 Übersicht: Hüllen auspacken verschiebt nichts (±1 px, 14 Blöcke, 3 Hüllen) — #2 group [113,288,608,66] vs group [113,308,608,66] | #3 rise [113,354,608,97] vs rise [113,394,608,
+d2 [bleibt] 834 Mehr: Hüllen auspacken verschiebt nichts (±1 px, 8 Blöcke, 3 Hüllen) — #2 look [113,218,608,70] vs look [113,228,608,70] | #3 data [113,288,608,70] vs data [113,308,608,70] | #4 
+d2 [bleibt] 834 Haushalt-Liste: Hüllen auspacken verschiebt nichts (±1 px, 7 Blöcke, 3 Hüllen) — #2 rise [113,157,285,36] vs rise [113,177,608,36] | #3 stock-card [113,193,608,216] vs stock-card
+d1 [bleibt] 390 Heute: Zonen-Hüllen ohne eigenen Kasten (display:contents) — zz-paar
+d1 [bleibt] 390 Haushalt: Zonen-Hüllen ohne eigenen Kasten (display:contents) — zz-paar, zz-l, zz-r
+d1 [bleibt] 390 Growbox: Zonen-Hüllen ohne eigenen Kasten (display:contents) — zz-paar, zz-l, zz-r
+d1 [bleibt] 390 Putzplan: Zonen-Hüllen ohne eigenen Kasten (display:contents) — zz-paar, zz-r zz-oben, zz-l, zz-r zz-unten
+d1 [bleibt] 390 Privat: Zonen-Hüllen ohne eigenen Kasten (display:contents) — zz-paar, zz-l zz-oben, zz-r, zz-l zz-unten
+d1 [bleibt] 390 Abos: Zonen-Hüllen ohne eigenen Kasten (display:contents) — zz-paar, zz-l, zz-r
+d1 [bleibt] 390 Übersicht: Zonen-Hüllen ohne eigenen Kasten (display:contents) — zz-paar, zz-l, zz-r
+d1 [bleibt] 390 Mehr: Zonen-Hüllen ohne eigenen Kasten (display:contents) — zz-paar, zz-l, zz-r
+d1 [bleibt] 390 Haushalt-Liste: Zonen-Hüllen ohne eigenen Kasten (display:contents) — zz-paar, zz-l, zz-r
+d2 [bleibt] 390 Heute: Hüllen auspacken verschiebt nichts (±1 px, 7 Blöcke, 3 Hüllen) — #2 today-rows [16,339,358,122] vs today-rows [16,359,358,122] | #3 push-nudge [16,461,358,87] vs push-nudg
+d2 [bleibt] 390 Haushalt: Hüllen auspacken verschiebt nichts (±1 px, 8 Blöcke, 3 Hüllen) — #2 ausgleich [16,338,358,198] vs ausgleich [16,358,358,198] | #3 quick-expense [16,536,358,113] vs quic
+d2 [bleibt] 390 Growbox: Hüllen auspacken verschiebt nichts (±1 px, 6 Blöcke, 3 Hüllen) — #1 rise [16,399,358,222] vs rise [16,419,358,222] | #2 btn [16,621,358,54] vs btn [16,661,358,54] | #3 b
+d2 [bleibt] 390 Putzplan: Hüllen auspacken verschiebt nichts (±1 px, 5 Blöcke, 4 Hüllen) — #1 rise [16,170,358,250] vs rise [16,190,358,250] | #2 DIV [16,420,358,94] vs DIV [16,460,358,94] | #3 
+d2 [bleibt] 390 Privat: Hüllen auspacken verschiebt nichts (±1 px, 8 Blöcke, 4 Hüllen) — #2 summary [16,172,358,101] vs summary [16,192,358,101] | #3 seg [16,273,358,48] vs seg [16,313,358,48] |
+d2 [bleibt] 390 Abos: Hüllen auspacken verschiebt nichts (±1 px, 4 Blöcke, 3 Hüllen) — #1 btn [16,195,358,54] vs btn [16,215,358,54] | #2 sub-grid [16,249,358,172] vs sub-grid [16,289,358,172] |
+d2 [bleibt] 390 Übersicht: Hüllen auspacken verschiebt nichts (±1 px, 14 Blöcke, 3 Hüllen) — #2 group [16,288,358,83] vs group [16,308,358,83] | #3 rise [16,371,358,97] vs rise [16,411,358,97] 
+d2 [bleibt] 390 Mehr: Hüllen auspacken verschiebt nichts (±1 px, 8 Blöcke, 3 Hüllen) — #2 look [16,235,358,87] vs look [16,245,358,87] | #3 data [16,322,358,70] vs data [16,342,358,70] | #4 home
+d2 [bleibt] 390 Haushalt-Liste: Hüllen auspacken verschiebt nichts (±1 px, 7 Blöcke, 3 Hüllen) — #2 rise [16,176,285,36] vs rise [16,196,358,36] | #3 stock-card [16,212,358,303] vs stock-card [1
+
+27 grün, 36 rot
