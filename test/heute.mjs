@@ -50,6 +50,10 @@ async function open(seed, { lang = 'de', lokal = false } = {}) {
 }
 const tools = page => page.locator('[data-tool]').evaluateAll(els => els.map(e => e.getAttribute('data-tool')));
 const chips = page => page.locator('[data-testid="tool-chips"] [data-chip]').evaluateAll(els => els.map(e => e.getAttribute('data-chip')));
+/* wg-v113 (P13): in einer LEEREN WG steht oben „Erste Schritte" und das Kachel-Gitter ist hinter „Weitere Werkzeuge (N)" eingeklappt —
+   die Kacheln bleiben im DOM (Prüfungen A1/A4 lesen sie weiter), sind aber unsichtbar: Klicks warten ins Leere, innerText lässt sie aus.
+   Wer eine Kachel bedienen oder lesen will, klappt zuerst auf — wie ein Mensch. Ohne Zeile (WG mit Inhalt) tut das nichts. */
+const aufklappen = async page => { const m = page.locator('[data-testid="wz-mehr"]'); if (await m.count() && await m.getAttribute('aria-expanded') === 'false') { await m.click(); await page.waitForTimeout(450); } };
 
 // ── A: leere WG ──
 const A = await open({ users: USERS });
@@ -62,6 +66,7 @@ check('A3 Heute ist kurz (≤ 1,6 Bildschirmhöhen)', hoehe <= 844 * 1.6, `${hoe
 const leer = await A.page.locator('[data-tool-leer]').evaluateAll(els => els.map(e => ({ k: e.getAttribute('data-tool-leer'), sichtbar: e.offsetParent !== null })));
 check('A4 jedes Chip-Werkzeug ist unsichtbar eingehängt (Nebenaufgaben laufen weiter)', TOOLS.every(k => leer.some(x => x.k === k && !x.sichtbar)), JSON.stringify(leer.map(x => x.k)));
 // B: ein Tipp auf die Kachel tut, was man will (wg-v105; bis v104 schob der Chip eine LEERE Karte ein → zweiter Tipp)
+await aufklappen(A.page);   // wg-v113 (P13)
 await A.page.locator('[data-chip="fridge"]').click();
 await A.page.waitForTimeout(400);
 check('B1 Kachel „Kühlschrank" öffnet direkt das Eingabeblatt, keine leere Karte im Feed',
@@ -107,6 +112,7 @@ await C.ctx.close();
 
 // ── E: Englisch ──
 const E = await open({ users: USERS }, { lang: 'en' });
+await aufklappen(E.page);   // wg-v113 (P13)
 const chipTxt = await E.page.locator('[data-testid="tool-chips"]').innerText();
 check('E1 Chips auf Englisch', /Fridge/.test(chipTxt) && /Meal plan/i.test(chipTxt) && !/Kühlschrank|Essensplan/.test(chipTxt), chipTxt.replace(/\n/g, ' · '));
 await E.ctx.close();

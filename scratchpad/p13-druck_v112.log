@@ -1,0 +1,69 @@
+   · Heute: 29 geprüft, 0 ohne Rückmeldung
+   · Haushalt/Ausgaben: 24 geprüft, 0 ohne Rückmeldung
+   · Haushalt/Einkaufsliste: 24 geprüft, 0 ohne Rückmeldung
+   · Putzplan: 12 geprüft, 0 ohne Rückmeldung
+   · Mehr: 69 geprüft, 0 ohne Rückmeldung
+
+=== PASS ===
+a2 .del-btn: Ruhe übergeht transform (Rückfeder .18 s = --dur-kurz) — {"p":"transform","d":"0.18s","t":"none"}
+a2b .del-btn gedrückt: auf 94 % (matrix .94) und Übergang 60 ms — {"p":"transform","d":"0.06s","t":"matrix(0.94, 0, 0, 0.94, 0, 0)"}
+a3 Tap-Highlight: <html> und klickbare divs (.cell) ohne grauen Systemblitz — {"html":"rgba(0, 0, 0, 0)","div":"rgba(0, 0, 0, 0)","tbh":"84px"}
+a3b Handy: --tb-h bleibt 84px (nur ab 1024 px 0) — 84px
+a Reichweite: mindestens 90 Elemente auf Heute, Haushalt, Putzplan, Mehr geprüft (sonst ist „keiner ohne Rückmeldung" kein Beleg) — 158 geprüft
+a JEDER sichtbare Knopf / klickbare Zeilen-Inhalt zeigt beim Drücken etwas (transform / Fläche / Schatten / Filter) — 0 von 158 ohne Rückmeldung: 
+b0 Probe: das emulierte Tablet meldet KEIN Hover und keinen feinen Zeiger (sonst misst der Test nichts) — {"hover":false,"fein":false}
+b1 Tippen auf eine Zeile: 300 ms später höchstens ein Rest der Drück-Tönung (< .02), kein Hover (.05) — rgba(0, 0, 0, 0)|none → rgba(255, 255, 255, 0.004)|none
+b1b ... und nach 1 s ist die Zeile wieder genau im Ruhezustand — rgba(0, 0, 0, 0)|none → rgba(0, 0, 0, 0)|none
+b2 Probe: die Zeile ist :hover (Mausposition liegt darauf)
+b3 klickbare Zeile unter dem Zeiger: keine Tönung ohne (hover:hover) — rgba(0, 0, 0, 0)|none → rgba(0, 0, 0, 0)|none
+b4 Werkzeug-Kachel unter dem Zeiger: ohne (hover:hover) unverändert
+c0 dark Probe: 1440-Fenster mit Maus meldet Hover + feinen Zeiger — {"hover":true,"fein":true}
+c dark Hover Tab-Eintrag (nicht aktiv): Stil UND Bild ändern sich (Bildabweichung ≥ 1,5; kein scale) — Stil true, Bild 11.48, transform none
+c dark Hover Suchknopf: Stil UND Bild ändern sich (Bildabweichung ≥ 1,5; kein scale) — Stil true, Bild 9.25, transform none
+c dark Hover Werkzeug-Kachel: Stil UND Bild ändern sich (Bildabweichung ≥ 1,5; kein scale) — Stil true, Bild 4.92, transform none
+c dark Hover klickbare Zeile (Heute): Stil UND Bild ändern sich (Bildabweichung ≥ 1,5; kein scale) — Stil true, Bild 10.45, transform none
+c dark Hover Chip in der Suche (ungewählt): Stil UND Bild ändern sich (Bildabweichung ≥ 1,5; kein scale) — Stil true, Bild 4.05, transform none
+c dark Hover Segment (nicht gewählt): Stil UND Bild ändern sich (Bildabweichung ≥ 1,5; kein scale) — Stil true, Bild 11.44, transform none
+c dark Hover klickbare Zeile (Haushalt-Posten, .klick): Stil UND Bild ändern sich (Bildabweichung ≥ 1,5; kein scale) — Stil true, Bild 10.13, transform none
+c dark Hover „Zuletzt erledigt"-Zeile (passiv): bleibt still (Stil gleich, Bildabweichung < 0,3) — Stil false, Bild 0
+c dark Hover Monatspfeil: Stil UND Bild ändern sich (Bildabweichung ≥ 1,5; kein scale) — Stil true, Bild 6.01, transform none
+c dark Hover Faltkopf unter Mehr: Stil UND Bild ändern sich (Bildabweichung ≥ 1,5; kein scale) — Stil true, Bild 10.11, transform none
+c dark Faltkopf behält den Verlauf (--card) beim Hover — linear-gradient(160deg, rgba(255, 255, 255, 0.055), rgba(255
+c0 light Probe: 1440-Fenster mit Maus meldet Hover + feinen Zeiger — {"hover":true,"fein":true}
+c light Hover Tab-Eintrag (nicht aktiv): Stil UND Bild ändern sich (Bildabweichung ≥ 1,5; kein scale) — Stil true, Bild 10.83, transform none
+c light Hover Suchknopf: Stil UND Bild ändern sich (Bildabweichung ≥ 1,5; kein scale) — Stil true, Bild 8.31, transform none
+c light Hover Werkzeug-Kachel: Stil UND Bild ändern sich (Bildabweichung ≥ 1,5; kein scale) — Stil true, Bild 15.16, transform none
+c light Hover klickbare Zeile (Heute): Stil UND Bild ändern sich (Bildabweichung ≥ 1,5; kein scale) — Stil true, Bild 12.57, transform none
+c light Hover Chip in der Suche (ungewählt): Stil UND Bild ändern sich (Bildabweichung ≥ 1,5; kein scale) — Stil true, Bild 10.95, transform none
+c light Hover Segment (nicht gewählt): Stil UND Bild ändern sich (Bildabweichung ≥ 1,5; kein scale) — Stil true, Bild 9.96, transform none
+c light Hover klickbare Zeile (Haushalt-Posten, .klick): Stil UND Bild ändern sich (Bildabweichung ≥ 1,5; kein scale) — Stil true, Bild 12.6, transform none
+c light Hover „Zuletzt erledigt"-Zeile (passiv): bleibt still (Stil gleich, Bildabweichung < 0,3) — Stil false, Bild 0
+c light Hover Monatspfeil: Stil UND Bild ändern sich (Bildabweichung ≥ 1,5; kein scale) — Stil true, Bild 11.28, transform none
+c light Hover Faltkopf unter Mehr: Stil UND Bild ändern sich (Bildabweichung ≥ 1,5; kein scale) — Stil true, Bild 11.96, transform none
+c light Faltkopf behält den Verlauf (--card) beim Hover — linear-gradient(160deg, rgb(255, 255, 255), rgb(248, 250, 24
+c Wache: es gibt Hover-Regeln (Reichweite ≥ 12) — 12 Regeln
+c Wache: jede :hover-Regel steht in (hover:hover) and (pointer:fine)
+c Wache: kein pauschales `.cell:hover` (nur button.cell und .klick)
+d1 Kachel per Tab erreicht, Ring gezeichnet (2 px solid) — {"r":"18px","ring":"solid 2px","off":"2px","fv":true}
+d2 Kachel-Radius mit Fokus = ohne Fokus (18 px, nicht 6 px) — 18px → 18px
+d3 Tab-Eintrag per Tab: Ring 2 px, Abstand −4 px (innen), Ecken 14 px — {"r":"14px","off":"-4px","ring":"solid 2px","fv":true}
+d4 Haken-Kreis mit Fokus: Radius unverändert (rund), Ring gezeichnet — 50% → {"r":"50%","ring":"solid 2px","off":"2px","fv":true}
+d5 Textknopf im Abschnittskopf (Heute): Radius 6 px, Ring gezeichnet — {"r":"6px","ring":"solid 2px","off":"2px","fv":true}
+e0 390 Handy Probe: Suche zeigt viele Treffer (≥ 60 Zeilen) und 4 Filterreihen — 60 Treffer, 4 Reihen · 70 Treffer · Ausgaben zusammen €2765,00
+e1 390 Handy jede Filterreihe ≥ 36 px hoch (vorher 9–12 px) — Höhen 40/40/40/40 px
+e2 390 Handy flex-shrink:0 an der Reihe — {"shrink":"0","wrap":"nowrap","overflowX":"auto"}
+e3 390 Handy wischbar bleibt: nowrap + overflow-x:auto — {"shrink":"0","wrap":"nowrap","overflowX":"auto"}
+e0 1440 Maus Probe: Suche zeigt viele Treffer (≥ 60 Zeilen) und 4 Filterreihen — 60 Treffer, 4 Reihen · 70 Treffer · Ausgaben zusammen €2765,00
+e1 1440 Maus jede Filterreihe ≥ 36 px hoch (vorher 9–12 px) — Höhen 88/40/88/88 px
+e2 1440 Maus flex-shrink:0 an der Reihe — {"shrink":"0","wrap":"wrap","overflowX":"visible"}
+e3 1440 Maus Maus: umbrechend statt wischend (wrap + overflow sichtbar), nichts ragt seitlich heraus — {"shrink":"0","wrap":"wrap","overflowX":"visible","breit":[0,0,0,0]}
+f1 ab 1024 px: --tb-h = 0px (Leiste steht links) — 0px
+f2 Rückgängig-Balken mittig über der Inhaltsspalte (±4 px) — Balken 768.0, Spalte 768.0 (Seitenleiste 96)
+f3 Rückgängig-Balken höchstens 40 px über dem unteren Rand (vorher 96) — 12.0 px
+f4 Live-Toast mittig über der Inhaltsspalte (±1 px) — 768.0 statt 768
+f5 Code-Hinweis (.moved-banner) mittig über der Inhaltsspalte (±1 px) — 768.0 statt 768
+
+=== FAIL ===
+(keine)
+
+57 grün, 0 rot

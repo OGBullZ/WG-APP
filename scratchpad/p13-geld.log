@@ -1,0 +1,77 @@
+  ✓ A1 genau ein Fragen-Knopf: nur beim fremden, offenen Posten — gefunden: 1
+  ✓ A2 Blatt zeigt den Posten — ❓ WAS WAR DAS?
+Abbrechen
+Pizza · €12,50 · 16.10.2026
+Fragen
+  ✓ A3 leere Frage speichert nichts
+  ✓ A4 Frage hängt am Posten, mit Fragestellerin — {"seq":100,"id":"h1","name":"Pizza","price":12.5,"paidBy":"u2","date":"2026-10-16","settled":false,"cat":"food","q":"Wofür genau war die?","qBy":"u1"}
+  ✓ A5 Frage steht in der Zeile
+  ✓ A6 Push geht als wichtige Art `msg` raus — {"code":"TEST-LOKAL-GELD","from":"jh6fe3agCJYD4A","title":"❓ Torben fragt zu „Pizza“","body":"Wofür genau war die?","tag
+  ✓ A7 nach der Frage kein Fragen-Knopf mehr
+  ✓ A8 Torben darf seine eigene Frage nicht beantworten
+  ✓ A9 Tom bekommt den Antwort-Knopf, keinen Fragen-Knopf — antworten=1 fragen=0
+  ✓ A10 Antwort-Blatt zeigt die Frage
+  ✓ A11 Antwort steht in der Zeile
+  ✓ A12 Antwort-Push ist ebenfalls `msg` — {"code":"TEST-LOKAL-GELD","from":"jbjpfr4tNMKVAW","title":"💬 Tom antwortet zu „Pizza“","body":"Für den Filmabend am Fre
+  ✓ A13 beantwortete Frage zeigt keinen Knopf mehr
+  ✓ A14 abgerechneter Posten verlässt die Einzelposten und hat keinen Fragen-Knopf — EINZELPOSTEN Kino 16.10.2026 · Torben €20,00 je €10,00 ×
+  ✓ C1 Vorschlag da und nennt den richtigen Posten — 💡 Kommt „Netflix“ jeden Monat?
+3× in verschiedenen Monaten · zuletzt €12,99
+🔁 Automatisch eintragen
+Nein danke
+  ✓ C2 schwankende Preise ergeben keinen Vorschlag
+  ✓ C3 zwei Monate reichen nicht
+  ✓ C4 Vorschlag zeigt Anzahl und Schnittpreis — 💡 Kommt „Netflix“ jeden Monat?
+3× in verschiedenen Monaten · zuletzt €12,99
+🔁 Automatisch eintragen
+Nein danke
+  ✓ C5 Wiederkehrender Posten entsteht mit Name, Preis und Zahler — {"id":"st6bn40h","name":"Netflix","price":12.99,"paidBy":"u1","owedBy":null,"cat":null,"since":"2026-10","seq":1792171220399}
+  ✓ C6 Start ist dieser Monat, weil er noch keinen Netflix-Posten hat — 2026-10 statt 2026-10
+  ✓ C7 Rückmeldung nennt Posten und Startmonat — 🔁 „Netflix“ läuft jetzt automatisch ab 2026-10
+Rückgängig
+  ✓ C8 Vorschlag ist danach weg
+  ✓ C9 läuft dieser Monat schon, startet das Abo im nächsten — 2026-11 statt 2026-11
+  ✓ C10 nach „Nein danke" ist der Vorschlag weg
+  ✓ C11 Ablehnung liegt geteilt in `cf` (gilt auf allen Geräten) — [{"id":"aboNo","namen":"netflix","seq":1792171233449}]
+  ✓ C12 Ablehnung hält den Neustart aus
+  ✓ F1 Knopf zur Jahresübersicht ist da
+  ✓ F1b eingeklappt genau dann, wenn nicht Dez/Jan — zu=true
+  ✓ F1c nach dem Aufklappen ist der Druck-Knopf sichtbar
+  ✓ F2 Blatt öffnet sich
+  ✓ F3 Jahr und Namen stehen im Kopf — Drucken / PDF
+Schließen
+Jahresübersicht 2026
+
+Torben, Tom · erstellt am 16.10.2026
+
+Ausgaben je Monat
+Januar	€150,00	–	€
+  ✓ F4 Januar zählt beide Posten zusammen (150) — Januar	€150,00	–	€150,00
+  ✓ F5 Februar enthält den archivierten Posten (40) — Februar	€40,00	–	€40,00
+  ✓ F6 März trennt Haushalt (30) und Growbox (20) und summiert 50 — März	€30,00	€20,00	€50,00
+  ✓ F7 Gesamtsumme 240 — Gesamt			€240,00
+  ✓ F8 Torben: 130 bezahlt, 120 getragen, +10 Differenz, 2× Miete — Torben	€130,00	€120,00	€10,00	2×
+  ✓ F9 Tom: 110 bezahlt, 120 getragen, −10 Differenz, keine Miete — Tom	€110,00	€120,00	−€10,00	–
+  ✓ F10 Kategorien tauchen auf — 	–	–
+November	–	–	–
+Dezember	–	–	–
+Gesamt			€240,00
+
+Spalten: Haushalt · Growbox · zusammen
+
+Nach Kategorie
+Lebensmittel	€170,00
+Haushalt	€50,00
+Ohne Kategorie	€20,00
+Je Person
+Person	bezahlt	getragen	Differenz	Miete bezahlt
+Torben	€130,00	€120,00	€10,00	2×
+Tom	€110,00	€120,00	−€10,00	–
+
+„getragen“ = Anteil nach Aufteilung. Archivierte Posten sind enthalten; laufende Abrechnungen nicht verrechnet.
+  ✓ F11 Drucken-Knopf löst den Druckdialog aus
+  ✓ F12 Druck-CSS blendet alles außer dem Blatt aus
+  ✓ F13 Blatt lässt sich schließen
+  ✓ Z1 keine Seitenfehler
+
+42 von 42 Prüfungen bestanden

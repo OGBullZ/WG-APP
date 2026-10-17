@@ -1,0 +1,50 @@
+✓ a1 60 ms nach „Abbrechen" ist das Blatt noch da (schließt gerade, .zu) — {"da":true,"zuKlasse":true,"top":548.00439453125,"t0":508,"anim":["sheetDown"],"inert":true,"pe":"none"}
+✓ a2 … und fährt nach unten (sheetDown läuft, Oberkante tiefer als vorher) — Oberkante 508 → 548.00439453125, sheetDown
+✓ a3 … ist währenddessen bedienungslos (inert + pointer-events:none) — inert=true pe=none
+✓ a4 nach 300 ms ist das Blatt ausgehängt — Overlays im DOM: 0
+✓ a5 „Fertig": der Eintrag ist SOFORT in den Daten (nicht erst nach 180 ms) — {"vorher":false,"gleich":true,"noch":true}
+✓ a6 … während das Blatt noch wegfährt (die Anzeige wartet, nicht die Daten)
+✓ a7 Wieder-Öffnen im Schließfenster: Blatt ist offen, nicht „zu" — offen 1, gesamt 1
+✓ a8 … frisch (Schritt 1, leeres Namensfeld)
+✓ a9 beide schnell hintereinander angelegten Einträge sind da (Beta UND Gamma, dazu Alpha) — Blatt-Gamma, Blatt-Beta, Blatt-Alpha
+✓ a10 danach hängt kein Overlay fest
+✓ a11 doppeltes „Fertig" legt den Eintrag nur einmal an
+✓ b1 im ersten Bild ist die Abdunkelung noch nicht voll da (Deckkraft < 1, ovIn läuft) — {"op0":0,"namen":["ovIn"],"op1":1}
+✓ b2 … und danach voll da (Deckkraft 1) — 1
+✓ c1 Suchfeld: Oberkante ändert sich beim Tippen (0 → viele Treffer) um < 8 px — 149 → 149 (Blatthöhe 260 → 786)
+✓ c2 … obwohl das Blatt wirklich höher wurde (die Messung greift) — 260 → 786
+✓ c3 Blatt sitzt oben (10 vh = 90 px bei 900 px Höhe, ±3) — Oberkante 90
+✓ c4 kein sichtbarer Griff am Desktop — {"disp":"none","breit":0}
+✓ c5 Öffnen am Desktop kommt von oben (sheetPop startet bei −8 px, 200 ms) — {"transform":"translateY(-8px) scale(0.98)","dauer":200}
+✓ c6 max-height = Fensterhöhe − Abstand oben − 24 px (die Tastatur --kb zieht zusätzlich ab) — {"max":786,"erwartet":786}
+✓ c7 Schließen am Desktop: sheetPopOut (leicht hoch + ausblenden), nicht sheetDown — ["sheetPopOut"]
+✓ d1 der erste Schritt steht still (keine Richtung, keine Animation) — {"klassen":"wiz-schritt","anim":0}
+✓ d2 „Weiter": neuer Schritt-Inhalt hat eine laufende wizIn-Animation, Start rechts (+16 px) — {"klassen":"wiz-schritt vor","tx":16,"op":0,"quer":0}
+✓ d3 … ohne Querscrollen im Körper (scrollWidth ≤ clientWidth) — Differenz 0
+✓ d4 „Zurück": Gegenrichtung (−16 px, Klasse .zurueck) — {"klassen":"wiz-schritt zurueck","tx":-16}
+✓ d5 der Name bleibt beim Hin und Her erhalten (Daten hängen am Assistenten, nicht am Schritt)
+✓ d6 320×330: nach „Weiter" steht der Fokus im Betragsfeld des neuen Schritts und ist im Blatt sichtbar — {"tag":"INPUT","modus":"decimal","imBlatt":true,"sichtbar":true,"blattUnten":330}
+✓ d7 … das Blatt passt in die 330 px Höhe — Unterkante 330
+✓ e1 Escape schließt den Assistenten (sofort „zu", nach 300 ms ausgehängt)
+✓ e2 … und er ist ausgehängt
+✓ e3 Fokus kehrt zum Auslöser („+ Ausgabe hinzufügen") zurück — vorher „", nachher „+ Ausgabe hinzufügen"
+✓ e4 Escape schließt die Suche
+✓ e5 … Fokus zurück auf den Such-Knopf
+✓ e6 Escape schließt ein MiniSheet („Ich bin weg") — Titel „ICH BIN WEG", Overlays 0
+✓ e6b … Fokus zurück auf die Kachel
+✓ e7 Ausgangslage: zwei Blätter offen — offen 2
+✓ e8 erstes Escape schließt nur das obere (die Suche); der Assistent bleibt — offen 1
+✓ e9 zweites Escape schließt den Assistenten
+✓ e10 Escape ohne offenes Blatt tut nichts
+✓ f1 offene Blätter sind role="dialog" aria-modal="true" mit Namen — [{"was":"Assistent","rolle":"dialog","modal":"true","name":"Ausgabe"},{"was":"Suche","rolle":"dialog","modal":"true","name":"🔍 Suchen"}]
+✓ f2 Quelltext: JEDES .sheet ist als Dialog mit Namen ausgezeichnet — 16 Blätter, ohne Auszeichnung: 
+✓ g1 Weniger Bewegung: das Blatt ist 30 ms nach „Abbrechen" ausgehängt (kein Schließfenster) — {"overlays":0,"laufend":[]}
+✓ g2 … und es läuft keine Blatt-Animation mehr — []
+✓ g3 Weniger Bewegung: der Schrittwechsel spielt kein wizIn (nur 1-ms-Netz) — {"laeuft":0}
+✓ g4 Escape unter Weniger Bewegung: Blatt sofort weg
+✓ h1 834 px mit Tastatur (--kb 320 px): das Blatt endet über der Tastatur — {"top":96,"bottom":409,"tastaturOben":792}
+✓ h2 … und beginnt im sichtbaren Bereich (Oberkante ≥ 24 px) — {"top":96,"bottom":409,"tastaturOben":792}
+✓ h3 hohes Blatt (70 Treffer) mit Tastatur: endet ebenfalls über der Tastatur — {"top":96,"bottom":768,"tastaturOben":792}
+✓ keine Seitenfehler in allen Läufen
+
+48/48 grün

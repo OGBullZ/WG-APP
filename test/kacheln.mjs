@@ -43,6 +43,12 @@ await page.waitForTimeout(1300);
 const blatt = page.locator('.overlay:not(.zu) .sheet');   /* wg-v112 (P7): :not(.zu) — ein Blatt im 180-ms-Schließfenster zählt als zu, die Zählung hängt so nicht an Wartezeiten */
 const kachel = k => page.locator(`.wz-kachel[data-chip="${k}"]`);
 
+/* wg-v113 (P13): die WG ist leer → oben steht „Erste Schritte", das Gitter ist hinter „Weitere Werkzeuge (N)" eingeklappt (die Kacheln
+   bleiben im DOM, aber unsichtbar: Klicks warten ins Leere). Wer eine Kachel bedienen will, klappt zuerst auf — wie ein Mensch.
+   Der Zustand „aufgeklappt" bleibt, solange Heute eingehängt ist (nach einem Reiterwechsel wäre es wieder zu → dort nicht mehr nötig). */
+{ const m = page.locator('[data-testid="wz-mehr"]'); check('K0 leere WG: Gitter steht hinter „Weitere Werkzeuge (11)"', await m.count() === 1 && /\(11\)/.test(await m.innerText()) && await m.getAttribute('aria-expanded') === 'false');
+  await m.click(); await page.waitForTimeout(500); }
+
 // ── K: Raster ──
 const kacheln = page.locator('[data-testid="tool-chips"] .wz-kachel');
 const maße = await kacheln.evaluateAll(els => els.map(e => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));

@@ -1,0 +1,60 @@
+
+=== PASS ===
+a1 leere WG: „Noch kein Putzplan · Einrichten ›" statt der ✨-Zeile — {"leer":"🧽 Noch kein Putzplan · Einrichten ›","frei":0}
+a2 … und nirgends „nichts im Putzplan … fällig" (kein Lob für einen Plan, den es nicht gibt)
+a3 Tipp auf die Zeile springt in den Putzplan — Putzplan
+a4 Plan mit nur fremden Aufgaben: ✨-Zeile wie bisher, keine Einladung — {"frei":1,"leer":0}
+a5 vorher: eigene Aufgabe fällig → Karte „Du bist dran", keine Zeile darunter — {"karte":true,"frei":0,"leer":0}
+a6 erledigt: bei 100 und 250 ms steht die Karte noch (Schatten) und die ✨-Zeile NOCH NICHT darunter — [{"karte":true,"frei":0,"leer":0},{"karte":true,"frei":0,"leer":0}]
+a7 … nach dem Schatten (900 ms): Karte weg, ✨ steht da, keine Einladung (der Plan existiert ja) — {"karte":false,"frei":1,"leer":0}
+a8 „Weniger Bewegung": kein Schatten, ✨ sofort (Erhaltung) — {"karte":false,"frei":1}
+b1 leerer Haushalt: „Noch nichts eingetragen" + „Die erste Ausgabe zeigt hier, wer wem was schuldet" — Noch nichts eingetragenDie erste Ausgabe zeigt hier, wer wem was schuldet
+b2 … kein 🎉, keine 0-%-Legende (Haushalt/Growbox), kein „0%" — {"legende":0,"mitte":"+"}
+b3 … Geisterring: Spur in var(--spur), KEIN sichtbarer Bogen, kein Schein (filter überall none), „+" in der Mitte — {"n":2,"spurOk":true,"sichtbar":[],"filter":["none","none"],"mitte":"+"}
+b4 … der separate .empty-Block darunter („Noch keine Ausgaben") entfällt — {"empty":0}
+b5 erster Eintrag: der Ring WÄCHST über mehrere Bilder (vorhandene Dash-Transition), springt nicht — 79 Bilder, 43 verschiedene Längen, 0 → 355.1
+b6 … danach Legende statt Leerkarte — {"legende":1,"leer":0}
+b7 Posten offen: Legende da, keine Leerkarte, kein 🎉 — {"leg":1,"leer":0,"party":false}
+b8 Einträge vorhanden und alles abgerechnet: 🎉 bleibt, Legende da, keine Leerkarte — {"leg":1,"leer":0,"party":true}
+c1 0 Pflanzen: Zeile „Mit + trägst du eure Pflanzen ein — danach teilt sich die Kostenrechnung" — Mit + trägst du eure Pflanzen ein — danach teilt sich die Kostenrechnung
+c2 … Ring = Geisterring (Spur, KEIN Bogen in Personenfarbe sichtbar); die 50-%-Angaben neben den Steppern bleiben — {"sichtbar":[],"prozent":2}
+c3 erstes „+" (Torben): der Ring wächst über mehrere Bilder … — 44 Längen, 0 → 414.8
+c4 … in Torbens Farbe (#38bdf8), die Zeile ist weg — [{"stroke":"rgb(56, 189, 248)","op":1,"dash":414.832}]
+c5 zweites „+" (Tom): beide Personenfarben im Ring — [{"stroke":"rgb(56, 189, 248)","op":1,"dash":205.916},{"stroke":"rgb(251, 191, 36)","op":1,"dash":205.916}]
+c6 mit Pflanzen (2 : 3): volle Ringfarben, keine Zeile (Erhaltung) — [{"stroke":"rgb(56, 189, 248)","op":1,"dash":164.133},{"stroke":"rgb(251, 191, 36)","op":1,"dash":247.699}]
+d1 Monat ohne Ausgaben: EIN Block „Noch keine Ausgaben im {Monat}" mit Knopf „Ausgabe eintragen" — 📊Noch keine Ausgaben im Oktober 2026Ausgabe eintragen
+d2 … kein „€0,00"-Hero, kein Monatsbericht, kein „+ 3 Wochen" (Kalender leer) — {"hero":false,"bericht":false,"kalMehr":0}
+d3 … Verlauf: nur EIN Monat mit Daten → Zeile „Der Verlauf erscheint ab dem zweiten Monat", kein Diagramm — {"verlauf":0,"spaeter":"Der Verlauf erscheint ab dem zweiten Monat"}
+d4 Monat zurück (mit Ausgaben): Hero + Monatsbericht da, Leerblock weg — {"hero":true,"bericht":true,"leer":null,"monat":"‹September 2026›"}
+d5 wieder vor: Leerblock wieder da, Hero weg (Monatswahl bleibt bedienbar) — {"leer":"📊Noch keine Ausgaben im Oktober 2026Ausgabe eintragen","hero":false}
+d6 „Ausgabe eintragen" springt in den Haushalt — Haushalt
+d7 zwei Monate mit Daten: Verlauf-Diagramm da, keine Zeile, Hero statt Leerblock — {"verlauf":1,"spaeter":0,"leer":0,"hero":true}
+d8 nur der aktuelle Monat hat Daten: Hero da, Verlauf erst ab dem zweiten Monat (Zeile) — {"verlauf":0,"spaeter":1,"leer":0}
+d9 komplett leere WG: Leerblock, weder Verlauf noch Verlauf-Zeile — {"leer":1,"spaeter":0,"verlauf":0}
+d10 leerer Monat, aber Termine im Kalender: „+ 3 Wochen" bleibt (Erhaltung) — {"leer":1,"kalMehr":1,"tage":1}
+e1 welcome bleibt mittig (justify-content: center) — {"step":"welcome","top":0,"hoch":640,"sicht":640,"y":231,"btnTop":null,"btnBottom":null,"ih":640,"justify":"center"}
+e2 Müll-Chips: ein flex-wrap-Streifen (weniger Zeilen als Chips, nichts über den Rand), Reihenfolge Rest → Bio → Papier → Gelb → Glas — {"namen":["⚫ Restmüll","🟤 Biomüll","🔵 Papier","🟡 Gelber Sack","🟢 Glas"],"tops":2,"an":[false,false,false,false,false],"datum":[],"rechts":297.53125,"cardR":320}
+e3 ohne gewählten Chip kein Datum/Rhythmus — []
+e4 Datum/Rhythmus nur für den Chip im Fokus: Papier → eines · Gelb dazu → eines (Gelb) · Papier antippen → Fokus Papier, beide bleiben an — [["Papier: nächste Abholung"],["Gelber Sack: nächste Abholung"],["Papier: nächste Abholung"],[false,false,true,true,false]]
+e5 … nochmal Papier (im Fokus) schaltet aus, der Fokus wandert zu Gelb — [[false,false,false,true,false],["Gelber Sack: nächste Abholung"]]
+e6 Putz-Schritt MIT geöffnetem Datum-Feld: „Weiter" im Fenster — {"step":"putz","top":0,"hoch":1021,"sicht":640,"y":162,"btnTop":566,"btnBottom":620,"ih":640,"justify":"flex-start"}
+e7 nach „Weiter" steht die Karte oben (scrollTop 0) — in jedem Schritt, der vorher gescrollt war — [["people",14,0],["wg",0,0],["mods",179,0],["putz",381,0],["money",0,0],["push",21,0],["invite",0,0]]
+e8 Überschrift in allen Arbeits-Schritten auf derselben Höhe (±4 px) — [["people",162],["wg",162],["mods",162],["putz",162],["money",162],["push",162],["invite",162]]
+e9 „Weiter" liegt in JEDEM Arbeits-Schritt im Fenster (kein Scrollen nötig) — [["people",566,620,640],["wg",409,463,640],["mods",566,620,640],["putz",566,620,640],["money",532,586,640],["push",579,633,640],["invite",517,571,640]]
+e10 Arbeits-Schritte oben ausgerichtet (flex-start) — [["people","flex-start"],["wg","flex-start"],["mods","flex-start"],["putz","flex-start"],["money","flex-start"],["push","flex-start"],["invite","flex-start"]]
+e11 done bleibt mittig — {"step":"done","top":0,"hoch":640,"sicht":640,"y":230,"btnTop":null,"btnBottom":null,"ih":640,"justify":"center"}
+f1 Kachel-Wörter passen in die Innenbreite UND stehen gerendert nicht über zwei Zeilen — keine Silbentrennung, kein Wortbruch (alle Reiter, 390 px) — 19 Kacheln geprüft
+f2 Haushalt-Kacheln: „Monatsbudget" ganz, „Regelmäßig" statt „Wiederkehrend" — ["Monatsbudget","Sparziel","Miete","Regelmäßig"]
+f3 Schriftgröße der Kachel-Beschriftung 11,5 px — ["11.5px"]
+f4 Kachel „Regelmäßig" öffnet weiter das Formular „Wiederkehrend (monatlich)"
+g1 Putzplan leer: <Leer> — „Noch kein Plan", Knopf „Standard-Plan laden" (Aufzählung NICHT im Knopf), kleine Zeile mit der Aufzählung darunter, zweiter Knopf „Eigene Aufgabe" — {"text":"🧽Noch kein PlanStandard-Plan ladenMüll, Papier, Glas, Küche, Bad, SaugenEigene Aufgabe","knoepfe":["Standard-Plan laden","Eigene Aufgabe"],"haupt":"Standard-Plan laden","klein":["Noch kein Plan","Müll, Papier, Glas, Küche, Bad, Saugen"],"rise":true,"leer":true,"aufzaehlungImKnopf":false,"reihenfolge":["DIV:🧽","SPAN:Noch kein Pl","BUTTON:Standard-Pla","SPAN:Müll, Papier","BUTTON:Eigene Aufga"]}
+g2 „Eigene Aufgabe" öffnet das Formular (Name der Aufgabe)
+g3 „Standard-Plan laden" legt die Aufgaben an (6) und die Leerkarte verschwindet — 6
+g4 Einkaufsliste leer: <Leer> „Liste ist leer — was fehlt?" ohne zweiten Knopf — {"text":"🛒Liste ist leer — was fehlt?","rise":true,"ico":true,"knoepfe":0}
+g5 Abos leer: <Leer> „Noch keine Abos" (Eingang .rise, kein zweiter Knopf) — {"text":"🔄Noch keine Abos","rise":true,"knoepfe":0}
+z1 keine Seitenfehler
+
+=== FAIL ===
+(keine)
+
+53 grün, 0 rot

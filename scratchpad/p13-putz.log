@@ -1,0 +1,70 @@
+  OK  A1 Gleichstand, beide nie → Einteilung bleibt — b
+  OK  A2 Gleichstand → wer länger nicht dran war — a
+  OK  A3 wer seltener → ist dran — b
+  OK  A4 Einträge älter als 90 Tage zählen nicht — a
+  OK  A5 andere Aufgaben zählen nicht mit — a
+  OK  A6 nur eine Person → immer sie — a
+  OK  A7 Fälligkeit: nie → 0, heute+3 → 3, vor 2 Tagen täglich → -1 — [0,3,-1]
+  OK  A8 Punkte: Standard 2, 3, "1"→1, Unsinn→2 — [2,3,1,2]
+  OK  B1 Haushalt-Karte sichtbar
+  OK  B2 … nur Bad (meins, fällig) — nicht Müll (Toms), nicht Küche (heute erledigt) — 🧹 DU BIST DRAN | Putzplan › | 🚿 Bad putzen | heute fällig | Morgen | Kann nicht
+  OK  B3 Tab-Punkt am Putzplan
+  OK  C1 Müll: Tom ist dran + Stand Torben 5× / Tom 2× (alter Eintrag zählt nicht) — 🗑️ Müll rausbringen | Tom, danach wieder Tom · alle 3 Tage | 2 Tage überfällig — title: Letzte 30 Tage: Torben 5×, Tom 2×
+  OK  C1b die Zeile hat nur noch eine Unterzeile (kein „ist dran", kein „5 : 2") — 🗑️ Müll rausbringen | Tom, danach wieder Tom · alle 3 Tage | 2 Tage überfällig
+  OK  C2 Bad: „Du" ist dran
+  OK  C3 mit Verlauf: Regel eingeklappt, ⓘ-Knopf da
+  OK  C4 ⓘ zeigt die Regel
+  OK  C6 ohne Tonne/Abwesenheit: zwei Kacheln, keine sichtbaren Karten — ["pickup","away"]
+  OK  C7 Kachel antippen → Abholtermin-Blatt direkt offen, leere Karte nicht im Feed
+  OK  C7b Abbrechen: Blatt zu, Kachel bleibt
+  OK  C8 kein × mehr an den Aufgaben
+  OK  C9 „Aufgabe löschen" im Bearbeiten-Fenster entfernt die Aufgabe
+  OK  C10 Rückgängig holt sie zurück
+  OK  C5 Verlauf: 1–4 Zeilen, relative Angabe, kein volles Datum — ["🗑️\nMüll rausbringen\nTorben\nvor 2 Tagen","🗑️\nMüll rausbringen\nTom\nvor 5 Tagen","🗑️\nMüll rausbringen\nTorben\nvor 8 Tagen"]
+  OK  C3 Einsatz: Torben 4 P., Tom 2 P. — EINSATZ · LETZTE 30 TAGE ⓘ Torben 4 P. Tom 2 P. Wer den Haken setzt, bekommt die Aufgabe gutgeschrieben. Dran ist, wer sie seltener gemacht hat. Kurz zählt 1, mittel 2, groß 3 Punkte. 🔥 zählt Aufgaben, die du nicht überfällig werden lässt.
+  OK  D1 Eintrag geht an Torben (wer den Haken setzt) — {"id":"5san7rz5","taskId":"m","name":"Müll rausbringen","em":"🗑️","userId":"u1","date":"2026-10-16","pts":1,"late":0,"miss":"u2","seq":1792170475678}
+  OK  D2 Tom bleibt dran (2 < 6) — u2
+  OK  D3 Müll heute erledigt — 2026-10-16
+  OK  D4 Stand steigt auf Torben 6× / Tom 2× (title der Zeile, seit v101)
+  OK  D5 Push: „Torben hat … erledigt" / „Tom, du bist dran" — {"code":"TEST-LOKAL-PUTZ","from":"z2ae4pvi3EHKBM","title":"✅ Torben hat „Müll rausbringen\" erledigt","body":"Tom, du bist dran! (Torben 6× · Tom 2×)","tag":"wg-putz","type":"done"}
+  OK  D6 Eintrag beim Server angekommen
+  OK  E1 Rückgängig: Eintrag weg
+  OK  E2 Rückgängig: Fälligkeit + Einteilung wie vorher — {"id":"m","name":"Müll rausbringen","em":"🗑️","interval":3,"pts":1,"assignee":"u2","lastDone":"2026-10-11","seq":3,"snooze":null}
+  OK  E3 Rückgängig auch beim Server
+  OK  F1 Bad über die Haushalt-Karte erledigt → Tom ist dran — {"id":"b","name":"Bad putzen","em":"🚿","interval":7,"pts":3,"assignee":"u2","lastDone":"2026-10-16","seq":2,"snooze":null}
+  OK  F2 Karte verschwindet (nichts mehr fällig für mich)
+  OK  F3 Tab-Punkt verschwindet
+  OK  F4 Push nennt Tom als Nächsten — Tom, du bist dran! (Torben 1× · Tom 0×)
+  OK  F5 Einsatz zählt Punkte: Bad = 3 → Torben 7 P. — EINSATZ · LETZTE 30 TAGE ⓘ Torben 7 P. Tom 2 P.
+  OK  G1 Vorlagen ohne schon vorhandene Aufgaben — 📦 Altpapier | ♻️ Altglas & Pfand | 🍽️ Spülmaschine ausräumen | 🧹 Staubsaugen | 🪣 Wischen | 🧊 Kühlschrank auswischen | 🧺 Handtücher waschen | 🪟 Fenster putzen | 🌿 Pflanzen gießen | 🐾 Tier füttern | 🐈 Katzenklo | 🪴 Blumen düngen | 🐠 Aquarium
+  OK  G2 Altpapier: 📦, alle 14 Tage, 1 Punkt, Torben fängt an — {"id":"z59frl2r","name":"Altpapier","em":"📦","interval":14,"pts":1,"pk":null,"assignee":"u1","fix":null,"lastDone":null,"seq":1792170480671}
+  OK  G3 Zeile zeigt „alle 2 Wochen"
+  OK  H1 Küche jetzt 3 Punkte, Rest unverändert
+  OK  I1 Übersicht: „Putzplan · Punkte"
+  OK  J1 Neustart ohne Fehler
+  OK  K1 Duell-Rechnung (choreWeek/choreCrown) ist weg
+  OK  K5 Serie zählt eigene pünktliche in Folge, fremde Verspätung egal, eigene bricht — 2
+  OK  K6 alte Einträge ohne late brechen die Serie — 1
+  OK  K7 vom anderen gerettet (miss) bricht die Serie — 1
+  OK  K8 eigene überfällige Aufgabe → Serie 0, fremde egal — 0/1
+  OK  L1 Haushalt-Karte zeigt eigene Serie 🔥 2 — 🧹 DU BIST DRAN🔥 2
+Putzplan ›
+  OK  L2 kein Wochen-Duell, keine 👑 im Putzplan — EINSATZ · LETZTE 30 TAGE ⓘ Torben 6 P. Tom 9 P.
+  OK  L3 Kopfkarte = Einsatz-Balken — EINSATZ · LETZTE 30 TAGE ⓘ Torben 6 P. Tom 9 P.
+  OK  L6 Rückmeldung „🔥 3" — 🧹 „Staubsaugen" erledigt · 🔥 3 · Torben War Tom Rückgängig
+  OK  L7 Push nennt „🔥 3 pünktlich in Folge" — Tom, du bist dran! (Torben 4× · Tom 3×) · 🔥 3 pünktlich in Folge
+  OK  L9 Eintrag: late 0, keine miss — {"id":"s7duk9qk","taskId":"d","name":"Staubsaugen","em":"🧹","userId":"u1","date":"2026-10-16","pts":2,"late":0,"seq":1792170490794}
+  OK  L10 Retten: late 0 für mich, miss = Tom — {"id":"j4cjt4ik","taskId":"o","name":"Altglas","em":"♻️","userId":"u1","date":"2026-10-16","pts":1,"late":0,"miss":"u2","seq":1792170491744}
+  OK  L11 Retten zählt in meine Serie: Rückmeldung „🔥 4" — ♻️ „Altglas" erledigt · 🔥 4 · Torben War Tom Rückgängig
+  OK  M1 Schalter unter Mehr, Standard „An"
+  OK  M2 aus → gespeichert (Gerät + Push-Einstellung game) — {"mods":{"heute":true,"haus":true,"grow":true,"putz":true,"fin":true,"abos":false,"stats":true,"game":false},"pp":{"exp":false,"shop":false,"putz":true,"settle":true,"remind":true,"board":false,"msg":true,"wash":true,"away":false,"repair":false,"game":false,"done":false,"digest":false,"quiet":false,"qs":22,"qe":8,"pv":2}}
+  OK  M3 Haushalt-Karte bleibt, aber ohne 🔥 — 🧹 DU BIST DRAN
+Putzplan ›
+  OK  M4 kein Wochen-Duell, Einsatz + Stand bleiben
+  OK  M5 Abhaken ohne 🔥 in Rückmeldung und Push — 🧹 „Staubsaugen" erledigt · Torben
+War Tom
+Rückgängig | Tom, du bist dran! (Torben 4× · Tom 3×)
+  OK  M6 Serien-Daten werden trotzdem geschrieben (late) — {"id":"82z52otf","taskId":"d","name":"Staubsaugen","em":"🧹","userId":"u1","date":"2026-10-16","pts":2,"late":0,"seq":1792170499910}
+  OK  M7 wieder an → Serie zählt den Haken von eben mit (🔥 4) — ♻️ „Altglas" erledigt · 🔥 4 · Torben War Tom Rückgängig
+
+64 ok, 0 fehlgeschlagen

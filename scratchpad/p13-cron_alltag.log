@@ -1,0 +1,92 @@
+  OK  1 nächste Abholung ab Mi 16.09. = Do 17.09.
+  OK  2 am Abholtag selbst = heute
+  OK  3 danach = 01.10.
+  OK  4 Start in der Zukunft = Start
+  OK  5 nie erledigt, Abholung morgen → heute fällig (0)
+  OK  6 gestern erledigt (Vorabend 16.09. schon vorbei?) → nächste 01.10., fällig 30.09. — 13
+  OK  7 zuletzt vor zwei Runden erledigt → überfällig — -2
+  OK  8 Aufgabe mit pk nutzt die Abholung
+  OK  9 Aufgabe ohne pk: Rhythmus
+  OK  10 Tom ist weg → Torben bringt raus
+  OK  11 nach der Abwesenheit wieder Tom
+  OK  12 Mi-Abend: Papier morgen, mit Name — [{"title":"Müllabfuhr","body":"🚛 Morgen früh: 🔵 Papier — Torben bringt raus","tag":"pick-papier-2026-09-17"}]
+  OK  12b schon rausgebracht → keine Abend-Push
+  OK  13 Restmüll (Di) nicht am Mi-Abend
+  OK  14 Mo-Abend: Restmüll morgen, ohne gekoppelte Aufgabe „Tonne raus!" — [{"title":"Müllabfuhr","body":"🚛 Morgen früh: ⚫ Restmüll — Tonne raus!","tag":"pick-rest-2026-09-22"}]
+  OK  15 Sonntag: Überblick dabei — [{"title":"Wochenüberblick","body":"🗓️ alles erledigt ✨ · diese Woche: Bad Di · Abholung: ⚫ Di · Haushalt: Tom → Torben 15,00 €","tag":"week-2026-09-20"}]
+  OK  16 Überblick nennt Saldo (Tom → Torben 15,00 €) — 🗓️ alles erledigt ✨ · diese Woche: Bad Di · Abholung: ⚫ Di · Haushalt: Tom → Torben 15,00 €
+  OK  17 Überblick nennt kommende Aufgaben und Abholungen — 🗓️ alles erledigt ✨ · diese Woche: Bad Di · Abholung: ⚫ Di · Haushalt: Tom → Torben 15,00 €
+  OK  18 Werktag ohne Abholung: keine Nachricht
+  OK  19 Tag 14 → Erinnerung
+  OK  20 Tag 15 → nichts, Tag 21 → wieder
+  OK  21 Tag 13 → nichts
+  OK  22 Jahr: Summe inkl. Archiv, ohne Abrechnungen und Folgejahr — 🎆 2025: 350,00 € ausgegeben · teuerster Monat: März (300,00 €) · Putz: Torben 3 P. · Tom 1 P.
+  OK  23 teuerster Monat März
+  OK  24 Putz-Punkte (Aufgabe 3, Eintrag 1)
+  OK  25 leeres Jahr → keine Push
+  OK  28 Zähler: Erinnerung nur mit Ablesungen, Tarif-Einträge zählen nicht
+  OK  29 CRLF, Rahmen, Name
+  OK  30 Papier: Abholungen 12 Wochen (6 × alle 2 Wochen), Restmüll wöchentlich (12) — 12
+  OK  31 Abholung mit Erinnerung am Vorabend (−300 Min.) als Ganztag
+  OK  32 Abwesenheit mit Ende+1 und Name
+  OK  33 Ankündigung: Komma/Semikolon maskiert
+  OK  34 Aufgabe mit Fälligkeit und Wer (Abwesenheit beachtet)
+  OK  35 keine Zeile über 75 Oktetts
+  OK  36 DTSTAMP UTC
+  OK  37 Falten trennt keine Mehrbyte-Zeichen
+  OK  38 POST mit richtigem Code → Schlüssel (32 Zeichen, nicht der Code) — {"token":"JFVzF_CjcDXhQnfdMTYEmZON-Lo8Zb9n"}
+  OK  39 POST mit falschem Code → 403
+  OK  40 GET mit Schlüssel → Kalender
+  OK  41 GET mit falschem/fehlendem Schlüssel → 404
+  OK  42 nach Code-Wechsel gilt der alte Schlüssel nicht mehr
+  OK  43 ohne BACKUP_KEY → 503 (laut)
+  OK  25b Sammel-Push: 2 fällig, Tom weg → Torben, verschobene Aufgabe fehlt — {"title":"Putzplan · 2 fällig","body":"🧽 Bad (Torben, 8 T. überfällig) · 🧽 Papier raus (Torben)","tag":"putz-2026-09-16"}
+  OK  25c „Morgen": nicht fällig bis zum Datum, danach normal
+  OK  25c2 ohne zugeordnete Person keine leere Klammer
+  OK  25d nichts fällig → keine Sammel-Push
+  OK  26 Morgen-Job nutzt taskDueIn + Sammel-Push, Reparaturen, Jahr am 1.1.
+  OK  26b Gesamtbudget zählt alle Posten, Zähler-Erinnerung am 1.
+  OK  27 Abend-Job in vercel.json
+  OK  28 Kühlschrank: heute + morgen, sortiert, mit Besitzer — 🧊 Läuft bald ab: Käse heute, Milch (Tom) morgen
+  OK  29 nichts fällig → keine Push
+  OK  30 Check-in-Aufruf entfernt (keine Funktion, kein Aufruf im Cron)
+  OK  31 Morgen-Job: Kühlschrank täglich
+  OK  32 Monate addieren kappt am Monatsende
+  OK  33 Wartung: am Fälligkeitstag (nicht die überfällige/nie gemachte an einem Donnerstag) — 🔧 Fällig: Rauchmelder
+  OK  34 Wartung montags: alles Überfällige + nie gemacht — 🔧 Fällig: Rauchmelder, Entkalken, Filter
+  OK  35 Ausleihe: Rückgabetag
+  OK  36 Ausleihe montags: auch Überfälliges
+  OK  44b Gast-Ansicht enthält nie Bankdaten
+  OK  44 Gast-Ansicht: nur gültige Regeln, Müll-Termine, WLAN — kein Geld — {"date":"16.09.2026","wifi":"WG-Netz","pw":"geheim123","note":"Handtücher links","rules":["Ruhe ab 22 Uhr"],"pickups":["🔵 Papier: 17.9. (Tonne am Vorabend raus)"],"emergency":[]}
+  OK  45 Gast-Seite escaped Nutzertext
+  OK  46 Gast-Schlüssel nur mit richtigem Code, anders als der Kalender-Schlüssel
+  OK  47 GET → HTML mit WLAN, strenge CSP, kein Cache
+  OK  48 nach „ungültig machen" (v=2) ist der alte Link tot
+  OK  50 Fälligkeit wird auf die Monatslänge gekappt
+  OK  51 zwei Tage vorher: Push mit offenen Namen und Empfänger — 🏠 €1200,00 an Torben · offen: Torben, Kim
+  OK  52 am Stichtag
+  OK  53 danach nur montags (07.09.2026 = Montag, 05.09. nicht)
+  OK  54 alle bezahlt → keine Push; ohne Einstellung auch nicht
+  OK  56 Fälligkeit am 1.: Vorwarnung 2 Tage vorher (29.09. für den 01.10.) — Miete (Oktober) in 2 Tagen fällig
+  OK  57 offener Vormonat wird montags angemahnt (mit Monatsnamen) — Miete (September) seit 32 Tagen überfällig
+  OK  58 Vormonat ohne jede Zahlung zählt nicht (frisch eingerichtet) — Miete seit 2 Tagen überfällig
+  OK  59 am Stichtag hat „heute fällig" Vorrang vor alter Schuld
+  OK  60 ohne CRON_SECRET kommt niemand durch, auch nicht mit „Bearer undefined" — fehlt/ok/nein
+  OK  61 cron.js und evening.js nutzen beide die Prüfung
+  OK  56 Gast-Seite: Notfall-Infos ja, Vermieter-Daten nein — ["⚡ Sicherungskasten: Flur links","🚰 Wasser-Absperrhahn: unter der Spüle"]
+  OK  57 Gast-Seite rendert den Notfall-Block
+  OK  55 Morgen-Job: Miete verdrahtet
+  OK  49 Morgen-Job: Wartung + Ausleihe
+  OK  G1 29.02. im Schaltjahr bleibt 29.02.
+  OK  G2 29.02. im Nicht-Schaltjahr → 28.02. (bleibt im Februar) — 2027-02-28
+  OK  G3 ungültige Eingabe → null statt kaputtem Datum
+  OK  G4 am Geburtstag selbst — {"title":"Geburtstag","body":"🎉 Mama hat heute Geburtstag · 🎁 Lena hat in 3 Tagen Geburtstag","tag":"gb-2026-09-23"}
+  OK  G5 drei Tage vorher (Zeit fürs Geschenk)
+  OK  G6 fernere Geburtstage schweigen
+  OK  G7 an einem Tag ohne Anlass: nichts
+  OK  G8 Vorwarnung über den Jahreswechsel
+  OK  G9 29.02.-Kind wird im Nicht-Schaltjahr am 28.02. erinnert
+  OK  G10 Geburtstag steht in der Morgen-Nachricht ganz oben
+  OK  G11 Morgen-Job: Geburtstage verdrahtet
+
+90 ok, 0 fehlgeschlagen

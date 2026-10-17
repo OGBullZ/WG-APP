@@ -1,0 +1,38 @@
+✓ A0 leere Miete erscheint als Kachel, nicht als Karte
+✓ A1 Einstellung gespeichert (Tag, Modus, Sammler, Anteil Kim) — {"id":"cfg","total":1200,"day":3,"mode":"holder","holder":"u1","s_u1":null,"s_u2":null,"s_u3":500,"seq":1792171249762}
+✓ A2 Rest gleich verteilt: 350 / 350 / 500 — ["Torben · €350,00\noffen – überfällig\nBezahlt ✓","Tom · €350,00\noffen – überfällig\nErhalten ✓","Kim · €500,00\noffen – überfällig\nErhalten ✓"]
+✓ A3 Kopfzeile: Monat, 0 von 3, Fälligkeit, Empfänger
+✓ A4 Sammler darf alle abhaken
+✓ A5 Zahlung vermerkt (Monat, Person, Betrag, wer eingetragen hat) — {"id":"2026-10-u2","ym":"2026-10","userId":"u2","amount":350,"ts":1792171250329,"by":"u1","seq":1792171250329}
+✓ A6 Push nennt die noch Offenen — ["Offen: Torben, Kim"]
+✓ A7 Zeile zeigt „bezahlt … (vermerkt von Torben)"
+✓ A8 Zähler 1/3
+✓ A9 „Zurück" nimmt die Zahlung wieder raus
+✓ A10 Monatswechsel zeigt den Vormonat, wieder 0/3
+✓ A11 keine Seitenfehler
+✓ B1 ohne Sammler-Rolle nur die eigene Zeile abhakbar
+✓ B2 eigene Zahlung eingetragen (400 = 1200/3)
+✓ B3 keine Seitenfehler
+✓ C1 Heute: eigene Miete mit Betrag und Datum — 🏠
+Miete €300,00 war am 1.10. fällig
+›
+✓ C2 offene Zeilen ab dem Stichtag als überfällig markiert — 🏠 MIETE
+Ändern
+‹
+Oktober 2026 · 0/3 bezahlt
+€900,00 gesamt · fällig am 1.10.2026
+›
+Torben · €300,00
+offen – überfällig
+Bezahlt ✓
+Tom · €300,00
+offen – überfällig
+Kim · €300,00
+offen – überfällig
+✓ C3 nach dem Bezahlen nichts mehr zum laufenden Monat (höchstens die Vorwarnung „bis …") — noch 16 Tage bis zum 1. · Zeile: „"
+✓ C4 keine Seitenfehler
+✓ D1 gleich verteilt, Rest-Cent bei der letzten Person (1000/3) — {"a":333.33,"b":333.33,"c":333.34}
+✓ D2 fester Anteil zieht ab, Rest gleich (1200, a=600 → 300/300) — {"a":600,"b":300,"c":300}
+✓ D3 Fälligkeit wird auf die Monatslänge gekappt — 2026-02-28 / 2026-09-03
+
+22 ok, 0 fehlgeschlagen

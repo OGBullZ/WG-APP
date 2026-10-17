@@ -1,0 +1,27 @@
+  ✓ A1 ein Eintrag, gutgeschrieben an den, der tippt — ["u1"]
+  ✓ A2 der Rückgängig-Balken nennt jetzt den Namen — 🗑️ „Müll rausbringen" erledigt · Torben
+War Tom
+Rückgängig
+  ✓ A3 … und bietet an, die Person zu wechseln
+  ✓ A4 die Zusatzaktion nennt die andere Person beim Namen — War Tom
+  ✓ B1 danach GENAU EIN Eintrag (kein Doppel) — ["u2/2026-10-16"]
+  ✓ B2 … und der gehört Tom — u2
+  ✓ B3 die Aufgabe gilt als heute erledigt — 2026-10-16
+  ✓ B4 Tom war eingeteilt und hat es gemacht → er ist pünktlich (late bleibt gezählt) — {"id":"azummr96","taskId":"t1","name":"Müll rausbringen","em":"🗑️","userId":"u2","date":"2026-10-16","pts":2,"late":0,"seq":1792170510270}
+  ✓ B5 der Push sagt „Torben hat … für Tom abgehakt" — ["✅ Torben hat „Müll rausbringen\" erledigt","✅ Torben hat „Müll rausbringen\" für Tom abgehakt"]
+  ✓ B5b kein Push behauptet „Tom hat … erledigt" — ["✅ Torben hat „Müll rausbringen\" erledigt","✅ Torben hat „Müll rausbringen\" für Tom abgehakt"]
+  ✓ B6 im Verlauf steht nur die korrigierte Zeile — ["✅ Torben hat „Müll rausbringen\" für Tom abgehakt"]
+  ✓ C1 bei drei Personen heißt es nicht „War Tom" — War jemand anderes
+  ✓ C2 eine Auswahl erscheint
+  ✓ C3 sie zeigt die anderen, nicht den Tippenden
+  ✓ C4 die gewählte Person bekommt es gutgeschrieben — ["u3"]
+  ✓ D1 abgebrochen: der Eintrag bleibt unangetastet — ["u1"] · id gleich
+  ✓ E1 Rückgängig löscht den Eintrag
+  ✓ E2 … und stellt die Aufgabe wieder her — null
+  ✓ F1 dark: Rückgängig-Balken erreicht AA — 3 gemessen · []
+  ✓ F2 dark: Personenauswahl erreicht AA (Namen auf Nutzerfarbe) — 4 gemessen · []
+  ✓ F1 light: Rückgängig-Balken erreicht AA — 3 gemessen · []
+  ✓ F2 light: Personenauswahl erreicht AA (Namen auf Nutzerfarbe) — 4 gemessen · []
+  ✓ Z1 keine Seitenfehler
+
+23 von 23 Prüfungen bestanden

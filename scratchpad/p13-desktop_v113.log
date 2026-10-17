@@ -1,0 +1,73 @@
+
+=== PASS ===
+a1 1440: Kopfzeilen-Titel auf allen Tabs an derselben Stelle (±2 px, auch Privat gesperrt) — Heute x=224; abweichend: keine
+a2 [bleibt] 1440: Titel bündig über der Kartenkante (Inhalt + 16 px) auf jedem Tab — alle bündig
+b1 1440 Haushalt: Inhalt ≥ 1000 px, zwei Spalten nebeneinander — Inhalt 1120 px, Spalten [[224,530],[782,530]]
+b1 1440 Growbox: Inhalt ≥ 1000 px, zwei Spalten nebeneinander — Inhalt 1120 px, Spalten [[224,530],[782,530]]
+b1 1440 Putzplan: Inhalt ≥ 1000 px, zwei Spalten nebeneinander — Inhalt 1120 px, Spalten [[224,530],[782,530]]
+b1 1440 Privat: Inhalt ≥ 1000 px, zwei Spalten nebeneinander — Inhalt 1120 px, Spalten [[224,530],[782,530]]
+b1 1440 Abos: Inhalt ≥ 1000 px, zwei Spalten nebeneinander — Inhalt 1120 px, Spalten [[224,530],[782,530]]
+b1 1440 Übersicht: Inhalt ≥ 1000 px, zwei Spalten nebeneinander — Inhalt 1120 px, Spalten [[224,530],[782,530]]
+b1 1440 Mehr: Inhalt ≥ 1000 px, zwei Spalten nebeneinander — Inhalt 1120 px, Spalten [[224,530],[782,530]]
+b2 1440 × 1000: Kopf „Einzelposten" oberhalb von 700 px (über dem Falz) — y=202
+b5a 1440 Gläubiger: „Alles abrechnen" rechts über den Einzelposten — {"rechts":true,"knopfUnten":182,"kopf":202}
+e1 1440: Bilanz-Legende höchstens ~320 px breit (vorher 538, Spalte allein 340) — 320 px
+f1 [bleibt] 1440: Rückgängig-Balken mittig über der Inhaltsfläche (±4 px) — Balken 768.0, Inhalt 768.0 (1120 px breit)
+b4 1440 Mehr: „WG-Code" aufklappen schiebt nur die eigene Spalte („Ansicht" rückt, „Wohnung"/„Benachrichtigungen" bleiben) — {"wg":148,"look":228,"home":148,"push":308} → {"wg":148,"look":737,"home":148,"push":308}
+a3 [bleibt] 1440: keine Seitenfehler
+b3 1440 Putzplan: Einsatz rechts, Aufgaben links, „Zuletzt erledigt" 20 px unter dem Einsatz (±2), obwohl die linke Spalte ≥ 200 px länger ist — {"einX":782,"aufX":225,"zulX":782,"luecke":20,"links":761,"rechts":365}
+b5b 1440 Schuldner: Hinweis „oben … tippen" links unter der Ausgleich-Karte (gleiche Spalte, ±2 px) — {"links":true,"hinweisOben":828,"karteUnten":591,"hinweisX":224,"karteX":224,"text":"Abrechnen macht Torben, sobald das Geld da ist – oben „Ich habe bezahlt“ tippen."}
+b5c [bleibt] 1440 Schuldner: keine Seitenfehler
+e2 1024: Bilanz-Legende höchstens ~320 px breit — 244 px
+c2 1024 (de/dark): zwei Spalten da — 1+1
+c1 [bleibt] 1024 (de/dark, Belastungsdaten): nichts ragt aus Fenster oder Kartenrand, Seite nicht breiter als das Fenster — sauber
+c3 1024: jede Spalte ≥ 400 px (über alle Tabs mindestens 14 Spalten gefunden) — 20 Spalten; alle ≥ 400
+c4 [bleibt] 1024: keine Seitenfehler
+e2 1920: Bilanz-Legende höchstens ~320 px breit — 320 px
+c2 1920 (en/light): zwei Spalten da — 1+1
+c1 [bleibt] 1920 (en/light, Belastungsdaten): nichts ragt aus Fenster oder Kartenrand, Seite nicht breiter als das Fenster — sauber
+c3 1920: jede Spalte ≥ 400 px (über alle Tabs mindestens 14 Spalten gefunden) — 20 Spalten; alle ≥ 400
+c4 [bleibt] 1920: keine Seitenfehler
+d1 [bleibt] 834 Heute: Zonen-Hüllen ohne eigenen Kasten (display:contents) — keine Kästen
+d1 [bleibt] 834 Haushalt: Zonen-Hüllen ohne eigenen Kasten (display:contents) — keine Kästen
+d1 [bleibt] 834 Growbox: Zonen-Hüllen ohne eigenen Kasten (display:contents) — keine Kästen
+d1 [bleibt] 834 Putzplan: Zonen-Hüllen ohne eigenen Kasten (display:contents) — keine Kästen
+d1 [bleibt] 834 Privat: Zonen-Hüllen ohne eigenen Kasten (display:contents) — keine Kästen
+d1 [bleibt] 834 Abos: Zonen-Hüllen ohne eigenen Kasten (display:contents) — keine Kästen
+d1 [bleibt] 834 Übersicht: Zonen-Hüllen ohne eigenen Kasten (display:contents) — keine Kästen
+d1 [bleibt] 834 Mehr: Zonen-Hüllen ohne eigenen Kasten (display:contents) — keine Kästen
+d1 [bleibt] 834 Haushalt-Liste: Zonen-Hüllen ohne eigenen Kasten (display:contents) — keine Kästen
+d2 [bleibt] 834 Heute: Hüllen auspacken verschiebt nichts (±1 px, 7 Blöcke, 3 Hüllen) — gleich
+d2 [bleibt] 834 Haushalt: Hüllen auspacken verschiebt nichts (±1 px, 8 Blöcke, 3 Hüllen) — gleich
+d2 [bleibt] 834 Growbox: Hüllen auspacken verschiebt nichts (±1 px, 6 Blöcke, 3 Hüllen) — gleich
+d2 [bleibt] 834 Putzplan: Hüllen auspacken verschiebt nichts (±1 px, 5 Blöcke, 4 Hüllen) — gleich
+d2 [bleibt] 834 Privat: Hüllen auspacken verschiebt nichts (±1 px, 8 Blöcke, 4 Hüllen) — gleich
+d2 [bleibt] 834 Abos: Hüllen auspacken verschiebt nichts (±1 px, 4 Blöcke, 3 Hüllen) — gleich
+d2 [bleibt] 834 Übersicht: Hüllen auspacken verschiebt nichts (±1 px, 14 Blöcke, 3 Hüllen) — gleich
+d2 [bleibt] 834 Mehr: Hüllen auspacken verschiebt nichts (±1 px, 8 Blöcke, 3 Hüllen) — gleich
+d2 [bleibt] 834 Haushalt-Liste: Hüllen auspacken verschiebt nichts (±1 px, 7 Blöcke, 3 Hüllen) — gleich
+d4 [bleibt] 834: Tab-Wechsel nach dem Auspacken ohne Seitenfehler (sonst wären die d2-Messungen ab dem Fehler wertlos)
+d1 [bleibt] 390 Heute: Zonen-Hüllen ohne eigenen Kasten (display:contents) — keine Kästen
+d1 [bleibt] 390 Haushalt: Zonen-Hüllen ohne eigenen Kasten (display:contents) — keine Kästen
+d1 [bleibt] 390 Growbox: Zonen-Hüllen ohne eigenen Kasten (display:contents) — keine Kästen
+d1 [bleibt] 390 Putzplan: Zonen-Hüllen ohne eigenen Kasten (display:contents) — keine Kästen
+d1 [bleibt] 390 Privat: Zonen-Hüllen ohne eigenen Kasten (display:contents) — keine Kästen
+d1 [bleibt] 390 Abos: Zonen-Hüllen ohne eigenen Kasten (display:contents) — keine Kästen
+d1 [bleibt] 390 Übersicht: Zonen-Hüllen ohne eigenen Kasten (display:contents) — keine Kästen
+d1 [bleibt] 390 Mehr: Zonen-Hüllen ohne eigenen Kasten (display:contents) — keine Kästen
+d1 [bleibt] 390 Haushalt-Liste: Zonen-Hüllen ohne eigenen Kasten (display:contents) — keine Kästen
+d2 [bleibt] 390 Heute: Hüllen auspacken verschiebt nichts (±1 px, 7 Blöcke, 3 Hüllen) — gleich
+d2 [bleibt] 390 Haushalt: Hüllen auspacken verschiebt nichts (±1 px, 8 Blöcke, 3 Hüllen) — gleich
+d2 [bleibt] 390 Growbox: Hüllen auspacken verschiebt nichts (±1 px, 6 Blöcke, 3 Hüllen) — gleich
+d2 [bleibt] 390 Putzplan: Hüllen auspacken verschiebt nichts (±1 px, 5 Blöcke, 4 Hüllen) — gleich
+d2 [bleibt] 390 Privat: Hüllen auspacken verschiebt nichts (±1 px, 8 Blöcke, 4 Hüllen) — gleich
+d2 [bleibt] 390 Abos: Hüllen auspacken verschiebt nichts (±1 px, 4 Blöcke, 3 Hüllen) — gleich
+d2 [bleibt] 390 Übersicht: Hüllen auspacken verschiebt nichts (±1 px, 14 Blöcke, 3 Hüllen) — gleich
+d2 [bleibt] 390 Mehr: Hüllen auspacken verschiebt nichts (±1 px, 8 Blöcke, 3 Hüllen) — gleich
+d2 [bleibt] 390 Haushalt-Liste: Hüllen auspacken verschiebt nichts (±1 px, 7 Blöcke, 3 Hüllen) — gleich
+d4 [bleibt] 390: Tab-Wechsel nach dem Auspacken ohne Seitenfehler (sonst wären die d2-Messungen ab dem Fehler wertlos)
+
+=== FAIL ===
+(keine)
+
+66 grün, 0 rot

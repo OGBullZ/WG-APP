@@ -17,7 +17,6 @@ const z = n => String(n).padStart(2, '0');
 const iso = d => `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
 const T = iso(new Date());
 const vor = n => iso(new Date(Date.now() - n * 864e5));
-const VM = (d => iso(new Date(d.getFullYear(), d.getMonth() - 1, 15)))(new Date());
 const map = arr => Object.fromEntries(arr.map((x, i) => [x.id, { seq: 100 - i, ...x }]));
 // Belastungs-WG (wie scratchpad/shot-stress.mjs): ich schulde 1454,36 €, Growbox-Posten 189,50 €
 const SEED = {
@@ -26,7 +25,10 @@ const SEED = {
     { id: 'h1', name: 'Großeinkauf Metro für die Einweihungsparty mit allen Nachbarn', price: 1234.56, paidBy: 'u1', date: T, settled: false, cat: 'food' },
     { id: 'h2', name: 'Waschmaschine', price: 899.99, paidBy: 'u2', date: vor(1), settled: false, cat: 'home' },
     { id: 'h3', name: 'Pizza', price: 24, paidBy: 'u1', date: vor(2), settled: false, cat: 'fun' },
-    { id: 'h4', name: 'Strom Nachzahlung', price: 3456.78, paidBy: 'u2', date: VM, settled: false, cat: 'home' },
+    /* wg-v113: vor(3) statt VM (15. des Vormonats). Der Vorstreck-Hinweis (T2/T4) zählt nur die letzten 30 Tage — ab dem 16. eines
+       Monats lag VM außerhalb, T2/T4 erwarteten aber €4356,77 inkl. dieses Postens → an der Hälfte aller Kalendertage rot (gefunden
+       von P12 am 16.10.). Keine Prüfung hier braucht einen Vormonats-Posten; vor(3) liegt immer im Fenster. */
+    { id: 'h4', name: 'Strom Nachzahlung', price: 3456.78, paidBy: 'u2', date: vor(3), settled: false, cat: 'home' },
   ]),
   gi: map([{ id: 'g1', name: 'Erde + Dünger Großpackung', price: 189.5, paidBy: 'u1', date: T, settled: false }]),
   sl: map([{ id: 's1', name: 'Hafermilch ungesüßt Barista Edition 1 Liter', done: false, date: T }]),

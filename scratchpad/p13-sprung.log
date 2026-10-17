@@ -1,0 +1,27 @@
+  ✓ L0 die Funktionsliste wurde aus dem Quelltext gelesen — 47 Einträge
+  ✓ L1 Karten, die es nur mit Anlass gibt, tragen einen Grund — 5 mit „wann"
+  ✓ L2 ab Werk ausgeschaltete Module erkannt — ["abos"]
+  ✓ S0 jeder Eintrag steht im Inhaltsverzeichnis der Suche
+  ✓ S1 jeder Treffer führt auf den richtigen Reiter (auch Unter-Reiter „Einkaufsliste")
+  ✓ S2 kein Sprung endet stumm (Ziel versteckt oder weg, und nichts wird gesagt)
+  ✓ S3 fehlt eine Karte, nennt der Hinweis den Grund
+  ✓ S4 die allermeisten landen sichtbar (hervorgehoben oder als offenes Eingabeblatt) — 29 landen + 12 Blatt von 47 · 5 mit Erklärung
+  ✓ S4b leere Werkzeuge öffnen beim Sprung ihr Eingabeblatt (mind. 5) — „Miete" (haus #rent-card), „Gemeinsam sparen" (haus #savings-card), „Müllabfuhr" (putz #pickup-card), „Waschmaschine" (heute #wash-card), „Belegung" (heute #book-card), „Kühlschrank" (heute #fridge-card), „Essensplan" (heute #meal-card), „Umfrage" (heute #poll-card), „Status" (heute #status-card), „Abwesend" (putz #away-card), „Zählerstände" (stats #meter-card), „Nebenkosten" (stats #costs-card)
+  ✓ S5 es wurde wirklich jeder Eintrag durchlaufen — 29 landen + 12 Blatt + 5 erklärt + 1 Modul aus + 0 Fehler = 47 · 7 Reiter
+  ✓ S6 ein Treffer auf ein ausgeschaltetes Modul führt zu dessen Schalter — „Abos" (abos)
+  ✓ C1 ein leeres Werkzeug öffnet beim Sprung sein Eingabeblatt (nicht die versteckte Kopie markiert, kein Hinweis) — {"blatt":"TIMER STARTEN\nAbbrechen\n🧺 Waschmaschine\n🌀 Trockner\n🍽️ Spü","markiertVersteckt":false,"hinweis":""}
+  ✓ H1 der Hinweis ist eine Statusmeldung (wird vorgelesen)
+  ✓ H2 … mit Titel und Grund — „Reste-Rezepte“ erscheint hier, sobald im Kühlschrank etwas liegt, aus dem sich kochen lässt.
+  ✓ H4 der Hinweis ist lesbar und deckend (nichts scheint durch) — {"kontrast":16.29,"deckkraft":0.96,"breite":336,"unten":true}
+  ✓ H5 … steht unten und breit genug für den Satz (keine schmale Blase) — {"kontrast":16.29,"deckkraft":0.96,"breite":336,"unten":true}
+  ✓ H3 … und verschwindet von selbst
+  ✓ U1 „Vorrat" öffnet die Einkaufsliste und zeigt die Karte — {"tab":"haus","seg":"liste","sichtbar":true,"markiert":true,"imBild":true,"versteckt":false,"hinweis":""}
+  ✓ U2 von dort zurück: „Miete" schaltet wieder auf die Ausgaben (und öffnet „Miete einrichten") — {"tab":"haus","seg":"aus","sichtbar":false,"markiert":false,"imBild":false,"versteckt":true,"hinweis":"","u2Blatt":true}
+  ✓ U3 „Einkaufsliste" führt auf die Einkaufsliste (nicht auf die Ausgaben) — {"tab":"haus","seg":"liste","listenfeld":true}
+  ✓ E0 der englische Eintrag ist da
+  ✓ E1 der Hinweis ist übersetzt (kein deutscher Rahmen, kein deutscher Grund) — „"Leftover recipes" shows up here once there is something in the fridge to cook with."
+  ✓ E2 englisch: beim Start ist „Expenses" als aktiv markiert — {"an":"aus","liste":false}
+  ✓ E3 englisch: hin und zurück → wieder die Ausgaben, nicht die Einkaufsliste — {"an":"aus","liste":false}
+  ✓ Z1 keine Seitenfehler
+
+25 von 25 Prüfungen bestanden

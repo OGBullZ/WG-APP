@@ -1,0 +1,59 @@
+✓ A1 Standard ist Deutsch
+✓ A2 Umschalten merkt sich die Sprache und lädt neu
+✓ A3 Tab-Leiste auf Englisch
+✓ B1 „Heute" heißt Today, Begrüßung auf Englisch — 16
+Good evening, Torben
+Friday 16 October
+🧹 YOUR TURN
+Clean
+✓ B2 Datum im englischen Format (Wochentag ausgeschrieben) — 16
+Good evening, Torben
+Friday 16 October
+🧹 YOUR TURN
+Cleaning plan ›
+🚿 Bad putzen
+2 days overdue
+Tomorrow
+Can't do it
+✓ B3 Haushalt heißt Household, KEIN Betrag mit Komma — 💶 Expenses
+🛒 Shopping list (1)
+YOUR BALANCE
+€
+20.00
+20.00
+I OWE
+Household
+100%
+€20.00
+Grow box
+0%
+€0.00
+›
+Torben  Tom
+€20.00
+Paying in one tap works as soon a
+✓ B4 „Mehr" zeigt englische Gruppen
+✓ B5 keine Seitenfehler
+✓ C0 alle geprüften Tabs gefunden (kurze EN-Namen, einzeilig) — fehlt: 
+✓ C4 Tab-Beschriftungen einzeilig und ungekürzt — []
+✓ C1 keine deutschen Reste auf den Hauptseiten
+✓ C3 kein Wörterbuch-Eintrag steht unübersetzt auf der Seite
+✓ C2 keine Seitenfehler
+✓ E1 Ausgaben-Formular heißt auf Englisch „+ Add expense"
+✓ E2 Formular durchgehend englisch — EXPENSE ⏎ Cancel ⏎ What did you buy? ⏎ 🛒 Groceries ⏎ 🧴 Household ⏎ 🎉 Leisure ⏎ 📄 Fixed costs ⏎ 📦 Other ⏎ Next
+✓ E8v Miet-Karte mit „Next month" gefunden — 1
+✓ E8 Miet-Zeilen im Folgemonat englisch („open") — Torben · €450.00
+open
+Paid ✓ ⏎ Tom · €450.00
+open
+✓ E3 Ersteinrichtung englisch — Today ⏎ TODAY ⏎ SYNC… ⏎ 16 ⏎ Good evening ⏎ Friday 16 October ⏎ 👋 WHO ARE YOU ON THIS PHONE? ⏎ Torben ⏎ Tom ⏎ Only needed once. Without it,
+✓ D1 auf Deutsch weiterhin deutsch, Beträge mit Komma
+✓ D2 deutsche Beträge (Komma)
+✓ D3 keine Seitenfehler
+✓ E4 keine HTML-Entities in Texten (Quelltext und Wörterbuch)
+✓ E5 kein deutscher Template-String ohne TT() (Quelltext, datenunabhängig)
+✓ E7v Push-Aufrufe im Quelltext gefunden (Prüfer nicht leer) — 47
+✓ E7 jeder Push-Text läuft durch TT() (Titel UND Text)
+✓ E6 auch Texte aus Listen (TT(variable)) sind übersetzt
+
+26 ok, 0 fehlgeschlagen

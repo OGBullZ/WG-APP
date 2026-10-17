@@ -1,0 +1,102 @@
+✓ C1 keine Check-in-Karte, obwohl eine offene Runde in den Daten liegt
+✓ C2 „Wie läuft's in der WG?" steht nirgends
+✓ C3 alte Antwort bleibt in den Daten (nichts gelöscht) — [{"seq":100,"id":"2026-10-u2","ym":"2026-10","userId":"u2","score":3,"wish":"Mehr lüften","ts":1}]
+✓ K1 sortiert nach Datum, Abgelaufenes zuerst — ["Käse\nseit 1 Tag abgelaufen\nWeg ✓","Milch · Tom\nläuft morgen ab\nWeg ✓"]
+✓ K2 „läuft morgen ab" + Besitzer — Milch · Tom
+läuft morgen ab
+Weg ✓
+✓ K3 neuer Eintrag: +3 Tage, gehört mir — [{"id":"84czmngd","name":"Joghurt","exp":"2026-10-19","owner":"u1","seq":1792171308102},{"seq":100,"id":"k1","name":"Milch","exp":"2026-10-17","owner":"u2"},{"seq":99,"id":"k2","name":"Käse","exp":"2026-10-15"}]
+✓ K3b Entfernen zeigt sich erst als Abgang
+✓ K4 „Weg ✓" entfernt
+✓ E1 Fairness-Zeile zählt nur vergangene 30 Tage
+✓ E2 🛒 fügt nur Fehlendes hinzu (Tomaten stehen schon drauf, Groß/klein egal) — ["Nudeln","Brot","Bier","Tomaten","Chips","Saft","Wasser"]
+✓ E3 Push „Zutaten für …" (Typ shop)
+✓ E4 Vorschlag: Tom kocht (hat seltener gekocht)
+✓ E5 erster freier Tag vorbelegt (heute ist belegt → morgen)
+✓ E6 Gericht gespeichert — [{"id":"a7248tn7","date":"2026-10-17","dish":"Chili","cook":"u2","ings":"Bohnen, Mais","seq":1792171310310},{"seq":100,"id":"e1","date":"2026-10-13","dish":"Pizza","cook":"u1"},{"seq":99,"id":"e2","date":"2026-10-08","dish":"Curry","cook":"u1"},{"seq":98,"id":"e0","date":"2026-09-06","dish":"Suppe","cook":"u2"},{"seq":97,"id":"e3","date":"2026-10-16","dish":"Nudelauflauf","cook":"u1","ings":"Nudeln, tomaten"}]
+✓ E7 Wochenliste zeigt beide Gerichte
+✓ R1 fremder Vorschlag: „Einverstanden" angeboten
+✓ R2 nach Zustimmung gilt die Regel
+✓ R3 eigener Vorschlag: ich stimme zu, Tom noch nicht — {"id":"frlihjoc","text":"Ruhe ab 22 Uhr","by":"u1","ts":1792171311285,"ok_u1":true,"seq":1792171311285}
+✓ R4 „wartet auf Tom" + nur „Zurückziehen" — Ruhe ab 22 Uhr
+wartet auf Tom
+Zurückziehen
+✓ R5 Push an Tom
+✓ S1 Ziel mit Summe — 🐷 GEMEINSAM SPAREN
++ Ziel
+Mikrowelle · €120,00 / €120,00
+Torben €60,00 · Tom €60,00 · Geld bei Torben
+Einzahlen
+Gekauft
+✓ S2 Einzahlung addiert (c_u1 60 → 65)
+✓ S3 Rückgängig nimmt sie zurück
+✓ S4 Kaufpreis = Ziel vorbelegt
+✓ S5 zwei Posten: Kauf (ich zahle, 50/50) + Toms Einzahlung an mich — [{"id":"prus1k1a","date":"2026-10-16","settled":false,"name":"🐷 Mikrowelle","price":120,"paidBy":"u1","owedBy":null,"cat":"home","sg":"g1","ub":false,"seq":1792171313918},{"id":"8y71gyfp","date":"2026-10-16","settled":false,"name":"🐷 Mikrowelle: Einzahlung Tom","price":60,"paidBy":"u2","owedBy":"u1","sg":"g1","ub":true,"seq":1792171313917}]
+✓ S6 beide je 60 eingezahlt → niemand schuldet etwas
+✓ S7 Ziel erledigt, Karte leer
+✓ S8 neues Ziel, ich verwalte
+✓ G1 Artikel zur Auswahl
+✓ G2 Vorschau „Gemeinsam €15 (je €7,50) · nur du €5" — Gemeinsam €15,00 (je €7,50) · nur du €5,00
+✓ G3 gemeinsamer Teil 15 € (50/50) — {"id":"2cybgs5v","name":"Einkauf: Brot","price":15,"paidBy":"u1","date":"2026-10-16","owedBy":null,"cat":"food","shop":null,"settled":false,"seq":1792171319307}
+✓ G4 eigener Teil 5 € trage ich selbst — {"id":"9f9a8kht","date":"2026-10-16","settled":false,"name":"Einkauf nur Torben: Bier","price":5,"paidBy":"u1","owedBy":"u1","cat":"food","seq":1792171319309}
+✓ G5 Tom schuldet nur 7,50 aus dem Einkauf
+✓ G6 Abgehaktes aus der Liste
+✓ G7 Tom zahlt: mein Teil 4 € trage ich, Rest 6 € 50/50 — [{"id":"aiofnro8","date":"2026-10-16","settled":false,"name":"Einkauf nur Torben: Chips","price":4,"paidBy":"u2","owedBy":"u1","cat":"food","seq":1792171322500},{"id":"uujisnpt","name":"Einkauf: Saft","price":6,"paidBy":"u2","date":"2026-10-16","owedBy":null,"cat":"food","shop":null,"settled":false,"seq":1792171322498}]
+✓ G8 → ich schulde Tom 7 €
+✓ G9 „Tom zahlt alles" bleibt, wie gewählt (keine Aufteilung) — [{"id":"017t6x0f","name":"Einkauf: Wasser","price":8,"paidBy":"u1","date":"2026-10-16","owedBy":"u2","cat":"food","shop":null,"settled":false,"seq":1792171325369}]
+✓ N0 ohne Abrechnung: Kachel statt Karte
+✓ N1 Vorschau nach Anteil 60/40 — Torben €180,00 · Tom €120,00
+✓ N1b Abrechnungsjahr nimmt nur Ziffern (max. 4): „x20y24z9" getippt → 2024 — Wert: „2024"
+✓ N2 Nachzahlung: je Person ein Posten, ich habe bezahlt — [{"id":"0ar0rs1p","date":"2026-10-16","settled":false,"name":"🏠 Nebenkosten 2024 – Nachzahlung (Torben)","price":180,"paidBy":"u1","owedBy":"u1","cat":"fix","nk":true,"seq":1792171326965},{"id":"zp7zaue9","date":"2026-10-16","settled":false,"name":"🏠 Nebenkosten 2024 – Nachzahlung (Tom)","price":120,"paidBy":"u1","owedBy":"u2","cat":"fix","nk":true,"seq":1792171326964}]
+✓ N3 Tom schuldet 120
+✓ N4 Guthaben bei Tom → Tom schuldet mir meine Hälfte (40) — [{"id":"qrpjs83v","date":"2026-10-16","settled":false,"name":"🏠 Nebenkosten 2025 – Guthaben-Anteil Torben","price":40,"paidBy":"u1","owedBy":"u2","cat":"fix","nk":true,"ub":true,"seq":1792171328057}]
+✓ N5 Liste zeigt die Abrechnungen
+✓ V1 Sprach-Vorlage
+✓ I1 gespeichert mit Besitzer
+✓ I2 gruppiert + Garantie-Warnung — 🛋️ INVENTAR · WEM GEHÖRT WAS
++ Gegenstand
+Torben · 1
+Sofa
+€250,00 · Garantie noch 10 Tage
+×
+✓ A1 Übergabe-Seite: Zähler, Mangel, Inventar — Drucken / als PDF speichern
+Schließen
+Übergabe WG · 16.10.2026
+
+Torben & Tom
+
+Zählerstände
+⚡ Strom	12.345,6 kWh	14.10.2026
+💧 Wasser	– bitte ablesen –	
+🔥 Gas	– bitte ablesen –	
+Offene Mängel (1)
+Heizung tropft – gemeldet am 12.10.2026
+Inventar
+Sofa	Torben	€250,00
+Offene Beträge
+
+Tom schuldet Torben
+✓ A2 offene Beträge = Bilanz — Tom schuldet Torben €168,50 / 168.5
+✓ A3 Druckansicht: nur die Seite, ohne Knöpfe und Tab-Leiste
+✓ A4 Schließen
+✓ Z1 keine Seitenfehler
+✓ V2 Haushalt offen, Schnell-Zeile vorbelegt
+✓ V3 Hinweis „per Sprache" + kein Formular
+✓ V4 Adresse bereinigt
+✓ V5 eingetragen
+✓ V6 keine Seitenfehler
+✓ V7 ohne Text → Formular
+✓ V8 ohne „Wer bist du" → Formular mit „Pizza" vorbelegt
+✓ V9 keine Seitenfehler
+✓ N6 drei Personen: kein Anteil-Schieber
+✓ N7 gleich verteilt, Cent-Rest an die Letzte — Torben €33,33 · Tom €33,33 · Kim €33,34
+✓ N8 drei Posten, Summe 100 — [33.33,33.33,33.34]
+✓ N9 keine Seitenfehler
+✓ N10 zwei Personen 100,01 → 50,01 + 50,00 — Torben €50,01 · Tom €50,00
+✓ C6 keine Seitenfehler
+✓ R6 gültige Regel aufgehoben → Push
+✓ S9 Auflösen: Ziel weg, Toms 30 € als Schuld des Verwalters — [{"id":"m0o42c2h","date":"2026-10-16","settled":false,"name":"🐷 Grill aufgelöst: Einzahlung Tom zurück","price":30,"paidBy":"u2","owedBy":"u1","sg":"g2","ub":true,"seq":1792171370168}]
+✓ I3 Besitzer nicht mehr in der WG → Gruppe „Ehemalige"
+✓ D1 Regeln für sg/ep/kf/inv/rg/ci
+
+70 ok, 0 fehlgeschlagen

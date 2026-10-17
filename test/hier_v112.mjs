@@ -265,12 +265,13 @@ const kleineSchrift = page => page.evaluate(() => {
   const M = await open({ tab: 'set', seed: { users: U } });
   await M.page.waitForTimeout(1000);
   const c = await M.page.evaluate(() => {
-    const karten = [...document.querySelectorAll('.content > [data-fold]')].sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+    /* wg-v113 (P12): Gruppen stecken jetzt in Zonen-Hüllen (.zz-l/.zz-r, unter 1024 px display:contents) — „direktes Kind" heißt: von .content ODER einer Hülle */
+    const karten = [...document.querySelectorAll(':is(.content, .zz-l, .zz-r) > [data-fold]')].sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
     const luecken = karten.slice(1).map((k, i) => +(k.getBoundingClientRect().top - karten[i].getBoundingClientRect().bottom).toFixed(1));
     const titel = document.querySelector('[data-fold="wg"] .fold-hdr > span:nth-child(2) > span');
     const index = document.querySelector('[data-testid="was-kann-die-app"] span > span');
     const tcs = titel && getComputedStyle(titel), ics = index && getComputedStyle(index);
-    const knopf = [...document.querySelectorAll('.content > button')].find(b => /Alle lokalen Daten löschen/.test(b.textContent));
+    const knopf = [...document.querySelectorAll(':is(.content, .zz-l, .zz-r) > button')].find(b => /Alle lokalen Daten löschen/.test(b.textContent));
     const kcs = knopf && getComputedStyle(knopf), kr = knopf?.getBoundingClientRect();
     const davor = knopf?.previousElementSibling?.getBoundingClientRect();
     return { n: karten.length, luecken, titel: tcs ? `${tcs.fontSize}/${tcs.fontWeight}` : null, index: ics ? `${ics.fontSize}/${ics.fontWeight}` : null,
@@ -525,7 +526,7 @@ const ueberschriften = page => page.evaluate(() => {
 {
   const B = await open({ tab: 'grow', seed: SEED_GROW_OHNE_PP });
   const i = await B.page.evaluate(async () => {
-    const ziel = [...document.querySelectorAll('.content > button.btn')].find(b => /Grow-Ausgabe/.test(b.textContent));
+    const ziel = [...document.querySelectorAll(':is(.content, .zz-l, .zz-r) > button.btn')].find(b => /Grow-Ausgabe/.test(b.textContent));   /* wg-v113 (P12): auch in Zonen-Hüllen */
     const ys = []; const t0 = performance.now(); let stop = false;
     const tick = () => { ys.push([performance.now() - t0, ziel.getBoundingClientRect().top]); if (!stop) requestAnimationFrame(tick); };
     requestAnimationFrame(tick);

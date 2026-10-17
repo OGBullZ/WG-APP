@@ -1,7 +1,7 @@
 /* Breite Bildschirme + Rückmeldung (wg-v83, Optik-Pakete „Desktop & Tablet nutzen die Breite" und „Rückmeldung & Animation").
    A Desktop 1366: Tab-Leiste als Seitenleiste links, Kopfzeile daneben, Heute zweispaltig, nichts ragt seitlich heraus
    B Tablet 834 und Handy 390: unverändert (Leiste unten, eine Spalte)
-   C andere Seiten am Desktop: eine Spalte, höchstens 760 px
+   C andere Seiten am Desktop: zweispaltig wie Heute (seit wg-v113/P12; vorher eine Spalte, höchstens 760 px)
    D Rückmeldung: Schnell-Eintragen leuchtet + vibriert, Einkaufsliste-Haken vibriert, Verlauf blendet ein
    E „Weniger Bewegung": keine Einblend-Animation, keine Vibration */
 import { chromium } from 'playwright';
@@ -50,6 +50,7 @@ async function open(vp, { tab = 'heute', reduced = false } = {}) {
 const layout = page => page.evaluate(() => {
   const r = s => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { x: Math.round(b.left), y: Math.round(b.top), w: Math.round(b.width), h: Math.round(b.height) }; };
   return { tab: r('.tabbar'), nav: r('.navbar'), content: r('.screen .content'), a: r('[data-testid="heute-a"]'), b: r('[data-testid="heute-b"]'),
+    l: r('.screen .zz-l'), rr: r('.screen .zz-r'),   /* wg-v113 (P12): Spalten der übrigen Seiten */
     ueber: document.documentElement.scrollWidth - innerWidth };
 });
 
@@ -64,7 +65,8 @@ check('A5 nichts ragt seitlich heraus', la.ueber <= 0, `${la.ueber} px`);
 // C: andere Seite am Desktop
 await A.page.locator('.tabbar .tabitem', { hasText: 'Übersicht' }).click(); await A.page.waitForTimeout(600);
 const lc = await layout(A.page);
-check('C1 Übersicht am Desktop einspaltig, höchstens 760 px', lc.content.w <= 760 && lc.content.w >= 600, `${lc.content.w} px`);
+// wg-v113 (P12): Vertragswechsel — vorher „einspaltig, höchstens 760 px"; jetzt nutzen alle Seiten die Breite wie Heute (test/desktop_v113.mjs)
+check('C1 Übersicht am Desktop zweispaltig wie Heute (Inhalt ≥ 1000 px, Spalten nebeneinander)', lc.content.w >= 1000 && lc.l && lc.rr && lc.rr.x >= lc.l.x + lc.l.w - 1 && Math.abs(lc.l.y - lc.rr.y) < 4, `${lc.content.w} px, ${JSON.stringify({ l: lc.l, r: lc.rr })}`);
 check('A6 keine Seitenfehler', A.errs.length === 0, A.errs.join(' | '));
 await A.ctx.close();
 
