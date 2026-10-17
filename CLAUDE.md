@@ -851,6 +851,18 @@ Nach v108 nicht noch einmal den Diff lesen, sondern den **ganzen Bestand** mit d
 - 🪤 Mehrere Umsetzer haben Testdateien bzw. eine `wgapp.html`-Zeile per `sed`/Heredoc geändert, obwohl der Auftrag es verbot (eine Werkzeug-Ausgabe empfahl es). Zeilen gegengelesen; App-Code sonst nur per Edit.
 - `wgapp.html` im Arbeitsbaum ist CRLF, HEAD LF — eigene Ersetzungs-Skripte vorher normalisieren; `git show HEAD:… > kopie` funktioniert für Gegenproben, weil der lokale Server keine CSP sendet.
 
+## Runde E (wg-v113, 13.–17.10. — torbe: „arbeite autonom weiter", „baller raus", dann „fertig werden oder tokensparsam")
+
+Offene Punkte aus v112 gebaut, Abnahme je Paket im Hauptloop:
+- **Einkaufs-Haken** (`3a7760e`): `checkL` hat einen eigenen 450-ms-Zeitgeber → flusht jetzt bei `pagehide`/`visibilitychange` (Test `listen_v112` j3).
+- **P11 Ausgleich-Karte** (`c45ecca`, `ausgleich_v113`): Banner + Zahlungsknopf (44 px) + BankBox + Hinweise = EINE Karte; „+ Ausgabe" ist der einzige 54-px-Knopf; `ausgleichPaar()` als einzige Herleitung.
+- **`cent()`** (`1968ed7`): Ring (eigener Saldo), Karte (Saldo des anderen) und Heute (`myBalance`) summierten denselben Saldo auf drei Wegen; auf halben Cent kippte `toFixed` das Fließkomma-Rauschen verschieden (Ring 1375,41, Karte 1375,40). Vorzeichensymmetrisch runden an allen drei Stellen (`ausgleich_v113` k; Gegenprobe rot).
+- **P12 Desktop-Zweispalten** (`180e508`, `desktop_v113`): ab 1024 px feste Zonen auf allen Seiten (`.zz-paar/.zz-l/.zz-r`, darunter `display:contents` → Handy/Tablet byte-gleich zu HEAD gemessen). Kopfzeilen-Titel steht beim Tab-Wechsel still.
+- **P13 Erste Schritte** (`180e508`, `start_v113`): Karte auf Heute einer leeren WG, Kacheln dahinter eingeklappt; nach dem Assistenten Aufgaben per `snooze` gestaffelt, am Einrichtungstag keine Push-Mahnungen; Kachel-Raster < 388 px dreispaltig.
+- **`optik_v111` T2/T4** waren ab dem 16. jedes Monats rot: Vormonats-Posten fiel aus dem 30-Tage-Fenster der Vorstreck-Rechnung → Posten auf `vor(3)`.
+- 🪤 **Session-Limit, viermal:** P12 und P13 starben je mitten in der Arbeit, beide Gutachten-Läufe (10 bzw. 5 Opus-Agents) starben komplett nach Sekunden bis Minuten. Rettung: P11 per Referenzkopie vom P12-Teilstand getrennt (`wgapp_ref_p12.html` = Stand vor P12), P11 abgenommen + committet, P12-Teil per `git merge-file` (alle drei auf LF normalisiert) konfliktfrei auf den neuen Stand zurück, dann Fortsetzungs-Agent mit „erst feststellen, was fertig ist". Gutachten 2 (FILM, LEIST, A11Y, EN, TYPO, RHYTHMUS, GRENZ, TEXT, FARBE, PWA) lief NIE durch — Skript liegt im Session-Ordner, Worktree `.gutachten-wt` (Port 8098, per `.git/info/exclude` aus `git add -A` gehalten).
+- **Offen:** Kachelwort „Monatsbud-get" bricht in der schmalen linken Desktop-Spalte (1440); HIER-2 Abstände, HIER-7/10/11 Typo/Symbole; Gutachten 2.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
