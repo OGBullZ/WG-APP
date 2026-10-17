@@ -66,7 +66,11 @@ for (let i = 0; i < tabs.length; i++) {
   await page.waitForTimeout(400);
   const namenlos = await page.evaluate((reSrc) => {
     const re = new RegExp(reSrc, 'i');
-    return [...document.querySelectorAll('.content button, .content [role="button"]')].filter(b => b.offsetParent)
+    /* wg-v113: checkVisibility statt nur offsetParent — offsetParent ist auch bei visibility:hidden gesetzt, innerText dort aber leer.
+       Der zugeklappte Werkzeug-Bereich (P13, .wz-falt ohne .auf) meldete so einen „(leer)"-Knopf, den weder Screenreader noch Tastatur
+       erreichen (visibility:hidden = nicht im Barrierefreiheitsbaum, nicht fokussierbar). */
+    return [...document.querySelectorAll('.content button, .content [role="button"]')]
+      .filter(b => b.offsetParent && (typeof b.checkVisibility !== 'function' || b.checkVisibility({ visibilityProperty: true })))
       .filter(b => !b.getAttribute('aria-label') && !b.getAttribute('title') && re.test((b.innerText || '').trim()))
       .map(b => `„${(b.innerText || '').trim() || '(leer)'}" bei ${(b.closest('.cell, .group, [data-testid]')?.innerText || '').replace(/\s+/g, ' ').slice(0, 40)}`);
   }, NICHTSSAGEND.source);
