@@ -1,11 +1,12 @@
-/* Putzplan-Fairness: wer den Haken setzt, bekommt die Aufgabe gutgeschrieben; dran ist, wer sie seltener gemacht hat.
+/* Putzplan-Fairness: wer den Haken setzt, bekommt die Aufgabe gutgeschrieben; dran ist danach strikt abwechselnd der
+   andere (wg-v114 — bis v113: wer sie seltener gemacht hatte, das ergab „Tom, danach wieder Tom").
    Anlass: torbe brachte den Müll „zu oft" raus — bis wg-v58 bekam der EINGETEILTE den Eintrag und danach wechselte es
    stur ab, wer fremden Müll rausbrachte, war gleich wieder dran. Prüft Regel (Funktionen direkt), Oberfläche
    (Haushalt-Karte, Tab-Punkt, Putzplan-Stand, Vorlagen), Sync, Push-Text und Rückgängig. Firebase per Stub. */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
 
-const url = 'http://localhost:8099/wgapp.html';
+const url = process.env.WG_URL || 'http://localhost:8099/wgapp.html';   // WG_URL: Gegenprobe gegen eine Kopie (wg-v114)
 const z = n => String(n).padStart(2, '0');
 const dayAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
 const browser = await chromium.launch();
@@ -59,9 +60,13 @@ const rules = await page.evaluate(([d0, d1, d2, d120]) => {
   const e = (userId, date) => ({ taskId: 'x', userId, date });
   return {
     tieNever: choreNext('x', [], U, 'b'),                                  // beide nie → Einteilung bleibt
-    tieRecent: choreNext('x', [e('b', d0), e('a', d1)], U, 'b'),          // 1:1, b zuletzt → a
-    fewer: choreNext('x', [e('a', d0), e('a', d1), e('b', d2)], U, 'a'),  // a 2×, b 1× → b
-    old: choreNext('x', [e('b', d0), e('a', d120), e('a', d120)], U, 'b'),// a-Einträge zu alt → a 0 : b 1 → a
+    tieRecent: choreNext('x', [e('b', d0), e('a', d1)], U, 'b'),          // b zuletzt → a
+    fewer: choreNext('x', [e('a', d0), e('a', d1), e('b', d2)], U, 'a'),  // a zuletzt → b
+    old: choreNext('x', [e('b', d0), e('a', d120), e('a', d120)], U, 'b'),// b zuletzt → a
+    // wg-v114: der Fall, der „Tom, danach wieder Tom" ergab — a liegt 1:3 zurück, hat aber zuletzt geputzt → b (bis v113: a)
+    catchUp: choreNext('x', [e('a', d0), e('b', d1), e('b', d2), e('b', d2)], U, 'a'),
+    drei: [choreNext('x', [e('b', d0)], [...U, { id: 'c' }], 'b'), choreNext('x', [e('c', d0)], [...U, { id: 'c' }], 'c')],   // reihum: b → c, c → a
+    weg: choreNext('x', [e('z', d0)], U, 'b'),                            // nur Einträge Ausgezogener → Einteilung bleibt
     other: choreNext('x', [{ taskId: 'y', userId: 'a', date: d0 }], U, 'a'), // andere Aufgabe zählt nicht → Gleichstand, Einteilung
     solo: choreNext('x', [], [{ id: 'a' }], 'z'),
     due: [choreDueIn({ lastDone: null }), choreDueIn({ lastDone: d0, interval: 3 }), choreDueIn({ lastDone: d2, interval: 1 })],
@@ -69,9 +74,12 @@ const rules = await page.evaluate(([d0, d1, d2, d120]) => {
   };
 }, [dayAgo(0), dayAgo(1), dayAgo(2), dayAgo(120)]);
 check('A1 Gleichstand, beide nie → Einteilung bleibt', rules.tieNever === 'b', rules.tieNever);
-check('A2 Gleichstand → wer länger nicht dran war', rules.tieRecent === 'a', rules.tieRecent);
-check('A3 wer seltener → ist dran', rules.fewer === 'b', rules.fewer);
-check('A4 Einträge älter als 90 Tage zählen nicht', rules.old === 'a', rules.old);
+check('A2 abwechselnd: b zuletzt → a', rules.tieRecent === 'a', rules.tieRecent);
+check('A3 abwechselnd: a zuletzt → b', rules.fewer === 'b', rules.fewer);
+check('A4 abwechselnd auch mit alten Einträgen: b zuletzt → a', rules.old === 'a', rules.old);
+check('A4b wer zuletzt geputzt hat, ist raus — auch im Rückstand 1:3 (kein „danach wieder", wg-v114)', rules.catchUp === 'b', rules.catchUp);
+check('A4c drei Personen: reihum in Mitbewohner-Reihenfolge', JSON.stringify(rules.drei) === '["c","a"]', JSON.stringify(rules.drei));
+check('A4d nur Einträge Ausgezogener → Einteilung bleibt', rules.weg === 'b', rules.weg);
 check('A5 andere Aufgaben zählen nicht mit', rules.other === 'a', rules.other);
 check('A6 nur eine Person → immer sie', rules.solo === 'a', rules.solo);
 check('A7 Fälligkeit: nie → 0, heute+3 → 3, vor 2 Tagen täglich → -1', JSON.stringify(rules.due) === '[0,3,-1]', JSON.stringify(rules.due));
@@ -132,7 +140,7 @@ const pushBefore = pushes.length;
 await row('Müll').locator('.done-btn').click(); await page.waitForTimeout(900);
 const m1 = await task('m'), pl1 = (await local()).pl;
 check('D1 Eintrag geht an Torben (wer den Haken setzt)', pl1[0].taskId === 'm' && pl1[0].userId === 'u1' && pl1[0].pts === 1, JSON.stringify(pl1[0]));
-check('D2 Tom bleibt dran (2 < 6)', m1.assignee === 'u2', m1.assignee);
+check('D2 Tom bleibt dran (Torben hat zuletzt geputzt)', m1.assignee === 'u2', m1.assignee);
 check('D3 Müll heute erledigt', m1.lastDone === dayAgo(0), m1.lastDone);
 check('D4 Stand steigt auf Torben 6× / Tom 2× (title der Zeile, seit v101)', await (async () => { const t = await row('Müll').locator('[data-testid="chore-stand"]').getAttribute('title') || ''; return /Torben 6×/.test(t) && /Tom 2×/.test(t); })());
 // seit wg-v79 (Push-Diät) ist „X hat erledigt" Typ `done` (leise, Standard aus) statt `putz`

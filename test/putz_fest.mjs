@@ -12,7 +12,7 @@ import { STUB } from './_fbstub.mjs';
 
 const require = createRequire(import.meta.url);
 const { taskWho } = require('../api/_wg.js');
-const url = 'http://localhost:8099/wgapp.html';
+const url = process.env.WG_URL || 'http://localhost:8099/wgapp.html';   // WG_URL: Gegenprobe gegen eine Kopie (wg-v114)
 const z = n => String(n).padStart(2, '0');
 const dayAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
 const pass = [], fail = [];
@@ -68,10 +68,19 @@ await A.haken('Küche');
 check('R2 nach dem Haken ist Tom dran (gewechselt)', (await A.task('Küche putzen')).assignee === 'u2');
 check('R3 … und die Zeile dreht sich mit: „Tom, danach du"', /^Tom, danach du · /.test(await A.wer('Küche')), await A.wer('Küche'));
 check('R3b Push nennt, wer jetzt dran ist', A.pushes.some(p => /Tom, du bist dran/.test(p.body || '')), JSON.stringify(A.pushes.map(p => p.body)));
-// Torben hakt Toms Runde ab → Torben 2 : Tom 0 → Tom bleibt dran und holt auf
+// Torben hakt Toms Runde ab → wer zuletzt geputzt hat, ist raus → Tom bleibt dran
 await A.haken('Küche');
-check('R4 wer zweimal macht, gibt die Aufgabe nicht zurück: Tom bleibt dran', (await A.task('Küche putzen')).assignee === 'u2');
-check('R5 Zeile sagt ehrlich „danach wieder Tom" (Tom holt auf)', /^Tom, danach wieder Tom · /.test(await A.wer('Küche')), await A.wer('Küche'));
+check('R4 Torben rettet Toms Runde: Tom bleibt dran (wer zuletzt geputzt hat, ist raus)', (await A.task('Küche putzen')).assignee === 'u2');
+/* wg-v114 (torbe 20.10.: „es steht immer noch Tom danach Tom … es muss stehen Tom danach Torben danach dann Torben danach Tom").
+   Bis v113 stand hier „danach wieder Tom" als ERWÜNSCHT (Fairness: Torben 2 : Tom 0, Tom holt auf). Jetzt strikt abwechselnd. */
+check('R5 Zeile: „Tom, danach du" — nie „danach wieder Tom"', /^Tom, danach du · /.test(await A.wer('Küche')), await A.wer('Küche'));
+// Tom hakt selbst ab („War Tom" in der Rückgängig-Meldung) → Torben dran, Zeile dreht sich: „Du, danach Tom"
+await A.haken('Küche');
+await A.page.getByRole('button', { name: 'War Tom' }).click(); await A.page.waitForTimeout(700);
+check('R6 Tom hakt ab → Torben dran, Zeile „Du, danach Tom" (obwohl Torben 2 : Tom 1 vorn liegt)',
+  (await A.task('Küche putzen')).assignee === 'u1' && /^Du, danach Tom · /.test(await A.wer('Küche')), `${(await A.task('Küche putzen')).assignee} · ${await A.wer('Küche')}`);
+check('R7 Push nach Toms Haken: „Torben, du bist dran" statt „holt noch auf"',
+  A.pushes.some(p => /Torben, du bist dran/.test(p.body || '')) && !A.pushes.some(p => /holt|bleibt dran/.test(p.body || '')), JSON.stringify(A.pushes.map(p => p.body)));
 
 // ── F: feste Aufgabe über das Formular ──
 await A.page.locator('[data-testid="putz-neu"]').click(); await A.page.waitForTimeout(300);

@@ -6,7 +6,7 @@
 
 const { loadSubs, sendToSubs, DB_BASE } = require('./_push');
 const { currentCode, berlinParts, cronErlaubt } = require('./_sv');
-const { eveningMessages, eveningPlan } = require('./_wg');
+const { eveningMessages, eveningPlan, subsJePerson, toArray } = require('./_wg');
 
 module.exports = async (req, res) => {
   // wie cron.js (wg-v104): ohne gesetztes CRON_SECRET 503 statt „Bearer undefined" durchzulassen
@@ -28,7 +28,11 @@ module.exports = async (req, res) => {
   let sent = 0;
   if (plan.putz || plan.digest) {
     const subs = await loadSubs(code);
-    if (plan.putz) sent += (await sendToSubs(subs, plan.putz, { type: 'putz' })).sent;
+    // wg-v114: Tonnen je Person — wer morgen nicht rausbringt, bekommt keine Abend-Push (Tonne ohne Aufgabe: alle)
+    if (plan.putz) for (const [fuer, geraete] of subsJePerson(subs, toArray(wg.users))) {
+      const putz = eveningPlan(eveningMessages(wg, today, fuer), today).putz;
+      if (putz) sent += (await sendToSubs(geraete, putz, { type: 'putz' })).sent;
+    }
     if (plan.digest) sent += (await sendToSubs(subs, plan.digest, { type: 'digest' })).sent;
   }
   res.status(200).json({ today, messages: messages.map((m) => m.tag), sent });

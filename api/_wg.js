@@ -46,6 +46,22 @@ function taskWho(t, wg, todayIso) {
   if (u && !fest && isAway(wg, u.id, todayIso)) { const o = users.find((x) => x.id !== u.id && !isAway(wg, x.id, todayIso)); if (o) return o; }
   return u || null;
 }
+/* ── Putz-Push je Person (wg-v114, torbe 20.10.: „ich will kein push wenn Tom dran ist") ──
+   Bis v113 ging der Putz-Teil der Morgen-Push („Bad (Tom)") und die Abend-Push „Tom bringt raus" an JEDES Gerät.
+   `fuer` = userId → nur, was diese Person heute macht. Ohne `fuer` (Gerät keiner Person zuzuordnen) wie bisher alles
+   — lieber eine Push zu viel als eine fehlende. Aufgabe ohne zuständige Person geht an alle. */
+const fuerPerson = (who, fuer) => !fuer || !who || who.id === fuer;
+// Geräte nach Person: `uid` aus dem Abo; ältere Abos ohne uid über den Gerätenamen (die App speichert dort den Namen der Person)
+function subsJePerson(subs, users) {
+  const g = new Map();
+  for (const s of subs || []) {
+    const u = users.find((x) => x.id === s.uid) || users.find((x) => x.name && x.name === s.name);
+    const k = u ? u.id : null;
+    if (!g.has(k)) g.set(k, []);
+    g.get(k).push(s);
+  }
+  return [...g.entries()];
+}
 const ptsOf = (l, byId) => { const p = Number(l.pts || (byId[l.taskId] && byId[l.taskId].pts)); return [1, 2, 3].includes(p) ? p : 2; };
 
 // ── wg-v70 ──
@@ -149,8 +165,10 @@ function fridgeReminders(wg, todayIso) {
 // (Check-in-Aufruf am 1. des Monats: mit dem Monats-Check-in in wg-v100 entfernt)
 
 // Morgens: EINE Putz-Push für alles Fällige statt je Aufgabe eine (weniger Rauschen → Push bleibt an)
-function putzDigest(wg, todayIso) {
-  const due = toArray(wg.pt).map((t) => ({ t, d: taskDueIn(t, wg, todayIso) })).filter((x) => x.d <= 0).sort((a, b) => a.d - b.d);
+// `fuer` (wg-v114): nur die Aufgaben dieser Person — siehe fuerPerson
+function putzDigest(wg, todayIso, fuer) {
+  const due = toArray(wg.pt).map((t) => ({ t, d: taskDueIn(t, wg, todayIso) }))
+    .filter((x) => x.d <= 0 && fuerPerson(taskWho(x.t, wg, todayIso), fuer)).sort((a, b) => a.d - b.d);
   if (!due.length) return null;
   const parts = due.slice(0, 5).map(({ t, d }) => {
     const who = taskWho(t, wg, todayIso);
@@ -162,16 +180,20 @@ function putzDigest(wg, todayIso) {
 }
 
 // Abend: morgen ist Abholung → Push je Tonne (mit dem, der rausbringt)
-function pickupTomorrow(wg, todayIso) {
+// `fuer` (wg-v114): Tonnen, die eine andere Person rausbringt, fallen weg; Tonne ohne gekoppelte Aufgabe bleibt für alle
+function pickupTomorrow(wg, todayIso, fuer) {
   const tomorrow = shiftIso(todayIso, 1);
   return toArray(wg.mk).filter((p) => pickupNext(p, tomorrow) === tomorrow)
     .filter((p) => !toArray(wg.pt).some((x) => x.pk === p.kind && x.lastDone === todayIso))   // schon rausgebracht
     .map((p) => {
-    const [em, label] = PICK_KINDS[p.kind] || ['🗑️', p.kind];
-    const t = toArray(wg.pt).find((x) => x.pk === p.kind);
-    const who = t ? taskWho(t, wg, todayIso) : null;
-    return { title: 'Müllabfuhr', body: `🚛 Morgen früh: ${em} ${label}${who ? ` — ${who.name} bringt raus` : ' — Tonne raus!'}`, tag: `pick-${p.kind}-${tomorrow}` };
-  });
+      const t = toArray(wg.pt).find((x) => x.pk === p.kind);
+      return { p, who: t ? taskWho(t, wg, todayIso) : null };
+    })
+    .filter(({ who }) => fuerPerson(who, fuer))
+    .map(({ p, who }) => {
+      const [em, label] = PICK_KINDS[p.kind] || ['🗑️', p.kind];
+      return { title: 'Müllabfuhr', body: `🚛 Morgen früh: ${em} ${label}${who ? ` — ${who.name} bringt raus` : ' — Tonne raus!'}`, tag: `pick-${p.kind}-${tomorrow}` };
+    });
 }
 
 // Sonntagabend: offene Aufgaben, was diese Woche kommt, Haushalt-Saldo
@@ -205,8 +227,8 @@ function weekSummary(wg, todayIso) {
 }
 
 // Alle Abend-Nachrichten (Sonntag zusätzlich der Überblick) — reine Funktion für Tests
-function eveningMessages(wg, todayIso) {
-  const out = pickupTomorrow(wg, todayIso);
+function eveningMessages(wg, todayIso, fuer) {
+  const out = pickupTomorrow(wg, todayIso, fuer);
   if (parseIso(todayIso).getDay() === 0 && toArray(wg.users).length) out.push(weekSummary(wg, todayIso));
   return out;
 }
@@ -351,4 +373,4 @@ function eveningPlan(msgs, todayIso) {
   };
 }
 
-module.exports = { toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, istUmbuchung, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, maintReminders, loanReminders, gebDatum, birthdayReminders, guestView, addMonthsIso, rentReminders, rentDueIso, buildIcs, icsText, icsFold, PICK_KINDS, bundleMessages, morningPlan, eveningPlan };
+module.exports = { toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, subsJePerson,istUmbuchung, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, maintReminders, loanReminders, gebDatum, birthdayReminders, guestView, addMonthsIso, rentReminders, rentDueIso, buildIcs, icsText, icsFold, PICK_KINDS, bundleMessages, morningPlan, eveningPlan };

@@ -13,7 +13,7 @@
 
 const { loadSubs, sendToSubs, DB_BASE } = require('./_push');
 const { hasKey, cronErlaubt, currentCode, writeSnapshot, listSnapshots, pruneSnapshots, berlinParts } = require('./_sv');
-const { taskDueIn, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, maintReminders, loanReminders, rentReminders, birthdayReminders, isoOf, morningPlan, istUmbuchung } = require('./_wg');
+const { taskDueIn, subsJePerson, repairReminders,yearReview, meterReminder, putzDigest, fridgeReminders, maintReminders, loanReminders, rentReminders, birthdayReminders, isoOf, morningPlan, istUmbuchung } = require('./_wg');
 
 function berlinTodayParts() {
   const fmt = new Intl.DateTimeFormat('en-CA', {
@@ -191,9 +191,9 @@ module.exports = async (req, res) => {
   });
 
   const messages = [];
-  // Eine Sammel-Push statt je Aufgabe eine (wg-v66) — Namen berücksichtigen Abwesenheiten (_wg.putzDigest)
-  const putzMsg = putzDigest(wg, todayIso);
-  if (putzMsg) messages.push(putzMsg);
+  // Eine Sammel-Push statt je Aufgabe eine (wg-v66) — Namen berücksichtigen Abwesenheiten (_wg.putzDigest).
+  // wg-v114: der Putz-Teil kommt erst beim Versand dazu, je Person (unten) — nicht mehr in `messages` für alle.
+  const putzAlle = putzDigest(wg, todayIso);   // nur für „gibt es heute überhaupt etwas zu senden?"
   for (const s of soonAbos) {
     const until = daysUntilCharge(s, todayMid);
     const when = until === 0 ? 'heute' : 'morgen';
@@ -320,10 +320,17 @@ module.exports = async (req, res) => {
   // (Standard aus). Vorher ging jede Meldung einzeln raus — an einem Monatsersten bis zu ~10 Pushes.
   let sent = 0;
   const plan = morningPlan(messages, todayIso);
-  if (plan.remind || plan.digest) {
+  if (putzAlle || plan.remind || plan.digest) {
     const subs = await loadSubs(code);
     let remindSent = 0;
-    if (plan.remind) { remindSent = (await sendToSubs(subs, plan.remind, { type: 'remind' })).sent; sent += remindSent; }
+    // wg-v114 (torbe: „ich will kein push wenn Tom dran ist"): Morgen-Push je Person — gleiche Sammel-Push, aber der
+    // Putz-Teil nur mit den eigenen Aufgaben. Wer heute nichts dran hat und sonst nichts ansteht, bekommt keine.
+    for (const [fuer, geraete] of subsJePerson(subs, users)) {
+      const putzMsg = putzDigest(wg, todayIso, fuer);
+      const remind = morningPlan([...(putzMsg ? [putzMsg] : []), ...messages], todayIso).remind;
+      if (remind) remindSent += (await sendToSubs(geraete, remind, { type: 'remind' })).sent;
+    }
+    sent += remindSent;
     if (plan.digest) sent += (await sendToSubs(subs, plan.digest, { type: 'digest' })).sent;
     // Budget-Marker erst jetzt (wg-v104): vorher vor dem Versand geschrieben — scheiterte danach loadSubs/Versand, war die
     // 80/100-%-Warnung für den ganzen Monat verloren. Kein Gerät erreicht → morgen neuer Versuch.
