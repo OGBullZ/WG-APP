@@ -51,12 +51,20 @@ function taskWho(t, wg, todayIso) {
    `fuer` = userId → nur, was diese Person heute macht. Ohne `fuer` (Gerät keiner Person zuzuordnen) wie bisher alles
    — lieber eine Push zu viel als eine fehlende. Aufgabe ohne zuständige Person geht an alle. */
 const fuerPerson = (who, fuer) => !fuer || !who || who.id === fuer;
-// Geräte nach Person: `uid` aus dem Abo; ältere Abos ohne uid über den Gerätenamen (die App speichert dort den Namen der Person)
+// Geräte nach Person (Reihenfolge je Abo, wg-v115 gehärtet):
+//  a) `uid` trifft eine Person → die;
+//  b) sonst der Gerätenamen (die App speichert dort den Namen der Person) — NUR, wenn genau EINE Person so heißt;
+//     bei zwei Gleichnamigen ist der Name kein Beleg (vorher landete Bs Gerät bei A, B bekam ihre Aufgaben nie);
+//  c) sonst, wenn eine uid gesetzt ist (Person gibt es nicht mehr, ein Mitbewohner-Wechsel vergibt eine neue id):
+//     eigene Gruppe `String(uid)` — putzDigest(…, staleUid) liefert dann nur Aufgaben ohne zuständige Person, das Handy des
+//     Ausgezogenen bekommt nicht die Putz-Aufgaben des Neuen (andere Morgen-Meldungen bleiben wie gehabt);
+//  d) sonst null = unzuordenbar → bekommt alles (gewollt: lieber eine Push zu viel als eine fehlende).
 function subsJePerson(subs, users) {
   const g = new Map();
   for (const s of subs || []) {
-    const u = users.find((x) => x.id === s.uid) || users.find((x) => x.name && x.name === s.name);
-    const k = u ? u.id : null;
+    const u = users.find((x) => x.id === s.uid)
+      || (users.filter((x) => x.name && x.name === s.name).length === 1 ? users.find((x) => x.name && x.name === s.name) : null);
+    const k = u ? u.id : (s.uid ? String(s.uid) : null);
     if (!g.has(k)) g.set(k, []);
     g.get(k).push(s);
   }
@@ -123,7 +131,7 @@ function rentDueIso(cfg, ym) {
   return `${ym}-${pad2(Math.min(Math.max(1, Number(cfg && cfg.day) || 1), last))}`;
 }
 // Erinnerung: 2 Tage vorher, am Fälligkeitstag und danach montags — jeweils mit den offenen Namen.
-// Eine Push an alle (pro Person zustellen kann der Dienst nicht) — deshalb stehen die Namen im Text.
+// wg-v115: Miete geht bewusst an ALLE — die offenen Namen im Text sind gemeinsame Info (je Person ginge es über subsJePerson).
 // wg-v104: DREI Monate statt nur dem laufenden. Bis v103 gab es bei Fälligkeit am 1./2. nie die Vorwarnung (die 2 Tage
 // vorher liegen im Vormonat, dessen Termin schon vorbei ist), und ein am Monatswechsel unbezahlter Vormonat fiel still aus
 // jeder Erinnerung. Der Vormonat zählt nur, wenn dort schon jemand gezahlt hat — sonst mahnte eine WG, die die Miete gerade
@@ -321,7 +329,9 @@ function buildIcs(wg, todayIso, now = new Date()) {
   // Nächste Fälligkeit je Aufgabe (überfällig → heute)
   for (const t of toArray(wg.pt)) {
     const due = shiftIso(todayIso, Math.max(0, taskDueIn(t, wg, todayIso)));
-    const who = taskWho(t, wg, todayIso);
+    // wg-v115: Vertretung am FÄLLIGKEITSTAG, nicht heute — wie die App (choreZiel/Umverteilung). Vorher stand bei einer Aufgabe in
+    // 10 Tagen „Torben", nur weil Tom heute weg ist, und bei einer Abwesenheit erst am Fälligkeitstag noch „Tom".
+    const who = taskWho(t, wg, due);
     ev.push(...icsEvent(`task-${t.id}-${due}`, due, shiftIso(due, 1), `${t.em || '🧹'} ${t.name}${who ? ` – ${who.name}` : ''}`, stamp));
   }
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//WG-App//Abo//DE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',

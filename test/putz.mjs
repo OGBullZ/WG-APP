@@ -85,6 +85,32 @@ check('A6 nur eine Person → immer sie', rules.solo === 'a', rules.solo);
 check('A7 Fälligkeit: nie → 0, heute+3 → 3, vor 2 Tagen täglich → -1', JSON.stringify(rules.due) === '[0,3,-1]', JSON.stringify(rules.due));
 check('A8 Punkte: Standard 2, 3, "1"→1, Unsinn→2', JSON.stringify(rules.pts) === '[2,3,1,2]', JSON.stringify(rules.pts));
 
+/* wg-v115: Abwesenheit zählt am FÄLLIGKEITSTAG (choreZiel), nicht heute. torbe: „es muss stehen Tom danach Torben danach dann
+   Torben danach Tom" — war Torben heute+morgen weg und Tom hakte Bad (7 Tage) ab, stand „Tom, danach wieder Tom", obwohl Torben
+   zur nächsten Fälligkeit längst zurück ist. ABSENCES ist ein globales `let` (der DataProvider setzt es je Render): hier in EINEM
+   evaluate setzen, rechnen und im finally zurücksetzen — evaluate läuft am Stück, dazwischen rendert React nicht. */
+const ziel = await page.evaluate(([d0, d7, d30, vor7]) => {
+  const alt = ABSENCES;
+  try {
+    const U = [{ id: 'a' }, { id: 'b' }], U3 = [...U, { id: 'c' }];
+    const e = (userId, date) => ({ taskId: 'x', userId, date });
+    ABSENCES = [{ userId: 'b', from: d0, to: d0 }];                      // b nur HEUTE weg
+    const nurHeute = {
+      amZiel: choreNext('x', [e('a', d0)], U, 'a', d7),                   // am Fälligkeitstag +7 ist b da → b
+      heute: choreNext('x', [e('a', d0)], U, 'a', d0),                    // zielIso = heute → b weg → a (wie bisher)
+      ohne: choreNext('x', [e('a', d0)], U, 'a'),                         // ohne zielIso gilt heute → a (alte Aufrufer)
+      danach: choreDanach({ id: 'x', assignee: 'a', interval: 7, lastDone: vor7 }, [], U),   // Vorschau-Zeile: b (Fälligkeit +7)
+    };
+    ABSENCES = [{ userId: 'b', from: d0, to: d30 }];                      // b heute bis +30 weg
+    const reihum = choreNext('x', [e('a', d0)], U3, 'a', d7);             // b weg → reihum c, nicht zurück an a (Listenanfang)
+    return { nurHeute, reihum };
+  } finally { ABSENCES = alt; }
+}, [dayAgo(0), dayAgo(-7), dayAgo(-30), dayAgo(7)]);
+check('A4e Fälligkeitstag statt heute: b nur heute weg → am Ziel +7 ist b dran, mit Ziel heute a (und ohne Ziel wie bisher a)',
+  ziel.nurHeute.amZiel === 'b' && ziel.nurHeute.heute === 'a' && ziel.nurHeute.ohne === 'a', JSON.stringify(ziel.nurHeute));
+check('A4f drei Personen, b weg bis +30: Ersatz reihum → c (nicht zurück an a, den Listenanfang)', ziel.reihum === 'c', ziel.reihum);
+check('A4g Vorschau (choreDanach) nutzt dieselbe Herleitung: b nur heute weg → „danach b"', ziel.nurHeute.danach === 'b', ziel.nurHeute.danach);
+
 // ── B: Haushalt-Tab — „Du bist dran" zeigt nur MEINE fälligen Aufgaben ──
 const quick = page.locator('[data-testid="chore-quick"]');
 check('B1 Haushalt-Karte sichtbar', await quick.count() === 1);

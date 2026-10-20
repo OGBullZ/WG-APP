@@ -70,6 +70,7 @@ jobs:
           node test/organisation.mjs
           node test/verzahnung.mjs
           node test/push_versand.mjs
+          node test/putz_push_v114.mjs
           node test/ruhezeit.mjs
           node test/namen.mjs
           node test/orte.mjs

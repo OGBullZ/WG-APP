@@ -83,6 +83,9 @@ check('30 Papier: Abholungen 12 Wochen (6 × alle 2 Wochen), Restmüll wöchentl
 check('31 Abholung mit Erinnerung am Vorabend (−300 Min.) als Ganztag', /DTSTART;VALUE=DATE:20260917\r\nDTEND;VALUE=DATE:20260918\r\nSUMMARY:🔵 Papier-Abholung\r\nTRANSP:TRANSPARENT\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:🔵 Papier-Abholung\r\nTRIGGER:-PT300M/.test(ics));
 check('32 Abwesenheit mit Ende+1 und Name', /DTSTART;VALUE=DATE:20260915\r\nDTEND;VALUE=DATE:20260919\r\nSUMMARY:✈️ Tom ist weg/.test(ics));
 check('33 Ankündigung: Komma/Semikolon maskiert', ics.includes('SUMMARY:🛋️ Besuch: Eltern\\, Oma\\; Opa (Torben)'));
+// wg-v115: Vertretung am Fälligkeitstag — Toms Küche ist erst am 22.09. fällig, Tom ist nur bis 18.09. weg → „– Tom" (bis v114: Torben)
+const icsSpaet = W.buildIcs({ ...wg, pt: { k: { id: 'k', name: 'Küche', em: '🍳', interval: 7, assignee: 'u2', lastDone: '2026-09-15' } } }, '2026-09-16', new Date(Date.UTC(2026, 8, 16, 10, 0, 0)));
+check('34b Kalender: Aufgabe nach Toms Rückkehr fällig → steht bei Tom, nicht bei der heutigen Vertretung', /DTSTART;VALUE=DATE:20260922\r\nDTEND;VALUE=DATE:20260923\r\nSUMMARY:🍳 Küche – Tom/.test(icsSpaet), (icsSpaet.match(/SUMMARY:🍳[^\r]*/) || [''])[0]);
 check('34 Aufgabe mit Fälligkeit und Wer (Abwesenheit beachtet)', /DTSTART;VALUE=DATE:20260916\r\nDTEND;VALUE=DATE:20260917\r\nSUMMARY:🧹 Papier raus – Torben/.test(ics) && /SUMMARY:🧹 Bad – Torben/.test(ics));
 check('35 keine Zeile über 75 Oktetts', lines.every(l => Buffer.byteLength(l) <= 75));
 check('36 DTSTAMP UTC', ics.includes('DTSTAMP:20260916T100000Z'));

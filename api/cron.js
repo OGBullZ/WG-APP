@@ -1,6 +1,7 @@
 'use strict';
 // GET, nur mit `Authorization: Bearer <CRON_SECRET>`. Läuft täglich (vercel.json
-// crons) und pusht an alle Geräte der (einzigen) WG:
+// crons) und pusht an alle Geräte der (einzigen) WG — der Putz-Teil seit wg-v114 je Person (nur die Aufgaben, die dran sind,
+// siehe subsJePerson/putzDigest in _wg.js; Geräte ohne Zuordnung bekommen weiter alles):
 //  - heute fällige/überfällige Putz-Tasks (gleiche Due-Logik wie wgapp.html)
 //  - Abos, die heute oder morgen abbuchen
 //  - am Monatsletzten: offene Haushalt/Grow-Summe als Abrechnungs-Erinnerung

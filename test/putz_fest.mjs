@@ -134,11 +134,23 @@ await A.ctx.close();
 const heute = dayAgo(0);
 const W = await open({ users: U,
   pt: { b: { id: 'b', name: 'Boden wischen', em: '🧽', interval: 7, pts: 2, assignee: 'u2', fix: 'u2', lastDone: dayAgo(2), seq: 2 },
-        k: { id: 'k', name: 'Küche putzen', em: '🍳', interval: 3, pts: 2, assignee: 'u2', lastDone: dayAgo(1), seq: 1 } },
+        k: { id: 'k', name: 'Küche putzen', em: '🍳', interval: 3, pts: 2, assignee: 'u2', lastDone: dayAgo(1), seq: 1 },
+        // wg-v115: „Fenster" wird erst in 29 Tagen fällig — lange nach Toms Rückkehr (in 5 Tagen)
+        f: { id: 'f', name: 'Fenster putzen', em: '🪟', interval: 30, pts: 3, assignee: 'u2', lastDone: dayAgo(1), seq: 3 } },
   aw: { a1: { id: 'a1', userId: 'u2', from: dayAgo(1), to: dayAgo(-5) } } });
 await W.page.waitForTimeout(600);
 const wd = await W.data();
 check('A1 App: abwechselnde Aufgabe geht an Torben, feste bleibt bei Tom', wd.pt.find(t => t.id === 'k').assignee === 'u1' && wd.pt.find(t => t.id === 'b').assignee === 'u2', JSON.stringify(wd.pt.map(t => [t.id, t.assignee])));
+/* wg-v115 (A1b): nur Aufgaben umhängen, die fällig werden, BEVOR die Abwesenheit endet. Küche (in 2 Tagen fällig, Tom bis +5 weg) geht
+   an Torben (A1), Fenster (in 29 Tagen) bleibt bei Tom — sonst verlöre Tom nach jeder Kurzabwesenheit je Aufgabe einen Zug. */
+check('A1b App: Fenster (erst nach Toms Rückkehr fällig) bleibt bei Tom, Küche (innerhalb der Abwesenheit fällig) geht an Torben',
+  wd.pt.find(t => t.id === 'f').assignee === 'u2' && wd.pt.find(t => t.id === 'k').assignee === 'u1', JSON.stringify(wd.pt.map(t => [t.id, t.assignee])));
+/* wg-v115 (A1c): der echte Haken. Torben hakt Toms Fenster ab, Tom ist HEUTE noch weg — zur nächsten Fälligkeit (+30) aber
+   zurück → Tom ist wieder dran (vorher blieb Torben dran: Abwesenheit zählte „heute"), und die Zeile sagt „Tom, danach du". */
+await W.haken('Fenster');
+const fen = await W.task('Fenster putzen');
+check('A1c Haken auf Toms Fenster während Toms Abwesenheit: Tom ist (zur Fälligkeit zurück) wieder dran, Zeile „Tom, danach du"',
+  fen.assignee === 'u2' && /^Tom, danach du · /.test(await W.wer('Fenster')), `${fen.assignee} · ${await W.wer('Fenster')}`);
 const wgSrv = { users: U, aw: { a1: { userId: 'u2', from: dayAgo(1), to: dayAgo(-5) } } };
 check('A2 Server (taskWho) gleich: feste Aufgabe → Tom, abwechselnde → Torben',
   taskWho({ assignee: 'u2', fix: 'u2' }, wgSrv, heute)?.id === 'u2' && taskWho({ assignee: 'u2' }, wgSrv, heute)?.id === 'u1');
@@ -152,6 +164,17 @@ check('M1 choreFix: unbekannte Person → keine feste Zuständigkeit, bekannte �
 check('M2 choreDanach: feste Aufgabe → dieselbe Person', fn.danachFest === 'u1');
 check('Z3 keine Seitenfehler (Abwesenheit)', W.errs.length === 0, W.errs.join(' | '));
 await W.ctx.close();
+
+/* wg-v115 (A1d): Umverteilung bei drei Personen reihum NACH dem Abwesenden — Toms fällige Küche geht an Kim (nach Tom in der Liste),
+   nicht an Torben (users[0]). Bis v114 landete jede Urlaubs-Aufgabe beim Listenanfang. */
+const W3 = await open({ users: [...U, { id: 'u3', name: 'Kim', color: '#34d399' }],
+  pt: { k: { id: 'k', name: 'Küche putzen', em: '🍳', interval: 3, pts: 2, assignee: 'u2', lastDone: dayAgo(3), seq: 1 } },
+  aw: { a1: { id: 'a1', userId: 'u2', from: dayAgo(1), to: dayAgo(-5) } } });
+await W3.page.waitForTimeout(600);
+const w3k = (await W3.data()).pt.find(t => t.id === 'k');
+check('A1d drei Personen, Tom weg: seine fällige Küche geht reihum an Kim, nicht an den Listenanfang Torben', w3k.assignee === 'u3', w3k.assignee);
+check('Z3b keine Seitenfehler (drei Personen)', W3.errs.length === 0, W3.errs.join(' | '));
+await W3.ctx.close();
 
 // ── EN: Englisch ──
 const E = await open(SEED, { wg_lang: 'en' });

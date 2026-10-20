@@ -2,7 +2,7 @@
    Bis v113 ging der Putz-Teil der Morgen-Push („Bad (Tom)") und die Abend-Push „Tom bringt raus" an JEDES Gerät der WG.
    Läuft über die ECHTEN Handler (api/cron.js, api/evening.js): RTDB im Speicher, web-push zeichnet je Gerät auf
    (Muster aus umbuchung.mjs). Gegenprobe: WG_API_DIR auf eine Kopie der alten api/ zeigen lassen.
-   M  Morgen-Push je Person · A  Abend-Push (Tonnen) je Person · G  Gerät ohne uid · Q  Quelltext (uid beim Neu-Registrieren) */
+   M  Morgen-Push je Person · A  Abend-Push (Tonnen) je Person · G  Gerät ohne uid / Gleichnamige / ausgezogene Person (G4-G6, wg-v115) · Q  Quelltext (uid beim Neu-Registrieren) */
 import { createRequire } from 'module';
 import { readFileSync } from 'fs';
 
@@ -77,6 +77,24 @@ check('G1 Gerät ohne uid, Name „Torben" → wie Torben (keine Push für Toms 
 check('G2 Gerät ohne Zuordnung → bekommt alles wie bisher (lieber eine zu viel als eine fehlende)', (r.an.fremd || []).join().includes('Bad'), JSON.stringify(r.an));
 const gr = (W.subsJePerson || (() => []))([   /* fehlt in alten Fassungen — G3 soll dann rot werden, nicht der ganze Lauf abbrechen */{ uid: 'u1' }, { name: 'Tom' }, { name: 'Gerät' }, { uid: 'u9', name: 'Torben' }], Object.values(users));
 check('G3 subsJePerson: uid vor Name, unbekannte uid fällt auf den Namen zurück', JSON.stringify(gr.map(([k, s]) => [k, s.length])) === '[["u1",2],["u2",1],[null,1]]', JSON.stringify(gr.map(([k, s]) => [k, s.length])));
+// wg-v115 G4: zwei Personen heißen gleich → der Gerätename ist kein Beleg (vorher landete das Gerät ohne uid bei der ERSTEN Person,
+// und die zweite bekam ihre eigenen Aufgaben nie). Gerät mit uid bleibt bei seiner Person.
+const gleich = [{ id: 'u1', name: 'Alex' }, { id: 'u2', name: 'Alex' }];
+const g4 = (W.subsJePerson || (() => []))([{ name: 'Alex' }, { uid: 'u2', name: 'Alex' }], gleich).map(([k, s]) => [k, s.length]);
+check('G4 zwei Personen „Alex": Gerät ohne uid → unzuordenbar (null), Gerät mit uid bleibt bei seiner Person', JSON.stringify(g4) === '[[null,1],["u2",1]]', JSON.stringify(g4));
+// wg-v115 G5: Gerät einer Person, die es nicht mehr gibt (ausgezogen; neuer Mitbewohner = neue id) → bekommt keine Putz-Aufgaben
+// des Neuen mehr. Echter Cron-Lauf wie M1. Übrige Morgen-Meldungen (Geburtstag) bleiben für dieses Gerät.
+const pushStale = { ...push, d4: geraet('kim', { uid: 'u7', name: 'Kim' }) };
+r = await lauf(cron, { users, pt: { b: bad }, push: pushStale });
+check('G5a ausgezogene Person (uid u7, „Kim" gibt es nicht): Toms Bad geht nicht aufs alte Handy', r.st === 200 && !r.an.kim, JSON.stringify(r.an));
+check('G5b … Tom bekommt sein Bad weiter, Torben weiter nichts', (r.an.tom || []).some(x => /Bad \(Tom/.test(x)) && !r.an.torben, JSON.stringify(r.an));
+r = await lauf(cron, { users, pt: { b: bad }, gb: { g: { id: 'g', name: 'Mama', tag: T.slice(5) } }, push: pushStale });
+check('G5c mit Geburtstag: das alte Handy bekommt den Geburtstag, aber ohne Bad', (r.an.kim || []).length === 1 && /Mama/.test(r.an.kim[0]) && !/Bad/.test(r.an.kim[0]), JSON.stringify(r.an));
+// wg-v115 G6: Aufgabe, deren zuständige Person es nicht gibt (who = null), gehört keinem → geht weiter an ALLE Gruppen, auch die
+// Stale-Gruppe (fuerPerson: !who → true). Schützt davor, dass die neue Gruppe aus G5 Aufgaben ohne Zuständigen verschluckt.
+const flur = { id: 'f', name: 'Flur', em: '🧹', interval: 7, assignee: 'u9', lastDone: vor(8) };
+r = await lauf(cron, { users, pt: { f: flur }, push: pushStale });
+check('G6 Aufgabe ohne existierende Person → Torben, Tom UND das alte Handy bekommen sie', ['torben', 'tom', 'kim'].every(n => (r.an[n] || []).join().includes('Flur')), JSON.stringify(r.an));
 
 // ── A: Abend (Tonnen) ──
 const mk = { p: { kind: 'papier', start: morgen, every: 2 } };
