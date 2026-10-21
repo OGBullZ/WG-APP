@@ -192,7 +192,8 @@ const wachsend = f => { const g = f.filter(x => x >= 0); const d = [...new Set(g
   const G = await open({ tab: 'grow', seed: SEED_LEER });
   const info = await G.page.evaluate(() => { const hero = document.querySelector('.tab-view .hero'); return { zeile: document.querySelector('[data-testid="grow-leer"]')?.textContent || null, prozent: (hero?.textContent.match(/50%/g) || []).length }; });
   const rg = await ring(G.page, '.tab-view .hero');
-  check('c1 0 Pflanzen: Zeile „Mit + trägst du eure Pflanzen ein — danach teilt sich die Kostenrechnung"', info.zeile === 'Mit + trägst du eure Pflanzen ein — danach teilt sich die Kostenrechnung', info.zeile);
+  /* wg-v116: Wortlaut sagt jetzt, wo die Anteile wirken — Grow-Ausgaben werden im Haushalt eingetragen und dort nach Pflanzen geteilt */
+  check('c1 0 Pflanzen: Zeile „Mit + trägst du eure Pflanzen ein — danach teilen sich Grow-Ausgaben im Haushalt nach diesen Anteilen."', info.zeile === 'Mit + trägst du eure Pflanzen ein — danach teilen sich Grow-Ausgaben im Haushalt nach diesen Anteilen.', info.zeile);
   check('c2 … Ring = Geisterring (Spur, KEIN Bogen in Personenfarbe sichtbar); die 50-%-Angaben neben den Steppern bleiben', !!rg && rg.spurOk && rg.sichtbar.length === 0 && info.prozent === 2, JSON.stringify({ sichtbar: rg?.sichtbar, prozent: info.prozent }));
   const folge = await wachstum(G.page, '.tab-view .hero', 0, `document.querySelector('[aria-label="Eine Pflanze mehr für Torben"]').click()`);
   const rg2 = await ring(G.page, '.tab-view .hero');

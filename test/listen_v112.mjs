@@ -204,8 +204,9 @@ const einkauf = page => page.evaluate(async () => { [...document.querySelectorAl
   await B.page.waitForTimeout(800);
   check('b7 … danach ist „Eier" erledigt (Daten)', await B.page.evaluate(() => window.__daten('sl').find(x => x.name === 'Eier').done === true));
 
-  // Growbox
-  const G = await auf({ tab: 'grow' });
+  // Growbox — wg-v116: die Grow-Posten (Kreis, ×) stehen jetzt in den Einzelposten des Haushalts, der Grow-Tab zeigt kein Geld mehr.
+  // Dieselbe Prüfung am neuen Ort: gleiche Zeilen, gleiche Mechanik (useAbgang, Limetten-Kreis), gleiche Daten in `gi`.
+  const G = await auf({ tab: 'haus' });
   const g1 = await G.page.evaluate(async () => {
     const zg = window.__zeile('Dünger');
     zg.querySelector('.del-btn').click();
@@ -464,7 +465,7 @@ for (const [w, hh] of [[390, 844], [1440, 900]]) {
     return { sofort, geht: document.querySelectorAll('.geht').length };
   });
   check('i4 … Einkauf-× wirkt ebenfalls sofort, ohne Animation', i4.sofort && i4.geht === 0, JSON.stringify(i4));
-  const RG = await auf({ tab: 'grow', reduce: true });
+  const RG = await auf({ tab: 'haus', reduce: true });   /* wg-v116: Grow-Kreis lebt im Haushalt (s. b8) */
   const i5 = await RG.page.evaluate(async () => {
     window.__zeile('Töpfe').querySelector('.chk-btn').click();
     const sofort = await window.__bis(() => window.__daten('gi').find(x => x.id === 'g3').settled === true, 150);

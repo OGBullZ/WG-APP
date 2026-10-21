@@ -18,6 +18,7 @@
      g  Heute: Schatten der erledigten Aufgabe schließt seine Höhe (Inhalt darunter ohne Sprung > 30 px)
      h  Hellmodus: .pick-btn gewählt ≥ 4,5:1 · Haarlinien (Navbar, Blatt, Rückgängig-Balken) nicht mehr weiß
      i  Growbox-Gläubiger ohne PayPal-Namen: der Hinweis taucht nicht auf, um nach der Einmal-Migration spurlos zu verschwinden
+        (wg-v116: gemessen im Haushalt — dort steht die Grow-Bilanz seitdem)
      j  320 px: Ring-Beschriftung passt in den Ring, kein Überlauf, Chip „Tage überfällig" im Rahmen
 
    Gegenprobe: WG_URL=http://127.0.0.1:8099/wgapp_gp_p10.html (Kopie von `git show HEAD:wgapp.html`) — a bis j müssen dort ROT sein
@@ -296,7 +297,8 @@ const kleineSchrift = page => page.evaluate(() => {
 // ══════════ d · Übersicht nach Thema ══════════
 const ueberschriften = page => page.evaluate(() => {
   const finde = (re, sel = '.section-hdr, .hero-lbl, .jahr-zeile, .cell-sub') => { const e = [...document.querySelectorAll(sel)].find(x => re.test(x.textContent)); return e ? Math.round(e.getBoundingClientRect().top + scrollY) : null; };
-  return { hero: finde(/WG-Ausgaben/, '.hero-lbl'), summe: finde(/Haushalt \+ Growbox, offene Posten/), bezahlt: finde(/^Wer hat bezahlt/), traegt: finde(/^Wer trägt was/), katH: finde(/^Kategorien · Haushalt/),
+  /* wg-v116: Σ-Satz heißt jetzt „Haushalt inkl. Growbox, offene Posten · abgerechnet wird im Haushalt" (Grow-Geld nur noch im Haushalt) */
+  return { hero: finde(/WG-Ausgaben/, '.hero-lbl'), summe: finde(/Haushalt inkl\. Growbox, offene Posten · abgerechnet wird im Haushalt/), bezahlt: finde(/^Wer hat bezahlt/), traegt: finde(/^Wer trägt was/), katH: finde(/^Kategorien · Haushalt/),
     top: finde(/^Größte Posten/), verlauf: finde(/^Verlauf · 6 Monate/), punkte: finde(/^Putzplan · Punkte/), demnaechst: finde(/Demnächst/), bericht: finde(/Monatsbericht/),
     jahr: finde(/Jahresrückblick/), raster: finde(/^Hinzufügen$/) };
 });
@@ -346,7 +348,12 @@ const ueberschriften = page => page.evaluate(() => {
     return { voll, ernte: ernte ? { text: ernte.textContent.trim(), label: ernte.getAttribute('aria-label'), hit: ernte.classList.contains('hit'), treffer, flaeche, imKopf: !!ernte.closest('.section-hdr') } : null,
       zyklus: zyklus ? { klasse: zyklus.className, breite: Math.round(zr.width), imHero: !!zyklus.closest('.hero'), h: Math.round(zr.height) } : null, bw };
   });
-  check('e1 genau EIN Vollbreit-Knopf: „+ Grow-Ausgabe"', g.voll.length === 1 && /Grow-Ausgabe/.test(g.voll[0]), JSON.stringify(g.voll));
+  /* wg-v116: „+ Grow-Ausgabe" (bis v115 der EINE Vollbreit-Knopf hier) ist in den Haushalt gezogen („+ Ausgabe" → 🌱 Growbox).
+     Die Rangordnung bleibt geprüft: jetzt konkurriert hier gar kein Vollbreit-Knopf mehr, die Geld-Handlung ist ein kleiner Knopf
+     „Zum Haushalt ›" im Hinweis (grow-geld-hinweis). Ob das Formular im Haushalt Grow-Posten schreibt: test/grow_haus_v116.mjs H2. */
+  const geldHinweis = await G.page.evaluate(() => { const h = document.querySelector('[data-testid="grow-geld-hinweis"]'); const b = h?.querySelector('button');
+    return h ? { text: h.textContent.trim(), knopf: b ? b.className : null } : null; });
+  check('e1 kein Vollbreit-Knopf mehr im Grow-Tab — die Geld-Handlung ist der kleine Knopf „Zum Haushalt ›"', g.voll.length === 0 && !!geldHinweis && /Zum Haushalt/.test(geldHinweis.text) && /mini-btn/.test(geldHinweis.knopf || ''), JSON.stringify({ voll: g.voll, geldHinweis }));
   check('e2 „+ Ernte" ist eine Kopf-Aktion im Ernten-Kopf (.hit, Wortlaut „Ernte" im Namen)', !!g.ernte && g.ernte.imKopf && g.ernte.hit && /^\+ Ernte$/.test(g.ernte.text) && /Ernte erfassen/.test(g.ernte.label || ''), JSON.stringify(g.ernte));
   /* Fläche = ::after von .hit: 45 px hoch (≥ 40). Praktisch trifft elementFromPoint 39 px, weil die nachfolgende Karte 6 px der unteren Hälfte
      deckt — identisch bei „+ Neu"/„+ Tonne" (scratchpad/p10-hit.mjs), also Muster-konform; darum 38 als Untergrenze der Praxis-Messung. */
@@ -524,9 +531,12 @@ const ueberschriften = page => page.evaluate(() => {
 
 // ══════════ i · Growbox-Gläubiger: der Hinweis verschwindet nicht spurlos ══════════
 {
-  const B = await open({ tab: 'grow', seed: SEED_GROW_OHNE_PP });
+  /* wg-v116: die Grow-Bilanz steht jetzt im Haushalt (bei zwei Personen in EINEM Ausgleich mit dem Haushalt verrechnet) — der
+     Growbox-Gläubiger ohne PayPal-Namen sieht dort den Ausgleich. Gemessen wird darum der Inhalt unter der Bilanz IM HAUSHALT
+     (die Schnell-Eingabe, wie test/listen_v112.mjs h), vorher der Knopf „+ Grow-Ausgabe" unter der Grow-Bilanz. */
+  const B = await open({ tab: 'haus', seed: SEED_GROW_OHNE_PP });
   const i = await B.page.evaluate(async () => {
-    const ziel = [...document.querySelectorAll(':is(.content, .zz-l, .zz-r) > button.btn')].find(b => /Grow-Ausgabe/.test(b.textContent));   /* wg-v113 (P12): auch in Zonen-Hüllen */
+    const ziel = document.querySelector('[data-testid="quick-expense"]');
     const ys = []; const t0 = performance.now(); let stop = false;
     const tick = () => { ys.push([performance.now() - t0, ziel.getBoundingClientRect().top]); if (!stop) requestAnimationFrame(tick); };
     requestAnimationFrame(tick);

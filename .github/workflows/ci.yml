@@ -73,6 +73,7 @@ jobs:
           node test/putz_push_v114.mjs
           node test/ruhezeit.mjs
           node test/namen.mjs
+          node test/grow_haus_v116.mjs
           node test/orte.mjs
           node test/optik.mjs
           node test/fuer_andere.mjs

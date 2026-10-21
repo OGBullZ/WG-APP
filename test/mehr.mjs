@@ -244,12 +244,28 @@ const BAL = { users: USERS, hs: map([{ id: 'b1', name: 'Einkauf', price: 116.5, 
   gi: map([{ id: 'g1', name: 'Erde', price: 32, paidBy: 'u2', date: T, settled: false }]), gp: { u1: 1, u2: 3 } };
 const Q = await open(BAL);
 const tb = await Q.page.locator('[data-testid="today-bal"]').innerText().catch(() => '');
-check('Q1 Heute: Gesamt 66,25 mit Aufschlüsselung', /Du schuldest Tom €66,25 \(Haushalt €58,25 \+ Growbox €8,00\)/.test(tb), tb);
+/* wg-v116: Heute zeigt nur noch EINEN Betrag — die Aufschlüsselung „(Haushalt €58,25 + Growbox €8,00)" steht allein im Haushalt
+   (torbe: getrennte Grow-Beträge an mehreren Stellen „immer noch verwirrend"). Der Betrag bleibt Haushalt + Growbox nach Pflanzen. */
+check('Q1 Heute: Gesamt 66,25 als EIN Betrag, ohne „Haushalt/Growbox"-Aufschlüsselung', /Du schuldest Tom €66,25\s*›?\s*$/.test(tb.trim()) && !/Growbox|Haushalt/.test(tb), tb);
 await Q.tabTo('Übersicht');
 const qs = await Q.page.locator('.content').innerText();
 check('Q2 Übersicht „insgesamt" = dieselbe Zahl (Growbox nach Pflanzen, nicht 50/50)', /schuldet\s+Tom\s+insgesamt\s+€66,25/.test(qs.replace(/\s+/g, ' ')), (qs.match(/schuldet[^\n]{0,60}/) || [''])[0]);
 const pop = await Q.page.evaluate(() => { const D = JSON.parse(localStorage.getItem('wg_data')); return myBalance(D, 'u1', { grow: true }).total; });
-check('Q3 Start-Pop-up rechnet gleich', Math.abs(pop + 66.25) < 0.001, String(pop));
+/* wg-v116: Q3 sieht sich jetzt das Start-Pop-up selbst an (bis v115 nur die Rechnung myBalance): Wochen-Sperre löschen, neu laden,
+   Push- und PayPal-Abfrage davor mit „Später" wegtippen. Erwartet: derselbe Betrag €66,25, aber KEINE Zeile „Haushalt €… / Growbox €…". */
+await Q.page.evaluate(() => localStorage.removeItem('wg_start_shown'));
+await Q.page.reload({ waitUntil: 'domcontentloaded' });
+await Q.page.locator('.tabbar').waitFor({ timeout: 30000 });
+await Q.page.evaluate(() => window.__wg.fire());
+const popUp = Q.page.locator('[role="dialog"][aria-label="Deine Bilanz"]');
+for (let i = 0; i < 6 && !(await popUp.count()); i++) {
+  await Q.page.waitForTimeout(900);
+  if (await popUp.count()) break;
+  const spaeter = Q.page.locator('[role="dialog"]:is([aria-label="Benachrichtigungen"], [aria-label="PayPal einrichten"]) button', { hasText: 'Später' });
+  if (await spaeter.count()) await spaeter.first().click();
+}
+const popTxt = (await popUp.innerText().catch(() => '')).replace(/\s+/g, ' ');
+check('Q3 Start-Pop-up rechnet gleich und zeigt EINEN Betrag (keine Aufschlüsselung Haushalt/Growbox)', Math.abs(pop + 66.25) < 0.001 && /€66,25/.test(popTxt) && !/Growbox|Haushalt/.test(popTxt), `${pop} · ${popTxt || '(kein Pop-up)'}`);
 check('Q4 keine Seitenfehler', Q.errs.length === 0, Q.errs.join(' | '));
 await Q.ctx.close();
 

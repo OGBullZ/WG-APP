@@ -146,9 +146,11 @@ for (const w of [320, 390]) {
 }
 
 // ── G: Growbox ──
+/* wg-v116: Grow-Posten (mit ihrer Anteile-Zeile grow-anteile) und die Grow-Bilanz stehen jetzt im Haushalt — dieselben Messungen dort:
+   G1/G2 an der Grow-Zeile der Einzelposten, G3 am Ausgleich-Band (bei zwei Personen Haushalt + Growbox in EINEM Band). */
 {
   const { page, ctx } = await wg({ w: 320, h: 1600 });
-  await tab(page, 'Growbox');
+  await tab(page, 'Haushalt');
   const g = await page.evaluate(() => {
     const ant = document.querySelector('[data-testid="grow-anteile"]');
     const zeile = ant?.closest('.cell'), preis = zeile?.querySelector(':scope > div[style*="text-align"]');
