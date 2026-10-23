@@ -215,8 +215,10 @@ const lage = page => page.evaluate(() => {
     return ein && zul && auf && l && rs.length ? { einX: Math.round(ein.left), aufX: Math.round(auf.left), zulX: Math.round(zul.left), luecke: Math.round(zul.top - ein.bottom),
       links: Math.round(l.height), rechts: Math.round(rs[rs.length - 1].bottom - rs[0].top) } : null;
   });
-  check('b3 1440 Putzplan: Einsatz rechts, Aufgaben links, „Zuletzt erledigt" 20 px unter dem Einsatz (±2), obwohl die linke Spalte ≥ 200 px länger ist',
-    !!pz && pz.einX > pz.aufX + 400 && pz.zulX === pz.einX && Math.abs(pz.luecke - 20) <= 2 && pz.links >= pz.rechts + 200, JSON.stringify(pz));
+  /* wg-v117 (HIER-2): 26 statt 20 — „Zuletzt erledigt" beginnt mit einem Abschnittskopf und steht jetzt auf der Abschnittsstufe (Zeilenabstand 14 + 12 Rand am Block mit Kopf).
+     Der Sinn der Prüfung bleibt: die Lücke ist ein FESTER Wert und wächst nicht mit der längeren linken Spalte. */
+  check('b3 1440 Putzplan: Einsatz rechts, Aufgaben links, „Zuletzt erledigt" 26 px unter dem Einsatz (±2; Abschnittsstufe, wg-v117), obwohl die linke Spalte ≥ 200 px länger ist',
+    !!pz && pz.einX > pz.aufX + 400 && pz.zulX === pz.einX && Math.abs(pz.luecke - 26) <= 2 && pz.links >= pz.rechts + 200, JSON.stringify(pz));
   await ctx.close();
 }
 

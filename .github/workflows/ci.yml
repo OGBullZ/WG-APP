@@ -74,6 +74,7 @@ jobs:
           node test/ruhezeit.mjs
           node test/namen.mjs
           node test/grow_haus_v116.mjs
+          node test/optik_v117.mjs
           node test/orte.mjs
           node test/optik.mjs
           node test/fuer_andere.mjs

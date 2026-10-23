@@ -719,7 +719,7 @@ Workflow `bug-hunt` (3 Finder: State/Sync, Datum/Edge, Rechte/Security) → ~45 
 - **Weitere:** Sparziel doppelt gekauft/aufgelöst/eingezahlt (prüft jetzt „noch offen", Hinweis statt Stille — `undo(msg, null)` = Meldung ohne Rückgängig); gelöschter Monatsposten einer Vorlage kehrte zurück (`skip_<JJJJ-MM>` an der Vorlage); „Beitreten" prüft Zeichen + Existenz wie das Onboarding; Tageswechsel bei offener PWA (`heuteTag`, auch Monatsposten); Service Worker cachte jede Navigation (auch 404) als App-Hülle; Kühlschrank > 8 still abgeschnitten; CSV-Formel-Injection; `fmtHM` nannte gestern „morgen"; Geburtstagsalter über die Zeitumstellung; Putz-Bearbeiten schrieb alte Zuständigkeit zurück; Rückgängig nach Remote-Löschung schrieb `undefined`; ohne TT: `'Jemand'`, `'Abo'`, `'Ausgabe'`.
 - 🔴 **Selbst eingebaut, vom Test gefangen:** `undoKann` als State im `DataProvider`, gezeichnet wird die Meldung aber in `GlobalUI` → **App-Absturz** beim ersten Toast. Kein Unit-Test hätte es gesehen; der Bedienweg-Test zeigte den Fehlerbildschirm.
 - **Kalender-Sweep auf dem fertigen Stand** (alle 57 Gate-Tests, losgelöst gestartet): 25.10.2026 57/57, 29.03.2027 56/57 — rot nur `miete` C3: die NEUE Vorwarnung für den nächsten Monat zeigt in den letzten 3 Tagen nach dem Bezahlen zu Recht eine Zeile; der Test nahm „gar keine Zeile" an und wäre an jedem 29.–31. rot geworden. Test präzisiert (`2a49ff6`), an 28./29./31.03. geprüft.
-- **Bewusst offen:** Umbuchungen (Sparziel-Einzahlung, Kautions-Anteil) zählen in Monats-/Jahres-/Budget-Summen als Ausgaben — 5 Stellen in App + Server, Kaution ohne Markierung; eigene Runde. Niedrig/akzeptiert: Rechte nur im UI (bewusstes Vertrauensmodell), WG-Code im Query-String von `/api/backup`, Rate-Limit-Knoten je Fantasie-Code, Belegung/Essen außerhalb des Anzeigefensters (jetzt in „Demnächst" sichtbar), „War {Name}" rechnet mit altem `D` (bei 2 Personen gleich), `parseNum` verwirft Minus.
+- **Bewusst offen (Stand v104):** ~~Umbuchungen zählen in Monats-/Jahres-/Budget-Summen als Ausgaben~~ — **erledigt in wg-v107** (`istUmbuchung`, Abschnitt „Umbuchungen zählen nicht als Ausgaben"). Niedrig/akzeptiert: Rechte nur im UI (bewusstes Vertrauensmodell), WG-Code im Query-String von `/api/backup`, Rate-Limit-Knoten je Fantasie-Code, Belegung/Essen außerhalb des Anzeigefensters (jetzt in „Demnächst" sichtbar), „War {Name}" rechnet mit altem `D` (bei 2 Personen gleich), `parseNum` verwirft Minus.
 
 ## Werkzeug-Kacheln: ein Tipp tut, was man will (wg-v105, 03.10. — torbe: „home screen mit den aufklappbaren dingern sieht nicht clean genug aus und fühlt sich nicht intuitiv an")
 
@@ -891,6 +891,22 @@ Rückfrage mit drei Stufen, gewählt: **„Alles Geld in den Haushalt"**. Datenm
 - **Heute + Start-Pop-up:** ein Betrag ohne „(Haushalt € + Growbox €)" — die Aufschlüsselung steht nur noch im Haushalt (`bal-parts`). Suche: Grow-Treffer springen in den Haushalt. Übersicht-Satz „abgerechnet wird im Haushalt". Onboarding „Pflanzen, Gießen, Ernten · Kosten im Haushalt".
 - **Tests:** neu `grow_haus_v116.mjs` (25, Gate + CI; Gegenprobe gegen v115: 20 rot, grün bleiben H3a/b — verrechnete Bilanz gab es schon —, H4c, H8, Z). Umgezogen (nicht abgeschwächt): hier_v112 e1/i, listen_v112 b8–b12/i5, optik_v111 G1–G3, leer_v112 c1, mehr Q1/Q3 (Q3 prüft jetzt das echte Pop-up statt nur `myBalance`), hier_v112 d5.
 - 🪤 **Weg:** Der `umsetzer-schwer` (Opus) starb nach 52 min / 178 Werkzeugaufrufen am Session-Limit — Teil 1–4 waren gebaut, drei Gate-Runden grün, nur Gate-/CI-Eintrag, Restgates, Gegenprobe und Bilder fehlten. Referenzkopie `wgapp_ref_v116.html` lag bereit, wurde aber nicht gebraucht: Abnahme und Rest im Hauptloop. Den Test-Server auf 8099 gab es nach der Nacht nicht mehr (`ERR_CONNECTION_REFUSED`) → neu gestartet.
+
+## Offenes abgearbeitet (wg-v117, 22.10. — torbe: „was ist offen abarbeiten")
+
+- **Einkaufs-Reihenfolge (`ShopTurn`) entfernt** — Rückfrage „auch reihum?", torbe: „Anzeige ganz weg". Sie zählte „wer seltener" und sagte nach eigenem Einkauf im Rückstand wieder „Tom ist dran" (Muster wie „Tom, danach Tom", v114). `extra.mjs` D1 prüft jetzt das Fehlen (Gegenprobe rot).
+- **Runde 1 (Sonnet-Umsetzer, abgenommen):**
+  - **Kachelwort „Monatsbud-get":** `hyphens:none`, Mindestbreite 90 px für breite Zonen. Zuerst machte das auch auf 390 px drei Spalten (vier Reihen, „Login teilen" allein) — **im Hauptloop zurückgenommen:** 388–440 px fest vier Spalten, Auslöser EN „Announcement" heißt jetzt „Heads-up".
+  - **HIER-11:** Heute-Zeilen/PushNudge-Symbol im getönten 36er-Feld (`.cell-icon[data-ton]`).
+  - **HIER-10:** `<Kopf>` trennt das führende Emoji ab (`.hdr-em` 14 px), Putzpunkte-Legende unten in der Karte.
+  - Test `optik_v117`.
+- **Runde 2 (HIER-7 + HIER-2):**
+  - **Zeilentitel** einheitlich `.cell-title` 16/600 (Fold 16/600, `.kal-eintrag` 16/600). `.cell-title.ganz` = keine Silbentrennung, wo das Anheben „Konstanti-/nos" erzeugte. Zuletzt-erledigt-Titel mit `minWidth:4.5em` („B/a/d" bei 320).
+  - **Abstände:** zwei Stufen statt überall 20 — `.content/.heute-col` gap 14, Block mit Kopf +12 (= 26, Regel „Abschnitts-Rhythmus" mit `:has()`, Zonen-Fälle für Desktop), `.folge` = 8.
+  - Messung 390: vorher 31× 20 px → nachher 12× 14 + 19× 26 (6× 10 unter „Mehr" bleibt). 🪤 `:has()` in `:has()` verwirft Chrome die ganze Regel.
+  - Test `optik_v117` Block R (Gegenprobe gegen Runde 1: 15 rot).
+- **Haushalt-Legende „Growbox"** nur mit eigenem Grow-Anteil — seit v116 reine Anzeige, „0 % €0,00" war Rauschen (`grow_haus_v116` H12).
+- 🪤 **Session-Limit, zweimal:** Der Runde-2-Umsetzer (Sonnet) starb nach 81 min / 173 Werkzeugaufrufen. Alle 27 Gates waren da schon grün und geloggt (`scratchpad/v117r2-gates-summary.txt`); es fehlten Gegenprobe und Bildabnahme → Hauptloop. Vor Runde 2 lag eine Referenz des abgenommenen Runde-1-Stands bereit (`git stash create` → `3e80b08` + Kopie), daran lief die Gegenprobe nur für Runde 2.
 
 ## Live & Deploy
 

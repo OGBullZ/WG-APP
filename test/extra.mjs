@@ -5,7 +5,7 @@ import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
 import { openTool } from './_heute.mjs';   // leere Werkzeuge auf Heute sind seit wg-v82 Chips
 
-const url = 'http://localhost:8099/wgapp.html';
+const url = process.env.WG_URL || 'http://localhost:8099/wgapp.html';   // WG_URL: Gegenprobe gegen eine Kopie (wg-v117)
 const z = n => String(n).padStart(2, '0');
 const dayAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
 const T = dayAgo(0);
@@ -111,10 +111,12 @@ const monthSum = d.hs.filter(i => String(i.date).slice(0, 7) === T.slice(0, 7)).
 const tb = await page.locator('[data-testid="total-budget"]').innerText();
 check('C2 Anzeige „€<Monat> / €100,00"', tb.includes(`€${monthSum.toFixed(2).replace('.', ',')} / €100,00`), tb.replace(/\n/g, ' | '));
 
-// ── D: Einkaufs-Reihenfolge ──
+// ── D: Einkaufs-Reihenfolge — wg-v117 entfernt (torbe: „Anzeige ganz weg"; sie zählte „wer seltener" und sagte nach eigenem
+// Einkauf im Rückstand wieder „Tom ist dran"). Die Seeds mit Lebensmittel-Posten (3 : 1) sind noch da → hier MUSS sie fehlen.
 await page.getByRole('button', { name: /Einkaufsliste/ }).first().click(); await page.waitForTimeout(400);
-const st = await page.locator('[data-testid="shop-turn"]').innerText();
-check('D1 zuletzt ich (heute), 30 Tage 3 : 1 → Tom ist dran', /Zuletzt eingekauft: du \(heute\)/.test(st) && /3 : 1/.test(st) && /Tom ist dran/.test(st), st);
+const listeTxt = await page.locator('.content').innerText();
+check('D1 keine Einkaufs-Reihenfolge mehr (kein „Zuletzt eingekauft", kein „ist dran") — Liste selbst ist da',
+  await page.locator('[data-testid="shop-turn"]').count() === 0 && !/Zuletzt eingekauft|ist dran/.test(listeTxt) && /Unterwegs\? Mitbringen lassen/.test(listeTxt), listeTxt.slice(0, 160).replace(/\n/g, ' | '));
 
 // ── E: Vorlagen Pflanzen & Tier ──
 await tabTo('Putzplan');

@@ -281,6 +281,16 @@ const hsNet = (hs, id, n) => hs.filter(i => !i.settled).reduce((s, i) => s + (i.
   check('H10 Suche „Lampe" (Grow-Posten) → springt in den Haushalt, die Zeile steht dort', typeof h10 === 'object' && h10.tab === 'haus' && h10.seg && h10.zeile === 1, JSON.stringify(h10));
 }
 
+// ══════════ H12 · Legende „Growbox" nur mit eigenem Grow-Anteil (wg-v117) ══════════
+// Seit v116 ist die Zeile kein Sprung in den Grow-Tab mehr, nur Anzeige — „Growbox 0 % €0,00" ohne Grow-Posten war Rauschen.
+{
+  const L0 = await open({ users: U2, hs: SEED.hs, gp: SEED.gp }, { tab: 'haus' });   // keine gi-Posten
+  const L1 = await open(SEED, { tab: 'haus' });                                      // zwei offene gi-Posten
+  const n0 = await L0.page.locator('[data-testid="bil-grow"]').count(), n1 = await L1.page.locator('[data-testid="bil-grow"]').count();
+  const txt1 = n1 ? (await L1.page.locator('[data-testid="bil-grow"]').innerText()).replace(/\s+/g, ' ') : '';
+  check('H12 Bilanz-Legende: ohne Grow-Posten keine „Growbox"-Zeile, mit Grow-Posten da (mit Betrag > 0)', n0 === 0 && n1 === 1 && !/€0,00/.test(txt1), `ohne ${n0} · mit ${n1} „${txt1}"`);
+}
+
 const fehler = alle.flatMap(s => s.errs).filter(e => !/ResizeObserver/.test(e));
 check('Z keine Seitenfehler', fehler.length === 0, fehler.slice(0, 3).join(' | '));
 await browser.close();

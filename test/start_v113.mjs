@@ -341,6 +341,8 @@ for (const [w, lang] of [[320, 'de'], [360, 'de'], [375, 'de'], [390, 'de'], [36
     zeilen.push(`${name} ${m.out.length}W`);
   }
   check(`E1 ${w} px ${lang}: kein Kachelwort getrennt oder breiter als die Kachel (${woerter} Wörter gemessen)`, woerter >= 20 && schlecht.length === 0, schlecht.slice(0, 5).join(' | ') || zeilen.join(', '));
+  /* wg-v117: wie bis v116 — drei Spalten unter 388 px, darüber vier (Handy 388–440 px per Medienregel fest vier). Ein Zwischenstand machte
+     daraus „vier erst ab 416 px" (Mindestbreite 90 px wegen EN „Announcement") — 390 px bekam drei klobige Reihen; EN heißt jetzt „Heads-up". */
   const soll = w < 388 ? 3 : 4;
   check(`E2 ${w} px ${lang}: ${soll} Spalten, alle Kacheln gleich breit`, spalten.size === 1 && [...spalten][0] === soll && ungleich === 0, `Spalten ${[...spalten].join('/')} · ungleiche Tabs ${ungleich}`);
   check(`E3 ${w} px ${lang}: keine Seitenfehler, nichts ragt seitlich heraus`, E.errs.length === 0 && await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 0, E.errs.join(' | '));

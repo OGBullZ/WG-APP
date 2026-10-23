@@ -411,7 +411,7 @@ check('A24d hell: aktueller Assistent-Schritt ohne Schein', sonder.light.stepJet
 check('A24e hell: „Weiter" mit dem kleinen weichen Schatten (0 6px 16px)', /0px 6px 16px/.test(sonder.light.weiterSchatten || '') && !/12px 32px/.test(sonder.light.weiterSchatten || ''), sonder.light.weiterSchatten);
 check('A25 hell: .field:focus mit Minze-Hof (kein Limette)', /15, 118, 110/.test(sonder.light.focusSchein || ''), sonder.light.focusSchein);
 // 🔧
-check('A26 „Kaputt & Vermieter": Symbol abgedunkelt (hell), Überschrift unverändert', !!sonder.light.kaputtSymbol && /brightness/.test(sonder.light.kaputtSymbol.filter) && /🔧 Kaputt & Vermieter/i.test(sonder.light.kaputtSymbol.kopf), JSON.stringify(sonder.light.kaputtSymbol));
+check('A26 „Kaputt & Vermieter": Symbol abgedunkelt (hell), Überschrift unverändert', !!sonder.light.kaputtSymbol && /brightness/.test(sonder.light.kaputtSymbol.filter) && /🔧\s?Kaputt & Vermieter/i.test(sonder.light.kaputtSymbol.kopf) /* wg-v117 (HIER-10): \s? statt festem Leerzeichen — das Symbol ist jetzt ein eigenes .hdr-em mit 7 px Außenabstand, im Text steht keine Lücke mehr („🔧KAPUTT & VERMIETER"); gemeint ist weiter: Überschrift unverändert */, JSON.stringify(sonder.light.kaputtSymbol));
 check('A26b dunkel: Symbol bleibt unverändert (kein Filter)', !!sonder.dark.kaputtSymbol && sonder.dark.kaputtSymbol.filter === 'none', JSON.stringify(sonder.dark.kaputtSymbol));
 
 // ── B: Bewegung an ──
