@@ -10,7 +10,7 @@
      a  390: „Abbrechen" → 60 ms später ist das Blatt noch da, bewegt sich nach unten (sheetDown), ist inert; nach 300 ms ist es
         ausgehängt. Daten: „Fertig" schreibt SOFORT (im selben Zug, nicht erst nach 180 ms); Wieder-Öffnen im Schließfenster
         funktioniert (beide Einträge landen in den Daten, kein hängendes Overlay); doppeltes „Fertig" schreibt einmal.
-     b  Abdunkelung blendet ein (Deckkraft < 1 im ersten Bild, ovIn läuft)
+     b  Abdunkelung blendet ein (Deckkraft < 1 im ersten Bild, ovIn läuft) — wg-v118 (FILM-4): am Pseudoelement .overlay::before; das Blatt selbst ist von Bild 1 an deckend (b3)
      c  1440: Suchblatt — Oberkante des Suchfelds ändert sich beim Tippen (0 → viele Treffer) um < 8 px, Blatt sitzt oben (10 vh),
         kein sichtbarer Griff; sheetPop kommt von oben (−8 px)
      d  Assistent: „Weiter" spielt wizIn mit Richtung (+16 px), „Zurück" in Gegenrichtung (−16 px); der erste Schritt steht still;
@@ -163,13 +163,17 @@ const ein = await B.page.evaluate(async () => {
   [...document.querySelectorAll('[data-testid="search-open"]')].find(b => b.offsetParent).click();   // der sichtbare (andere Tabs hängen versteckt im DOM)
   await new Promise(r => setTimeout(r, 0));   // React 18 rendert nach einem Klick in einer Mikroaufgabe, nicht mitten im Klick — ein Tick, KEIN Bild
   const ov = document.querySelector('.overlay');
-  const op0 = ov ? +getComputedStyle(ov).opacity : null;           // direkt im ersten Bild
-  const namen = ov ? ov.getAnimations().map(a => a.animationName) : [];
+  /* wg-v118 (FILM-4): die Abdunkelung sitzt auf .overlay::before (HINTER dem Blatt), nicht mehr auf .overlay selbst — sonst blendete ovIn das ganze
+     Blatt von Deckkraft 0 an ein. Pseudoelement-Animationen stehen nur in getAnimations({ subtree: true }); das Blatt selbst muss im ersten Bild deckend sein. */
+  const op0 = ov ? +getComputedStyle(ov, '::before').opacity : null;           // direkt im ersten Bild
+  const namen = ov ? ov.getAnimations({ subtree: true }).map(a => a.animationName) : [];
+  const blatt0 = ov ? +getComputedStyle(ov).opacity * +getComputedStyle(ov.querySelector('.sheet')).opacity : null;
   await new Promise(r => setTimeout(r, 400));
-  return { op0, namen, op1: +getComputedStyle(document.querySelector('.overlay')).opacity };
+  return { op0, namen, blatt0, op1: +getComputedStyle(document.querySelector('.overlay'), '::before').opacity };
 });
-check('b1 im ersten Bild ist die Abdunkelung noch nicht voll da (Deckkraft < 1, ovIn läuft)', ein.op0 !== null && ein.op0 < 1 && ein.namen.includes('ovIn'), JSON.stringify(ein));
+check('b1 im ersten Bild ist die Abdunkelung noch nicht voll da (Deckkraft < 1, ovIn läuft am Pseudoelement)', ein.op0 !== null && ein.op0 < 1 && ein.namen.includes('ovIn'), JSON.stringify(ein));
 check('b2 … und danach voll da (Deckkraft 1)', ein.op1 === 1, String(ein.op1));
+check('b3 [wg-v118] … das Blatt selbst ist im ersten Bild schon deckend (Overlay × Blatt = 1)', ein.blatt0 === 1, String(ein.blatt0));
 });
 
 // ══════════════════════════ c · Desktop: oben verankert ══════════════════════════

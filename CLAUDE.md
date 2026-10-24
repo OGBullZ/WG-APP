@@ -908,6 +908,65 @@ Rückfrage mit drei Stufen, gewählt: **„Alles Geld in den Haushalt"**. Datenm
 - **Haushalt-Legende „Growbox"** nur mit eigenem Grow-Anteil — seit v116 reine Anzeige, „0 % €0,00" war Rauschen (`grow_haus_v116` H12).
 - 🪤 **Session-Limit, zweimal:** Der Runde-2-Umsetzer (Sonnet) starb nach 81 min / 173 Werkzeugaufrufen. Alle 27 Gates waren da schon grün und geloggt (`scratchpad/v117r2-gates-summary.txt`); es fehlten Gegenprobe und Bildabnahme → Hauptloop. Vor Runde 2 lag eine Referenz des abgenommenen Runde-1-Stands bereit (`git stash create` → `3e80b08` + Kopie), daran lief die Gegenprobe nur für Runde 2.
 
+## Optik-Prüfung „Gutachten 2" auf v117 (23./24.10. — torbe: „Optik-Prüfung starten")
+
+9 Blickwinkel (GRENZ, A11Y, EN, FILM, TEXT, FARBE, PWA, LEIST, REST = Typo+Rhythmus nach v117), Sonnet, eigener Worktree `.gutachten-wt` auf Port 8097, nur lesend. 74 Funde, Berichte in `scratchpad/gutachten2/` (Bilder blieben im Worktree). Fundprüfung im Hauptloop (Stichproben am Code bestätigt: GRENZ-1, A11Y-1/6, FILM-1/2, PWA-1/7/8, LEIST-1).
+- **Stufe A — echte Fehler, je klein:**
+  - GRENZ-1: Growbox-% ab 3 Personen falsch (`pctStr` = 100 − Anteil der ersten → `growProzente`).
+  - FILM-1+3: Einkaufsliste, zwei schnelle Haken → erste Zeile springt zurück (`leaving` nur eine id → Set); Kreis füllt sich beim Abhaken nicht.
+  - FILM-2: Live-Hinweis bricht auf halber Breite in 3 Zeilen über den Umschaltern (`.toast` ohne max-width).
+  - FILM-4: Blatt beim Öffnen 100–150 ms durchsichtig.
+  - A11Y-1: Enter auf Auswahlknopf im Blatt = „Weiter".
+  - A11Y-5: „Löschen" im Gefahren-Dialog 2,69:1.
+  - A11Y-6: `html[lang]` bleibt „de".
+  - GRENZ-3: langer Name/WG-Name ragt aus der Heute-Karte.
+  - EN-1/2/3: Privat-Tab und rohe Listen auf Englisch deutsch.
+  - PWA-4: iOS zoomt in 5 Felder < 16 px.
+  - PWA-8: Doppeltipp-Zoom (`touch-action`).
+  - LEIST-1: Karten-Blur raus, −68 % GPU-Zeit, optisch nicht unterscheidbar (Pixelvergleich < 1,1/255).
+- **Stufe B — sinnvoll, größer:**
+  - GRENZ-2: „?" presst den Titel auf 54 px → in die Unterzeile.
+  - PWA-1: Zurück-Geste verlässt die App statt das Blatt zu schließen.
+  - FILM-5: Formular-Schrittwechsel springt 159 px.
+  - A11Y-2: Fokus in Blättern.
+  - GRENZ-4: Trenner „·" am Zeilenanfang.
+  - FARBE-1: Überfällig-Chip verliert Rot.
+  - TEXT-1/4: Push/Benachrichtigung/Nachricht; „IN 1d" neben „1 Tag überfällig".
+  - PWA-7: `enterKeyHint`.
+  - REST-2: Position „Alles abrechnen".
+  - EN-4/5/6: Satzbau, Datum, Dezimalkomma im Englischen.
+- **Verworfen:**
+  - EN-7: Server-Pushes auf Englisch (bewusst deutsch, Abschnitt Englisch).
+  - EN-10: schon entschieden (`optik_v117` H3a).
+  - LEIST-2/3: lange Liste und Overlay-Blur kein Alltagsproblem.
+  - `--fs-*`-Raster (REST-7: nur Einzelgänger angleichen).
+  - Faltung langer Listen: 80 offene Posten sind kein Alltagszustand.
+- 🪤 **Weg:**
+  - Lauf 1 (3 Gutachter + Skeptiker je Welle) traf nach 25 min / 1,4 M Token das Session-Limit, Lauf 2 das **Wochenlimit**.
+  - Gerettet hat, dass jeder Bericht zuerst als Datei gesichert wurde; Resume holte die fertigen aus dem Cache.
+  - Ab Lauf 2 ohne Skeptiker-Agenten (die Prüfung macht der Hauptloop) und in Wellen zu 2.
+  - **Ports, die Tests selbst brauchen:** 8098 (`test/update.mjs`) UND **8097 (`test/ux.mjs` baut dort den `dist/`-Stand)**. Der Gutachter-Server auf 8097 ließ `ux` A5–A7 rot werden (Runde A1a, gefunden vom Umsetzer). Zweitserver künftig auf **8095** oder einen freien Port zur Laufzeit; vor jedem Ship prüfen, dass 8097/8098 frei sind.
+
+## Gutachten 2, Stufe A (wg-v118, 24.10.)
+
+Drei Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den jeweils vorigen Stand (`git stash create` + Kopie, `WG_URL`) im Hauptloop. Test `gutachten2_a.mjs` (89 Prüfungen, Gate + CI).
+- **A1a:**
+  - GRENZ-1: Growbox-% über `growProzente`; „%" rutscht unter den Namen.
+  - FILM-1+3: `leaving` als Set, Kreis gefüllt im Abgang.
+  - FILM-2: `.toast` max-width, zweizeilig.
+  - FILM-4: Abdunkelung auf `.overlay::before`, Blatt ab Bild 1 deckend; `blatt_v112` b1/b2 nachgezogen, b3 neu.
+  - A11Y-1: Enter auf Knöpfen nicht mehr als „Weiter".
+- **A1b:**
+  - A11Y-5: „Löschen" 7,06:1.
+  - A11Y-6: `html[lang]` folgt der Sprache, auch im Früh-Skript.
+  - GRENZ-3: Heute-Kopf `overflowWrap:anywhere`.
+  - LEIST-1: kein `backdrop-filter` an `.group/.hero`; Pixelvergleich ≤ 0,6/255.
+  - PWA-4: 8 Felder auf 16 px, darunter „anderer Laden", das erst die Messung fand.
+  - PWA-8: `:where(*:not(input[type=range])){touch-action:manipulation}`. Pinch-Zoom bleibt, Viewport ohne `user-scalable=no`. Am iPhone selbst nicht geprüft.
+- **A2:** EN-1 Privat-Tab, EN-2 Listen am Definitionsort mit TT (gespeicherte Werte bleiben deutsch, z. B. „Wohnen"), EN-3 Einzeltexte/Fehler, EN-5 Datum britisch, EN-6 „1.5 h" und „%" ohne Leerzeichen. 48 neue Schlüssel (1656, 0 Lücken).
+- 🪤 **A2-Umsetzer starb nach 32 min am Session-Limit:** alle Gates waren grün, der Test fertig und die Gegenprobe gelaufen (22 rot = genau die A2-Prüfungen); es fehlten nur die Bilder → Hauptloop mit dem Skript des Agents.
+- Offen außerhalb: Firebase-Konfig-Textarea unter „Mehr" 12 px (iOS-Zoom, selten benutzt).
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.
