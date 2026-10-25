@@ -54,7 +54,7 @@ check('R3 ohne Ruhezeit kein Hinweis', await page.locator('[data-testid="ruhe-hi
 await toggle.click();
 await page.waitForTimeout(400);
 check('R4 eingeschaltet: aria-pressed wechselt', (await toggle.getAttribute('aria-pressed')) === 'true');
-check('R5 Hinweis erklärt, dass die Morgen-Nachricht lautlos kommt', /Morgen-Nachricht erscheint lautlos/.test(await page.locator('[data-testid="ruhe-hinweis"]').innerText().catch(() => '')));
+check('R5 Hinweis erklärt, dass die Morgen-Nachricht lautlos kommt', /Benachrichtigung am Morgen erscheint lautlos/.test(   /* wg-v119 (TEXT-1): ein Wort für eine Sache („Morgen-Nachricht" → „Benachrichtigung am Morgen") */await page.locator('[data-testid="ruhe-hinweis"]').innerText().catch(() => '')));
 const sels = page.locator('select[aria-label^="Ruhezeit"]');
 check('R6 beide Uhrzeit-Auswahlen sind beschriftet', await sels.count() === 2);
 const selBox = await sels.first().boundingBox();

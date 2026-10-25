@@ -277,7 +277,8 @@ await blk('D Assistent', async () => {
     && await sichtbar(page, '[data-testid="tool-chips"] .wz-kachel') === 0, await zahl(page) || '—');
   await page.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).click(); await page.waitForTimeout(700);
   const chips = await page.locator('[data-testid="chore-row"] .due-chip').allInnerTexts();
-  check('D7 Putzplan: genau eine Aufgabe „HEUTE", die anderen „IN 1d/2d/3d"', chips.filter(c => /^HEUTE$/.test(c.trim())).length === 1 && chips.length === 4 && ['IN 1d', 'IN 2d', 'IN 3d'].every(c => chips.some(x => x.replace(/\s+/g, ' ').trim() === c)), JSON.stringify(chips));
+  /* wg-v119 (TEXT-4): Chips sprechen jetzt wie „N Tage überfällig" in ganzen Wörtern („in 1 Tag", „in 2 Tagen") statt „IN 1d" — Prüfung gleich streng */
+  check('D7 Putzplan: genau eine Aufgabe „HEUTE", die anderen „in 1 Tag / in 2 Tagen / in 3 Tagen"', chips.filter(c => /^HEUTE$/.test(c.trim())).length === 1 && chips.length === 4 && ['in 1 Tag', 'in 2 Tagen', 'in 3 Tagen'].every(c => chips.some(x => x.replace(/\s+/g, ' ').trim() === c)), JSON.stringify(chips));
   await page.locator('.tabbar .tabitem', { hasText: 'Heute' }).click(); await page.waitForTimeout(500);
   const quick = await page.evaluate(() => document.querySelectorAll('[data-testid="chore-quick"] .cell:not(.schatten)').length);
   check('D8 „Du bist dran" zeigt höchstens eine Aufgabe', quick <= 1, `${quick} Zeile(n)`);

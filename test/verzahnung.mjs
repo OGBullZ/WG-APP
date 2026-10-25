@@ -66,7 +66,7 @@ const A = await open({ tab: 'set' });
 await fold(A.page, 'Personen');
 // Der Leerzustand versprach bis v88 „die App erinnert dann rechtzeitig" — ohne dass etwas erinnerte.
 // Jetzt muss er genau das benennen, was es gibt (die Morgen-Nachricht, siehe cron_alltag G*).
-check('A0 Leerzustand nennt die echte Erinnerung', /Morgen-Nachricht.*3 Tage vorher/.test(await A.page.locator('[data-testid="geb-card"]').innerText()));
+check('A0 Leerzustand nennt die echte Erinnerung', /Benachrichtigung am Morgen.*3 Tage vorher/.test(   /* wg-v119 (TEXT-1): „Morgen-Nachricht" → „Benachrichtigung am Morgen" */await A.page.locator('[data-testid="geb-card"]').innerText()));
 await A.page.locator('[data-testid="geb-name"]').fill('Oma');
 await A.page.locator('[data-testid="geb-datum"]').fill('2000-11-03');   // Jahr muss das Feld haben — wir kennen es nicht
 await A.page.locator('[data-testid="geb-ohne-jahr"]').check();

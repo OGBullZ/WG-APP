@@ -163,15 +163,17 @@ const lage = page => page.evaluate(() => {
   }
   // Einzelposten oben in der rechten Spalte statt unter dem Falz
   await tab(page, 'Haushalt');
-  const ez = await page.evaluate(() => { const k = [...document.querySelectorAll('.section-hdr')].find(e => e.textContent.trim() === 'Einzelposten' && e.getBoundingClientRect().width > 0); return k ? Math.round(k.getBoundingClientRect().top) : null; });
+  /* wg-v119 (REST-2): der Kopf trägt jetzt „✓ Alles abrechnen" als Kopf-Aktion → textContent ist nicht mehr nur „Einzelposten"; die Kopf-Suche gilt dem ANFANG des Textes (gleiche Strenge: ein anderer Kopf beginnt nicht so) */
+  const ez = await page.evaluate(() => { const k = [...document.querySelectorAll('.section-hdr')].find(e => /^Einzelposten/.test(e.textContent.trim()) && e.getBoundingClientRect().width > 0); return k ? Math.round(k.getBoundingClientRect().top) : null; });
   check('b2 1440 × 1000: Kopf „Einzelposten" oberhalb von 700 px (über dem Falz)', ez !== null && ez < 700, `y=${ez}`);
   // b5a: Gläubiger — „Alles abrechnen" steht rechts über den Einzelposten (gehört zur Liste, nicht zur Lage links)
   const ab = await page.evaluate(() => {
     const b = [...document.querySelectorAll('button')].find(x => /Alles abrechnen/.test(x.textContent) && x.getBoundingClientRect().width > 0);
-    const k = [...document.querySelectorAll('.section-hdr')].find(e => e.textContent.trim() === 'Einzelposten' && e.getBoundingClientRect().width > 0);
-    return b && k ? { rechts: !!b.closest('.zz-r'), knopfUnten: Math.round(b.getBoundingClientRect().bottom), kopf: Math.round(k.getBoundingClientRect().top) } : null;
+    const k = [...document.querySelectorAll('.section-hdr')].find(e => /^Einzelposten/.test(e.textContent.trim()) && e.getBoundingClientRect().width > 0);
+    return b && k ? { rechts: !!b.closest('.zz-r'), imKopf: b.closest('.section-hdr') === k, knopfUnten: Math.round(b.getBoundingClientRect().bottom), kopf: Math.round(k.getBoundingClientRect().top), kopfUnten: Math.round(k.getBoundingClientRect().bottom) } : null;
   });
-  check('b5a 1440 Gläubiger: „Alles abrechnen" rechts über den Einzelposten', !!ab && ab.rechts && ab.knopfUnten <= ab.kopf, JSON.stringify(ab));
+  /* wg-v119 (REST-2): vorher „Knopf ÜBER dem Kopf" (knopfUnten <= kopf); jetzt sitzt er IM Kopf der Liste — die Zuordnung ist enger geworden (rechte Zone bleibt, Knopf liegt nicht unter dem Kopf) */
+  check('b5a 1440 Gläubiger: „Alles abrechnen" rechts, IM Kopf der Einzelposten (Kopf-Aktion, nicht darunter)', !!ab && ab.rechts && ab.imKopf && ab.knopfUnten <= ab.kopfUnten + 15, JSON.stringify(ab));
   // e: Legende neben dem Ring
   const leg = (await lage(page)).leg;
   // Grenze 322 statt der 340 aus dem Auftrag: die 530-px-Spalte allein ergibt schon 340 (gemessen ohne max-width) — erst ≤ 322 prüft die Regel

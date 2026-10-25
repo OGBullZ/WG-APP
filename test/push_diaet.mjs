@@ -64,8 +64,27 @@ const notify = readFileSync(new URL('../api/notify.js', import.meta.url), 'utf8'
 const pushJs = readFileSync(new URL('../api/_push.js', import.meta.url), 'utf8');
 const rules = JSON.parse(readFileSync(new URL('../database.rules.json', import.meta.url), 'utf8'));
 const allowed = JSON.parse((notify.match(/const type = (\[[^\]]+\])/) || [, '[]'])[1].replace(/'/g, '"'));
-// jedes notifyOthers(…, "tag", "typ") — letzter String vor der schließenden Klammer
-const used = [...html.matchAll(/notifyOthers\([\s\S]*?,\s*["']([a-z]+)["']\s*\)/g)].map((m) => m[1]);
+// jedes notifyOthers(…, "tag", "typ") — letzter String vor der schließenden Klammer DIESES Aufrufs.
+// wg-v119: Argumente per Klammerzählung (Zeichenketten übersprungen) statt lazy Regex. Der Regex lief bei einem Aufruf OHNE Typ
+// (Login teilen, „wg-login" — gewollt: geht immer raus) über das Aufrufende hinaus in den Folgecode und griff dort ein `, 's')` aus einer
+// englischen Plural-Endung als „Typ s" (Ship v119 im Gate rot). Er maß also nicht den Aufruf, sondern zufällig, was danach kam.
+function aufrufArgs(src, start) {   // start = Index direkt hinter „notifyOthers(" → Text bis zur passenden „)"
+  let tiefe = 1, i = start;
+  while (i < src.length && tiefe > 0) {
+    const c = src[i];
+    if (c === '"' || c === "'" || c === '`') {   // Zeichenkette überspringen (Klammern darin zählen nicht)
+      const q = c; i++;
+      while (i < src.length && src[i] !== q) { if (src[i] === '\\') i++; i++; }
+    } else if (c === '(') tiefe++;
+    else if (c === ')') tiefe--;
+    i++;
+  }
+  return src.slice(start, i - 1);
+}
+const used = [...html.matchAll(/notifyOthers\(/g)]
+  .filter((m) => !/(function|const|=)\s*$/.test(html.slice(Math.max(0, m.index - 20), m.index)))   /* Definition/Zuweisung, kein Aufruf */
+  .map((m) => (aufrufArgs(html, m.index + m[0].length).match(/,\s*["']([a-z]+)["']\s*$/) || [])[1])
+  .filter(Boolean);
 const unknown = [...new Set(used)].filter((t) => !allowed.includes(t));
 check('C1 jeder Push-Typ der App ist in notify.js bekannt (sonst ginge er IMMER raus)', unknown.length === 0 && used.length > 30, `unbekannt: ${unknown.join(', ')} · gefunden ${used.length}`);
 const appLeise = JSON.parse((html.match(/const PUSH_LEISE = (\[[^\]]+\])/) || [, '[]'])[1].replace(/'/g, '"')).sort();

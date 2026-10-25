@@ -55,7 +55,13 @@ async function open(seed, extraLs = {}) {
   const data = () => page.evaluate(() => JSON.parse(localStorage.getItem('wg_data')));
   const task = async name => (await data()).pt.find(t => t.name === name);
   const zeile = name => page.locator('[data-testid="chore-row"]', { hasText: name });
-  const wer = async name => (await zeile(name).locator('[data-testid="chore-wer"]').innerText()).replace(/\s+/g, ' ').trim();
+  /* wg-v119 (GRENZ-4): der Trenner „·" steht nicht mehr im Text — er ist ein CSS-Pseudoelement zwischen den Teilen (<Teile>, .sub-in > span), damit er beim Umbruch
+     verschwinden kann. Die Zeile wird hier wieder als „wer · Rhythmus" zusammengesetzt (Teile mit „ · " verbunden), so prüfen die Erwartungen unten weiter Inhalt und
+     Reihenfolge der Teile; ob der Trenner richtig sitzt/verschwindet, misst test/gutachten2_b.mjs (T1–T3). Ohne .sub-in (alter Aufbau) bleibt es der ganze Text. */
+  const wer = async name => (await zeile(name).locator('[data-testid="chore-wer"]').evaluate(e => {
+    const teile = [...e.querySelectorAll(':scope > .sub-in > span')];
+    return teile.length ? teile.map(t => t.innerText.replace(/\s+/g, ' ').trim()).join(' · ') : e.innerText;
+  })).replace(/\s+/g, ' ').trim();
   // Haken setzen; die Rückgängig-Meldung kurz wegwarten, damit der nächste Haken nicht darin hängt
   const haken = async name => { await zeile(name).locator('.done-btn').click(); await page.waitForTimeout(700); };
   return { ctx, page, errs, pushes, data, task, zeile, wer, haken };

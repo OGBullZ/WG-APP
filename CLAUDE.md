@@ -967,6 +967,32 @@ Drei Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den jeweils 
 - 🪤 **A2-Umsetzer starb nach 32 min am Session-Limit:** alle Gates waren grün, der Test fertig und die Gegenprobe gelaufen (22 rot = genau die A2-Prüfungen); es fehlten nur die Bilder → Hauptloop mit dem Skript des Agents.
 - Offen außerhalb: Firebase-Konfig-Textarea unter „Mehr" 12 px (iOS-Zoom, selten benutzt).
 
+## Gutachten 2, Stufe B (wg-v119, 24./25.10.)
+
+Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen Stand im Hauptloop. Test `gutachten2_b.mjs` (127 Prüfungen, Gate + CI).
+- **B1:**
+  - PWA-1: Zurück-Geste schließt das oberste Blatt (ein History-Eintrag je offenem Blatt am `ESC_STAPEL`, `history.go(-n)` beim normalen Schließen, Wachhund für das asynchrone `go`, überlebte Einträge beim Laden entwertet; Tabs nicht in der History).
+  - A11Y-2: Fokus ins Blatt (das Blatt selbst, nicht das erste Feld — sonst Tastatur am Handy), Tab-Falle, Rückgabe an den Auslöser.
+- **B2:**
+  - GRENZ-2: „?" in der Unterzeile, Trefferfläche 42 px per `::after`.
+  - GRENZ-4: `<Teile>`/`.sub-reihe` — Trenner als `::before` mit leerem Alt-Text, verschwindet beim Umbruch. 🪤 In der Monoschrift (Anteile-Zeile) klebte der Punkt am Folgewort: „·" ist dort eine volle Zeichenzelle → im Hauptloop auf `left:-.4em; translateX(-50%)` (Mitte in die Lücke).
+  - FARBE-1: Überfällig-Chip als rote Fläche, 7,06/6,29:1.
+- **B3:**
+  - PWA-7: `enterKeyHint` zentral im Wiz (next/done) + 14 Einzelfelder.
+  - REST-2: „✓ Alles abrechnen" als Aktion im Kopf „Einzelposten" (aria-label mit Zahl).
+  - FILM-5: Wiz-Höhe fährt per `el.animate` 300 ms Sinus (der Bericht-Vorschlag 220 ms ease-out sprang im ersten Bild 48 px), reduced motion sofort.
+- **B4:**
+  - TEXT-1: „Push"/„Morgen-Nachricht" → „Benachrichtigung".
+  - TEXT-4: Chips „in 1 Tag / in 3 Tagen" wie „7 Tage überfällig".
+  - EN-4: ganze Sätze mit Platzhaltern.
+  - EN-8: Flat / Guest link / Each pays their own.
+  - Server-Texte in `api/` bewusst unberührt.
+- 🪤 **Session-Limit, zweimal:**
+  - B3 starb nach 27 s (Neustart, nichts geändert).
+  - B4 starb nach 53 min mit fertigem Code und Test (126/127; W5 war ein Zeitwackler, im Neulauf 127/127), aber ohne die übrigen Gates. Im Hauptloop zogen fünf Alt-Tests mit den alten Texten nach („Per Push an", „Morgen-Nachricht", „IN 1d"); gefunden per Grep nach den ersetzten Wörtern, bevor das Gate scheiterte.
+- 🪤 **Ship v119 Lauf 1 rot in `push_diaet` C1** („unbekannter Push-Typ s"). Der Test las Typen per lazy Regex `notifyOthers\([\s\S]*?,"x"\)`; beim Login-Teilen-Aufruf OHNE Typ lief er über das Aufrufende in den Folgecode und griff ein `, 's')` aus einer neuen englischen Plural-Endung. Die Prüfung maß also nicht den Aufruf. Jetzt: Argumente per Klammerzählung mit übersprungenen Zeichenketten. Gegenprobe: eine Kopie mit Typ „quatsch" wird erkannt.
+- Der Gutachter-Worktree `.gutachten-wt` (Bilder der Prüfung) liegt noch da; per `.git/info/exclude` aus `git add -A` gehalten.
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.

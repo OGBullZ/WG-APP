@@ -158,7 +158,7 @@ for (const w of [320, 390]) {
     return { anteile: ant?.textContent, inTitelSpalte: !!ant?.closest('.cell-content'), titelB: Math.round(zeile?.querySelector('.cell-content').getBoundingClientRect().width || 0),   /* Spalte, nicht der Text-span (der ist nur so breit wie seine längste Zeile) */
       preisB: Math.round(preis?.getBoundingClientRect().width || 0), abstand: n ? Math.round(n.getBoundingClientRect().top - b.getBoundingClientRect().bottom) : null };
   });
-  check('G1 Anteile stehen unter dem Titel (beide Personen mit Betrag)', g.inTitelSpalte && /Maximilian-Alexander €94,75/.test(g.anteile) && /Konstantinos €94,75/.test(g.anteile), JSON.stringify(g));
+  check('G1 Anteile stehen unter dem Titel (beide Personen mit Betrag)', g.inTitelSpalte && /Maximilian-Alexander\s€94,75/.test(g.anteile) && /Konstantinos\s€94,75/.test(g.anteile), JSON.stringify(g));   /* wg-v119 (GRENZ-4): \s statt Leerzeichen — Name und Betrag hängen jetzt per geschütztem Leerzeichen (&nbsp;) zusammen, statt per nowrap (das ein langes Teil abgeschnitten hätte) */
   // 320 − Ränder − Kreis − Preis (61) − × ergibt ~102 px; vorher fraß die Anteils-Spalte (bis 130) den Platz → ~60
   check('G2 Titelspalte auf 320 px ≥ 95 px breit (vorher ~60)', g.titelB >= 95, JSON.stringify(g));
   check('G3 Abstand Abrechnungsband → Hinweis ≥ 8 px (vorher −4: Hinweis lag im Band)', g.abstand !== null && g.abstand >= 8, JSON.stringify(g));

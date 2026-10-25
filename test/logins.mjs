@@ -104,7 +104,7 @@ check('A7 Einmal-Code wird nirgends gespeichert (Server, Writes, localStorage)',
 const saved = await A.page.evaluate(() => JSON.parse(localStorage.getItem('wg_lg') || '[]'));
 check('A8 Login auf dem Ersteller-Gerät gemerkt (lokal, wg_lg)', saved.length === 1 && saved[0].svc === 'Netflix' && saved[0].p === SECRET_P);
 
-await A.page.getByRole('button', { name: /Per Push an Tom/ }).click();
+await A.page.getByRole('button', { name: /Per Benachrichtigung an Tom/ }).click();   // wg-v119 (TEXT-1): „Push" heißt in der Oberfläche jetzt „Benachrichtigung"
 await A.page.waitForTimeout(400);
 const codePush = A.pushes.find(p => /Netflix/.test(p.title || ''));
 check('A9 Push an Tom enthält den Code', !!codePush && (codePush.body || '').includes(code));
