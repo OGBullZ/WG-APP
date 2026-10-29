@@ -94,7 +94,10 @@ await D1.ctx.close();
 
 // ── E: Übersicht und Übergabe-Seite bei offenen Beträgen ──
 const E = await open(SEED, { tab: 'stats' });
-check('E1 Übersicht: „Tom → Torben · Kim → Torben"', /Tom → Torben €34,00 · Kim → Torben €22,00/.test(await E.page.locator('[data-testid="stats-plan"]').innerText().catch(() => '')));
+/* wg-v120 (GRENZ-6): der Plan steht als eine Zeile je Überweisung (stats-plan-row) statt als Fließtext mit „ · " — gleicher Inhalt, gleiche Reihenfolge.
+   Leerraum-unabhängig verglichen: innerText setzt zwischen den Flex-Spalten (Namen | Betrag) kein Leerzeichen */
+const planZeilen = await E.page.locator('[data-testid="stats-plan-row"]').allInnerTexts().catch(() => []);
+check('E1 Übersicht: „Tom → Torben €34,00" und „Kim → Torben €22,00" als eigene Zeilen', JSON.stringify(planZeilen.map(z => z.replace(/\s+/g, ''))) === JSON.stringify(['Tom→Torben€34,00', 'Kim→Torben€22,00']), JSON.stringify(planZeilen));
 await E.tabTo('Mehr');
 await E.page.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click())); await E.page.waitForTimeout(300);
 await E.page.locator('[data-testid="moveout-card"] button').click(); await E.page.waitForTimeout(400);

@@ -232,8 +232,9 @@ for (const lang of ['de', 'en']) {
   const U3 = [...SEED.users, { id: 'u3', name: 'Kim', color: '#f472b6' }];
   const { page, ctx } = await wg({ w: 390, h: 2600, lang, seed: { ...SEED, users: U3 } });
   await tab(page, 'Haushalt', 1100);
-  const k = (await kopfSonde(page)).find(x => /Growbox · nach Pflanzen|Grow box · by plants/.test(x.t));
-  check(`H1d ${lang}: Haushalt (3 Personen) „Growbox · nach Pflanzen · €… offen" mit .hdr-em, Text dahinter vollständig`, !!k && k.n === 1 && k.fs === '14px' && k.mr === '7px' && /€\d/.test(k.rest) && /offen|open/.test(k.rest), JSON.stringify(k || null));
+  /* wg-v120 (GRENZ-5): der Kopf heißt jetzt „🌱 Growbox · €… offen" (ohne „nach Pflanzen", das brach bei 320 px mit der Waise „OFFEN") — gesucht wird nach „Growbox · €" */
+  const k = (await kopfSonde(page)).find(x => /Growbox · €|Grow box · €/.test(x.t));
+  check(`H1d ${lang}: Haushalt (3 Personen) „Growbox · €… offen" mit .hdr-em, Text dahinter vollständig`, !!k && k.n === 1 && k.fs === '14px' && k.mr === '7px' && /€\d/.test(k.rest) && /offen|open/.test(k.rest), JSON.stringify(k || null));
   await ctx.close();
 }
 

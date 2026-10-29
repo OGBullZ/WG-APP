@@ -993,6 +993,25 @@ Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen 
 - 🪤 **Ship v119 Lauf 1 rot in `push_diaet` C1** („unbekannter Push-Typ s"). Der Test las Typen per lazy Regex `notifyOthers\([\s\S]*?,"x"\)`; beim Login-Teilen-Aufruf OHNE Typ lief er über das Aufrufende in den Folgecode und griff ein `, 's')` aus einer neuen englischen Plural-Endung. Die Prüfung maß also nicht den Aufruf. Jetzt: Argumente per Klammerzählung mit übersprungenen Zeichenketten. Gegenprobe: eine Kopie mit Typ „quatsch" wird erkannt.
 - Der Gutachter-Worktree `.gutachten-wt` (Bilder der Prüfung) liegt noch da; per `.git/info/exclude` aus `git add -A` gehalten.
 
+## Gutachten 2, Stufe C (wg-v120, 29.10. — torbe: „autonom weiter")
+
+Übrige echte Fehler der Optik-Prüfung. Test `gutachten2_c.mjs` (Gate + CI). Worktree `.gutachten-wt` vorher entfernt (nur Prüfbilder).
+- **C1:**
+  - GRENZ-5: Grow-Bilanz-Kopf „🌱 Growbox · €x offen" (ohne „nach Pflanzen", brach mit Waise); grow-anteile ohne Personen mit 0 Pflanzen.
+  - GRENZ-6: Ausgleichsplan der Übersicht als Zeilen statt Fließtext.
+  - GRENZ-7: `.bar-name` `clamp(74px,26vw,104px)` + `title`.
+  - GRENZ-10: „· deins" unteilbar; „vor N Mon./J." ab 60/365 Tagen (`vorTage`); Ernten-Leerzustand.
+  - Firebase-Konfig-Textarea 16 px.
+  - Der Umsetzer starb nach 10 min am Session-Limit; Code fertig, Test angefangen → Hauptloop: Test fertig (4 Mängel im Test selbst: Flex-Spalten ohne Leerzeichen in innerText, Leer-Symbol vor dem Text, „42,00 g"), Gate-/CI-Eintrag, Gates, Gegenprobe (30 rot).
+  - 🪤 **Beim Hinsehen gefunden:** in grow-anteile brach bei 4 Personen und 320 px ein Betrag mitten in der Zahl („Konstantinos €10" / „,00"), Folge von `overflow-wrap:anywhere` an `<Teile>` (B2) → Betrag als nowrap-Block.
+- **C2:**
+  - PWA-6: „Wie System" folgt `prefers-color-scheme` zur Laufzeit.
+  - PWA-5: Tabbar-Höhe `max(68px, 50px + safe-bottom)` statt fester Reserve; Inset 0 → 68, 34 → 84; `druck_v112` a3b nachgezogen.
+  - A11Y-4: „Aa Sehr groß" schaltet über `data-eng` auf engere Raster, nichts mehr abgeschnitten.
+  - GRENZ-9: `giOpen` bei < 3 Personen → eine Person hat EINEN Abrechnen-Weg, keinen Growbox-Block.
+  - `gutachten2_c` 68/0, Gegenprobe gegen C1 20 rot. torbe stoppte den Umsetzer während des Gate-Laufs; Gates liefen dann im Release.
+  - 🪤 **Die neue Prüfung G5g sah den Fehler zweimal NICHT** (Gegenprobe grün). Grund 1: mit den Testdaten passte die Zeile zufällig → die Daten des Bildes nehmen. Grund 2: React legt „€" und „10,00" als getrennte Textknoten an, ein Regex `€[\d,]+` über einen Knoten trifft nie. Lösung: jeden Ziffern-Knoten als Ganzes per Range messen → Gegenprobe rot („10,00").
+
 ## Live & Deploy
 
 - **Live:** https://wgapp-65484.web.app — **Deploy:** `firebase deploy --only hosting` (CLI eingeloggt `bouldey5@gmail.com`). Regeln zusätzlich: `--only database`.

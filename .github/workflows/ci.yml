@@ -77,6 +77,7 @@ jobs:
           node test/optik_v117.mjs
           node test/gutachten2_a.mjs
           node test/gutachten2_b.mjs
+          node test/gutachten2_c.mjs
           node test/orte.mjs
           node test/optik.mjs
           node test/fuer_andere.mjs

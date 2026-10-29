@@ -175,9 +175,11 @@ async function druckSweep(page, ctx, cdp, mitLeisten) {
   await cdp.send('CSS.forcePseudoState', { nodeId: del, forcedPseudoClasses: [] });
   check('a2 .del-btn: Ruhe übergeht transform (Rückfeder .18 s = --dur-kurz)', /transform/.test(ruhe.p) && /0\.18s/.test(ruhe.d), JSON.stringify(ruhe));
   check('a2b .del-btn gedrückt: auf 94 % (matrix .94) und Übergang 60 ms', /matrix\(0\.94, 0, 0, 0\.94/.test(gedrueckt.t) && /0\.06s/.test(gedrueckt.d), JSON.stringify(gedrueckt));
-  const tap = await page.evaluate(() => ({ html: getComputedStyle(document.documentElement).getPropertyValue('-webkit-tap-highlight-color'), div: getComputedStyle(document.querySelector('.cell')).getPropertyValue('-webkit-tap-highlight-color'), tbh: getComputedStyle(document.documentElement).getPropertyValue('--tb-h').trim() }));
+  const tap = await page.evaluate(() => ({ html: getComputedStyle(document.documentElement).getPropertyValue('-webkit-tap-highlight-color'), div: getComputedStyle(document.querySelector('.cell')).getPropertyValue('-webkit-tap-highlight-color'), tbh: getComputedStyle(document.documentElement).getPropertyValue('--tb-h').trim(), tbpx: document.querySelector('.tabbar').getBoundingClientRect().height }));
   check('a3 Tap-Highlight: <html> und klickbare divs (.cell) ohne grauen Systemblitz', /rgba\(0, 0, 0, 0\)|transparent/.test(tap.html) && /rgba\(0, 0, 0, 0\)|transparent/.test(tap.div), JSON.stringify(tap));
-  check('a3b Handy: --tb-h bleibt 84px (nur ab 1024 px 0)', tap.tbh === '84px', tap.tbh);
+  /* wg-v120 (PWA-5): --tb-h ist kein fester Wert mehr (max(68px, 50px + Inset)) — der Textvergleich auf '84px' wäre rot. Gemessen wird die echte Leistenhöhe: ohne Gesten-Inset
+     (Playwright-Chromium meldet 0) 68 px, nicht mehr 84 und nicht 0 (0 gilt nur ab 1024 px, siehe f1). Die Inset-Fälle (34 → 84, 21 → 71) prüft gutachten2_c T1. */
+  check('a3b Handy ohne Inset: Tab-Leiste 68 px hoch (wg-v120 PWA-5; vorher fest 84), --tb-h ist die max()-Formel (nur ab 1024 px 0)', tap.tbpx === 68 && /^max\(68px/.test(tap.tbh), JSON.stringify({ tbh: tap.tbh, tbpx: tap.tbpx }));
 
   // Ab hier ohne Übergänge/Animationen: der Vergleich Ruhe ↔ gedrückt liest sofort den Endwert (sonst 60-ms-Übergänge abwarten, ×150 Elemente)
   await page.addStyleTag({ content: '*,*::before,*::after{transition:none!important;animation:none!important}' });
