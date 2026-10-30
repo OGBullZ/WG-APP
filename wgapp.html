@@ -841,7 +841,7 @@ button.cell { color:var(--label); }
   padding:10px 0 0;
   display:flex; flex-direction:column;
   margin-bottom:var(--kb,0px);                       /* hebt das Sheet über die Tastatur (sonst 0) */
-  max-height:calc(100dvh - var(--kb,0px) - 6px); overflow:hidden;
+  max-height:calc(var(--vh-z, 100dvh) - var(--kb,0px) - 6px); overflow:hidden;   /* wg-v121 (PWA-2): --vh-z = Fensterhöhe in gezoomten px (100dvh skaliert mit „Aa Groß/Sehr groß" mit) */
   animation:sheetUp .32s cubic-bezier(.22,1,.36,1);
   box-shadow:0 -24px 70px rgba(0,0,0,.5);
   border:1px solid rgba(255,255,255,.07);
@@ -881,7 +881,7 @@ button.cell { color:var(--label); }
 .wiz-sum .nm { font-weight:700; font-size:15px; color:var(--label); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .wiz-sum .am { font-family:var(--mono); font-weight:800; font-size:19px; color:var(--mint); flex:none; }
 .date-toggle { width:100%; text-align:left; background:var(--bg4); border:1px solid var(--rand-bedien); border-radius:14px; padding:14px 16px; font-size:15px; color:var(--label2); cursor:pointer; }
-.sheet-acts { padding:20px 20px calc(18px + var(--safe-bot)); display:flex; gap:10px; flex:none; }
+.sheet-acts { padding:20px 20px calc(18px + var(--safe-bot) * var(--kb-zu, 1)); display:flex; gap:10px; flex:none; }   /* wg-v121 (PWA-2): --kb-zu = 0 bei offener Tastatur (verdeckt den Home-Balken) */
 
 /* ── Inputs ── */
 .field {
@@ -1156,9 +1156,11 @@ button.cell:not(.group):active:not(:disabled) { box-shadow:inset 0 0 0 999px var
      Höhenänderung (gemessen: Suchfeld beim Tippen von y=465 auf y=85, „Weiter" im Assistenten über drei Schritte); jetzt wächst das
      Blatt nach unten und die Oberkante bleibt stehen. Abstand oben 10 vh (24–96 px). max-height zieht Abstand oben, 24 px unten und
      die Tastatur (--kb, iPad ab 700 px) ab. Der Griff zeigt „ziehbar", obwohl am Desktop nichts gezogen wird → weg. */
-  .overlay { align-items:flex-start; justify-content:center; padding:clamp(24px,10vh,96px) 24px 24px; }
+  /* wg-v121 (PWA-2): --oben = Abstand oben (10 % der Fensterhöhe, 24–96 px) an EINER Stelle für Polster und max-height; die Fensterhöhe kommt als --vh-z
+     in gezoomten px (vh/dvh skalieren im gezoomten <html> mit: bei „Sehr groß" lag die Knopfleiste eines hohen Blatts 226 px unter der Tastatur) */
+  .overlay { --oben:clamp(24px, calc(var(--vh-z, 100vh) * .1), 96px); align-items:flex-start; justify-content:center; padding:var(--oben) 24px 24px; }
   .sheet { max-width:520px; border-radius:24px; animation:sheetPop 200ms var(--ease-raus);   /* wg-v118 (FILM-4): sheetPop/sheetPopOut s. unten — das Blatt ist beim Öffnen von Bild 1 an deckend */
-    max-height:calc(100dvh - var(--kb,0px) - clamp(24px,10vh,96px) - 24px); }
+    max-height:calc(var(--vh-z, 100dvh) - var(--kb,0px) - var(--oben, 24px) - 24px); }
   .sheet-handle { display:none; }
   .overlay.zu .sheet { animation:sheetPopOut var(--dur-kurz) var(--ease-rein) forwards; }
 }
@@ -1404,6 +1406,23 @@ button.cell:not(.group):active:not(:disabled) { box-shadow:inset 0 0 0 999px var
    - „Weniger Bewegung": gibt es keinen Schatten (ChoreQuick prüft REDUCE()), das 1-ms-Netz unten bliebe trotzdem als Rückfall. */
 .schatten { --h:96px; animation:schattenAb 360ms linear 270ms forwards; overflow:hidden; pointer-events:none; }   /* wg-v112 (P6): Keyframes umbenannt (abgang ist jetzt der Zwei-Phasen-Abgang); P10: eigene Zwei-Phasen-Keyframes statt scaleY */
 
+/* wg-v121 (FILM-8) Abschied: wird die LETZTE eigene Aufgabe auf „Du bist dran" erledigt (nur noch Schatten übrig), geht der ganze Block ohne Sprung.
+   Vorher stand die Karte nach dem Schatten (414–630 ms) als LEERE Fläche da und die Seite sprang beim Tausch gegen die Leer-Zeile um 24–27 px
+   (Kopf + Kartenrand + 12-px-Abschnitts-Rand − Leer-Zeile in EINEM Bild, gemessen wie hier_v112 g).
+   - Kopf + Karte blenden mit Phase 1 des Schattens aus (270 ms stehen, dann 100 ms): kürzer als die 130 ms des Schattens, damit die Karte nie sichtbar
+     ist, während der Schatten darin schon weg ist (der Schatten blendet zusätzlich selbst aus — Karte × Zeile bleibt ≥ .1, solange die Karte > .3 steht)
+   - pointer-events:none: unsichtbar gewordener Kopf/Karte fangen keine Tipps ab (die Höhe darunter schließt erst bei 400 ms)
+   - die Höhe der Wurzel fährt per Web Animations (AbschiedFahrt, Maße kommen aus dem Browser, nicht aus festen px) — Phase 2, endet bei 630 ms, Länge nach Strecke
+   - .abschied sitzt NUR als Zusatzklasse auf der Wurzel (keine eigene `animation`): .rise läuft weiter bzw. ist in besuchten Tabs aus (.tab-view.schon) */
+.abschied { position:relative; }
+.abschied > .section-hdr, .abschied > .group { animation:abschiedAus 100ms cubic-bezier(.4,0,1,1) 270ms forwards; pointer-events:none; }
+@keyframes abschiedAus { to { opacity:0; } }
+/* Leer-Zeile während des Abschieds: oben in der Wurzel (wo der Kopf stand), aus dem Fluss (die Wurzel fährt ihre Höhe selbst), blendet nach dem Kopf ein
+   (100 ms Verzögerung = erst sichtbar, wenn der Kopf weg ist; 270 + 100 + 230 = 600 ms voll da). flex-Spalte: das Kind wird wie später als Flex-Kind von
+   .heute-col/.content blockifiziert (ein <button> hätte sonst Zeilenhöhe + Grundlinienabstand → gemessene Endhöhe ≠ Höhe der alleinstehenden Zeile) */
+.abschied-leer { position:absolute; left:0; right:0; top:0; display:flex; flex-direction:column; animation:abschiedLeerEin 230ms var(--ease-raus) 100ms backwards; }
+@keyframes abschiedLeerEin { from { opacity:0; transform:translateY(8px); } }
+
 /* wg-v112 (P10) Aufklapp: ein Block (z. B. „🧾 N abgehakt …"), der erscheint oder geht, ohne dass alles darunter in EINEM Bild springt.
    Vorher setzte React den 54-px-Knopf samt 20-px-Abstand sofort ein: die ganze Einkaufsliste sprang um 74 px (gemessen, test/hier_v112.mjs f).
    - grid-template-rows 0fr → 1fr animiert die Höhe ohne feste Zahl (der Inhalt darf beliebig hoch sein); der Innen-Kasten schneidet ab
@@ -1442,6 +1461,25 @@ button.cell:not(.group):active:not(:disabled) { box-shadow:inset 0 0 0 999px var
 
 /* 4 · Remote-Sync-Flash */
 .flash { animation:remoteFlash 1.2s ease; }
+/* wg-v121 (FILM-7 A): eine NEUE Zeile (Fremd-Eintrag, eigener Eintrag, Rückgängig) fährt ein — vorher stand sie mit voller Höhe sofort da
+   und alles darunter sprang in EINEM Bild um 68 px; der Abgang dauert dagegen 420 ms. Spiegelbild von .geht/slLeave.
+   - @starting-style statt Keyframes: greift nur, wenn die Zeile NEU ins DOM kommt. Bekommt eine schon stehende Zeile .flash
+     (Rückgängig von „abgerechnet", solange sie noch steht), klappt sie nicht erst zu und wieder auf
+   - Höhe 0 → auto (interpolate-size): fährt auf die ECHTE Höhe, linear (alles darunter rückt gleichmäßig nach). Die erste Fassung fuhr
+     max-height 0 → 200 px: hohe Zeilen (320 px, „Aa Sehr groß", langer Name: 445 px) standen 1,3 s auf 250 px gekappt da, dann sprang alles
+     darunter um 195 px; 68-px-Zeilen waren nach 82 statt 240 ms fertig (Prüfer-Fund). Ein großzügigerer Deckel schneidet auch ab — oder rast
+   - @supports: ohne interpolate-size (Safari, Stand 10/2026) gibt es KEINE Einfahrt, die Zeile steht wie bisher sofort da
+   - .tab-view[data-frisch]: hängt ein ganzer Tab neu ein (Rückkehr, solange flashIds noch steht — key={tab} baut alles neu), fährt nichts
+     ein; @starting-style kennt nur „neu im DOM". Das Attribut nimmt die .tab-view nach zwei Bildern selbst weg (s. AppInner)
+   - background .2s ease steht mit in der Liste: sonst ersetzt sie 1,3 s lang den Druck-/Hover-Übergang von .cell
+   - !important im Startzustand: einige Zeilen setzen min-height/padding inline (Putz-Verlauf 46 px)
+   - „Weniger Bewegung": das 1-ms-Netz unten macht es zum Sprung wie vorher */
+@supports (interpolate-size: allow-keywords) {
+  .cell.flash { interpolate-size:allow-keywords; overflow:hidden;
+    transition:height 240ms linear, min-height 240ms linear, padding-top 240ms linear, padding-bottom 240ms linear, opacity 240ms var(--ease-raus), background .2s ease; }
+  @starting-style { .cell.flash { height:0; min-height:0 !important; padding-top:0 !important; padding-bottom:0 !important; opacity:0; } }
+  .tab-view[data-frisch] .cell.flash { transition:none; }
+}
 @keyframes remoteFlash {
   0%,100% { background-color:transparent; }
   32%     { background-color:color-mix(in srgb, var(--flash-c, #5eead4) var(--flash-a, 22%), transparent); }
@@ -2222,12 +2260,21 @@ function DataProvider({ children }) {
     if (!vv) return;
     const upd = () => {
       const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      document.documentElement.style.setProperty('--kb', kb + 'px');
+      /* wg-v121 (PWA-2): gemessen wird in ungezoomten px, --kb wirkt aber in <html>, das „Aa Groß/Sehr groß" per zoom mit skaliert.
+         Ohne Teilen schwebte das Blatt bei Sehr groß 75 px über der Tastatur und sein Kopf rutschte oben aus dem Bild */
+      const zm = parseFloat(document.documentElement.style.zoom) || 1;
+      document.documentElement.style.setProperty('--kb', (kb / zm) + 'px');
+      /* Fensterhöhe in denselben gezoomten px: 100dvh skaliert im gezoomten <html> MIT (Sehr groß: 1055 statt 844) — ein Blatt, höher als der freie
+         Platz, ragte damit oben aus dem Bild (Prüfer-Fund, −203 px). .sheet-max-height rechnet mit --vh-z, ohne visualViewport bleibt 100dvh */
+      document.documentElement.style.setProperty('--vh-z', (window.innerHeight / zm) + 'px');
+      /* Tastatur offen: sie verdeckt den Home-Balken — die Reserve dafür unter den Blatt-Knöpfen fällt weg (iPhone: 34 px leer, s. .sheet-acts) */
+      document.documentElement.style.setProperty('--kb-zu', kb > 80 ? '0' : '1');
     };
     upd();
     vv.addEventListener('resize', upd);
     vv.addEventListener('scroll', upd);
-    return () => { vv.removeEventListener('resize', upd); vv.removeEventListener('scroll', upd); };
+    window.addEventListener('wg-look', upd);   /* Schriftgröße bei offener Tastatur gewechselt → neu teilen (applyLook meldet sich) */
+    return () => { vv.removeEventListener('resize', upd); vv.removeEventListener('scroll', upd); window.removeEventListener('wg-look', upd); };
   }, []);
   // Tageswechsel (wg-v104): Die App rechnet „heute" bei jedem Render — rendert aber nichts neu, steht sie über Nacht offen
   // (PWA im Hintergrund) mit gestern da: Heute-Karte, Müll, Miete, Fälligkeiten. Jede Minute und beim Zurückholen prüfen;
@@ -2502,6 +2549,7 @@ function DataProvider({ children }) {
               return nx;
             });
             pushAll(next);                                      // zusammengeführten Stand schreiben (Map-Format)
+            LIST_KEYS.forEach(k => (next[k]||[]).forEach(it => it && it.id!=null && knownIds.current.add(it.id)));   /* wg-v121 (FILM-7 B): wie unten beim Standard-Start */
           } else {
             // Remote gewinnt (Standard beim ersten Pairing und bei jedem normalen Start).
             // ABER: nie bestätigte Offline-Änderungen (wg_pending) zuerst wieder auf den
@@ -2547,6 +2595,9 @@ function DataProvider({ children }) {
               else pushed.current[k] = new Set([JSON.stringify(serverVal ?? null)]);
             });
             commitD(merged);
+            /* wg-v121 (FILM-7 B): ids des Erst-Reads als bekannt eintragen. knownIds kannte nur den Cache vom Mount — in einer Sitzung
+               OHNE Cache (neues Gerät, geleerter Speicher) ließ die erste Fremd-Änderung fast die ganze Liste aufleuchten (5 von 7 gemessen) */
+            LIST_KEYS.forEach(k => (merged[k]||[]).forEach(it => it && it.id!=null && knownIds.current.add(it.id)));
             const confNew = {};
             KEYS.forEach(k => { confNew[k] = isListKey(k) ? mapSer(arrToMap(actual[k] || [])) : JSON.stringify((k in actual ? actual[k] : INIT[k]) ?? null); });
             ss('wg_confirmed', confNew);
@@ -7307,6 +7358,7 @@ const applyLook = () => {
     engPruefen();   /* wg-v120 (A11Y-4): wirksame Breite nach einem Zoom-Wechsel neu bewerten */
     const mc = document.querySelector('meta[name="theme-color"]'); if (mc) mc.setAttribute('content', light ? '#f4f7f5' : '#060a08');
     sysThemeWatch();   /* wg-v120 (PWA-6): Listener an die aktuelle Wahl koppeln (nur bei „Wie System" angemeldet) */
+    window.dispatchEvent(new Event('wg-look'));   /* wg-v121 (PWA-2): die Tastatur-Höhe (--kb) hängt am Zoom → neu rechnen lassen */
   } catch {}
 };
 /* wg-v120 (PWA-6): „Wie System" folgt dem Betriebssystem auch ZUR LAUFZEIT. Gemessen (Gutachten 2): OS wechselt hell → dunkel (Sonnenuntergang-Zeitplan), die App
@@ -9564,6 +9616,76 @@ function DranMelder({ an }) {
   return null;
 }
 
+/* wg-v121 (FILM-8): Klasse „rise" aus einem React-Element nehmen (Rest unverändert). Die Leer-Zeile bringt „rise" (Auftritt 8 px + Einblenden) mit —
+   beim Abschied macht den Auftritt die Hülle (.abschied-leer), und beim Tausch auf die alleinstehende Zeile darf er nicht ein zweites Mal laufen. */
+const ohneRise = el => React.cloneElement(el, { className: String(el.props.className || '').split(/\s+/).filter(c => c && c !== 'rise').join(' ') });
+
+/* wg-v121 (FILM-8): Abschied von „Du bist dran" — gemountet, solange die LETZTE eigene Aufgabe nur noch als Schatten da ist (wie DranMelder: Einhängen =
+   Fahrt beginnt, Aushängen = Fahrt endet/abgebrochen, z. B. Rückgängig). Zeitleiste ab dem Tipp (t0 = performance.now() im Klick):
+     0–270 ms  Schatten steht (Haken zeichnet sich) · 270–370 ms Kopf + Karte blenden aus (CSS .abschied) · 270 ms Leer-Zeile wird eingehängt
+     bis 630 ms  Phase 2: die Wurzel fährt Höhe + Abschnitts-Rand (+ im Haushalt den 14-px-Abstand zum Nachbarn) auf die Endhöhe → alles darunter rückt stetig nach
+                 (Beginn 270–400 ms je nach Strecke, s. planen)
+   Warum Web Animations statt CSS-Variablen: Höhe, Rand und Abstand stehen erst zur Laufzeit fest (Spalten-Anfang hat 0 statt 12 px Rand, gap je Breite,
+   Endhöhe = die Leer-Zeile, die erst bei 270 ms im DOM steht). Messen per getComputedStyle: liefert px in der Rechenwelt des Elements, also auch mit
+   „Aa Groß" (html zoom) die Zahl, die man in `height` zurückschreibt. Basis ist der Tipp-Zeitpunkt, nicht das Mounten: der Schatten-Zeitgeber (630 ms) läuft
+   im Klick an, React mountet erst danach — an der Mount-Zeit festgemacht, käme die Fahrt 5–30 ms nach dem Tausch an und der Tausch spränge ein paar px.
+   Der Leer-Zeilen-Zeitgeber räumt sich beim Aushängen selbst (clearTimeout im Cleanup) — ein Abbruch (Rückgängig) lässt keine Leer-Zeile nachflackern. */
+function AbschiedFahrt({ wurzel, leer, lief, t0 }) {
+  const [leerDa, setLeerDa] = useState(false);
+  const huelle = useRef(null);   // Hülle der Leer-Zeile (zum Messen der Endhöhe)
+  const fahrt = useRef(null);    // die laufende Höhen-Animation
+  const basis = useRef(t0 || performance.now());   // Tipp-Zeitpunkt (Fallback: Einhängen)
+  const uhr2 = useRef(null);   // Zeitgeber bis zum Start von Phase 2
+  const seit = () => performance.now() - basis.current;
+  /* wg-v121 (FILM-8, Nachbesserung nach Prüfer-Fund 4): Phase 2 planen, sobald die Endhöhe feststeht (Haushalt: 0 bei 270 ms, Heute: Höhe der Leer-Zeile,
+     sobald sie eingehängt ist). Erste Fassung: Startbild beim Einhängen gemessen, fest 230 ms ab 400 ms, fill:'both' hielt die Wurzel bis dahin auf dieser
+     Höhe fest — ein zweiter Tipp 450 ms nach dem ersten ließ alles darunter 400 ms stillstehen und dann 254 px mit 30 px/Bild fahren; zwei Tipps im Abstand
+     von 150 ms bzw. ein 255-px-Block (320 px, „Sehr groß") fuhren 27–32 px/Bild. Jetzt:
+     - Dauer nach Strecke (0,8 px/ms ≈ 13 px/Bild im Mittel), 230–360 ms. Das Ende bleibt der Tausch bei 630 ms (Schatten-Zeitgeber), länger heißt also FRÜHER
+       beginnen (frühestens 270 ms: dann blenden Kopf + Karte gerade aus)
+     - Startbild erst beim Start frisch gemessen; bis dahin folgt die Wurzel ihrem Inhalt (ein noch schließender Schatten darin rückt die Zeilen darunter weiter nach)
+     - fill:'forwards': nach dem Ende bleibt die Endhöhe bis zum Tausch stehen */
+  const planen = endH => {
+    const w = wurzel.current;
+    if (!w) return;
+    /* gap des echten Containers: .zz-l/.zz-r sind unter 1024 px display:contents (ihre Kinder sind Flex-Kinder des Elternteils darüber) → hochsteigen */
+    let p = w.parentElement;
+    while (p && getComputedStyle(p).display === 'contents') p = p.parentElement;
+    const gap = p ? (parseFloat(getComputedStyle(p).rowGap) || 0) : 0;
+    /* Ende ohne Leer-Zeile (Haushalt): Höhe 0, Rand 0 und der gap zum Nachbarn per negativem margin-bottom aufgehoben (Technik wie .aufklapp) —
+       dann fehlt der Block ab dem Tausch (return null) genau so, wie er am Ende der Fahrt schon verschwunden ist */
+    const ende = { height: endH + 'px', marginTop: '0px', marginBottom: leer ? '0px' : `${-gap}px` };
+    const cs = getComputedStyle(w);
+    const strecke = (parseFloat(cs.height) || 0) + (parseFloat(cs.marginTop) || 0) + (leer ? 0 : gap) - endH;
+    /* Tempo gilt auf dem Bildschirm: getComputedStyle liefert CSS-px, „Aa Groß/Sehr groß" (html zoom) macht den Weg 12/25 % länger —
+       ohne den Faktor fuhr ein 223-px-Block bei 320 px/„Sehr groß" in 230 ms mit 27 px/Bild (Test F8m) */
+    const zm = parseFloat(document.documentElement.style.zoom) || 1;
+    const dauer = Math.min(360, Math.max(230, strecke * zm / 0.8));
+    const los = () => {
+      const w2 = wurzel.current;
+      if (!w2) return;
+      const c2 = getComputedStyle(w2);   // frisch: seit dem Planen kann ein innerer Schatten weiter geschlossen haben
+      const rest = Math.max(16, 630 - seit());   // bis zum Tausch; nie 0 (sonst stünde das Ende ohne Bild dazwischen)
+      fahrt.current = w2.animate([{ height: c2.height, marginTop: c2.marginTop, marginBottom: '0px' }, ende], { duration: rest, easing: 'cubic-bezier(.4,0,.6,1)', fill: 'forwards' });   // Easing wie Phase 2 des Schattens (schattenAb)
+    };
+    const warte = 630 - dauer - seit();
+    if (warte > 4) uhr2.current = setTimeout(los, warte); else los();
+  };
+  useLayoutEffect(() => {
+    if (!wurzel.current) return;
+    lief.current = true;   // ChoreQuick weiß: es lief ein Abschied → die alleinstehende Leer-Zeile ohne „rise" zurückgeben
+    /* frühestens 270 ms nach dem Tipp: Heute hängt die Leer-Zeile ein (dann plant der Effekt unten mit ihrer Höhe), Haushalt plant direkt auf 0 */
+    const uhr = setTimeout(() => { if (leer) setLeerDa(true); else planen(0); }, Math.max(0, 270 - seit()));
+    return () => { clearTimeout(uhr); clearTimeout(uhr2.current); fahrt.current?.cancel(); fahrt.current = null; };
+  }, []);
+  /* Leer-Zeile steht in der Wurzel (aus dem Fluss): ihre Höhe ist die Endhöhe der Fahrt */
+  useLayoutEffect(() => {
+    if (!leerDa || !huelle.current) return;
+    planen(parseFloat(getComputedStyle(huelle.current).height) || 0);
+  }, [leerDa]);
+  return leerDa && leer ? <div className="abschied-leer" ref={huelle}>{ohneRise(leer)}</div> : null;
+}
+
 /* Haushalt-Tab: „Du bist dran" — nur sichtbar, wenn mir etwas fällig ist. Ein Tipp = erledigt. */
 function ChoreQuick({ goPutz, leer, onDran }) {   /* leer (wg-v112, P9): was an dieser Stelle steht, wenn die Liste samt Schatten leer ist (Heute: ✨- bzw. 🧽-Zeile); onDran (P10): setzt der Elternteil (true, solange die Karte steht) */
   const { D, me, mods, setFn, undo, notifyOthers } = useD();
@@ -9579,6 +9701,7 @@ function ChoreQuick({ goPutz, leer, onDran }) {   /* leer (wg-v112, P9): was an 
   const wurzel = useRef(null);
   const gefeiert = useRef(new Set());   // keys, deren Feier schon lief (der Effekt läuft bei jeder Änderung der Liste)
   const uhren = useRef(new Set());   // offene Schatten-Zeitgeber (nur Anzeige)
+  const abschiedLief = useRef(false);   // wg-v121 (FILM-8): lief ein Abschied (letzte Aufgabe erledigt)? Dann kommt die Leer-Zeile ohne eigenen Auftritt (kein zweites „rise")
   useEffect(() => () => { uhren.current.forEach(clearTimeout); }, []);   // Tab verlassen: nur Anzeige-Zeitgeber, nichts zu Ende zu bringen
   useLayoutEffect(() => {
     for (const s of schatten) {
@@ -9591,10 +9714,11 @@ function ChoreQuick({ goPutz, leer, onDran }) {   /* leer (wg-v112, P9): was an 
   const erledigen = (t, idx, el) => {
     if (REDUCE()) { done(t, el); return; }   // „Weniger Bewegung": kein Schatten; celebrateTask tut dann ohnehin nichts
     const key = uid();
+    const t0 = performance.now();   /* wg-v121 (FILM-8): Tipp-Zeitpunkt — der Abschied (AbschiedFahrt) richtet seine Phasen danach aus, nicht nach dem späteren Mounten */
     /* wg-v112 (P10): Höhe der echten Zeile VOR dem Haken merken — der Schatten schließt von genau dieser Höhe auf 0 (CSS --h, s. schattenAb);
        ohne Wert (Element fehlt) bleibt der Rückfall 96 px aus dem CSS */
     const h = Math.round(el?.closest?.('.cell')?.getBoundingClientRect().height || 0);
-    done(t, farbe => setSchatten(s => [...s, { key, t, idx, farbe, h }]));
+    done(t, farbe => setSchatten(s => [...s, { key, t, idx, farbe, h, t0 }]));
     const uhr = setTimeout(() => {
       uhren.current.delete(uhr); gefeiert.current.delete(key);
       setSchatten(s => s.filter(x => x.key !== key));
@@ -9622,7 +9746,16 @@ function ChoreQuick({ goPutz, leer, onDran }) {   /* leer (wg-v112, P9): was an 
      (Rückgängig innerhalb der SCHATTEN_MS), fällt ihr Schatten weg — sonst stünde sie zweimal da. */
   const zeilen = mine.map(t => ({ t }));
   [...schatten].sort((a,b)=>a.idx-b.idx).forEach(s => { if (!mine.some(t=>t.id===s.t.id)) zeilen.splice(Math.min(s.idx, zeilen.length), 0, { t:s.t, s }); });
-  if (!zeilen.length) return leer || null;   /* wg-v112 (P9): erst jetzt — mit Schatten ist zeilen nicht leer, die Karte steht noch */
+  /* wg-v121 (FILM-8): Abschied = die letzte eigene Aufgabe ist erledigt, übrig sind nur Schatten. Kopf + Karte + Höhe gehen gemeinsam (AbschiedFahrt, CSS .abschied).
+     Kommt eine Aufgabe zurück (Rückgängig, Sync), ist mine nicht mehr leer → abschied false: Klasse und Fahrt fallen sofort weg, nichts bleibt hängen. */
+  const abschied = mine.length === 0 && schatten.length > 0;
+  if (mine.length) abschiedLief.current = false;   // wieder eine Aufgabe da → ein späterer Abschied beginnt von vorn
+  if (!zeilen.length) {   /* wg-v112 (P9): erst jetzt — mit Schatten ist zeilen nicht leer, die Karte steht noch */
+    /* wg-v121 (FILM-8): nach einem Abschied steht die Leer-Zeile schon (in der Hülle) — alleinstehend ohne „rise" (sonst blendet sie ein zweites Mal ein) und mit
+       eigenem key (frisches Element statt die Wurzel umzubauen: die Fahrt-Animation und Klassen der Wurzel sollen nicht auf der Zeile hängenbleiben) */
+    if (abschiedLief.current && leer && React.isValidElement(leer)) return React.cloneElement(ohneRise(leer), { key: 'leer' });
+    return leer || null;
+  }
   const users = D.users || [], meU = users.find(u=>u.id===me);
   const myStreak = mods.game !== false ? choreStreak(D.pl, D.pt, me) : 0;
   /* wg-v112 (P5): Haken-Bild und Maß der Seitenknöpfe gemeinsam für echte Zeile und Schatten — der Schatten muss genau so hoch
@@ -9630,7 +9763,7 @@ function ChoreQuick({ goPutz, leer, onDran }) {   /* leer (wg-v112, P9): was an 
   const haken = <svg width={16} height={16} viewBox="0 0 24 24" fill="none" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"><path d={ICONS.check}/></svg>;
   const seitenKnopf = {width:'auto',height:40,padding:'0 12px',fontSize:12.5,flexShrink:0};
   return (
-    <div className="rise" data-testid="chore-quick" ref={wurzel} style={{animationDelay:'20ms'}}>
+    <div className={abschied ? 'rise abschied' : 'rise'} data-testid="chore-quick" ref={wurzel} style={{animationDelay:'20ms'}}>
       {onDran && <DranMelder an={onDran}/>}
       <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <span><Kopf>{TT("🧹 Du bist dran")}</Kopf>{myStreak>0?<span style={{color:'var(--amber)',marginLeft:6}} title={TT("pünktlich in Folge")}>🔥 {myStreak}</span>:null}</span>
@@ -9677,6 +9810,7 @@ function ChoreQuick({ goPutz, leer, onDran }) {   /* leer (wg-v112, P9): was an 
           );
         })}
       </div>
+      {abschied && <AbschiedFahrt wurzel={wurzel} leer={leer} lief={abschiedLief} t0={schatten[schatten.length-1].t0}/>}{/* wg-v121 (FILM-8): Höhe + Leer-Zeile des Abschieds; t0 = Tipp der LETZTEN Aufgabe */}
     </div>
   );
 }
@@ -11864,6 +11998,11 @@ function PushPrompt({ onClose }){
    Karten (.rise …); danach bekommt die .tab-view die Klasse „schon" und zeigt alles sofort. Bewusst modulweit statt State:
    es soll ein Neumounten von AppInner nicht zurücksetzen, und ein Seiten-Neuladen setzt es von selbst zurück. */
 const GESEHEN = new Set();
+/* wg-v121 (FILM-7 A): die .tab-view kommt mit data-frisch ins DOM — solange es steht, fährt keine .cell.flash ein (CSS). Ohne das fuhr eine neue
+   Zeile bei JEDER Rückkehr in den Tab erneut ein (key={tab} hängt alles neu ein, @starting-style sieht „neu im DOM"), solange flashIds noch stand.
+   Weg erst nach ZWEI Bildern: rAF-Rückrufe laufen vor dem Stil-Durchgang desselben Bildes — nach einem einzigen wäre das Attribut schon weg, bevor
+   der Startzustand ausgewertet ist. React setzt das Attribut nicht neu (gleicher Wert → kein DOM-Schreiben). Stabile Funktion: Aufruf nur beim Ein-/Aushängen */
+const frischWeg = el => { if (el && el.hasAttribute('data-frisch')) requestAnimationFrame(() => requestAnimationFrame(() => el.removeAttribute('data-frisch'))); };
 
 function AppInner() {
   const { mods, remotePulse, D, me, pushSave, status, wgCode, setFn, fbCfg } = useD();
@@ -12081,7 +12220,7 @@ function AppInner() {
   }, [remotePulse]);
   return (
     <>
-      <div key={tab} className={`tab-view ${dir>=0?'tab-in-r':'tab-in-l'}${tabSchon?' schon':''}`}>
+      <div key={tab} ref={frischWeg} data-frisch="" /* wg-v121 (FILM-7 A): frisch eingehängter Tab → keine Zeile fährt ein, s. frischWeg */ className={`tab-view ${dir>=0?'tab-in-r':'tab-in-l'}${tabSchon?' schon':''}`}>
         {/* Seitenüberschrift: das Dokument hatte bisher gar keine Überschrift —
             Screenreader konnten nicht sagen, welcher Bereich offen ist. */}
         <h1 className="sr-only">{(TABS.find(t=>t.id===tab)||{}).label || TT("WG")}</h1>
