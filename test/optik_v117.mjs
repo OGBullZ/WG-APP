@@ -164,7 +164,12 @@ for (const lang of ['de', 'en']) for (const w of [320, 1440]) {
 // ── S: Symbole in Zeilen ──
 const symbole = (page, sel) => page.evaluate(sel => [...document.querySelectorAll(sel)].map(r => {
   const i = r.firstElementChild, cs = getComputedStyle(i), ir = i.getBoundingClientRect(), cr = r.getBoundingClientRect();
-  return { tid: r.dataset.testid, cls: i.className, w: Math.round(ir.width), h: Math.round(ir.height), fs: cs.fontSize, bg: cs.backgroundColor, em: i.textContent,
+  /* tz = Textzeilen des Titels, GEMESSEN: Zeilenkästen des Titeltexts (Range.getClientRects) nach ihrer Oberkante gezählt — ein Kasten, der mehr als
+     eine halbe Kastenhöhe tiefer beginnt, ist eine neue Zeile. 0 = kein .cell-title gefunden (S1d wird dann rot, die Messung steigt nicht still aus). */
+  const t = r.querySelector('.cell-title'); let tz = 0, oben = -Infinity;
+  if (t) { const rg = document.createRange(); rg.selectNodeContents(t);
+    for (const q of [...rg.getClientRects()].filter(q => q.width > 0 && q.height > 0).sort((a, b) => a.top - b.top)) if (q.top - oben > q.height / 2) { tz++; oben = q.top; } }
+  return { tid: r.dataset.testid, cls: i.className, w: Math.round(ir.width), h: Math.round(ir.height), fs: cs.fontSize, bg: cs.backgroundColor, em: i.textContent, tz,
     rechts: Math.round(ir.right - cr.left), zeile: Math.round(cr.height), trenn: getComputedStyle(r, '::before').left, frei: /font-size/.test(i.getAttribute('style') || '') };   /* frei = Symbol trägt noch eine eigene Inline-Größe (altes freies Emoji) */
 }), sel);
 {
@@ -176,8 +181,14 @@ const symbole = (page, sel) => page.evaluate(sel => [...document.querySelectorAl
   check('S1b getönte Fläche (nicht transparent) und kein freies Emoji-Span mehr', zeilen.every(r => r.bg !== 'rgba(0, 0, 0, 0)' && !r.frei), JSON.stringify(zeilen.map(r => [r.tid, r.bg, r.frei])));
   check('S1c rechte Kante des Feldes = Trennlinie (52 px) — Linie sitzt bündig', zeilen.every(r => r.rechts === 52) && zeilen.slice(1).every(r => r.trenn === '52px'), JSON.stringify(zeilen.map(r => [r.tid, r.rechts, r.trenn])));
   /* wg-v117 (Runde 2, HIER-7): Titel jetzt 16 statt 14,5 px — „⚫ Restmüll heute – Tonne draußen?" bricht bei 390 px in zwei Zeilen um (71 px statt 64). Einzeilig bleibt es bei
-     Feld 36 + 2 × 14 Polster = 62–68; die umgebrochene Zeile maß 71 → Obergrenze 76 (gemessen, nicht gerechnet). Untergrenze bleibt (vorher 54); mindestens 3 der 4 Zeilen einzeilig. */
-  check('S1d Zeilenhöhe 62–76 px (Feld 36 + 2 × 14 Polster = 62–68 einzeilig; mit Umbruch bis 76; vorher 54)', zeilen.every(r => r.zeile >= 62 && r.zeile <= 76) && zeilen.filter(r => r.zeile <= 68).length >= 3, JSON.stringify(zeilen.map(r => r.zeile)));
+     Feld 36 + 2 × 14 Polster = 62–68; die umgebrochene Zeile maß 71 → Obergrenze 76 (gemessen, nicht gerechnet). Untergrenze bleibt (vorher 54).
+     14.11.: „mindestens 3 der 4 Zeilen einzeilig" war eine Windows-Messung. Linux-Chromium (CI) bricht zusätzlich die Saldo-Zeile um ([70,64,64,70]) → CI war seit
+     wg-v117 fünfmal rot, und wegen `set -e` liefen die 15 Dateien dahinter nie. Jetzt je Zeile: Textzeilen des Titels messen (tz), danach richtet sich das Band.
+     Schärfer als vorher: eine EINZEILIGE Zeile mit 70 px (gewachsenes Polster) fiel bisher nicht auf, solange drei andere ≤ 68 blieben. */
+  const zeileOk = r => r.tz === 1 ? r.zeile >= 62 && r.zeile <= 68 : r.tz === 2 ? r.zeile >= 62 && r.zeile <= 76 : false;   /* 0 (kein Titel gemessen) und ≥ 3 Textzeilen sind rot */
+  check('S1d Zeilenhöhe je Zeile: einzeiliger Titel 62–68 px (Feld 36 + 2 × 14 Polster), umgebrochener (2 Textzeilen) bis 76; vorher 54 — [Höhe, Textzeilen]', zeilen.length >= 4 && zeilen.every(zeileOk), JSON.stringify(zeilen.map(r => [r.zeile, r.tz])));
+  check('S1d-Gegenprobe: die Regel schlägt an (einzeilig 70 / 54 px, zweizeilig 80 px, drei Textzeilen, Titel nicht gemessen) und lässt Windows- wie Linux-Maße durch',
+    ![{ zeile: 70, tz: 1 }, { zeile: 54, tz: 1 }, { zeile: 80, tz: 2 }, { zeile: 76, tz: 3 }, { zeile: 64, tz: 0 }].some(zeileOk) && [[71, 2], [64, 1], [70, 2]].every(([zeile, tz]) => zeileOk({ zeile, tz })));
   const nud = await symbole(page, '[data-testid="push-nudge-own"]');
   check('S2a Push-Hinweis: Symbol in .cell-icon, 36 × 36 px, Emoji 18 px, getönt, 🔔', nud.length === 1 && /\bcell-icon\b/.test(nud[0].cls) && nud[0].w === 36 && nud[0].h === 36 && nud[0].fs === '18px' && nud[0].bg !== 'rgba(0, 0, 0, 0)' && nud[0].em === '🔔', JSON.stringify(nud));
   // S3: Übersicht (Liste „Größte Posten" + Kacheln „Zählerstände"/„Nebenkosten") — Listenzeile 36, Kachel 40

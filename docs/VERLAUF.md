@@ -1021,3 +1021,13 @@ Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen 
   - Fehlversuch beim Bilder-Skript: oberste Zeile per `scrollIntoView({block:'start'})` an den Rand geholt → zwei identische Bilder, weil die Scroll-Verankerung des Browsers den sichtbaren Inhalt festhält und der Eintrag unsichtbar oberhalb einfuhr. Mit `block:'center'` sichtbar.
   - 🪤 Lehre: Bewegungsprüfungen brauchen **Belastungsdaten als eigene Achse** (lange Namen, 320 px, „Sehr groß", schnelle Folge-Tipps). Mit den freundlichen Testdaten waren alle 24 Prüfungen grün, während der Gutachter 5 echte Fehler auf demselben Stand nachstellte.
 
+## CI seit wg-v117 rot — Prüfung S1d plattformabhängig (14.11.)
+
+- **Befund:** CI auf `main` war seit wg-v117 (23.10.) fünfmal in Folge rot, immer dieselbe Zeile: `✗ S1d Zeilenhöhe 62–76 px … — [70,64,64,70]` in `test/optik_v117.mjs`. Aufgefallen erst am 14.11., weil der alte SessionStart-Hook nur das AzubiBoard zeigte.
+- **Ursache:** S1d verlangte „mindestens 3 der 4 Heute-Zeilen einzeilig (≤ 68 px)" — eine Windows-Messung. Linux-Chromium bricht zusätzlich die Saldo-Zeile `today-bal` um → nur 2 einzeilig. Die Höhen selbst lagen im Band; die App war nie betroffen (CI deployt nicht).
+- **Widerlegter Verdacht:** Zeitlimit/Flake wegen 32 min Laufzeit — das ist die normale Dauer bis zur Abbruchstelle.
+- **Nebenbefund, wichtiger:** `ci.yml` rief 65 Dateien einzeln unter `set -e` auf. Die 15 Dateien nach `optik_v117` (`gutachten2_a` … `visual`) liefen deshalb seit dem 23.10. in CI nie.
+- **Fix:** (1) S1d misst je Zeile die Textzeilen des Titels (`tz`, `Range.getClientRects`): einzeilig 62–68 px, zweizeilig bis 76, sonst rot; dazu eine Gegenprobe der Regel. (2) `ci.yml` ruft `scripts/leise.mjs` mit derselben Liste auf — läuft alle durch, Exit 1 am Ende.
+- **Belegt lokal:** 61 ok / 0 FAIL (`[[71,2],[64,1],[64,1],[64,1]]`); bei 372 px Breite dasselbe Bild wie in CI (`[[71,2],[64,1],[64,1],[70,2]]`) → neue Regel grün, alte wäre rot. Dateiliste alt = neu (65, gleiche Reihenfolge), YAML geparst, Shell-Syntax ok, leise.mjs läuft nach roter Datei weiter (Exit 1).
+- **Offen:** Unter Linux ist nichts davon gelaufen. Ob die 15 bisher übersprungenen Dateien dort grün sind, zeigt erst der nächste Push. Warum Linux breiter misst, ist nicht nachgemessen.
+

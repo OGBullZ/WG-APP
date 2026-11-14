@@ -20,77 +20,83 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
       - name: Serve + Tests + Visual-Render-Check
+        # 14.11.: vorher 65 Einzelaufrufe unter `set -e` — die erste rote Datei brach den Schritt ab und verdeckte alle dahinter
+        # (seit wg-v117 liefen die 15 Dateien nach optik_v117 in CI nie). leise.mjs läuft ALLE durch, zeigt je Datei eine Zeile
+        # (bei Rot einen Auszug) und endet mit Exit 1, sobald eine rot ist. Die Liste bleibt ausdrücklich: nicht jede Datei unter
+        # test/ ist CI-tauglich. Der Server wird hier gestartet (python3); leise.mjs findet ihn auf 8099 und benutzt ihn.
         run: |
           python3 -m http.server 8099 &
           SRV=$!
           for i in $(seq 1 30); do curl -sf http://localhost:8099/wgapp.html >/dev/null && break || sleep 0.5; done
-          set -e
-          node test/split.mjs
-          node test/persist.mjs
-          node test/paybtn.mjs
-          node test/archive.mjs
-          node test/privat.mjs
-          node test/sync.mjs
-          node test/sync_robust.mjs
-          node test/fehlersuche_v104.mjs
-          node test/kacheln.mjs
-          node test/putz_fest.mjs
-          node test/umbuchung.mjs
-          node test/logins.mjs
-          node test/selfhost.mjs
-          node test/startflow.mjs
-          node test/backup_api.mjs
-          node test/rotate.mjs
-          node test/errlog.mjs
-          node test/notify_api.mjs
-          node test/bkwatch.mjs
-          node test/update.mjs
-          node test/putz.mjs
-          node test/cron_duel.mjs
-          node test/alltag.mjs
-          node test/cron_alltag.mjs
-          node test/extra.mjs
-          node test/ux.mjs
-          node test/upgrade_dist.mjs
-          node test/plus.mjs
-          node test/mehr.mjs
-          node test/onboarding.mjs
-          node test/miete.mjs
-          node test/gross.mjs
-          node test/fair.mjs
-          node test/laden.mjs
-          node test/english.mjs
-          node test/push_diaet.mjs
-          node test/neu.mjs
-          node test/a11y.mjs
-          node test/heute.mjs
-          node test/breite.mjs
-          node test/komfort.mjs
-          node test/geld.mjs
-          node test/organisation.mjs
-          node test/verzahnung.mjs
-          node test/push_versand.mjs
-          node test/putz_push_v114.mjs
-          node test/ruhezeit.mjs
-          node test/namen.mjs
-          node test/grow_haus_v116.mjs
-          node test/optik_v117.mjs
-          node test/gutachten2_a.mjs
-          node test/gutachten2_b.mjs
-          node test/gutachten2_c.mjs
-          node test/gutachten2_c3.mjs
-          node test/orte.mjs
-          node test/optik.mjs
-          node test/fuer_andere.mjs
-          node test/abgang.mjs
-          node test/formular.mjs
-          node test/feinschliff.mjs
-          node test/sprung.mjs
-          node test/csp_hash.mjs
-          node test/datum.mjs
-          node test/zahlen.mjs
-          node test/visual.mjs
+          RC=0
+          node scripts/leise.mjs \
+            test/split.mjs \
+            test/persist.mjs \
+            test/paybtn.mjs \
+            test/archive.mjs \
+            test/privat.mjs \
+            test/sync.mjs \
+            test/sync_robust.mjs \
+            test/fehlersuche_v104.mjs \
+            test/kacheln.mjs \
+            test/putz_fest.mjs \
+            test/umbuchung.mjs \
+            test/logins.mjs \
+            test/selfhost.mjs \
+            test/startflow.mjs \
+            test/backup_api.mjs \
+            test/rotate.mjs \
+            test/errlog.mjs \
+            test/notify_api.mjs \
+            test/bkwatch.mjs \
+            test/update.mjs \
+            test/putz.mjs \
+            test/cron_duel.mjs \
+            test/alltag.mjs \
+            test/cron_alltag.mjs \
+            test/extra.mjs \
+            test/ux.mjs \
+            test/upgrade_dist.mjs \
+            test/plus.mjs \
+            test/mehr.mjs \
+            test/onboarding.mjs \
+            test/miete.mjs \
+            test/gross.mjs \
+            test/fair.mjs \
+            test/laden.mjs \
+            test/english.mjs \
+            test/push_diaet.mjs \
+            test/neu.mjs \
+            test/a11y.mjs \
+            test/heute.mjs \
+            test/breite.mjs \
+            test/komfort.mjs \
+            test/geld.mjs \
+            test/organisation.mjs \
+            test/verzahnung.mjs \
+            test/push_versand.mjs \
+            test/putz_push_v114.mjs \
+            test/ruhezeit.mjs \
+            test/namen.mjs \
+            test/grow_haus_v116.mjs \
+            test/optik_v117.mjs \
+            test/gutachten2_a.mjs \
+            test/gutachten2_b.mjs \
+            test/gutachten2_c.mjs \
+            test/gutachten2_c3.mjs \
+            test/orte.mjs \
+            test/optik.mjs \
+            test/fuer_andere.mjs \
+            test/abgang.mjs \
+            test/formular.mjs \
+            test/feinschliff.mjs \
+            test/sprung.mjs \
+            test/csp_hash.mjs \
+            test/datum.mjs \
+            test/zahlen.mjs \
+            test/visual.mjs || RC=$?
           kill $SRV 2>/dev/null || true
+          exit $RC
       - name: Upload Screenshots
         if: always()
         uses: actions/upload-artifact@v7
