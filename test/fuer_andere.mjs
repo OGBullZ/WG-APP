@@ -71,7 +71,7 @@ check('B4 Tom war eingeteilt und hat es gemacht → er ist pünktlich (late blei
 // B5 (wg-v100): Der Push geht auch an Tom selbst. „Tom hat „Müll" erledigt" von Torbens Handy las sich wie ein
 // Fehler — der Titel nennt deshalb, wer getippt hat, und für wen. Den irreführenden Wortlaut darf es nicht mehr geben.
 const letzter = A.pushes[A.pushes.length - 1]?.title || '';
-check('B5 der Push sagt „Torben hat … für Tom abgehakt"', /Torben hat „Müll[^"]*" für Tom abgehakt/.test(letzter), JSON.stringify(A.pushes.map(p => p.title)));
+check('B5 der Push sagt „Torben hat … für Tom abgehakt"', /Torben hat „Müll[^“]*“ für Tom abgehakt/.test(letzter), JSON.stringify(A.pushes.map(p => p.title)));
 check('B5b kein Push behauptet „Tom hat … erledigt"', !A.pushes.some(p => /Tom hat/.test(p.title || '')), JSON.stringify(A.pushes.map(p => p.title)));
 // Der Verlauf „Seit du zuletzt da warst" darf nach der Korrektur NICHT beide Fassungen zeigen —
 // die erste Meldung („Torben hat …") wird mit zurückgenommen.

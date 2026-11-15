@@ -30,6 +30,7 @@ WG-Splitter für 2 Personen (Torben + Tom). Single-File-PWA, Live-Sync zwischen 
 - Was je Version gebaut wurde, warum, welche Sackgassen: **`docs/VERLAUF.md`** (seit 29.10. ausgelagert, ~1000 Zeilen ≈ 55k Token).
 - **Nie ganz lesen.** Gezielt greppen: `wg-v1NN`, Stichwort (z. B. `Putzplan`, `Abschied`, `--kb`), dann `Read` mit offset/limit.
 - Neue Abschnitte (Release-Notizen, Fehlversuche) **dort unten anhängen**, nicht hier. Hier nur, was jede Sitzung wissen muss.
+- **Was als Nächstes ansteht: `docs/ROADMAP-OPUS.md`** (15.11., 27 Pakete in 8 Blöcken). Nur Teil 0 (Regeln) und das eine Paket lesen, das dran ist; Fortschritt im Anhang 3 dort abhaken.
 - Tests leise laufen lassen: `node scripts/leise.mjs test/a.mjs test/b.mjs` — zeigt nur rote Prüfungen + Summe je Datei.
 
 ## Live & Deploy

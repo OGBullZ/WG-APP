@@ -424,7 +424,7 @@ const stetig = r => r.maxSprung <= 30 && r.bewegt >= 4 && r.gesamt >= r.h * 0.8;
 for (const [w, hh] of [[390, 844], [1440, 900]]) {
   const H = await auf({ tab: 'haus', seed: SEED_OHNE_PP, w, h: hh });
   const pos = () => H.page.evaluate(() => { const q = document.querySelector('[data-testid="quick-expense"]'); return q ? Math.round(q.getBoundingClientRect().top * 10) / 10 : null; });
-  const hinweisAnfang = await H.page.evaluate(() => /Per Klick zahlen geht/.test(document.body.innerText));
+  const hinweisAnfang = await H.page.evaluate(() => /Per Klick zahlen geht|per Klick zahlen kann/.test(document.body.innerText));
   await H.page.waitForTimeout(500);
   const y1 = await pos();
   const kam = await H.page.evaluate(async () => await window.__bis(() => /Zahlungslink an Tom teilen/.test(document.body.innerText), 12000));

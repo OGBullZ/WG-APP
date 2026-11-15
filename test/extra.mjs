@@ -200,7 +200,7 @@ await M.ctx.close();
   const J = await open({ users: USERS }, { tab: 'set', route: r => r.request().url().includes('/api/ics') ? r.fulfill({ status: 403, contentType: 'application/json', body: '{"error":"falscher Code"}' }) : null });
 await J.page.waitForTimeout(300); await J.page.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click()));   // Mehr-Gruppen aufklappen (seit wg-v66 zu)
   await J.page.locator('[data-testid="ics-make"]').click(); await J.page.waitForTimeout(500);
-  check('J1 Ablehnung sichtbar, kein Link', /konnte nicht erzeugt werden \(falscher Code\)/.test(await J.page.locator('[data-testid="calendar-card"]').innerText()) && await J.page.locator('[data-testid="ics-url"]').count() === 0);
+  check('J1 Ablehnung sichtbar, kein Link', /* wg-v122: 403 = falscher Code → der Satz nennt den Ausweg, NICHT „noch einmal versuchen" */ /der Server kennt diesen WG-Code nicht/.test(await J.page.locator('[data-testid="calendar-card"]').innerText()) && !/noch einmal versuchen/.test(await J.page.locator('[data-testid="calendar-card"]').innerText()) && await J.page.locator('[data-testid="ics-url"]').count() === 0);
   await J.ctx.close();
 }
 

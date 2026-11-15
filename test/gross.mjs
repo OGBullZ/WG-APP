@@ -73,7 +73,7 @@ const myRow = C.page.locator('[data-testid="plan-row"]').first();
 check('C1 eigene Zeile zuerst: Du → Torben 34', /Du → Torben €34,00/.test((await myRow.innerText()).replace(/\s+/g, ' ')), await myRow.innerText());
 check('C2 Bezahl-Knopf (PayPal) nur bei der eigenen Zeile', await myRow.getByRole('link', { name: /Zahlen/ }).count() === 1 && await C.page.locator('[data-testid="plan-row"]').nth(1).getByRole('link', { name: /Zahlen/ }).count() === 0);
 check('C3 IBAN-Box an der eigenen Zeile', /Überweisung an Torben/.test(await myRow.locator('[data-testid="bank-box"]').innerText().catch(() => '')));
-check('C4 Schuldner sieht Hinweis statt Abrechnen-Knopf', /Abrechnen macht, wer Geld bekommt/.test(await C.page.locator('[data-testid="settle-hint"]').innerText().catch(() => '')));
+check('C4 Schuldner sieht Hinweis statt Abrechnen-Knopf', /rechnet ab, sobald es da ist/.test(await C.page.locator('[data-testid="settle-hint"]').innerText().catch(() => '')));
 await C.tabTo('Heute');
 const c5 = await C.page.locator('[data-testid^="today-bal-"]').allInnerTexts();
 check('C5 Heute: nur die eigene Überweisung', c5.length === 1 && /Du schuldest Torben €34,00/.test(c5[0]), JSON.stringify(c5));

@@ -14,7 +14,7 @@
 
 const { loadSubs, sendToSubs, DB_BASE } = require('./_push');
 const { hasKey, cronErlaubt, currentCode, writeSnapshot, listSnapshots, pruneSnapshots, berlinParts } = require('./_sv');
-const { taskDueIn, subsJePerson, repairReminders,yearReview, meterReminder, putzDigest, fridgeReminders, maintReminders, loanReminders, rentReminders, birthdayReminders, isoOf, morningPlan, istUmbuchung } = require('./_wg');
+const { fmtGeld, taskDueIn,subsJePerson, repairReminders,yearReview, meterReminder, putzDigest, fridgeReminders, maintReminders, loanReminders, rentReminders, birthdayReminders, isoOf, morningPlan, istUmbuchung } = require('./_wg');
 
 function berlinTodayParts() {
   const fmt = new Intl.DateTimeFormat('en-CA', {
@@ -62,8 +62,9 @@ function daysUntilCharge(s, todayMid) {
   return -daysSince(nxt, todayMid);
 }
 
+/* wg-v122 (TEXT-5): Geld in Push-Texten = „€12,99", der Formatierer kommt aus _wg.js (ein Ort); das €-Zeichen steht schon davor */
 function fmtPrice(n) {
-  return Number(n || 0).toFixed(2).replace('.', ',');
+  return fmtGeld(n);
 }
 
 function toArray(v) {
@@ -109,7 +110,7 @@ function growCycleMessages(wg, todayMid) {
         : over === 0
           ? `💧 Gießen ist fällig — zuletzt ${since === 1 ? 'gestern' : `vor ${since} Tagen`}`
           : `💧 Gießen ist ${over} Tag${over === 1 ? '' : 'e'} überfällig — zuletzt vor ${since} Tagen`;
-      out.push({ title: 'Growbox', body, tag: `water-${cy.id}` });
+      out.push({ title: 'Growbox', body, sammel: `🌱 Growbox: ${body}`, tag: `water-${cy.id}` });   /* wg-v122: Einzel-Push ohne Titel-Wiederholung, sammel mit Vorsatz */
     }
   }
 
@@ -120,6 +121,9 @@ function growCycleMessages(wg, todayMid) {
       body: ph.next
         ? `${ph.label} läuft seit ${ph.len} Tagen — Zeit für ${ph.next}?`
         : `🍂 ${ph.label} läuft seit ${ph.len} Tagen — Zeit zu ernten?`,
+      sammel: ph.next   /* wg-v122: gebündelt fällt der Titel weg → „Growbox" nur in der Sammel-Fassung */
+        ? `🌱 Growbox: ${ph.label} läuft seit ${ph.len} Tagen — Zeit für ${ph.next}?`
+        : `🌱 Growbox: 🍂 ${ph.label} läuft seit ${ph.len} Tagen — Zeit zu ernten?`,
       tag: `phase-${cy.id}-${cy.phase}`,
     });
   }
@@ -200,7 +204,7 @@ module.exports = async (req, res) => {
     const when = until === 0 ? 'heute' : 'morgen';
     messages.push({
       title: 'Abo',
-      body: `💳 ${s.name} bucht ${when} ${fmtPrice(s.price)} € ab`,
+      body: `💳 ${s.name} bucht ${when} ${fmtPrice(s.price)} ab`,
       tag: `abo-${s.id}`,
     });
   }
@@ -219,12 +223,12 @@ module.exports = async (req, res) => {
     const nurUmbuchungen = open <= 0.005 && hs.some((i) => !i.settled && istUmbuchung(i));
     if (open > 0.005 || nurUmbuchungen) {
       const parts = [];
-      if (openHs > 0.005) parts.push(`Haushalt ${fmtPrice(openHs)} €`);
-      if (openGi > 0.005) parts.push(`Growbox ${fmtPrice(openGi)} €`);
+      if (openHs > 0.005) parts.push(`Haushalt ${fmtPrice(openHs)}`);
+      if (openGi > 0.005) parts.push(`Growbox ${fmtPrice(openGi)}`);
       messages.push({
         title: 'Abrechnung',
         body: nurUmbuchungen ? '💶 Monatsende: offene Umbuchungen — Zeit abzurechnen'
-          : `💶 Monatsende: ${fmtPrice(open)} € offen (${parts.join(' + ')}) — Zeit abzurechnen`,
+          : `💶 Monatsende: ${fmtPrice(open)} offen (${parts.join(' + ')}) — Zeit abzurechnen`,
         tag: `settle-${monthKeyOf(y, m)}`,
       });
       settleReminder = 1;
@@ -246,11 +250,11 @@ module.exports = async (req, res) => {
       const delta = tPrev - tBefore;
       const deltaTxt = tBefore <= 0.005 ? ''
         : Math.abs(delta) < 0.005 ? ' · ≈ wie im Vormonat'
-        : delta > 0 ? ` · ▲ ${fmtPrice(delta)} € mehr als im ${monthName(ppm.y, ppm.m)}`
-        : ` · ▼ ${fmtPrice(-delta)} € weniger als im ${monthName(ppm.y, ppm.m)}`;
+        : delta > 0 ? ` · ▲ ${fmtPrice(delta)} mehr als im ${monthName(ppm.y, ppm.m)}`
+        : ` · ▼ ${fmtPrice(-delta)} weniger als im ${monthName(ppm.y, ppm.m)}`;
       messages.push({
         title: 'Monats-Rückblick',
-        body: `📊 ${monthName(pm.y, pm.m)}: ${fmtPrice(tPrev)} € ausgegeben (Haushalt ${fmtPrice(hsPrev)} €, Growbox ${fmtPrice(giPrev)} €)${deltaTxt}`,
+        body: `📊 ${monthName(pm.y, pm.m)}: ${fmtPrice(tPrev)} ausgegeben (Haushalt ${fmtPrice(hsPrev)}, Growbox ${fmtPrice(giPrev)})${deltaTxt}`,
         tag: `digest-${kPrev}`,
       });
       digest = 1;
@@ -259,7 +263,7 @@ module.exports = async (req, res) => {
 
   // Kategorie-Budgets: 80/100 %-Warnung, einmal pro Monat+Kategorie+Stufe (Marker budSent).
   // Nur echte hs-Kategorie-Treffer zählen (Posten ohne cat laufen in kein Budget).
-  const CAT_LABELS = { total: 'Haushalt gesamt', food: 'Lebensmittel', home: 'Haushalt', fun: 'Freizeit', fix: 'Fixkosten', other: 'Sonstiges' };
+  const CAT_LABELS = { total: 'Haushalt gesamt', food: 'Lebensmittel', home: 'Haushaltswaren', fun: 'Freizeit', fix: 'Fixkosten', other: 'Sonstiges' };
   let budWarns = 0;
   const budMarks = [];   // Budget-Stufen dieses Laufs; „gesendet" markiert erst, wenn die Push wirklich rausging
   const buds = toArray(wg.bud).filter((b) => b && b.id && Number(b.limit) > 0);
@@ -278,8 +282,8 @@ module.exports = async (req, res) => {
       messages.push({
         title: 'Budget',
         body: level === 100
-          ? `🚨 Budget ${label} überschritten: ${fmtPrice(spent)} € von ${fmtPrice(limit)} €`
-          : `⚠️ Budget ${label} bei ${Math.round((spent / limit) * 100)} %: ${fmtPrice(spent)} € von ${fmtPrice(limit)} €`,
+          ? `🚨 Budget ${label} überschritten: ${fmtPrice(spent)} von ${fmtPrice(limit)}`
+          : `⚠️ Budget ${label} bei ${Math.round((spent / limit) * 100)} %: ${fmtPrice(spent)} von ${fmtPrice(limit)}`,
         tag: `bud-${markId}`,
       });
       budMarks.push(markId);   // Marker erst NACH erfolgreichem Versand (unten) — wg-v104

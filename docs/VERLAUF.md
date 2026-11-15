@@ -1031,3 +1031,29 @@ Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen 
 - **Belegt lokal:** 61 ok / 0 FAIL (`[[71,2],[64,1],[64,1],[64,1]]`); bei 372 px Breite dasselbe Bild wie in CI (`[[71,2],[64,1],[64,1],[70,2]]`) → neue Regel grün, alte wäre rot. Dateiliste alt = neu (65, gleiche Reihenfolge), YAML geparst, Shell-Syntax ok, leise.mjs läuft nach roter Datei weiter (Exit 1).
 - **Offen:** Unter Linux ist nichts davon gelaufen. Ob die 15 bisher übersprungenen Dateien dort grün sind, zeigt erst der nächste Push. Warum Linux breiter misst, ist nicht nachgemessen.
 
+## Gutachten 2, Runde D (wg-v122, 10.–15.11. — torbe: „Autonom Workflow starten", „tokensparsamer")
+
+**Was:** der M-Rest aus Gutachten 2 zu Tastatur, Hilfstechnik und Texten.
+- **D1 (A11Y-3/9):** Helfer `klickbar(fn, name)` (role=button, tabIndex, Enter/Leertaste nur am Element selbst) auf allen Zeilen, die bisher nur per Maus/Touch gingen. Formular sagt „Schritt n von m" an, das Feld heißt wie die Frage. Zeilenknöpfe nennen ihren Posten („Rewe löschen"); `title` bleibt.
+- **D2 (A11Y-7/8):** EINE dauerhafte Live-Region (`ansage()`, Text von Hand gesetzt, nach 4 s leer, gleicher Text zweimal = zwei Ansagen). Rückgängig-Balken, „Live aktualisiert" und Hinweis schreiben dorthin, der sichtbare Text ist `aria-hidden`. Balken pausiert bei Fokus/Maus/Finger, Strg+Z löst Rückgängig aus (nicht in Feldern), Fokus fällt nach dem Löschen auf `<main>` statt auf BODY. `.section-hdr` → `role="heading" aria-level="2"` per Codemod (70 von 71), Tab-Leiste ist `<nav>`, Inhalt `<main>`.
+- **D3 (TEXT-2/6/7/8):** Ersetzungsliste 1–17, „Aufteilung" statt „Split", „Bereiche" statt „Module", „Nebenkostenabrechnung", „Haushaltswaren", „Aufgebraucht ✓". `deQ` in `TT`/`TTn` schließt deutsche Anführungszeichen mit “. Schuldner-Hinweis steht bei zwei Personen in der Ausgleich-Karte unter dem Knopf.
+- **D4 (TEXT-5, Server):** ein Geld-Formatierer `fmtGeld` („€12,99") für alle Push-Texte, „1 Tag/3 Tage überfällig", Sammel-Titel „Heute: N Erinnerungen", Kürzung an der letzten ganzen Meldung mit „+N weitere in der App". Feld `sammel` je Meldung: nur in der Sammel-Push stehen „Miete … fällig:" und „🌱 Growbox:" im Text.
+
+**Warum so:** vier Pakete in einer Datei strikt nacheinander an Sonnet-Umsetzer, Abnahme zentral. Zweiter Anlauf schlanker als der erste: Fundstellen vorab geliefert, Agenten testen nur ihr Paket, Gegenprobe und Regression einmal beim Hauptloop (D2–D4: 469k Token, 152 Aufrufe; Nacharbeit D5: 167k, 97 Aufrufe).
+
+**Was schiefging**
+- **Erster Workflow starb mit der Sitzung**, als D1 lief. Der Code lag fertig im Baum, nur der Bericht fehlte → selbst abgenommen statt neu gestartet (Resume hätte D1 wiederholt).
+- **Alle drei Agenten meldeten grün, die Regression fand 19 rote Alt-Dateien.** Fast alles veraltete Texterwartungen — aber vier echte Funde steckten darin bzw. in der Diff-Durchsicht:
+  1. **„Jeder für sich"** (D3) war schon ein Schlüssel mit anderer englischer Übersetzung → EN zeigte „Everyone on their own" statt „Each pays their own". Jetzt „Jeder zahlt selbst". Regel: ein deutscher Text = ein Schlüssel = eine Übersetzung, vor neuem Wortlaut in `lang/en.json` greppen.
+  2. **Rückgängig-Balken am Handy:** Pause hing an `mouseenter`. Nach einem Tipp feuert der Browser ein nachgeahmtes `mouseenter` ohne `mouseleave` → der Balken wäre stehen geblieben. Jetzt `pointerenter/leave` nur für `pointerType === 'mouse'`.
+  3. **Einzel-Push doppelt:** mein eigener Vertrag („Miete und Fälligkeit im Body") machte aus der Einzel-Push „Miete November heute fällig / 🏠 Miete November heute fällig: €650". Daher das Feld `sammel`.
+  4. **„Link konnte nicht erstellt werden – bitte gleich noch einmal versuchen"** stand wörtlich im Gutachten, ist bei 403 (Server kennt den WG-Code nicht) aber falsch: ein zweiter Versuch hilft nie. `linkFehlerText(e)` nennt dort den Ausweg.
+- **Tap-Ziele:** D1 machte Titel (21 px) und Budget-Balken (17 px) zu Knöpfen, `a11y` T1 wurde rot. Erste Lösung des Umsetzers (Innenabstand + negativer Außenabstand) hielt die Zeilenhöhe, zog aber den Fokusring auf 41 px über die Datumszeile — sichtbar erst im Bild. Jetzt unsichtbare Fläche per `::after` wie bei `.hit`; neue Prüfung f2 in `gutachten2_d1` (Gegenprobe: rot, Ring 8 px über der Unterzeile).
+- **Gegenproben D2 und D4 brachen am alten Stand ab** (fehlende Live-Region bzw. fehlender Export) statt je Prüfung rot zu werden — laut, aber schwach. Einzelbelege gibt es für D1 (18 von 24 rot), D3 (13 von 26 rot) und f2.
+- **`cron_alltag` per `sed` mit `\\` verfehlt** (Umsetzer), per Edit korrigiert — die bekannte Regel.
+- **PowerShell-Werkzeug meldete „Pfad nicht gefunden"** (Store-`pwsh` hatte sich aktualisiert) → Start losgelöster Läufe über Bash → `pwsh -File`.
+
+**Nicht geprüft:** echtes Gerät (iPhone/Android), echter Screenreader. Bilder: 390/320/1440 px, „Sehr groß", Mehr 768, Fokusring — unter Windows-Chromium.
+
+**Offen aus dieser Runde:** dekorative `.cell-icon`/Ring-SVG ohne `aria-hidden` (D2 Punkt 7), tote Schlüssel in `lang/en.json`, CSV-Spalte „Modul". Alles Weitere steht als Arbeitsplan in **`docs/ROADMAP-OPUS.md`**.
+

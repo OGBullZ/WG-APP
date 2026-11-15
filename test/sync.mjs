@@ -182,7 +182,7 @@ const remoteHs = page => page.evaluate(() => Object.values(window.__wg.remote.hs
 
   // Ab jetzt bleiben Writes unterwegs: der Server bestätigt sie nicht und kennt sie nicht.
   await page.evaluate(() => { window.__wg.holdWrites = true; });
-  await clickDiag(page, page.locator('.del-btn[aria-label="Ausgabe löschen"]').first(), 'E-loeschen');
+  await clickDiag(page, page.locator('.del-btn[title="Ausgabe löschen"]').first(), 'E-loeschen');
   await page.waitForTimeout(900);   // Flush ist raus (dirty leer), Bestätigung steht aus
 
   const afterDelete = await hsOf(page);

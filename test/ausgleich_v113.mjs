@@ -219,7 +219,7 @@ for (const me of ['u1', 'u2']) {
   const S = await open({ seed: SEED_OHNE_PP, me });
   const e = await S.page.evaluate(async () => {
     const q = () => { const f = document.querySelector('[data-testid="quick-expense"]'); return f ? f.getBoundingClientRect().top : null; };
-    const hinweisAnfang = /Per Klick zahlen geht/.test(document.body.innerText);
+    const hinweisAnfang = /Per Klick zahlen geht|per Klick zahlen kann/.test(document.body.innerText);
     await new Promise(r => setTimeout(r, 300));
     const ys = [q()];
     const t0 = performance.now();

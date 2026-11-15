@@ -141,7 +141,7 @@ await page.getByLabel('Kaputtes eintragen').fill('Vertipt'); await page.getByLab
 // CI-Rechner mehr Zeit liegen als das ganze Fenster (30.09., abgang.mjs F1a) — dann wäre die Zeile schon weg.
 const f2a = await page.evaluate(async () => {
   // über das Attribut vergleichen, nicht per CSS-Selektor: das gerade " im Namen ergäbe einen ungültigen Selektor
-  const knopf = [...document.querySelectorAll('button')].find(b => b.getAttribute('aria-label') === '„Vertipt" löschen');
+  const knopf = [...document.querySelectorAll('button')].find(b => b.getAttribute('aria-label') === '„Vertipt“ löschen');   // wg-v122: deutsche Anführung schließt mit “
   const zeile = knopf.closest('[data-testid="repair-row"]');
   knopf.click();
   for (let t = 0; t < 35 && !zeile.classList.contains('geht'); t++) await new Promise(r => setTimeout(r, 10));

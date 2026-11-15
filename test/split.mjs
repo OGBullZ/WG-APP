@@ -62,7 +62,7 @@ await addExpense({ name: 'Pizza', price: '20', paidBy: 'Torben', split: 'Tom zah
 
 const body1 = await page.evaluate(() => document.body.innerText);
 check('Posten zeigt "Tom zahlt alles"', body1.includes('Tom zahlt alles'));
-check('Hero zeigt "Gemischter Split"', body1.includes('Gemischter Split'));
+check('Hero zeigt "Gemischte Aufteilung"', body1.includes('Gemischte Aufteilung'));
 // Schulden-Banner: Tom schuldet Torben 20,00 (Tom trägt allein, Torben hat ausgelegt)
 check('Schuld = €20,00 (voller Betrag, nicht 10)', body1.includes('20,00') && !/je €10,00/.test(body1));
 await page.screenshot({ path: 'test/solo.png', fullPage: true });

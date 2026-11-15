@@ -69,10 +69,10 @@ const fremd = fn => page.evaluate(`(${fn})(window.__wg.remote); window.__wg.push
 const dialogOk = name => page.locator('.overlay .sheet-acts .btn', { hasText: name }).last();
 
 // ── D: gelöschter Monatsposten kommt nicht wieder (vor A: A rechnet ihn sonst mit ab, dann hat er keinen Löschen-Knopf) ──
-const zeile = page.locator('.cell', { hasText: 'Strom' }).filter({ has: page.getByRole('button', { name: 'Ausgabe löschen' }) });
+const zeile = page.locator('.cell', { hasText: 'Strom' }).filter({ has: page.locator('.del-btn[title="Ausgabe löschen"]') });   // wg-v122: aria-label nennt jetzt den Posten, title bleibt
 check('D0 Monatsposten „Strom" mit Löschen-Knopf da (Vorbedingung)', await zeile.count() >= 1);
 if (await zeile.count()) {
-  await zeile.first().getByRole('button', { name: 'Ausgabe löschen' }).click(); await page.waitForTimeout(1200);
+  await zeile.first().locator('.del-btn[title="Ausgabe löschen"]').click(); await page.waitForTimeout(1200);
   const r1 = (await remote()).rec?.r1 || {};
   check('D1 Vorlage merkt sich „diesen Monat gelöscht"', r1[`skip_${YM}`] === true, JSON.stringify(r1));
   // Vorlage ändert sich (anderes Handy) → die Erzeugung läuft neu; bis v103 legte sie den Posten wieder an

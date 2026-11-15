@@ -45,7 +45,7 @@ check('14 Mo-Abend: Restmüll morgen, ohne gekoppelte Aufgabe „Tonne raus!"', 
 const su = W.eveningMessages(wg, '2026-09-20');
 const sum = su.find(m => m.title === 'Wochenüberblick');
 check('15 Sonntag: Überblick dabei', !!sum, JSON.stringify(su));
-check('16 Überblick nennt Saldo (Tom → Torben 15,00 €)', sum && /Haushalt: Tom → Torben 15,00 €/.test(sum.body), sum && sum.body);
+check('16 Überblick nennt Saldo (Tom → Torben 15,00 €)', sum && /Haushalt: Tom → Torben €15,00/.test(sum.body), sum && sum.body);
 check('17 Überblick nennt kommende Aufgaben und Abholungen', sum && /diese Woche: .*Bad Di/.test(sum.body) && /Abholung: ⚫ Di/.test(sum.body), sum && sum.body);
 check('18 Werktag ohne Abholung: keine Nachricht', W.eveningMessages({ ...wg, mk: {} }, '2026-09-16').length === 0);
 
@@ -64,8 +64,8 @@ const yr = W.yearReview({
   arc: { o: { src: 'hs', price: 200, date: '2025-03-15' }, s: { src: 'stl', price: 5000, date: '2025-05-01' } },
   pl: { l1: { userId: 'u1', taskId: 'b', date: '2025-06-01' }, l2: { userId: 'u2', taskId: 'x', date: '2025-06-02', pts: 1 } },
 }, 2025);
-check('22 Jahr: Summe inkl. Archiv, ohne Abrechnungen und Folgejahr', yr && /350,00 € ausgegeben/.test(yr.body), yr && yr.body);
-check('23 teuerster Monat März', yr && /teuerster Monat: März \(300,00 €\)/.test(yr.body));
+check('22 Jahr: Summe inkl. Archiv, ohne Abrechnungen und Folgejahr', yr && /€350,00 ausgegeben/.test(yr.body), yr && yr.body);
+check('23 teuerster Monat März', yr && /teuerster Monat: März \(€300,00\)/.test(yr.body));
 check('24 Putz-Punkte (Aufgabe 3, Eintrag 1)', yr && /Torben 3 P\. · Tom 1 P\./.test(yr.body));
 check('25 leeres Jahr → keine Push', W.yearReview({ users }, 2024) === null);
 
@@ -125,9 +125,9 @@ const cron = readFileSync(new URL('../api/cron.js', import.meta.url), 'utf8');
 const vj = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
 // Sammel-Push (wg-v66): eine Nachricht für alles Fällige, Abwesende geben ab, „Morgen" nimmt raus
 const dg = W.putzDigest({ ...wg, pt: { ...wg.pt, y: { ...wg.pt.y, lastDone: '2026-09-01' }, s: { id: 's', name: 'Glas', interval: 1, assignee: 'u1', lastDone: '2026-09-01', snooze: '2026-09-17' } } }, '2026-09-16');
-check('25b Sammel-Push: 2 fällig, Tom weg → Torben, verschobene Aufgabe fehlt', dg && dg.title === 'Putzplan · 2 fällig' && /Bad \(Torben, 8 T\. überfällig\)/.test(dg.body) && /Papier raus \(Torben\)/.test(dg.body) && !/Glas/.test(dg.body) && dg.tag === 'putz-2026-09-16', JSON.stringify(dg));
+check('25b Sammel-Push: 2 fällig, Tom weg → Torben, verschobene Aufgabe fehlt', dg && dg.title === 'Putzplan · 2 fällig' && /Bad \(Torben, 8 Tage überfällig\)/.test(dg.body) && /Papier raus \(Torben\)/.test(dg.body) && !/Glas/.test(dg.body) && dg.tag === 'putz-2026-09-16', JSON.stringify(dg));
 check('25c „Morgen": nicht fällig bis zum Datum, danach normal', W.taskDueIn({ interval: 1, lastDone: '2026-09-01', snooze: '2026-09-18' }, {}, '2026-09-16') === 2 && W.taskDueIn({ interval: 1, lastDone: '2026-09-01', snooze: '2026-09-16' }, {}, '2026-09-16') < 0);
-check('25c2 ohne zugeordnete Person keine leere Klammer', W.putzDigest({ users, pt: { a: { id: 'a', name: 'Bad', interval: 7, assignee: 'weg', lastDone: '2026-09-01' }, b: { id: 'b', name: 'Müll', interval: 7, assignee: 'weg', lastDone: '2026-09-09' } } }, '2026-09-16').body === '🧽 Bad (8 T. überfällig) · 🧽 Müll');
+check('25c2 ohne zugeordnete Person keine leere Klammer', W.putzDigest({ users, pt: { a: { id: 'a', name: 'Bad', interval: 7, assignee: 'weg', lastDone: '2026-09-01' }, b: { id: 'b', name: 'Müll', interval: 7, assignee: 'weg', lastDone: '2026-09-09' } } }, '2026-09-16').body === '🧽 Bad (8 Tage überfällig) · 🧽 Müll');
 check('25d nichts fällig → keine Sammel-Push', W.putzDigest({ users, pt: { a: { id: 'a', name: 'X', interval: 7, lastDone: '2026-09-15' } } }, '2026-09-16') === null);
 check('26 Morgen-Job nutzt taskDueIn + Sammel-Push, Reparaturen, Jahr am 1.1.', /taskDueIn\(t, wg, todayIso\)/.test(cron) && /putzDigest\(wg, todayIso, fuer\)/.test(cron) && /repairReminders\(wg, todayIso\)/.test(cron) && /m === 1 && d === 1 \? yearReview\(wg, y - 1\)/.test(cron));
 check('26b Gesamtbudget zählt alle Posten, Zähler-Erinnerung am 1.', /b\.id === 'total' \|\| i\.cat === b\.id/.test(cron) && /d === 1 \? meterReminder\(wg\)/.test(cron));

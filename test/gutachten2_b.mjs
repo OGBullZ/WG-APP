@@ -970,7 +970,7 @@ const x3jd = await versuch(async () => {
   await p.waitForTimeout(400);
   return p.evaluate(() => { const d = document.querySelector('.overlay:not(.zu) [role="dialog"]'); return { aria: d.getAttribute('aria-label'), titel: d.querySelector('.sheet-title').textContent }; });
 });
-check('X3b EN-4 Deutsch unverändert: „WG „SONNENALLEE-7" beitreten" (Titel und aria-label byte-gleich zu vorher)', ok(x3jd) && x3jd.aria === 'WG „SONNENALLEE-7" beitreten' && x3jd.titel === 'WG „SONNENALLEE-7" beitreten', JSON.stringify(x3jd));
+check('X3b EN-4 Deutsch unverändert: „WG „SONNENALLEE-7" beitreten" (Titel und aria-label byte-gleich zu vorher)', ok(x3jd) && x3jd.aria === 'WG „SONNENALLEE-7“ beitreten' && x3jd.titel === 'WG „SONNENALLEE-7“ beitreten', JSON.stringify(x3jd));
 const RP1 = [{ id: 'r1', text: 'Heizung tropft', status: 'offen', by: 'u1', ts: 1 }];
 const RP2 = [...RP1, { id: 'r2', text: 'Fenster undicht', status: 'gemeldet', by: 'u2', ts: 2 }];
 const maengel = async (rp, lang) => versuch(async () => {
@@ -992,7 +992,7 @@ const bkEn = await backup('en'), bkDe = await backup('de');
 check('X3e EN-4 Backup-Warnung EN: ganzer Satz „The last automatic backup was 4 days ago — the daily server job doesn\'t seem to be running. …" (HEAD: „Last automatic backup 4 days — …")',
   normWs(bkEn) === '⚠️ The last automatic backup was 4 days ago — the daily server job doesn\'t seem to be running. "Automatic backups → Back up now" fixes it right away; please let us know.', JSON.stringify(bkEn));
 check('X3f EN-4 Backup-Warnung DE byte-gleich: „⚠️ Letzte automatische Sicherung vor 4 Tagen — der tägliche Server-Job läuft offenbar nicht. …"',
-  normWs(bkDe) === '⚠️ Letzte automatische Sicherung vor 4 Tagen — der tägliche Server-Job läuft offenbar nicht. „Automatische Backups → Jetzt sichern" hilft sofort; bitte Bescheid geben.', JSON.stringify(bkDe));
+  normWs(bkDe) === '⚠️ Letzte automatische Sicherung vor 4 Tagen — der tägliche Server-Job läuft offenbar nicht. „Automatische Backups → Jetzt sichern“ hilft sofort; bitte Bescheid geben.', JSON.stringify(bkDe));   // wg-v122: Schlusszeichen “
 /* Zahlungshinweis: Tom ist Gläubiger (hat eingekauft) und hat weder PayPal noch IBAN → Torben (Schuldner) sieht den Hinweis; der Name steht MITTEN im Satz */
 const SEED_X3H = { users: SEED.users, hs: map([{ id: 'e1', name: 'Wocheneinkauf', price: 40, paidBy: 'u2', date: T, settled: false, cat: 'food' }]) };
 const hinweis = async lang => versuch(async () => {
@@ -1003,7 +1003,7 @@ const hinweis = async lang => versuch(async () => {
 const hwEn = await hinweis('en'), hwDe = await hinweis('de');
 check('X3g EN-4 Zahlungshinweis EN: „Paying in one tap works once Tom has added PayPal or an IBAN under More → People." (HEAD: „… as soon as Tom under More → People has added …")',
   normWs(hwEn) === 'Paying in one tap works once Tom has added PayPal or an IBAN under More → People.', JSON.stringify(hwEn));
-check('X3h EN-4 Zahlungshinweis DE byte-gleich (der Name bleibt mitten im Satz, „Mehr → Personen" fett)', normWs(hwDe) === 'Per Klick zahlen geht, sobald Tom unter Mehr → Personen PayPal oder eine IBAN hinterlegt.', JSON.stringify(hwDe));
+check('X3h EN-4 Zahlungshinweis DE byte-gleich (der Name bleibt mitten im Satz, „Mehr → Personen" fett)', normWs(hwDe) === 'Per Klick zahlen geht, sobald Tom unter Mehr → Personen PayPal oder IBAN hinterlegt hat.', JSON.stringify(hwDe));   // wg-v122 (TEXT-2): bewusst neu formuliert
 
 // ══════════ X4 · EN-8: Wörterbuch-Nachschliff (nur die belegten Punkte) ══════════
 const x4s = await versuch(async () => {
@@ -1020,13 +1020,13 @@ const mieteChips = async (lang, w) => versuch(async () => {
   await p.locator('[data-chip="miete"]').click({ timeout: 4000 });
   await p.locator('.overlay:not(.zu) .sheet').waitFor({ timeout: 4000 });
   await p.waitForTimeout(500);
-  return p.evaluate(() => { const bs = [...document.querySelectorAll('.overlay:not(.zu) .sheet button')].filter(b => /Jede\/r selbst|Each pays their own|Everyone alone|Eine Person sammelt|One person collects/.test(b.textContent));
+  return p.evaluate(() => { const bs = [...document.querySelectorAll('.overlay:not(.zu) .sheet button')].filter(b => /Jede\/r selbst|Jeder zahlt selbst|Each pays their own|Everyone alone|Eine Person sammelt|One person collects/.test(b.textContent));
     return bs.map(b => { const r = b.getBoundingClientRect(); return { t: b.textContent.trim(), abgeschnitten: b.scrollWidth > b.clientWidth + 1, rechts: Math.round(r.right), h: Math.round(r.height), iw: window.innerWidth }; }); });
 });
 const mEn = await mieteChips('en', 390), mEn320 = await mieteChips('en', 320), mDe = await mieteChips('de', 390);
 check('X4b EN-8 Miete-Blatt: „Each pays their own" statt „Everyone alone", daneben „One person collects"; nichts abgeschnitten, im Fenster (390 und 320 px)',
   ok(mEn) && ok(mEn320) && [mEn, mEn320].every(m => m.length === 2 && m[0].t === 'Each pays their own' && m[1].t === 'One person collects' && m.every(c => !c.abgeschnitten && c.rechts <= c.iw - 8)), JSON.stringify([mEn, mEn320]));
-check('X4c EN-8 Deutsch unverändert: „Jede/r selbst" (Gendern gehört zu TEXT-8, nicht zu diesem Paket)', ok(mDe) && mDe.length === 2 && mDe[0].t === 'Jede/r selbst', JSON.stringify(mDe));
+check('X4c EN-8 Deutsch: „Jeder zahlt selbst" (wg-v122: A3 statt „Jede/r selbst"; „Jeder für sich" war schon anders übersetzt)', ok(mDe) && mDe.length === 2 && mDe[0].t === 'Jeder zahlt selbst', JSON.stringify(mDe));
 
 const fehler = alle.flatMap(s => s.errs).filter(e => !/ResizeObserver/.test(e));
 check('Z keine Seitenfehler', fehler.length === 0, fehler.slice(0, 3).join(' | '));

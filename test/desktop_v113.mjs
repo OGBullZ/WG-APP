@@ -233,10 +233,10 @@ const lage = page => page.evaluate(() => {
     const h = document.querySelector('[data-testid="settle-hint"]'), k = document.querySelector('[data-testid="ausgleich"]');
     if (!h || !k) return { hinweis: !!h, karte: !!k };
     const hr = h.getBoundingClientRect(), kr = k.getBoundingClientRect();
-    return { links: !!h.closest('.zz-l'), hinweisOben: Math.round(hr.top), karteUnten: Math.round(kr.bottom), hinweisX: Math.round(hr.left), karteX: Math.round(kr.left), text: h.textContent.trim() };   /* ganzer Satz — „oben" steht hinten (erster Lauf kappte bei 50 Zeichen) */
+    return { links: !!h.closest('.zz-l'), hinweisOben: Math.round(hr.top), hinweisUnten: Math.round(hr.bottom), karteOben: Math.round(kr.top), karteUnten: Math.round(kr.bottom), hinweisX: Math.round(hr.left), hinweisR: Math.round(hr.right), karteX: Math.round(kr.left), karteR: Math.round(kr.right), text: h.textContent.trim() };   /* ganzer Satz — „oben" steht hinten (erster Lauf kappte bei 50 Zeichen) */
   });
-  check('b5b 1440 Schuldner: Hinweis „oben … tippen" links unter der Ausgleich-Karte (gleiche Spalte, ±2 px)',
-    !!s.links && s.hinweisOben > s.karteUnten && Math.abs(s.hinweisX - s.karteX) <= 2 && /oben/.test(s.text), JSON.stringify(s));
+  check('b5b 1440 Schuldner: Hinweis „oben … tippen" links IN der Ausgleich-Karte (wg-v122: Hinweis liegt im Karten-Rechteck)',
+    !!s.links && s.hinweisOben >= s.karteOben && s.hinweisUnten <= s.karteUnten + 2 && s.hinweisX >= s.karteX - 2 && s.hinweisR <= s.karteR + 2 && /Ich habe bezahlt/.test(s.text), JSON.stringify(s));
   check('b5c [bleibt] 1440 Schuldner: keine Seitenfehler', fehler.length === 0, fehler.join(' | '));
   await ctx.close();
 }

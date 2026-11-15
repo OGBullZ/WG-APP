@@ -171,7 +171,7 @@ check('D3 Müll heute erledigt', m1.lastDone === dayAgo(0), m1.lastDone);
 check('D4 Stand steigt auf Torben 6× / Tom 2× (title der Zeile, seit v101)', await (async () => { const t = await row('Müll').locator('[data-testid="chore-stand"]').getAttribute('title') || ''; return /Torben 6×/.test(t) && /Tom 2×/.test(t); })());
 // seit wg-v79 (Push-Diät) ist „X hat erledigt" Typ `done` (leise, Standard aus) statt `putz`
 const p1 = pushes.slice(pushBefore).find(p => p.type === 'done');
-check('D5 Push: „Torben hat … erledigt" / „Tom, du bist dran"', !!p1 && /Torben hat „Müll rausbringen" erledigt/.test(p1.title) && /Tom, du bist dran/.test(p1.body), JSON.stringify(p1));
+check('D5 Push: „Torben hat … erledigt" / „Tom, du bist dran"', !!p1 && /Torben hat „Müll rausbringen“ erledigt/.test(p1.title) && /Tom, du bist dran/.test(p1.body), JSON.stringify(p1));
 await page.waitForTimeout(300);
 const remotePl = JSON.stringify(await page.evaluate(() => window.__wg.remote.pl || {}));
 check('D6 Eintrag beim Server angekommen', remotePl.includes(pl1[0].id) && /u1/.test(remotePl));

@@ -63,7 +63,7 @@ const hsS = [
 ];
 check('S4 Monatssumme (Digest) und offene Summe (Monatsende) ohne Umbuchungen: 20', cron.sumByMonth(hsS, YM) === 20 && cron.sumOpen(hsS) === 20, `${cron.sumByMonth(hsS, YM)} / ${cron.sumOpen(hsS)}`);
 const jr = W.yearReview({ hs: hsS, users: [{ id: 'u1', name: 'Torben' }, { id: 'u2', name: 'Tom' }] }, Number(T.slice(0, 4)));
-check('S5 Jahresrückblick-Push: 20 € ausgegeben (nicht 560)', /\b20,00 € ausgegeben/.test(jr?.body || JSON.stringify(jr)), JSON.stringify(jr));
+check('S5 Jahresrückblick-Push: 20 € ausgegeben (nicht 560)', /€20,00 ausgegeben/.test(jr?.body || JSON.stringify(jr)), JSON.stringify(jr));
 // Budget im echten Cron: Limit 30 €, Ausgaben 20 € (67 %) + 540 € Umbuchungen → KEINE Warnung
 tree = { wg: { [OLD]: { users: [{ id: 'u1', name: 'Torben' }, { id: 'u2', name: 'Tom' }], hs: Object.fromEntries(hsS.map(i => [i.id, i])),
   bud: { total: { id: 'total', limit: 30 } }, push: { d1: { endpoint: 'https://fcm.googleapis.com/fcm/send/x', p256dh: 'x', auth: 'y' } } } } };

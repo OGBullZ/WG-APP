@@ -88,7 +88,7 @@ const D1 = await open({ users: USERS, pt: TASKS }, { tab: 'heute' });
 await D1.page.locator('[data-testid="chore-giveup"]').click(); await D1.page.waitForTimeout(500);
 let dd = await D1.data();
 check('D1 Abgabe gespeichert, Aufgabe bleibt vorerst bei mir', dd.tb.some(o => o.taskId === 't1' && o.by === 'u1') && dd.pt[0].assignee === 'u1', JSON.stringify(dd.tb));
-check('D2 Push an die anderen', D1.pushes.some(p => p.type === 'putz' && /kann „Bad putzen" nicht/.test(p.title)), JSON.stringify(D1.pushes.map(p => p.title)));
+check('D2 Push an die anderen', D1.pushes.some(p => p.type === 'putz' && /kann „Bad putzen“ nicht/.test(p.title)), JSON.stringify(D1.pushes.map(p => p.title)));
 check('D3 eigene Abgabe: „Doch selbst"', await D1.page.locator('[data-testid="handover-row"]').getByRole('button', { name: 'Doch selbst' }).count() === 1);
 await D1.ctx.close();
 // Tom sieht das Angebot und übernimmt

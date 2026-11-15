@@ -103,7 +103,7 @@ check('K3 neuer Eintrag: +3 Tage, gehört mir', d.kf.some(k => k.name === 'Joghu
 // Tippen und Nachsehen in EINEM Zug im Browser (siehe abgang.mjs F1a, 30.09.: unter Last lag zwischen zwei
 // Playwright-Befehlen mehr als das ganze 420-ms-Fenster)
 const k3b = await page.evaluate(async () => {
-  const knopf = [...document.querySelectorAll('button')].find(b => b.getAttribute('aria-label') === 'Käse ist weg');
+  const knopf = [...document.querySelectorAll('button')].find(b => b.getAttribute('aria-label') === 'Käse ist aufgebraucht');   // wg-v122: „Weg ✓" heißt jetzt „Aufgebraucht ✓"
   const zeile = knopf.closest('[data-testid="fridge-row"]');
   knopf.click();
   for (let t = 0; t < 35 && !zeile.classList.contains('geht'); t++) await new Promise(r => setTimeout(r, 10));
@@ -217,14 +217,14 @@ const cc = page.locator('[data-testid="costs-card"]');
 // leere Nebenkosten sind eine Kachel — seit wg-v105 öffnet ein Tipp darauf direkt „Nebenkosten verteilen"
 check('N0 ohne Abrechnung: Kachel statt Karte', await page.locator('[data-chip="nk"]').count() === 1 && !(await cc.isVisible()));
 await page.locator('[data-chip="nk"]').click(); await page.waitForTimeout(300);
-await sheet.getByLabel('Betrag der Abrechnung').fill('300');
+await sheet.getByLabel('Betrag der Nebenkostenabrechnung').fill('300');
 await sheet.locator('#nk-share').fill('60');
 const np = await sheet.locator('[data-testid="nk-preview"]').innerText().catch(() => '');
 check('N1 Vorschau nach Anteil 60/40', /Torben €180,00 · Tom €120,00/.test(np), np);
 // wg-v109 (Affen-Lauf): das Jahr-Feld nahm beliebigen Text an → Posten hießen „⚡ Strom NaN – Nachzahlung". Jetzt nur Ziffern, max. 4.
 // ZEICHENWEISE tippen, nicht `fill`: fill setzt den ganzen Text auf einmal, und maxLength=4 kappt ihn dabei auf „x20y" noch VOR
 // dem Ziffernfilter → „20" (erster Lauf rot; die App war richtig, der Test tippte unmenschlich). Ein Mensch tippt Zeichen für Zeichen.
-const jahrFeld = sheet.getByLabel('Abrechnungsjahr');
+const jahrFeld = sheet.getByLabel('Jahr der Nebenkostenabrechnung');
 await jahrFeld.fill(''); await jahrFeld.pressSequentially('x20y24z9');
 const jahrWert = await jahrFeld.inputValue();
 check('N1b Abrechnungsjahr nimmt nur Ziffern (max. 4): „x20y24z9" getippt → 2024', jahrWert === '2024', `Wert: „${jahrWert}"`);
@@ -233,9 +233,9 @@ d = await data();
 let nk = d.hs.filter(i => i.nk);
 check('N2 Nachzahlung: je Person ein Posten, ich habe bezahlt', nk.length === 2 && nk.every(i => i.paidBy === 'u1' && i.cat === 'fix'), JSON.stringify(nk));
 check('N3 Tom schuldet 120', Math.abs(net(nk, 'u2') + 120) < 0.001 && Math.abs(net(nk, 'u1') - 120) < 0.001);
-await cc.getByRole('button', { name: '+ Abrechnung' }).click(); await page.waitForTimeout(300);
+await cc.getByRole('button', { name: '+ Nebenkosten' }).click(); await page.waitForTimeout(300);
 await sheet.getByRole('button', { name: 'Guthaben' }).click();
-await sheet.getByLabel('Betrag der Abrechnung').fill('80');
+await sheet.getByLabel('Betrag der Nebenkostenabrechnung').fill('80');
 await sheet.locator('.pick-btn', { hasText: 'Tom' }).click();
 await sheet.getByRole('button', { name: 'Verteilen' }).click(); await page.waitForTimeout(500);
 d = await data();
@@ -299,7 +299,7 @@ const Z = await open({ users: U3 }, { tab: 'stats' });
 const zs = Z.page.locator('.sheet:visible');
 await Z.page.locator('[data-chip="nk"]').click(); await Z.page.waitForTimeout(300);   // Kachel öffnet direkt (wg-v105)
 check('N6 drei Personen: kein Anteil-Schieber', await zs.locator('#nk-share').count() === 0);
-await zs.getByLabel('Betrag der Abrechnung').fill('100');
+await zs.getByLabel('Betrag der Nebenkostenabrechnung').fill('100');
 const z3 = await zs.locator('[data-testid="nk-preview"]').innerText();
 check('N7 gleich verteilt, Cent-Rest an die Letzte', z3 === 'Torben €33,33 · Tom €33,33 · Kim €33,34', z3);
 await zs.getByRole('button', { name: 'Verteilen' }).click(); await Z.page.waitForTimeout(500);
@@ -310,7 +310,7 @@ await Z.ctx.close();
 const Q = await open({ users: USERS }, { tab: 'stats' });
 const qs = Q.page.locator('.sheet:visible');
 await Q.page.locator('[data-chip="nk"]').click(); await Q.page.waitForTimeout(300);   // Kachel öffnet direkt (wg-v105)
-await qs.getByLabel('Betrag der Abrechnung').fill('100,01');
+await qs.getByLabel('Betrag der Nebenkostenabrechnung').fill('100,01');
 const q2 = await qs.locator('[data-testid="nk-preview"]').innerText();
 check('N10 zwei Personen 100,01 → 50,01 + 50,00', q2 === 'Torben €50,01 · Tom €50,00', q2);
 await Q.ctx.close();
@@ -322,7 +322,7 @@ const X = await open({ ...SEED,
   inv: map([{ id: 'iv', name: 'Regal', owner: 'u9' }]) });
 check('C6 keine Seitenfehler', X.errs.length === 0, X.errs.join(' | '));
 // eigene gültige Regel aufheben → der andere erfährt es
-await X.page.getByRole('button', { name: 'Regel „Müll Montag" aufheben' }).click(); await X.page.waitForTimeout(400);
+await X.page.getByRole('button', { name: 'Regel „Müll Montag“ aufheben' }).click(); await X.page.waitForTimeout(400);
 check('R6 gültige Regel aufgehoben → Push', X.pushes.some(p => /Regel aufgehoben: Müll Montag/.test(p.title)));
 // Sparziel auflösen: Toms Einzahlung zurück
 await X.tabTo('Haushalt');
