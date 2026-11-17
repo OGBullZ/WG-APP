@@ -1057,3 +1057,17 @@ Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen 
 
 **Offen aus dieser Runde:** dekorative `.cell-icon`/Ring-SVG ohne `aria-hidden` (D2 Punkt 7), tote Schlüssel in `lang/en.json`, CSV-Spalte „Modul". Alles Weitere steht als Arbeitsplan in **`docs/ROADMAP-OPUS.md`**.
 
+## W1 — Gate parallel (17.11., ohne Release)
+
+**Was:** `scripts/leise.mjs` → `gateLauf(dateien, { arbeiter })`: Dateien aus `ALLEIN` (eigene Server auf festen Ports: `testserver`, `ux` beide 8097, `update` 8098, `upgrade_dist` 8096) und `NUR_SERIELL` laufen zuerst einzeln, der Rest in einem Pool. Ausgabe in Listenreihenfolge (gepuffert). Im Pool rote Dateien laufen einmal allein nach; allein grün → `⚠ nur parallel rot`, zählt trotzdem als rot. `ship.mjs` nimmt 3 Arbeiter (`WG_SERIELL=1` / `WG_ARBEITER=N`), die CLI bleibt standardmäßig seriell (CI und Agenten unverändert). Selbsttest `test/gate_parallel.mjs` mit künstlichen Testdateien (19 Prüfungen, Gegenprobe ohne Wiederholung: 4 rot).
+
+**Warum so:** Die Roadmap ging von einem Server je Arbeiter aus (eigene Ports, eigene Daten). Nachgesehen: der Testserver ist `python -m http.server` (bedient parallel), Firebase ist in jedem Browser-Test eine Attrappe — es gibt nichts Geteiltes außer dem Dateiserver. Ein Server reicht; nur die vier Tests mit festen eigenen Ports müssen allein.
+
+**Ergebnis:** volles Gate (86 Dateien) zweimal mit 3 Arbeitern: **34,8 und 31,2 min** statt ~80. Lauf 2: 86/86 grün. Lauf 1: `gutachten2_c3` als „nur parallel rot" gemeldet — die Regel hat gegriffen.
+
+**Was schiefging / gefunden**
+- **`gutachten2_c3` (FILM-8) kippt unter Last:** F8d „Tempowechsel je Bild" 6,5 px bei erlaubten 6. Gemessen wird je Bild; unter CPU-Last (3 Chromium) kommen die Bilder unregelmäßig. Dieselbe Familie kippt unter Linux in der CI (F8k 6,9 px, 15.11.) — das ist einer der drei roten CI-Tests. → `NUR_SERIELL` mit Begründung; die echte Lösung (Tempo je ms) ist W5.
+- **Erste Fassung ließ die Allein-Dateien nach dem Pool laufen** (so stand es in meinem Auftrag). `testserver.mjs` steht auf Platz 1 der Gate-Liste und die Ausgabe wartet auf alle Zeilen davor → ~25 min ohne eine Log-Zeile. In der Abnahme umgedreht: Allein-Dateien zuerst.
+- Rot-Liste kam in Fertig-Reihenfolge → sortiert nach Listenposition.
+- Umsetzer: Heredoc für Code vom Regel-Hook gesperrt, Sabotage-Kopie lag kurz in `scripts/` (relativer Import), danach gelöscht.
+

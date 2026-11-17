@@ -31,7 +31,7 @@ WG-Splitter für 2 Personen (Torben + Tom). Single-File-PWA, Live-Sync zwischen 
 - **Nie ganz lesen.** Gezielt greppen: `wg-v1NN`, Stichwort (z. B. `Putzplan`, `Abschied`, `--kb`), dann `Read` mit offset/limit.
 - Neue Abschnitte (Release-Notizen, Fehlversuche) **dort unten anhängen**, nicht hier. Hier nur, was jede Sitzung wissen muss.
 - **Was als Nächstes ansteht: `docs/ROADMAP-OPUS.md`** (15.11., 27 Pakete in 8 Blöcken). Nur Teil 0 (Regeln) und das eine Paket lesen, das dran ist; Fortschritt im Anhang 3 dort abhaken.
-- Tests leise laufen lassen: `node scripts/leise.mjs test/a.mjs test/b.mjs` — zeigt nur rote Prüfungen + Summe je Datei.
+- Tests leise laufen lassen: `node scripts/leise.mjs test/a.mjs test/b.mjs` — zeigt nur rote Prüfungen + Summe je Datei. Viele Dateien: `--arbeiter 3` (parallel, gleicher Server 8099). **Das Ship-Gate läuft seit 17.11. mit 3 Arbeitern (~32 statt ~80 min)**, `WG_SERIELL=1` schaltet zurück. Rot nur im Pool → `⚠ nur parallel rot`, zählt als rot; Ausnahmen nur mit benannter Ursache in `NUR_SERIELL` (`scripts/leise.mjs`).
 
 ## Live & Deploy
 

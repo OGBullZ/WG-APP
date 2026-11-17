@@ -4,7 +4,7 @@
    - CLI:   node scripts/leise.mjs test/a.mjs test/b.mjs   (Exit 1, sobald eine Datei rot ist; läuft trotzdem alle durch)
    - Modul: leiseLaufen(datei) → { ok, zeile, auszug }  (ship.mjs nutzt es im Gate)
    - WG_LAUT=1 schaltet auf volle Ausgabe zurück (zum Debuggen). Testserver wie in ship.mjs sichergestellt. */
-import { spawnSync } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { testServer } from './testserver.mjs';
 
@@ -40,22 +40,128 @@ export function leiseLaufen(datei) {
   return { ok, zeile: summe(zeilen).trim().slice(0, 160), auszug: ok ? '' : auszugBauen(zeilen, datei) + (r.error ? `\n      (Start fehlgeschlagen: ${r.error.message})` : '') };
 }
 
-// CLI: alle Dateien nacheinander (gemeinsamer Testserver auf 8099), am Ende eine Summe
+/* W1 (17.11.): wie leiseLaufen, aber mit spawn — blockiert den Event-Loop nicht, damit mehrere Dateien gleichzeitig laufen.
+   Gleiche Rückgabe { ok, zeile, auszug }. */
+export function leiseLaufenAsync(datei) {
+  return new Promise(fertig => {
+    if (LAUT) {
+      const p = spawn(process.execPath, [datei], { stdio: 'inherit', env: process.env });
+      p.on('error', e => fertig({ ok: false, zeile: `Start fehlgeschlagen: ${e.message}`, auszug: '' }));
+      p.on('close', status => fertig({ ok: status === 0, zeile: `exit ${status}`, auszug: '' }));
+      return;
+    }
+    const teile = [];
+    let startFehler = null;
+    const p = spawn(process.execPath, [datei], { stdio: ['ignore', 'pipe', 'pipe'], env: process.env });
+    p.stdout.on('data', c => teile.push(c));
+    p.stderr.on('data', c => teile.push(c));
+    p.on('error', e => { startFehler = e; });
+    // 'close' kommt erst nach dem Ende der Streams — sonst gingen die letzten Ausgabezeilen (die Summenzeile) verloren
+    p.on('close', status => {
+      const zeilen = Buffer.concat(teile).toString('utf8').split(/\r?\n/);
+      const ok = status === 0 && !startFehler;
+      fertig({ ok, zeile: summe(zeilen).trim().slice(0, 160), auszug: ok ? '' : auszugBauen(zeilen, datei) + (startFehler ? `\n      (Start fehlgeschlagen: ${startFehler.message})` : '') });
+    });
+  });
+}
+
+/* W1 (17.11.): Dateien, die NICHT im Pool laufen dürfen — sie starten eigene Server auf festen Ports bzw. teilen sich
+   Ports untereinander; gleichzeitig würde der Port belegt sein. Sie laufen vor dem Pool, einzeln nacheinander.
+   - test/testserver.mjs     : Port 8097 (prüft testserver.mjs selbst, startet/beendet Server)
+   - test/ux.mjs             : Port 8097 (teilt ihn mit testserver.mjs)
+   - test/update.mjs         : Port 8098 (eigener Server für den Update-Pfad)
+   - test/upgrade_dist.mjs   : Port 8096 (eigener Server für den Upgrade-Test) */
+export const ALLEIN = ['test/testserver.mjs', 'test/ux.mjs', 'test/update.mjs', 'test/upgrade_dist.mjs'];
+
+/* W1 (17.11.): Ausnahmeliste „nur seriell" — läuft wie ALLEIN. NUR Dateien mit BENANNTER Ursache eintragen, je Eintrag eine
+   Begründung als Kommentar (sonst verschwindet ein echter Parallel-Fehler hinter der Liste). Anfangs leer. */
+export const NUR_SERIELL = [
+  /* gutachten2_c3 — FILM-8 misst den „Tempowechsel je Bild" (|Δ_i − Δ_i−1| ≤ 6 px). Unter CPU-Last (3 Chromium gleichzeitig)
+     kommen die Bilder unregelmäßig → Wert knapp drüber: Abnahme W1 17.11. F8d 6,5 px nur im Pool, allein grün; CI unter Linux
+     kippt dieselbe Familie (F8k 6,9 px, 15.11.). Saubere Lösung = Tempo je ms statt je Bild messen → Roadmap W5. */
+  'test/gutachten2_c3.mjs',
+];
+
+// Attrappe, wenn kein Testserver übergeben wird (reine Node-Tests, test/gate_parallel.mjs)
+const OHNE_SERVER = { mitServer: fn => fn() };
+
+/* W1 (17.11.): Gate fahren — ALLEIN-Dateien zuerst einzeln, dann ein Pool mit `arbeiter` gleichzeitigen Läufen.
+   - Ausgabe in Reihenfolge der Liste (puffern): eine Zeile erscheint, sobald sie UND alle davor fertig sind.
+   - arbeiter > 1: jede im Pool rote Datei wird nach dem Pool EINMAL allein wiederholt. Allein grün → „⚠ nur parallel rot",
+     zählt trotzdem als rot (laut, nie still verschlucken) — erst mit benannter Ursache darf sie nach NUR_SERIELL.
+   - arbeiter = 1: alles nacheinander in Listenreihenfolge, keine Wiederholung (wie vor W1).
+   - Rückgabe { rot, nurParallelRot, dauerMs }. Optionen allein/nurSeriell überschreibbar (test/gate_parallel.mjs). */
+export async function gateLauf(dateien, { arbeiter = 1, log = console.log, ts = OHNE_SERVER, allein = ALLEIN, nurSeriell = NUR_SERIELL } = {}) {
+  const t0 = Date.now();
+  const rot = [], nurParallelRot = [];
+  const ergebnis = new Array(dateien.length);   // endgültige Zeile je Datei (undefined = noch offen)
+  let naechsteAusgabe = 0;
+  // Gepufferte Ausgabe: gibt alle fertigen Zeilen ab dem ersten offenen Index aus
+  const ausgeben = () => {
+    while (naechsteAusgabe < dateien.length && ergebnis[naechsteAusgabe]) {
+      log(ergebnis[naechsteAusgabe]);
+      naechsteAusgabe++;
+    }
+  };
+  const zeileBauen = (d, e, praefix) => `${praefix} ${d} — ${e.zeile}` + (!e.ok && e.auszug ? `\n${e.auszug}` : '');
+  // Ein Lauf mit Server-Absicherung — mitServer wiederholt nur, wenn der Server weg ist, dafür muss ein roter Lauf werfen
+  const lauf = d => ts.mitServer(async () => { const x = await leiseLaufenAsync(d); if (!x.ok) throw Object.assign(new Error('rot'), { x }); return x; })
+    .catch(err => err.x || { ok: false, zeile: err.message, auszug: '' });
+  const fertigMelden = (i, e, praefix) => { ergebnis[i] = zeileBauen(dateien[i], e, praefix); if (!e.ok) rot.push(dateien[i]); ausgeben(); };
+
+  const seriellSet = new Set([...allein, ...nurSeriell]);
+  const indizes = dateien.map((_, i) => i);
+  // arbeiter 1: alles in Listenreihenfolge nacheinander (kein Umsortieren wie vor W1)
+  const poolIdx = arbeiter > 1 ? indizes.filter(i => !seriellSet.has(dateien[i])) : [];
+  const einzelnIdx = arbeiter > 1 ? indizes.filter(i => seriellSet.has(dateien[i])) : indizes;
+
+  // 0) ALLEIN/NUR_SERIELL (bzw. bei arbeiter 1 alles) ZUERST nacheinander. Abnahme 17.11.: erst „nach dem Pool" geplant —
+  //    test/testserver.mjs steht aber an Platz 1 der Gate-Liste, und die Ausgabe wartet auf alle Zeilen davor → ~25 min ohne Log.
+  for (const i of einzelnIdx) { const e = await lauf(dateien[i]); fertigMelden(i, e, e.ok ? '✓' : '✗'); }
+
+  // 1) Pool: jeder Arbeiter zieht den nächsten Index; rote Läufe bleiben offen, bis die Wiederholung entschieden hat
+  const poolRot = [];   // { i, e }
+  let zeiger = 0;
+  const arbeiterFn = async () => {
+    while (zeiger < poolIdx.length) {
+      const i = poolIdx[zeiger++];
+      const e = await lauf(dateien[i]);
+      if (e.ok) fertigMelden(i, e, '✓'); else poolRot.push({ i, e });
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(arbeiter, poolIdx.length) }, arbeiterFn));
+
+  // 2) Wiederholung der Pool-Roten, einzeln und allein (Listenreihenfolge)
+  for (const { i, e } of poolRot.sort((a, b) => a.i - b.i)) {
+    const d = dateien[i];
+    const e2 = await lauf(d);
+    if (e2.ok) {
+      // allein grün → Parallel-Problem; Zeile nennt den Pool-Fehler, zählt als rot
+      nurParallelRot.push(d);
+      ergebnis[i] = `⚠ nur parallel rot: ${d} — ${e.zeile}` + (e.auszug ? `\n${e.auszug}` : '');
+      rot.push(d); ausgeben();
+    } else fertigMelden(i, e2, '✗');
+  }
+
+  // Rot-Listen in Listenreihenfolge (nicht in der Reihenfolge, in der die Läufe fertig wurden)
+  const pos = d => dateien.indexOf(d);
+  return { rot: rot.sort((a, b) => pos(a) - pos(b)), nurParallelRot: nurParallelRot.sort((a, b) => pos(a) - pos(b)), dauerMs: Date.now() - t0 };
+}
+
+// CLI: node scripts/leise.mjs [--arbeiter N] dateien… (Standard 1 = nacheinander wie bisher), am Ende eine Summe + Dauer
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  const dateien = process.argv.slice(2);
-  if (!dateien.length) { console.error('Nutzung: node scripts/leise.mjs test/a.mjs [test/b.mjs …]'); process.exit(2); }
+  const args = process.argv.slice(2);
+  let arbeiter = 1;
+  const ai = args.indexOf('--arbeiter');
+  if (ai >= 0) { arbeiter = Math.max(1, Number(args[ai + 1]) || 1); args.splice(ai, 2); }
+  const dateien = args;
+  if (!dateien.length) { console.error('Nutzung: node scripts/leise.mjs [--arbeiter N] test/a.mjs [test/b.mjs …]'); process.exit(2); }
   const ts = testServer(8099);
-  const rot = [];
+  let g;
   try {
     await ts.serverSicherstellen();
-    for (const d of dateien) {
-      // mitServer wiederholt nur, wenn der Server weg ist — dafür muss ein roter Lauf werfen
-      const e = await ts.mitServer(async () => { const x = leiseLaufen(d); if (!x.ok) throw Object.assign(new Error('rot'), { x }); return x; })
-        .catch(err => err.x || { ok: false, zeile: err.message, auszug: '' });
-      console.log(`${e.ok ? '✓' : '✗'} ${d} — ${e.zeile}`);
-      if (!e.ok) { rot.push(d); if (e.auszug) console.log(e.auszug); }
-    }
+    g = await gateLauf(dateien, { arbeiter, ts });
   } finally { ts.aufraeumen(); }
-  console.log(`\n${dateien.length - rot.length}/${dateien.length} Dateien grün${rot.length ? ' — rot: ' + rot.join(', ') : ''}`);
-  process.exit(rot.length ? 1 : 0);
+  console.log(`\n${dateien.length - g.rot.length}/${dateien.length} Dateien grün${g.rot.length ? ' — rot: ' + g.rot.join(', ') : ''} (${(g.dauerMs / 60000).toFixed(1)} min, ${arbeiter} Arbeiter)`);
+  process.exit(g.rot.length ? 1 : 0);
 }

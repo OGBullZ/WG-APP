@@ -465,11 +465,11 @@ Beim Abschluss eines Pakets hier abhaken (Datum, Version, Commit). Was sich als 
 
 | Paket | Status | Version / Commit | Datum |
 |---|---|---|---|
-| W1 Gate parallel | offen | | |
+| W1 Gate parallel | ✅ Gate 80 → 31–35 min (3 Arbeiter), ein Server reicht; `gutachten2_c3` nur seriell (→ W5) | siehe `git log -- scripts/leise.mjs` | 17.11. |
 | W2 Wörterbuch-Zeile | offen | | |
 | W3 Abnahme-Werkzeuge | offen | | |
 | W4 Tests vom Wortlaut lösen | offen | | |
-| W5 CI Linux grün | offen | | |
+| W5 CI Linux grün | offen — Spur: FILM-8 in `gutachten2_c3` misst Tempo je Bild statt je ms (kippt unter Last und unter Linux) | | |
 | E1 Schrift | offen | | |
 | E2 Warnkarte + Knöpfe | offen | | |
 | E3 Symbolfelder | offen | | |
