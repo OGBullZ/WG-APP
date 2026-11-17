@@ -72,7 +72,10 @@ if (mg > 0 && process.argv[mg + 1]) {
 // Datei → inline
 if (process.argv.includes('--write')) {
   if (!m) { console.error('kein <script id="wg-en"> gefunden'); process.exit(1); }
-  const block = `<script id="wg-en">${KOPF}window.__WG_EN = ${JSON.stringify(sort(dict))};\n</script>\n`;
+  /* W2 (17.11.): ein Eintrag je Zeile statt einer 97.000-Zeichen-Zeile — sonst sprengte jedes grep/diff/Read in der Nähe
+     den Kontext. Bleibt gültiges JSON (--export liest es so zurück); Laufzeit unverändert, nur ~1.800 Zeilenumbrüche mehr. */
+  const zeilen = Object.entries(sort(dict)).map(([k, v]) => JSON.stringify(k) + ':' + JSON.stringify(v));
+  const block = `<script id="wg-en">${KOPF}window.__WG_EN = {\n${zeilen.join(',\n')}\n};\n</script>\n`;
   writeFileSync(htmlFile, html.replace(BLOCK, () => block));
   console.log(`wgapp.html: Wörterbuch ersetzt · ${Object.keys(dict).length} Einträge`);
   process.exit(0);

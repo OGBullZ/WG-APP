@@ -20,7 +20,7 @@ Lesehinweis: Jedes Paket ist für sich lesbar. Wer ein Paket umsetzt, liest Teil
 
 | Falle | Regel |
 |---|---|
-| `wgapp.html` hat ~12.500 Zeilen / 1 MB. Eine Zeile (um 1606) ist das eingebettete englische Wörterbuch mit ~94.000 Zeichen. | Nie das Grep-Werkzeug im Inhaltsmodus auf `wgapp.html`. Immer `grep -n MUSTER wgapp.html \| cut -c1-200`. `git diff` nur mit `\| cut -c1-300`. Paket W2 schafft die Falle ab. |
+| `wgapp.html` hat ~14.300 Zeilen / 1 MB. **Seit W2 (v123) steht das englische Wörterbuch ein Eintrag je Zeile** (vorher eine Zeile mit ~97.000 Zeichen), längste Zeile ~700 Zeichen. | Grep auf `wgapp.html` ist wieder unkritisch; Treffer im Wörterbuchblock (`<script id="wg-en">`) beim Suchen nach deutschem Text mitbedenken. Große Bereiche weiter nur gezielt lesen. |
 | Zeilennummern in `scratchpad/gutachten2/bericht-*.md` stammen von v117. | Nur die Suchmuster aus „Ort" benutzen, nie die Nummern. |
 | Code mit `$`, Backticks oder `\` | Nur mit Edit/Write. Nie `sed`, Heredoc, `node -e`. |
 | Kommentar in einer JSX-Zeile | Nur `/* */`. Ein `//` schluckt den Rest der Zeile. |
@@ -466,7 +466,7 @@ Beim Abschluss eines Pakets hier abhaken (Datum, Version, Commit). Was sich als 
 | Paket | Status | Version / Commit | Datum |
 |---|---|---|---|
 | W1 Gate parallel | ✅ Gate 80 → 31–35 min (3 Arbeiter), ein Server reicht; `gutachten2_c3` nur seriell (→ W5) | siehe `git log -- scripts/leise.mjs` | 17.11. |
-| W2 Wörterbuch-Zeile | offen | | |
+| W2 Wörterbuch-Zeile | ✅ ein Eintrag je Zeile, Objekt vorher = nachher (1788), längste Zeile 700 | wg-v123 | 17.11. |
 | W3 Abnahme-Werkzeuge | offen | | |
 | W4 Tests vom Wortlaut lösen | offen | | |
 | W5 CI Linux grün | offen — Spur: FILM-8 in `gutachten2_c3` misst Tempo je Bild statt je ms (kippt unter Last und unter Linux) | | |

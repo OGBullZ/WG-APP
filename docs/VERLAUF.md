@@ -1071,3 +1071,11 @@ Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen 
 - Rot-Liste kam in Fertig-Reihenfolge → sortiert nach Listenposition.
 - Umsetzer: Heredoc für Code vom Regel-Hook gesperrt, Sabotage-Kopie lag kurz in `scripts/` (relativer Import), danach gelöscht.
 
+## W2 — Wörterbuch ein Eintrag je Zeile (wg-v123, 17.11.)
+
+**Was:** `i18n-dict.mjs --write` schreibt `window.__WG_EN` als `{\n"de":"en",\n…\n}` statt als eine Zeile mit ~97.000 Zeichen. Ausgeliefert wird dasselbe Objekt (Rundreise-Prüfung: 1788 Einträge, `JSON.stringify` vorher = nachher), die Datei wächst um ~1.800 Zeilenumbrüche (+1,8 KB). Längste Zeile in `wgapp.html` jetzt 700 Zeichen.
+
+**Warum so:** die Roadmap nannte zwei Wege — Wörterbuch erst im Build einbetten oder je Zeile schreiben. „Im Build" hätte Startweg, CSP-Hash und Offline-Verhalten berührt; „je Zeile" ändert nichts zur Laufzeit. Der lange Zeile kostete in jeder Sitzung Kontext (Regel „Zeile 1602 nie lesen, immer `cut`").
+
+**Was schiefging:** Zur Probe `--export` laufen lassen, ohne daran zu denken, dass es `lang/en.json` schreibt — 29 Einträge wurden umsortiert (Inhalt gleich). Per `git checkout -- lang/en.json` zurück, danach `--write` erneut: `wgapp.html` byte-gleich.
+
