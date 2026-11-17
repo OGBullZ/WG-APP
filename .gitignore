@@ -17,3 +17,8 @@ scratchpad/gegenprobe-*.log
 scratchpad/*.png
 # … und in Unterordnern (wg-v105: `bilder-v105/` hätte `*.png` oben nicht erfasst)
 scratchpad/**/*.png
+
+# W3 (17.11.): Abnahme-Werkzeuge — Schnappschüsse, Logs und Bilder entstehen je Lauf und gehören nicht in den Commit
+scratchpad/schnappschuss/
+scratchpad/abnahme-*.log
+scratchpad/bilder/

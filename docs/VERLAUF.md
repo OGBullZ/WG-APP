@@ -1079,3 +1079,15 @@ Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen 
 
 **Was schiefging:** Zur Probe `--export` laufen lassen, ohne daran zu denken, dass es `lang/en.json` schreibt — 29 Einträge wurden umsortiert (Inhalt gleich). Per `git checkout -- lang/en.json` zurück, danach `--write` erneut: `wgapp.html` byte-gleich.
 
+**Ship v123** war der erste mit parallelem Gate: 86/86 grün, Vercel success, `npm run betrieb` unauffällig.
+
+## W3 — Abnahme-Werkzeuge im Repo (17.11., ohne Release)
+
+**Was:** `scripts/schnappschuss.mjs`, `scripts/abnahme.mjs` (gegenprobe / regression / liste), `scripts/abnahme-start.ps1`, `scripts/bilder.mjs`; Ablage unter `scratchpad/schnappschuss|bilder`, Logs `scratchpad/abnahme-*.log` (alles in `.gitignore`).
+
+**Warum:** In Runde D und W1/W2 schrieb jede Sitzung dieselben Skripte im Temp-Ordner neu (Gegenprobe-Kopie, `api/`-Tausch, losgelöster Start, Bilder) — beim Berichtsheft ging das Bau-Skript von Nr. 118 so ganz verloren.
+
+**Belegt:** Gegenprobe `gutachten2_d3` gegen v121 (aus git geholt): 13 grün / 13 rot, Kopie danach weg; `gutachten2_d4` gegen v121: rot, `api/` per Byte-Vergleich zurück (vom Hauptloop nachgefahren); gleicher Stand → Warnung „GRUEN gegen alten Stand → Test misst nichts".
+
+**Fund beim ersten Belastungsbild** (320 px, „Sehr groß", `--last`): Ring-Betrag „€46551,3…" abgeschnitten (bekannt, G3/GRENZ-8) und **Tab-Beschriftungen gekürzt** („He…", „Haus…") — neu, in G2 aufgenommen.
+

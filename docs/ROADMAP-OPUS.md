@@ -256,7 +256,8 @@ Seit v119 steht offen, dass nie am iPhone geprüft wurde. Opus erstellt **eine**
   2. Datum bekommt `white-space:nowrap`, Namen `overflow-wrap:normal` + Auslassung.
   3. Symbolfeld schrumpft bei „Sehr groß" + 320 auf 28 px.
 - **Test:** Belastungs-WG (lange Namen, 3 Personen, vierstellige Beträge), 320 px × „Sehr groß": kein Wort bricht innerhalb des Wortes (Zeilenanzahl je Wort = 1, per Range-Rects gemessen), kein Datum umbrochen, nichts ragt über den Kartenrand.
-- **Bilder:** 320/390 × normal/„Groß"/„Sehr groß" × DE/EN = 12 Bilder, alle ansehen.
+- **Zweiter Fund (17.11., Belastungsbild aus `scripts/bilder.mjs --last`):** bei 320 px + „Sehr groß" werden die **Tab-Beschriftungen gekürzt** („He…", „Haus…", „Grow…", „Pri…"). `test/a11y.mjs` prüft die Tab-Leiste nur bei normaler Schrift (390/360 px) → diese Achse in den G2-Test aufnehmen. Lösungsweg prüfen: bei „Sehr groß" + schmal nur Symbole mit `aria-label`, oder Schrift der Tab-Leiste vom Zoom ausnehmen.
+- **Bilder:** `node scripts/bilder.mjs --tabs haus,heute,putz --breiten 320,390 --schrift normal,gross --sprache de,en --last` (W3) — alle ansehen.
 - **Aufwand:** M.
 
 ### G3 — Große Beträge (GRENZ-8, in `wg-v128`)
@@ -467,7 +468,7 @@ Beim Abschluss eines Pakets hier abhaken (Datum, Version, Commit). Was sich als 
 |---|---|---|---|
 | W1 Gate parallel | ✅ Gate 80 → 31–35 min (3 Arbeiter), ein Server reicht; `gutachten2_c3` nur seriell (→ W5) | siehe `git log -- scripts/leise.mjs` | 17.11. |
 | W2 Wörterbuch-Zeile | ✅ ein Eintrag je Zeile, Objekt vorher = nachher (1788), längste Zeile 700 | wg-v123 | 17.11. |
-| W3 Abnahme-Werkzeuge | offen | | |
+| W3 Abnahme-Werkzeuge | ✅ `schnappschuss.mjs`, `abnahme.mjs` (gegenprobe/regression/liste), `abnahme-start.ps1`, `bilder.mjs` | Gegenprobe gegen v121 rot, Rücktausch gemessen | 17.11. |
 | W4 Tests vom Wortlaut lösen | offen | | |
 | W5 CI Linux grün | offen — Spur: FILM-8 in `gutachten2_c3` misst Tempo je Bild statt je ms (kippt unter Last und unter Linux) | | |
 | E1 Schrift | offen | | |

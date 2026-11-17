@@ -32,6 +32,7 @@ WG-Splitter für 2 Personen (Torben + Tom). Single-File-PWA, Live-Sync zwischen 
 - Neue Abschnitte (Release-Notizen, Fehlversuche) **dort unten anhängen**, nicht hier. Hier nur, was jede Sitzung wissen muss.
 - **Was als Nächstes ansteht: `docs/ROADMAP-OPUS.md`** (15.11., 27 Pakete in 8 Blöcken). Nur Teil 0 (Regeln) und das eine Paket lesen, das dran ist; Fortschritt im Anhang 3 dort abhaken.
 - Tests leise laufen lassen: `node scripts/leise.mjs test/a.mjs test/b.mjs` — zeigt nur rote Prüfungen + Summe je Datei. Viele Dateien: `--arbeiter 3` (parallel, gleicher Server 8099). **Das Ship-Gate läuft seit 17.11. mit 3 Arbeitern (~32 statt ~80 min)**, `WG_SERIELL=1` schaltet zurück. Rot nur im Pool → `⚠ nur parallel rot`, zählt als rot; Ausnahmen nur mit benannter Ursache in `NUR_SERIELL` (`scripts/leise.mjs`).
+- **Abnahme-Werkzeuge (seit 17.11., W3)** — nicht neu schreiben: `node scripts/schnappschuss.mjs <name>` (alter Stand nach `scratchpad/schnappschuss/`), `node scripts/abnahme.mjs gegenprobe <test> <name>` (Browser-Test per Kopie, Server-Test per `api/`-Tausch mit gemessenem Rücktausch; muss rot werden) · `regression` · `liste <dateien>`; lange Läufe losgelöst über `scripts/abnahme-start.ps1` (Log endet immer auf `EXIT …`). Pflichtbilder: `node scripts/bilder.mjs --tabs … --breiten 390,320,768,1440 --schrift normal,gross --thema dunkel,hell --sprache de,en [--last]`.
 
 ## Live & Deploy
 
