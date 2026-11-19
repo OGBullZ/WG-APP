@@ -6607,14 +6607,22 @@ function DebtWatch() {
   return (
     <>
       {w && (
-        <div className="rise" data-testid="debt-watch" style={{borderRadius:14,border:'1px solid rgba(251,191,36,.45)',background:'rgba(251,191,36,.08)',padding:'12px 14px',display:'flex',flexDirection:'column',gap:6}}>
-          <span style={{fontSize:14,fontWeight:800}}>{TT("⏳ Zeit zum Abrechnen")}</span>
-          <span style={{fontSize:13,color:'var(--label2)',lineHeight:1.5}}>
+        /* wg-v125 (REST-1): wie die Push-Warnkarte — .group.warn (bewusst ohne eigene Hellwerte, s. dort; kein Inline-rgba mehr) + .cell mit getöntem Symbolfeld;
+           Emoji steht im Symbolfeld, der Titel wird ohne Emoji gezeigt (TT-Schlüssel bleibt unverändert, daher das Abschneiden statt neuem Wörterbuch-Eintrag) */
+        <div className="group rise warn" data-testid="debt-watch">
+         <div className="cell" style={{alignItems:'flex-start'}}>
+          <span className="cell-icon" data-ton="amber" aria-hidden="true">⏳</span>
+          <div className="cell-content">
+          <span className="cell-title">{TT("⏳ Zeit zum Abrechnen").replace(/^⏳\s*/,'')}</span>
+          <span className="cell-sub">
             {/* wg-v125 (G8): Betrag samt folgender Klammer/Punkt als nowrap-Kästchen — nie „Grenze: €50,00" / „)." auf zwei Zeilen */}
             {w.overMax && TT("Offen sind €{0} (eure Grenze: €{1}).", fmt(w.top), fmt(cfg.max)).split(/(€[\d.,]+[).]*)/).map((s,i)=>i%2?<span key={i} style={{whiteSpace:'nowrap'}}>{s}</span>:s)}{w.overMax && w.overAge ? ' ' : ''}
             {w.overAge && TT("Der älteste offene Posten ist {0} Tage alt (Grenze: {1}).", w.age, cfg.days)}
           </span>
-          <button className="btn btn-sec" style={{width:'auto',padding:'7px 12px',fontSize:12.5,alignSelf:'flex-start'}} onClick={()=>setF({ max:String(cfg.max).replace('.',','), days:String(cfg.days) })}>{TT("Grenzen ändern")}</button>
+          {/* wg-v125 (REST-1): Knopf unter dem Text in der Textspalte (nicht rechts daneben → bei 320 px blieb sonst eine Wortbreite für den Text); Größe/Klasse unverändert (REST-3 läuft parallel) */}
+          <button className="btn btn-sec" style={{width:'auto',padding:'7px 12px',fontSize:12.5,alignSelf:'flex-start',marginTop:6}} onClick={()=>setF({ max:String(cfg.max).replace('.',','), days:String(cfg.days) })}>{TT("Grenzen ändern")}</button>
+          </div>
+         </div>
         </div>
       )}
       <MiniSheet open={!!f} onClose={()=>setF(null)} title={TT("Wann erinnern?")} color="var(--amber)">
