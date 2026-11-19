@@ -170,12 +170,15 @@ check('W1 „alle 3 Tage" bricht nicht mitten im Rhythmus um',
   rhythmus.length >= 2 && rhythmus.some(r => /alle 3 Tage/.test(r.text || '')) && rhythmus.every(r => r.stuecke === 1), JSON.stringify(rhythmus));
 
 // ── M: Tonnen-Symbole — im Dunkeln mit hellem Saum, im Kalender groß genug ──
-const tonneDunkel = await S.page.locator('[data-testid="pickup-row"] .em-saum').first().evaluate(e => getComputedStyle(e).filter).catch(() => 'FEHLT');
-check('M1 dunkel: das Tonnen-Symbol hat einen hellen Saum (⚫ lag sonst auf Schwarz)', /drop-shadow/.test(tonneDunkel), tonneDunkel);
+/* wg-v126 (E3, REST-6): .em-saum (Drop-Shadow-Rand) ist weg, das Tonnen-Symbol steht im Feld .cell-icon.klein. Der Schutz für ⚫ Restmüll/🟤 Bio auf Dunkel
+   bleibt derselbe Zweck, aber der Mechanismus ist ein anderer: das graue Feld ist kräftiger hinterlegt (Alpha .22 statt .12) → hier wird die Hinterlegung gemessen. */
+const tonneDunkel = await S.page.locator('[data-testid="pickup-row"] .cell-icon.klein').first().evaluate(e => getComputedStyle(e).backgroundColor).catch(() => 'FEHLT');
+const alphaDunkel = Number((String(tonneDunkel).match(/rgba\([^)]*,\s*([\d.]+)\)/) || [])[1] || 0);
+check('M1 dunkel: das Tonnen-Symbol liegt auf einem hellen Feld (Alpha >= .2; ⚫ lag sonst auf Schwarz)', alphaDunkel >= 0.2, tonneDunkel);
 await zuTab(S.page, 'Übersicht');
 const kal = await S.page.evaluate(() => {
-  // seit wg-v102 Terminliste statt Raster: das Symbol steht vor dem Text in `.kal-eintrag .em-saum`
-  const mit = [...document.querySelectorAll('[data-testid="kal-tag"] .kal-eintrag .em-saum')].filter(s => s.textContent.trim());
+  // seit wg-v102 Terminliste statt Raster: das Symbol steht vor dem Text in `.kal-eintrag`; seit wg-v126 (E3) im Feld `.cell-icon.klein` (vorher `.em-saum`)
+  const mit = [...document.querySelectorAll('[data-testid="kal-tag"] .kal-eintrag .cell-icon.klein')].filter(s => s.textContent.trim());
   return { markierte: mit.length, px: mit.length ? parseFloat(getComputedStyle(mit[0]).fontSize) : 0 };
 });
 check('M2 Kalender-Symbole sind mindestens 10 px groß (waren 8)', kal.markierte >= 1 && kal.px >= 10, JSON.stringify(kal));
@@ -187,7 +190,8 @@ check('G1 „Größte Posten": Symbol je Kategorie (verschiedene Posten, verschi
 
 // M1 im Hellmodus: dort KEIN Saum — alle Farben heben sich vom Weiß ab, ein Rand wäre nur Schmutz
 const H = await open({ theme: 'light', tab: 'putz' });
-const tonneHell = await H.page.locator('[data-testid="pickup-row"] .em-saum').first().evaluate(e => getComputedStyle(e).filter).catch(() => 'FEHLT');
+/* wg-v126 (E3): Selektor .em-saum → .cell-icon.klein; weiterhin gilt: im Hellmodus kein Drop-Shadow-Filter */
+const tonneHell = await H.page.locator('[data-testid="pickup-row"] .cell-icon.klein').first().evaluate(e => getComputedStyle(e).filter).catch(() => 'FEHLT');
 check('M3 hell: kein Saum', tonneHell === 'none', tonneHell);
 
 // ── V (wg-v101): Verlauf-Diagramm der Übersicht nur mit Ausgaben — und beim Wiedererscheinen mit sichtbaren Balken ──

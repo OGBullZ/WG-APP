@@ -165,6 +165,7 @@ Bewusst **außerhalb** des Sync-Datensatzes — die einzigen Daten der App, die 
 - **Tastatur:** `--kb` (aus visualViewport) hebt das Sheet; Geldfelder `type="text" inputMode="decimal"`, `parseNum` akzeptiert „8,50" und „8.50".
 - **ID-Vergleiche:** Items aus demselben Datensatz — Typ konsistent. Bei geräteübergreifenden Vergleichen aufpassen (string/number).
 - **Datum:** lokale Tagesmitte (`T12:00:00`) statt `new Date('YYYY-MM-DD')` (UTC) gegen Off-by-one.
+- **Symbole (wg-v126):** Linie (`ICONS`/`<Ic>`, `<DelX/>`) = Navigation und Aktion, Emoji = Inhalt; Zeilen-Symbole immer im `.cell-icon[data-ton]`-Feld (`.klein` für kompakte Zeilen), nie Inline-Hintergrund/-Schriftgröße.
 
 ## Autonomie
 
