@@ -188,7 +188,8 @@ check('F2 nur Tage mit Terminen, sortiert, ab heute', zeilen.length > 0 && zeile
 check('F3 keine leeren Tageskästchen mehr (kein Raster)', zeilen.length < 22, String(zeilen.length));
 const tagInhalt = t => F.page.locator(`[data-tag="${t}"]`).innerText().catch(() => '');
 check('F4 heute heißt „Heute" und nennt das Essen im Klartext', /Heute/.test(await tagInhalt(T)) && /🍝/.test(await tagInhalt(T)) && /Lasagne/.test(await tagInhalt(T)), await tagInhalt(T));
-check('F5 Abwesenheit EINMAL mit „bis …" (nicht an jedem Tag)', /✈️.*bis/.test(await tagInhalt(inTagen(2))) && !/✈️/.test(await tagInhalt(inTagen(3))) && !/✈️/.test(await tagInhalt(inTagen(4))), await tagInhalt(inTagen(2)));
+/* wg-v126 (E3): Symbol steht jetzt im eigenen Feld (.cell-icon.klein) → innerText trennt Symbol und Text mit Zeilenumbruch; daher [\s\S] statt . */
+check('F5 Abwesenheit EINMAL mit „bis …" (nicht an jedem Tag)', /✈️[\s\S]*bis/.test(await tagInhalt(inTagen(2))) && !/✈️/.test(await tagInhalt(inTagen(3))) && !/✈️/.test(await tagInhalt(inTagen(4))), await tagInhalt(inTagen(2)));
 check('F6 Ausleih-Rückgabe am Fälligkeitstag, mit Namen', /↩️/.test(await tagInhalt(inTagen(5))) && /Bohrmaschine/.test(await tagInhalt(inTagen(5))));
 check('F7 Müllabfuhr (2-Wochen-Takt) steht heute oder in 14 Tagen', /⚫/.test(await tagInhalt(T)) || /⚫/.test(await tagInhalt(inTagen(14))));
 // „+ 3 Wochen" verlängert einmal; der Geburtstag am 15. liegt im Monat → spätestens danach drin, falls er noch kommt
@@ -196,7 +197,7 @@ await F.page.locator('[data-testid="kal-mehr"]').click(); await F.page.waitForTi
 const nachher = await F.page.locator('[data-testid="kal-tag"]').count();
 check('F8 „+ 3 Wochen" zeigt mindestens so viel wie vorher, Knopf danach weg', nachher >= zeilen.length && await F.page.locator('[data-testid="kal-mehr"]').count() === 0, `${zeilen.length} → ${nachher}`);
 const gebTag = `${YM}-15`;
-if (gebTag >= T) check('F9 kommender Geburtstag steht drin', /🎂.*Mama/.test(await tagInhalt(gebTag)), await tagInhalt(gebTag));
+if (gebTag >= T) check('F9 kommender Geburtstag steht drin', /🎂\s*Mama/.test(await tagInhalt(gebTag)), await tagInhalt(gebTag));
 // Vergangener Monat über die Monatsauswahl der Übersicht (der Kalender hat keine eigene mehr)
 const statsZurueck = F.page.locator('[data-testid="stats-month"] [aria-label="Vorheriger Monat"]');
 check('F10 nur EINE Monatsauswahl auf der Seite', await F.page.locator('[data-testid="kal-zurueck"], [data-testid="kal-vor"]').count() === 0 && await statsZurueck.count() === 1);
@@ -206,7 +207,7 @@ check('F11 Vormonat: Kopf nennt Monat und Jahr, Liste ohne Absturz', /Termine/i.
 // Derselbe Monat im Vorjahr (noch 11× zurück): der Geburtstag am 15. kommt jedes Jahr wieder
 for (let i = 0; i < 11; i++) { await statsZurueck.click(); await F.page.waitForTimeout(120); }
 const vorjahr = `${+YM.slice(0, 4) - 1}-${YM.slice(5)}-15`;
-check('F12 gleicher Monat im Vorjahr: Geburtstag am 15. steht drin', /🎂.*Mama/.test(await F.page.locator(`[data-tag="${vorjahr}"]`).innerText().catch(() => '')), vorjahr);
+check('F12 gleicher Monat im Vorjahr: Geburtstag am 15. steht drin', /🎂\s*Mama/.test(await F.page.locator(`[data-tag="${vorjahr}"]`).innerText().catch(() => '')), vorjahr);
 
 const alleErrs = [...A.errs, ...B.errs, ...C.errs, ...Dd.errs, ...E.errs, ...G.errs, ...F.errs].filter(e => !/ResizeObserver/.test(e));
 check('Z1 keine Seitenfehler', alleErrs.length === 0, alleErrs.slice(0, 3).join(' | '));

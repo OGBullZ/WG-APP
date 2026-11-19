@@ -12162,7 +12162,7 @@ function Putzplan() {
               {log.slice(0,3).map(l=>{
                 const u=users.find(x=>x.id===l.userId), vor=daysSince(l.date);
                 return(
-                  <div key={l.id} className={`cell${flashIds.has(l.id)?' flash':''}`} style={{minHeight:46,padding:'10px 16px',gap:8 /* wg-v126 (G9 + E3): 13 → 8 px — bei 320 px + „Sehr groß" fehlten ~8 px (Symbol + Titel 3,5 em + Name + „vor 2 Tagen"), das Datum ragte aus der Karte; das 28-px-Symbolfeld (E3) kostet zusätzlich ~12 px, die Namensspalte bricht dafür (G9) */,...(flashIds.has(l.id)?{'--flash-c':hexRgba(flashFarbe(l.id, u?.color||'#fbbf24'),1)}:null)}} data-testid="putz-log-row">
+                  <div key={l.id} className={`cell${flashIds.has(l.id)?' flash':''}`} style={{minHeight:46,padding:'10px 16px',gap:6 /* wg-v126 (G9 + E3): 13 → 6 px (8 reichte nach dem Zusammenführen bei 320 px + „Sehr groß" um 4 px nicht) — bei 320 px + „Sehr groß" fehlten ~8 px (Symbol + Titel 3,5 em + Name + „vor 2 Tagen"), das Datum ragte aus der Karte; das 28-px-Symbolfeld (E3) kostet zusätzlich ~12 px, die Namensspalte bricht dafür (G9) */,...(flashIds.has(l.id)?{'--flash-c':hexRgba(flashFarbe(l.id, u?.color||'#fbbf24'),1)}:null)}} data-testid="putz-log-row">
                     {/* wg-v126 (E3, REST-6): freies 16-px-Emoji → kleines Symbolfeld (amber = Putzplan wie die Hinweise) */}
                     <span className="cell-icon klein" data-ton="amber" aria-hidden="true">{l.em||'🧽'}</span>
                     {/* wg-v117 (HIER-7): „Zuletzt erledigt" in der Zeilentitel-Stufe (.cell-title 16/600) statt eigener 14,5 */}
