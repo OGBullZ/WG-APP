@@ -473,6 +473,9 @@ button.cell { color:var(--label); }
 }
 .seg-btn, .chip-scroll > button, .stepper button, .hit-v { position:relative; }
 .seg-btn::after, .chip-scroll > button::after, .hit-v::after { content:''; position:absolute; inset:-6px 0; }
+/* wg-v125 (G8): Formular-Chips sind 29 px hoch → 14 px oben + 2 px unten ergibt 45 px Tippfläche (vorher 41); die Wischzeile bekommt dafür
+   inline vertikales Polster mit gleich großem Minus-Rand (catChips), sonst schneidet overflow-x die Fläche oben/unten ab. */
+.chip-scroll > button::after { inset:-14px 0 -2px; }   /* unten nur 2 px: direkt darunter beginnt die Knopfleiste „Weiter" (gemessen: Treffer endet 2,5 px unter dem Chip) */
 .stepper button::after { content:''; position:absolute; inset:-4px; }
 /* Solange der Hinweis steht, unten Platz lassen — sonst verdeckt er am Seitenende Inhalte */
 .screen:has(~ .moved-banner) .content, body:has(.moved-banner) .content { padding-bottom:210px; }
@@ -724,6 +727,10 @@ button.cell { color:var(--label); }
   font-size:13px; font-weight:700; letter-spacing:0;
   transition:all .22s ease; background:transparent; color:var(--label2);
 }
+/* wg-v125 (G8): Haushalt-Umschalter — Beschriftung nie umbrechen („Einkaufsliste" / „(2)" auf zwei Zeilen bei 320 px + Sehr groß);
+   Wort + Zähler bleiben eine Zeile, engere Seitenränder statt Kürzen */
+.seg[data-testid="haus-seg"] .seg-btn { white-space:nowrap; padding-left:2px; padding-right:2px; min-width:0; }
+@media (max-width:340px) { .seg[data-testid="haus-seg"] .seg-btn { font-size:11.5px; padding-left:0; padding-right:0; } }   /* 320 px + Sehr groß: 116 px Text auf 105 px Platz */
 .seg-btn.on { background:rgba(255,255,255,.12); color:var(--label); box-shadow:0 4px 14px rgba(0,0,0,.25); }
 /* wg-v112 (P4): hell ein weißes „Plättchen" auf dem grauen Feld, das mit zwei weichen Schatten abhebt (Weiß-Alpha wäre unsichtbar) */
 [data-theme="light"] .seg-btn.on { background:#fff; box-shadow:0 1px 2px rgba(11,21,16,.08), 0 2px 8px rgba(11,21,16,.08); }
@@ -6598,7 +6605,8 @@ function DebtWatch() {
         <div className="rise" data-testid="debt-watch" style={{borderRadius:14,border:'1px solid rgba(251,191,36,.45)',background:'rgba(251,191,36,.08)',padding:'12px 14px',display:'flex',flexDirection:'column',gap:6}}>
           <span style={{fontSize:14,fontWeight:800}}>{TT("⏳ Zeit zum Abrechnen")}</span>
           <span style={{fontSize:13,color:'var(--label2)',lineHeight:1.5}}>
-            {w.overMax && TT("Offen sind €{0} (eure Grenze: €{1}).", fmt(w.top), fmt(cfg.max))}{w.overMax && w.overAge ? ' ' : ''}
+            {/* wg-v125 (G8): Betrag samt folgender Klammer/Punkt als nowrap-Kästchen — nie „Grenze: €50,00" / „)." auf zwei Zeilen */}
+            {w.overMax && TT("Offen sind €{0} (eure Grenze: €{1}).", fmt(w.top), fmt(cfg.max)).split(/(€[\d.,]+[).]*)/).map((s,i)=>i%2?<span key={i} style={{whiteSpace:'nowrap'}}>{s}</span>:s)}{w.overMax && w.overAge ? ' ' : ''}
             {w.overAge && TT("Der älteste offene Posten ist {0} Tage alt (Grenze: {1}).", w.age, cfg.days)}
           </span>
           <button className="btn btn-sec" style={{width:'auto',padding:'7px 12px',fontSize:12.5,alignSelf:'flex-start'}} onClick={()=>setF({ max:String(cfg.max).replace('.',','), days:String(cfg.days) })}>{TT("Grenzen ändern")}</button>
@@ -10556,7 +10564,7 @@ function Haushalt({goPutz}) {
   /* Name-Schritt inkl. optionaler Kategorie-Chips — von steps UND recSteps genutzt. */
   /* wg-v116: `gi` = Grow-Posten → die Grow-Kategorien, dieselben, die der Grow-Tab anbot (Archiv/Übersicht kennen sie) */
   const catChips = ({data:d,setData:sd}, gi) => { const liste = gi ? GROW_CATS : CATS, farben = gi ? GROW_CAT_COLORS : CAT_COLORS; return (
-    <div className="chip-scroll" style={{display:'flex',gap:6,marginTop:10,overflowX:'auto',paddingBottom:2}}>
+    <div className="chip-scroll" style={{display:'flex',gap:6,marginTop:-4,position:'relative',overflowX:'auto',paddingTop:14,paddingBottom:2}}>{/* wg-v125 (G8): Polster 14 px oben = ::after-Tippfläche, Minus-Rand (−4 + 14 = alte 10) gleicht aus → Blatthöhe unverändert; relative: liegt über der Nachbarzeile */}
       {liste.map(([k,em,label])=>(
         <button key={k} type="button" onClick={()=>sd({...d,cat:d.cat===k?null:k})}
           style={{fontSize:12,borderRadius:12,padding:'6px 10px',border:'none',fontWeight:d.cat===k?800:600,flexShrink:0,whiteSpace:'nowrap',
