@@ -1001,6 +1001,22 @@ button.cell { color:var(--label); }
    (vorher umgekehrt: Prozent 17/800 laut, Betrag 11,5 px leise) */
 .bil-pct  { font-size:12px; font-weight:600; color:var(--label3); }
 .bil-eur  { font-size:14px; font-weight:700; color:var(--label); min-width:52px; text-align:right; white-space:nowrap; }
+/* wg-v124 (G3): fünfstellige Beträge („€99.999,99" ≈ 82 px bei 14/700) passten neben Name + Prozent nicht mehr — auf 390 px ragte der Betrag 21 px
+   über die Legende, bei 320 px + „Sehr groß" 41 px. Gewählt: Betrag in die ZWEITE Zeile (wie unter 380 px schon bei allen Beträgen), aber nur bei langen
+   Beträgen (fmt ≥ 9 Zeichen = ab 10.000 €) → kurze Beträge sehen auf jeder Breite aus wie vorher. Verworfen: Schrift nach Zeichenzahl verkleinern
+   (14 → 11 px macht gerade die wichtigste Zahl der Karte klein und passt bei „Sehr groß" trotzdem nicht). Einrückung 17 = Punkt 9 + Lücke 8 → Betrag fluchtet mit dem Namen. */
+/* wg-v124 (G3): auf schmaler WIRKSAMER Breite (< 388 px; Media Query für Zoom 100 %, data-eng für „Sehr groß", siehe unten) bleiben neben dem 104–128-px-Ring nur
+   ~60–90 px — ein 5-stelliger Betrag (≈ 82 px) passt dann auch in der zweiten Zeile nicht. Bei langen Beträgen rutscht deshalb die ganze Legende UNTER den Ring
+   (Ring mittig, Legende volle Breite); kurze Beträge behalten das Nebeneinander. */
+@media (max-width:387px) {
+  .bil-kopf-lang { flex-wrap:wrap; justify-content:center; }
+  .bil-kopf-lang .bil-leg { flex:1 1 100%; }
+}
+:root[data-eng] .bil-kopf-lang { flex-wrap:wrap; justify-content:center; }
+:root[data-eng] .bil-kopf-lang .bil-leg { flex:1 1 100%; }
+.bil-row-lang { flex-wrap:wrap; row-gap:1px; column-gap:8px; }
+.bil-row-lang .bil-eur { order:4; flex:1 1 calc(100% - 44px); text-align:left; padding-left:17px; min-width:0; }
+.bil-row-lang .bil-chev { order:5; }
 .bil-chev { color:var(--label3); font-size:16px; line-height:1; margin-left:1px; }
 /* Schmal (320–379 px): neben dem Ring bleiben auch geschrumpft nur ~130 px — eine Zeile brauchte 186 px und ragte aus der Karte.
    Zeile 1: Punkt · Name · Prozent; Zeile 2 (eingerückt wie der Name): Betrag · ›. 🪤 Name ohne min-width:0 —
@@ -3519,7 +3535,12 @@ const setLang = (l) => { try { localStorage.setItem('wg_lang', JSON.stringify(l)
 const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const WD_EN = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-const fmt  = n => (LANG === 'en' ? Number(n||0).toFixed(2) : Number(n||0).toFixed(2).replace('.', ','));     // 8,50 bzw. 8.50
+/* wg-v124 (G3): ab 10.000 € mit Tausendertrenner („119.937,50" / „119,937.50"), darunter byte-gleich wie bisher („8,50" / „8.50").
+   Die Schwelle hängt am GERUNDETEN Wert (toFixed), damit 9999,996 nicht als „10000,00" ungruppiert bleibt. Export (CSV) und Eingabefelder
+   nutzen eigene Formate ohne Trenner (exportCsv: eur, numIn) — Rundreise: parseNum liest „10.000,00" wieder als 10000. */
+const fmt  = n => { const v = Number(n||0);
+  if (Math.abs(parseFloat(v.toFixed(2))) >= 10000) return v.toLocaleString(LOC(), { minimumFractionDigits:2, maximumFractionDigits:2 });
+  return LANG === 'en' ? v.toFixed(2) : v.toFixed(2).replace('.', ','); };     // 8,50 bzw. 8.50
 /* Salden auf Cent runden, VORZEICHENSYMMETRISCH (wg-v113). Derselbe Saldo wird an drei Stellen auf verschiedenen Wegen summiert
    (Bilanz-Ring = eigener Saldo, Ausgleich-Karte = Saldo des anderen, Heute = myBalance) — die Werte unterscheiden sich nur im
    Fließkomma-Rauschen (~1e-12). Liegt der Betrag genau auf einem halben Cent (z. B. 24,01 € geteilt), kippte toFixed das Rauschen
@@ -5121,7 +5142,9 @@ function bewegeEinmal(el, von) {
    bewegen sich genau die Stellen, deren Zeichen sich geändert haben, einmal (steigt der Wert: von unten, fällt er: von oben). */
 function CountUp({ value, dec=2, prefix='', suffix='' }) {
   // Dezimaltrennzeichen wie überall sonst über fmt: Komma auf Deutsch, Punkt auf Englisch
-  const dz    = n => { const s = Number(n).toFixed(dec); return LANG === 'en' ? s : s.replace('.', ','); };
+  /* wg-v124 (G3): bei 2 Nachkommastellen über fmt → ab 10.000 mit Tausenderpunkt wie die Legende daneben (Ring-Mitte zeigte „€18263,23",
+     die Karte darunter „€18.263,23"); andere Stellenzahlen unverändert */
+  const dz    = n => { if (dec === 2) return fmt(n); const s = Number(n).toFixed(dec); return LANG === 'en' ? s : s.replace('.', ','); };
   const final = prefix + dz(value) + suffix;
   const wurzel = useRef(null);
   const vorWert = useRef(value);   // letzter Wert, nur für die Richtung der Bewegung
@@ -10624,7 +10647,7 @@ function Haushalt({goPutz}) {
           <div className="hero rise" ref={heroRef} style={{'--glow':'rgba(94,234,212,.16)',animationDelay:'40ms'}}>
             {stamp&&<div className="settle-stamp">✓</div>}
             <div className="hero-lbl" style={{marginBottom:16}}>{TT("Deine Bilanz")}</div>
-            <div style={{display:'flex',alignItems:'center',gap:20}}>
+            <div className={`bil-kopf${fmt(hsShare).length>=9||(growOn&&giShare>0.004&&fmt(giShare).length>=9)?' bil-kopf-lang':''}`} style={{display:'flex',alignItems:'center',gap:20}}>
               {/* Donut-Mitte zeigt jetzt den Netto-Saldo (was ich schulde / mein Guthaben) statt der Gesamtkosten —
                   die absolute Summe „dein Anteil" lebt nur noch im Übersicht-Tab. Ring = Zusammensetzung nach Prozent. */}
               {/* `|| totalNet<-0.01` (wg-v107): sind nur Umbuchungen offen (Kosten 0), schulde ich trotzdem — dann nicht 🎉 */}
@@ -10672,7 +10695,7 @@ function Haushalt({goPutz}) {
                 </div>
               ) : (
               <div className="bil-leg">
-                <div className="bil-row">
+                <div className={`bil-row${fmt(hsShare).length>=9?' bil-row-lang':''}`} /* wg-v124 (G3): ab 10.000 € Betrag in die zweite Zeile, siehe .bil-row-lang */>
                   <div style={{width:9,height:9,borderRadius:'50%',background:'var(--mint)',boxShadow:'0 0 8px var(--mint)',flexShrink:0}}/>
                   <span className="bil-name">{TT("Haushalt")}</span>
                   <span className="num bil-pct">{myCost>0?hsPct:0}%</span>
@@ -10682,7 +10705,7 @@ function Haushalt({goPutz}) {
                   /* wg-v116: Zeile statt Knopf in den Grow-Tab — die Grow-Posten stehen jetzt hier unten in den Einzelposten.
                      wg-v117: nur mit eigenem Grow-Anteil — als Knopf hatte die Zeile auch bei 0 einen Zweck (Weg in den Grow-Tab), als reine Anzeige war
                      „Growbox 0 % €0,00" nur Rauschen (Ring zeigt das Grow-Segment ebenfalls erst ab giShare > 0) */
-                  <div className="bil-row" data-testid="bil-grow">
+                  <div className={`bil-row${fmt(giShare).length>=9?' bil-row-lang':''}`} data-testid="bil-grow">
                     <div style={{width:9,height:9,borderRadius:'50%',background:'var(--lime)',boxShadow:'0 0 8px var(--lime)',flexShrink:0}}/>
                     <span className="bil-name">{TT("Growbox")}</span>
                     <span className="num bil-pct">{myCost>0?giPct:0}%</span>

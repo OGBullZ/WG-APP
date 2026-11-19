@@ -10,7 +10,16 @@ const parseIso = (s) => { const [y, m, d] = String(s).split('-').map(Number); re
 const shiftIso = (iso, n) => { const d = parseIso(iso); d.setDate(d.getDate() + n); return isoOf(d); };
 const daysBetween = (a, b) => Math.round((parseIso(b) - parseIso(a)) / 864e5);
 const toArray = (v) => (Array.isArray(v) ? v : v && typeof v === 'object' ? Object.values(v) : []).filter(Boolean);
-const fmtEur = (n) => Number(n || 0).toFixed(2).replace('.', ',');
+// wg-v124 (G3): ab 10.000 € mit Tausenderpunkt wie die App („119.937,50"), darunter unverändert („12,99"). Von Hand gruppiert statt
+// toLocaleString — unabhängig von der ICU-Ausstattung der Laufzeit; Schwelle am gerundeten Wert (toFixed), wie fmt in wgapp.html.
+const fmtEur = (n) => {
+  const s = Number(n || 0).toFixed(2);
+  const [ganz, cent] = s.split('.');
+  const neg = ganz.startsWith('-');
+  const ziffern = neg ? ganz.slice(1) : ganz;
+  const gruppiert = ziffern.length > 4 ? ziffern.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : ziffern;   // 4 Ziffern (< 10.000) bleiben ohne Punkt
+  return `${neg ? '-' : ''}${gruppiert},${cent}`;
+};
 // wg-v122 (TEXT-5): der EINE Geld-Formatierer für alle Push-Texte → „€12,99" (wie die App); cron.js nutzt ihn mit
 const fmtGeld = (n) => `€${fmtEur(n)}`;
 
