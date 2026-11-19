@@ -706,6 +706,12 @@ button.cell { color:var(--label); }
 }
 .btn:active { transform:scale(.97); filter:brightness(1.1); }
 .btn-sec { background:rgba(255,255,255,.07); color:var(--label); font-weight:700; box-shadow:none; }
+/* wg-v125 (REST-3): drei Knopfstufen statt acht — Groß .btn 16/800 54 px (Hauptaktion) · Mittel .btn-klein 15 / 44 px ·
+   Kompakt .btn-kompakt 13/700, 40 px sichtbar, Tippfläche 44 px über ::after (2 px oben/unten, nur vertikal: in Reihen stehen die Knöpfe 6–8 px auseinander).
+   min-width 44 px: kurze Beschriftungen („An") bleiben breit genug zum Treffen. Die ::after-Regel ist spezifischer als „.cell > button::after" (-8 px → sonst 56 px hoch). */
+.btn.btn-kompakt, .btn-kompakt { width:auto; height:auto; min-height:40px; min-width:44px; padding:0 14px; border:none; border-radius:13px;
+  font-size:13px; font-weight:700; line-height:1.25; position:relative; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+.btn-kompakt::after, .cell > button.btn-kompakt::after, .section-hdr button.btn-kompakt::after { content:''; position:absolute; inset:-2px 0; }
 
 /* ── Grow-Zyklus: Phasen-Chips + kompakter Aktions-Button (Tap-Ziel bleibt 44px) ── */
 .phase-chip {
@@ -718,7 +724,7 @@ button.cell { color:var(--label); }
 .phase-chip .em { font-size:15px; line-height:1; }
 .mini-btn {
   min-height:44px; padding:0 14px; border-radius:13px; border:none; flex-shrink:0;
-  font-size:13.5px; font-weight:800; font-family:inherit; color:var(--ink); background:var(--lime);
+  font-size:15px; font-weight:800; font-family:inherit; color:var(--ink); background:var(--lime);   /* wg-v125 (REST-3): 15 statt 13,5 = Stufe Mittel (44 px, 15/800) */
   transition:transform .15s ease, filter .2s ease;
 }
 .mini-btn:active { transform:scale(.95); filter:brightness(1.1); }
@@ -6512,8 +6518,8 @@ function RecipeCard() {
               <span className="cell-title">{r.name}{r.usesSoon>0 && <b style={{color:'var(--amber)',fontSize:12.5}}> {TT("· nutzt Ablaufendes")}</b>}</span>
               <span className="cell-sub">{r.da.join(', ')} {TT("da")}{r.miss.length?TT(" · fehlt: {0}", r.miss.join(', ')):' · alles da ✓'}</span>
             </div>
-            {r.miss.length>0 && <button className="btn btn-sec" aria-label={TT("Fehlendes für {0} auf die Liste", r.name)} style={{width:'auto',padding:'8px 11px',fontSize:13}} onClick={()=>addMissing(r)}>🛒 {r.miss.length}</button>}
-            <button className="btn btn-sec" aria-label={TT("{0} einplanen", r.name)} style={{width:'auto',padding:'8px 11px',fontSize:13}} onClick={()=>plan(r)}>{TT("Einplanen")}</button>
+            {r.miss.length>0 && <button className="btn btn-sec btn-kompakt" aria-label={TT("Fehlendes für {0} auf die Liste", r.name)}  onClick={()=>addMissing(r)}>🛒 {r.miss.length}</button>}
+            <button className="btn btn-sec btn-kompakt" aria-label={TT("{0} einplanen", r.name)}  onClick={()=>plan(r)}>{TT("Einplanen")}</button>
           </div>
         ))}
       </div>
@@ -6619,8 +6625,8 @@ function DebtWatch() {
             {w.overMax && TT("Offen sind €{0} (eure Grenze: €{1}).", fmt(w.top), fmt(cfg.max)).split(/(€[\d.,]+[).]*)/).map((s,i)=>i%2?<span key={i} style={{whiteSpace:'nowrap'}}>{s}</span>:s)}{w.overMax && w.overAge ? ' ' : ''}
             {w.overAge && TT("Der älteste offene Posten ist {0} Tage alt (Grenze: {1}).", w.age, cfg.days)}
           </span>
-          {/* wg-v125 (REST-1): Knopf unter dem Text in der Textspalte (nicht rechts daneben → bei 320 px blieb sonst eine Wortbreite für den Text); Größe/Klasse unverändert (REST-3 läuft parallel) */}
-          <button className="btn btn-sec" style={{width:'auto',padding:'7px 12px',fontSize:12.5,alignSelf:'flex-start',marginTop:6}} onClick={()=>setF({ max:String(cfg.max).replace('.',','), days:String(cfg.days) })}>{TT("Grenzen ändern")}</button>
+          {/* wg-v125 (REST-1): Knopf unter dem Text in der Textspalte (nicht rechts daneben → bei 320 px blieb sonst eine Wortbreite für den Text); Stufe Kompakt (REST-3) */}
+          <button className="btn btn-sec btn-kompakt" style={{alignSelf:'flex-start',marginTop:6}} onClick={()=>setF({ max:String(cfg.max).replace('.',','), days:String(cfg.days) })}>{TT("Grenzen ändern")}</button>
           </div>
          </div>
         </div>
@@ -6665,8 +6671,8 @@ function ChoreHandover({ compact }) {
               <span className="cell-sub">{nameOfU(users, o.by)} {TT("kann nicht")}{o.note?` · „${o.note}"`:''}</span>
             </div>
             {o.by===me
-              ? <button className="btn btn-sec" style={{width:'auto',padding:'8px 11px',fontSize:13}} onClick={()=>back(o)}>{TT("Doch selbst")}</button>
-              : me && <button className="btn" style={{width:'auto',padding:'8px 11px',fontSize:13,background:'var(--amber)',color:'var(--ink)'}} onClick={()=>take(o)}>{TT("Übernehmen")}</button>}
+              ? <button className="btn btn-sec btn-kompakt" onClick={()=>back(o)}>{TT("Doch selbst")}</button>
+              : me && <button className="btn btn-kompakt" style={{background:'var(--amber)',color:'var(--ink)'}} onClick={()=>take(o)}>{TT("Übernehmen")}</button>}
           </div>); })}
       </div>
     </div>
@@ -6811,7 +6817,7 @@ function RentCard({ oeffnen } = {}) {
                   {p ? TT("bezahlt{0}{1}", p.ts ? TT(" am {0}", fmtDate(isoOfTs(p.ts))) : '', p.by && p.by !== u.id ? TT(" (vermerkt von {0})", nameOfU(users, p.by)) : '') : late ? TT("offen – überfällig") : TT("offen")}
                 </span>
               </div>
-              {mayMark && <button className="btn btn-sec" data-testid={p ? 'rent-undo' : 'rent-pay'} aria-label={p ? TT("{0}: Zahlung zurücknehmen", u.name) : TT("{0} hat gezahlt", u.name)} style={{ width: 'auto', padding: '8px 11px', fontSize: 13, flexShrink: 0 }} onClick={() => toggle(u)}>{p ? TT("Zurück") : u.id === me ? TT("Bezahlt ✓") : TT("Erhalten ✓")}</button>}
+              {mayMark && <button className="btn btn-sec btn-kompakt" data-testid={p ? 'rent-undo' : 'rent-pay'} aria-label={p ? TT("{0}: Zahlung zurücknehmen", u.name) : TT("{0} hat gezahlt", u.name)} style={{flexShrink: 0}} onClick={() => toggle(u)}>{p ? TT("Zurück") : u.id === me ? TT("Bezahlt ✓") : TT("Erhalten ✓")}</button>}
             </div>); })}
         </>}
       </div>
@@ -7191,7 +7197,7 @@ function PushNudge({ goTab }) {
               : mine==='denied' ? TT("In den Handy-Einstellungen erlauben – sonst fehlen Müll, Putzplan und Zahlungen.")   /* wg-v105: eine Zeile kürzer */
               : TT("Ohne sie verpasst du Müll, Putzplan und Zahlungen.")}</span>
           </div>
-          {mine==='off' && <button className="btn" style={{width:'auto',padding:'9px 14px',fontSize:14,flexShrink:0,background:'var(--sky)'}} onClick={jump}>{TT("Einschalten")}</button>}
+          {mine==='off' && <button className="btn btn-kompakt" style={{flexShrink:0,background:'var(--sky)'}} onClick={jump}>{TT("Einschalten")}</button>}
         </div>
       )}
       {missing.map(u=>(
@@ -7206,7 +7212,7 @@ function PushNudge({ goTab }) {
           {/* wg-v117 (HIER-11): paddingLeft 30 → 46 = Symbol-Feld 36 + Abstand 10, damit die Knöpfe weiter unter dem Text beginnen (vorher 20 + 10) */}
           <div style={{flexBasis:'100%',display:'flex',gap:8,paddingLeft:46}}>
             <a className="btn" data-testid="push-nudge-wa" href={wa(u)} target="_blank" rel="noopener" style={{flex:1,padding:'9px 12px',fontSize:13.5,background:'#25d366',color:'#062b14',textDecoration:'none',display:'flex',alignItems:'center',justifyContent:'center'}}>{TT("Per WhatsApp sagen")}</a>
-            <button className="btn btn-sec" style={{width:'auto',padding:'9px 14px',fontSize:13.5}} onClick={snooze}>{TT("Später")}</button>
+            <button className="btn btn-sec btn-kompakt" onClick={snooze}>{TT("Später")}</button>
           </div>
         </div>
       ))}
@@ -7257,8 +7263,8 @@ function StatusCard({ oeffnen } = {}) {
             <span className="cell-title" data-testid="status-mine">{mine ? TT("Du: {0}", line(mine)) : TT("Kein Status")}</span>
             <span className="cell-sub">{mine ? TT("verschwindet von selbst") : TT("Unterwegs? Zurück um …? Die anderen sehen es hier")}</span>
           </div>
-          {mine && <button className="btn btn-sec" style={{width:'auto',padding:'8px 11px',fontSize:13,flexShrink:0}} onClick={clear}>{TT("Zurück ✓")}</button>}
-          <button className="btn btn-sec" style={{width:'auto',padding:'8px 11px',fontSize:13,flexShrink:0}} ref={oeffnenKnopf} onClick={()=>setF({ text:mine?.text||'', back:mine?.back||'' })}>{mine?TT("Ändern"):TT("Status")}</button>
+          {mine && <button className="btn btn-sec btn-kompakt" style={{flexShrink:0}} onClick={clear}>{TT("Zurück ✓")}</button>}
+          <button className="btn btn-sec btn-kompakt" style={{flexShrink:0}} ref={oeffnenKnopf} onClick={()=>setF({ text:mine?.text||'', back:mine?.back||'' })}>{mine?TT("Ändern"):TT("Status")}</button>
         </div>
       </div>
       <MiniSheet open={!!f} onClose={()=>setF(null)} title={TT("Mein Status")} color="var(--sky)">
@@ -7368,7 +7374,7 @@ function LoanCard() {
                 {it.dir==='out'?TT("verliehen"):TT("geliehen")} {TT("seit")} {fmtDM(it.since)}{d===null ? '' : d<0 ? TT(" · {0} Tag{1} über der Zeit", -d, plu(-d,'e')) : d===0 ? TT(" · heute zurück") : TT(" · zurück bis {0}", fmtDM(it.due))}
               </span>
             </div>
-            <button className="btn btn-sec" aria-label={TT("{0} ist zurück", it.what)} style={{width:'auto',padding:'8px 11px',fontSize:13,flexShrink:0}} onClick={()=>back(it)}>{TT("Zurück ✓")}</button>
+            <button className="btn btn-sec btn-kompakt" aria-label={TT("{0} ist zurück", it.what)} style={{flexShrink:0}} onClick={()=>back(it)}>{TT("Zurück ✓")}</button>
           </div>); })}
       </div>
       <MiniSheet open={!!f} onClose={()=>setF(null)} title={TT("Ausleihe")} color="var(--mint)">
@@ -7447,12 +7453,12 @@ function HomeDueCard() {
       {maint.map(t=>(
         <div key={t.id} className="cell" data-testid="home-due-maint"><span style={{fontSize:18}}>{t.em}</span>
           <div className="cell-content"><span className="cell-title">{t.name}</span><span className="cell-sub">{TT("Wartung fällig · alle")} {t.every} {TT("Mon.")}</span></div>
-          <button className="btn btn-sec" aria-label={TT("{0} erledigt", t.name)} style={{width:'auto',padding:'8px 11px',fontSize:13,flexShrink:0}} onClick={()=>done(t)}>{TT("Erledigt ✓")}</button>
+          <button className="btn btn-sec btn-kompakt" aria-label={TT("{0} erledigt", t.name)} style={{flexShrink:0}} onClick={()=>done(t)}>{TT("Erledigt ✓")}</button>
         </div>))}
       {loans.map(l=>(
         <div key={l.id} className="cell" data-testid="home-due-loan"><span style={{fontSize:18}}>🤝</span>
           <div className="cell-content"><span className="cell-title">{l.dir==='out'?TT("{0} von {1} zurückholen", l.what, l.person):TT("{0} an {1} zurückgeben", l.what, l.person)}</span><span className="cell-sub" style={{color:'var(--amber)'}}>{-daysSince(l.due)<0?TT("über der Zeit"):TT("heute")}</span></div>
-          <button className="btn btn-sec" aria-label={TT("{0} ist zurück", l.what)} style={{width:'auto',padding:'8px 11px',fontSize:13,flexShrink:0}} onClick={()=>back(l)}>{TT("Zurück ✓")}</button>
+          <button className="btn btn-sec btn-kompakt" aria-label={TT("{0} ist zurück", l.what)} style={{flexShrink:0}} onClick={()=>back(l)}>{TT("Zurück ✓")}</button>
         </div>))}
     </div>
   );
@@ -7845,8 +7851,8 @@ function SavingsCard({ oeffnen } = {}) {
                   <span className="cell-title">{g.name} · €{fmt(s)} / €{fmt(g.target)}</span>
                   <span className="cell-sub">{users.map(u=>`${u.name} €${fmt(Number(g['c_'+u.id])||0)}`).join(' · ')} {TT("· Geld bei")} {nameOfU(users, g.holder)}</span>
                 </div>
-                <button className="btn btn-sec" style={{width:'auto',padding:'8px 11px',fontSize:13}} onClick={()=>setPay({ goal:g, amount:'' })}>{TT("Einzahlen")}</button>
-                <button className="btn btn-sec" style={{width:'auto',padding:'8px 11px',fontSize:13}} onClick={()=>setBuy({ goal:g, price:String(g.target).replace('.',',') })}>{TT("Gekauft")}</button>
+                <button className="btn btn-sec btn-kompakt" onClick={()=>setPay({ goal:g, amount:'' })}>{TT("Einzahlen")}</button>
+                <button className="btn btn-sec btn-kompakt" onClick={()=>setBuy({ goal:g, price:String(g.target).replace('.',',') })}>{TT("Gekauft")}</button>
                 <div style={{flexBasis:'100%',height:5,borderRadius:3,background:'var(--bg3)',overflow:'hidden'}}><div style={{width:`${pct}%`,height:'100%',background:'var(--mint)'}}/></div>
               </div>
             );
@@ -7995,7 +8001,7 @@ function MealCard({ oeffnen } = {}) {
               <span className="cell-title">{(w=>w.charAt(0).toUpperCase()+w.slice(1))(boardWhen(e.date))} · {e.dish}</span>
               <span className="cell-sub"><b style={{color:u?.color}}>{u?.id===me?TT("Du kochst"):TT("{0} kocht", u?.name||'?')}</b>{e.ings?` · ${e.ings}`:''}</span>
             </div>
-            {e.ings && <button className="btn btn-sec" aria-label={TT("Zutaten für {0} auf die Liste", e.dish)} style={{width:'auto',padding:'8px 11px',fontSize:13,flexShrink:0}} onClick={()=>shop(e)}>{TT("🛒 Zutaten")}</button>}
+            {e.ings && <button className="btn btn-sec btn-kompakt" aria-label={TT("Zutaten für {0} auf die Liste", e.dish)} style={{flexShrink:0}} onClick={()=>shop(e)}>{TT("🛒 Zutaten")}</button>}
             <button className="del-btn" aria-label={TT("{0} entfernen", e.dish)} onClick={()=>del(e)}>×</button>
           </div>); })}
         {counts.length>1 && <div className="cell" style={{minHeight:40}}><span className="cell-sub" data-testid="meal-fair">{TT("Gekocht (30 Tage):")} {counts.map(c=>`${c.name} ${c.n}×`).join(' · ')}</span></div>}
@@ -8053,7 +8059,7 @@ function FridgeCard({ oeffnen } = {}) {
                   <span className="cell-title">{it.name}{u?<>{' '}<span style={{color:u.color,fontWeight:700,fontSize:13,display:'inline-block' /* wg-v120 (GRENZ-10a): der Zusatz „· deins" ist ein unteilbarer Block und rutscht als Ganzes in die nächste Zeile, statt mitten im Wort zu brechen („· de-/ins" bei 320 px, Ursache: .cell-title hat hyphens:auto). Bewusst inline-block statt nowrap: ein 40-Zeichen-Name (maxLength) darf innen weiter umbrechen, statt unter den „Weg ✓"-Knopf zu laufen. Das Leerzeichen davor steht draußen — am Anfang eines Blocks würde es verschluckt. */}}>· {u.id===me?TT("deins"):u.name}</span></>:''}</span>{/* wg-v118 (EN-3): „deins" übersetzt */}
                   <span className="cell-sub" style={{color:col,fontWeight:d<=1?700:500}}>{d<0?(-d===1?TT("seit 1 Tag abgelaufen"):TT("seit {0} Tagen abgelaufen", -d)):d===0?TT("läuft heute ab"):d===1?TT("läuft morgen ab"):TT("bis {0}", fmtDM(it.exp))}</span>
                 </div>
-                <button className="btn btn-sec" aria-label={TT("{0} ist aufgebraucht", it.name)} style={{width:'auto',padding:'8px 11px',fontSize:13,flexShrink:0}} onClick={e=>gone(it, e.currentTarget.closest('.cell'))}>{TT("Aufgebraucht ✓")}</button>
+                <button className="btn btn-sec btn-kompakt" aria-label={TT("{0} ist aufgebraucht", it.name)} style={{flexShrink:0}} onClick={e=>gone(it, e.currentTarget.closest('.cell'))}>{TT("Aufgebraucht ✓")}</button>
               </div>
             );
           })}
@@ -8208,8 +8214,8 @@ function RulesCard() {
         {pending.map(r=>{ const mine = r['ok_'+me]===true, waiting = users.filter(u=>r['ok_'+u.id]!==true).map(u=>u.name).join(', '); return (
           <div key={r.id} className="cell" data-testid="rule-pending" style={{flexWrap:'wrap',gap:8}}>
             <div className="cell-content"><span className="cell-title">{r.text}</span><span className="cell-sub" style={{color:'var(--amber)'}}>{TT("wartet auf")} {waiting}</span></div>
-            {!mine && me && <button className="btn" style={{width:'auto',padding:'8px 12px',fontSize:13,background:'var(--green)'}} onClick={()=>agree(r)}>{TT("Einverstanden")}</button>}
-            <button className="btn btn-sec" style={{width:'auto',padding:'8px 12px',fontSize:13}} onClick={()=>reject(r)}>{mine?TT("Zurückziehen"):TT("Ablehnen")}</button>
+            {!mine && me && <button className="btn btn-kompakt" style={{background:'var(--green)'}} onClick={()=>agree(r)}>{TT("Einverstanden")}</button>}
+            <button className="btn btn-sec btn-kompakt" onClick={()=>reject(r)}>{mine?TT("Zurückziehen"):TT("Ablehnen")}</button>
           </div>); })}
         {(showAll ? valid : valid.slice(0,3)).map(r=>(
           <div key={r.id} className="cell" data-testid="rule-valid">
@@ -8407,7 +8413,7 @@ function RhythmusCard() {
             <div style={{fontSize:14,fontWeight:700}}>{r.name}</div>
             <div className="cell-sub">{TT("alle ~{0} Tage · zuletzt vor {1}", r.median, r.her === 0 ? TT("heute") : r.her === 1 ? TT("1 Tag") : TT("{0} Tagen", r.her))}</div>
           </div>
-          <button type="button" className="btn" data-testid="rhythmus-ja" style={{width:'auto',height:40,padding:'0 14px',fontSize:13.5,background:'var(--mint)',flexShrink:0}} onClick={() => aufDieListe(r)}>{TT("Auf die Liste")}</button>
+          <button type="button" className="btn btn-kompakt" data-testid="rhythmus-ja" style={{background:'var(--mint)',flexShrink:0}} onClick={() => aufDieListe(r)}>{TT("Auf die Liste")}</button>
         </div>
       ))}
     </div>
@@ -9725,7 +9731,7 @@ function WashCard({ oeffnen } = {}) {
                   <span className="cell-title">{label} {done ? <b style={{color:'var(--green)'}}>{TT("ist fertig")}</b> : TT("· noch {0} Min.", left)}</span>
                   <span className="cell-sub">{nameOfU(D.users, r.by)} · {done ? TT("seit {0}", fmtHM(r.end)) : TT("fertig um {0}", fmtHM(r.end))}</span>
                 </div>
-                <button className="btn btn-sec" style={{width:'auto',padding:'8px 12px',fontSize:13}} onClick={()=>clear(r)}>{done?TT("Ausgeräumt ✓"):TT("Abbrechen")}</button>
+                <button className="btn btn-sec btn-kompakt" onClick={()=>clear(r)}>{done?TT("Ausgeräumt ✓"):TT("Abbrechen")}</button>
                 <div style={{flexBasis:'100%',height:4,borderRadius:2,background:'var(--bg3)',overflow:'hidden'}}>
                   <div style={{width:`${pct}%`,height:'100%',background:done?'var(--green)':'var(--mint)',transition:'width .6s'}}/>
                 </div>
@@ -9830,7 +9836,7 @@ function RepairCard() {
             {r.due && r.status!=='erledigt' && <b data-testid="rp-frist" style={{color:-daysSince(r.due)<0?'var(--red)':'var(--amber)'}}> {TT("· Frist bis")} {fmtDM(r.due)}{-daysSince(r.due)<0?TT(" (abgelaufen)"):''}</b>}
           </span>
         </div>
-        {r.status!=='erledigt' && <button className="btn btn-sec" style={{width:'auto',padding:'8px 12px',fontSize:13,flexShrink:0}} onClick={()=>step(r)}>{r.status==='offen'?TT("Gemeldet ✓"):TT("Erledigt ✓")}</button>}
+        {r.status!=='erledigt' && <button className="btn btn-sec btn-kompakt" style={{flexShrink:0}} onClick={()=>step(r)}>{r.status==='offen'?TT("Gemeldet ✓"):TT("Erledigt ✓")}</button>}
         <button className="del-btn" aria-label={TT("„{0}\" löschen", r.text)} onClick={e=>del(r, e.currentTarget.closest('.cell'))}>×</button>
       </div>
     );
@@ -9963,7 +9969,7 @@ function YearReview({ all, pl, pt, users }) {
         {line(TT("Putz-Punkte"), pts.map(p=>`${p.name} ${p.n}`).join(' · '))}
         {topTask && line(TT("Häufigste Aufgabe"), `${topTask[0]} · ${topTask[1]}×`)}
         {/* Jahresübersicht zum Drucken (wg-v86): je Monat, Kategorie und Person — für Steuer, Nebenkosten oder Streitfälle */}
-        <button type="button" className="btn btn-sec" data-testid="jahr-drucken" style={{height:44,fontSize:14}} onClick={()=>setBlatt(true)}>{TT("🖨️ Jahresübersicht {0} drucken", y)}</button>
+        <button type="button" className="btn btn-sec btn-klein" data-testid="jahr-drucken" onClick={()=>setBlatt(true)}>{TT("🖨️ Jahresübersicht {0} drucken", y)}</button>
       </div>
       </div>
       {blatt && <JahresBlatt jahr={ys} items={items} users={users} onClose={()=>setBlatt(false)}/>}
@@ -10068,8 +10074,8 @@ function AboVorschlag() {
         <div className="cell-sub">{TT("{0}× in verschiedenen Monaten · zuletzt €{1}", k.n, fmt(k.preis))}</div>
       </div>
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-        <button type="button" className="btn" data-testid="abo-ja" style={{width:'auto',height:40,padding:'0 14px',fontSize:13.5,background:'var(--mint)'}} onClick={ja}>{TT("🔁 Automatisch eintragen")}</button>
-        <button type="button" className="btn btn-sec" data-testid="abo-nein" style={{width:'auto',height:40,padding:'0 14px',fontSize:13.5}} onClick={nein}>{TT("Nein danke")}</button>
+        <button type="button" className="btn btn-kompakt" data-testid="abo-ja" style={{background:'var(--mint)'}} onClick={ja}>{TT("🔁 Automatisch eintragen")}</button>
+        <button type="button" className="btn btn-sec btn-kompakt" data-testid="abo-nein" onClick={nein}>{TT("Nein danke")}</button>
       </div>
     </div>
   );
@@ -11788,7 +11794,8 @@ function ChoreQuick({ goPutz, leer, onDran }) {   /* leer (wg-v112, P9): was an 
   /* wg-v112 (P5): Haken-Bild und Maß der Seitenknöpfe gemeinsam für echte Zeile und Schatten — der Schatten muss genau so hoch
      sein wie die Zeile, die er ersetzt, sonst springt die Zeile darunter doch */
   const haken = <svg width={16} height={16} viewBox="0 0 24 24" fill="none" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"><path d={ICONS.check}/></svg>;
-  const seitenKnopf = {width:'auto',height:40,padding:'0 12px',fontSize:12.5,flexShrink:0};
+  /* wg-v125 (REST-3): Maße kommen von .btn-kompakt (vorher 40 px / 12,5 px inline); hier bleibt nur flexShrink */
+  const seitenKnopf = {flexShrink:0};
   return (
     <div className={abschied ? 'rise abschied' : 'rise'} data-testid="chore-quick" ref={wurzel} style={{animationDelay:'20ms'}}>
       {onDran && <DranMelder an={onDran}/>}
@@ -11812,8 +11819,8 @@ function ChoreQuick({ goPutz, leer, onDran }) {   /* leer (wg-v112, P9): was an 
                 <span className="cell-sub">{d<0?<b style={{color:'var(--red)'}}>{TT("{0} Tag{1} überfällig", -d, tagePl(-d))}</b>:TT("heute fällig")}</span>
               </div>
               <div style={{display:'flex',gap:8,marginLeft:'auto'}}>
-                <button className="btn btn-sec" tabIndex={-1} style={seitenKnopf}>{TT("Morgen")}</button>
-                <button className="btn btn-sec" tabIndex={-1} style={seitenKnopf}>{TT("Kann nicht")}</button>
+                <button className="btn btn-sec btn-kompakt" tabIndex={-1} style={seitenKnopf}>{TT("Morgen")}</button>
+                <button className="btn btn-sec btn-kompakt" tabIndex={-1} style={seitenKnopf}>{TT("Kann nicht")}</button>
               </div>
             </div>
           ) : (
@@ -11830,8 +11837,8 @@ function ChoreQuick({ goPutz, leer, onDran }) {   /* leer (wg-v112, P9): was an 
                 <span className="cell-sub">{d<0?<b style={{color:'var(--red)'}}>{TT("{0} Tag{1} überfällig", -d, tagePl(-d))}</b>:TT("heute fällig")}{/* wg-v105: „· Stand 1:0" entfernt — ohne Erklärung unverständlich, im Putzplan seit v101 schon weg */}</span>
               </div>
               <div style={{display:'flex',gap:8,marginLeft:'auto'}}>
-                <button className="btn btn-sec" aria-label={TT("{0} auf morgen", t.name)} style={seitenKnopf} onClick={()=>snooze(t)}>{TT("Morgen")}</button>
-                <button className="btn btn-sec" data-testid="chore-giveup" aria-label={TT("Kann nicht – {0}", t.name) /* wg-v122 (A11Y-9c): Name beginnt mit dem sichtbaren Text (WCAG 2.5.3), sonst findet Sprachsteuerung „Tippe Kann nicht" den Knopf nicht */} style={seitenKnopf} onClick={()=>giveUp(t)}>{TT("Kann nicht")}</button>
+                <button className="btn btn-sec btn-kompakt" aria-label={TT("{0} auf morgen", t.name)} style={seitenKnopf} onClick={()=>snooze(t)}>{TT("Morgen")}</button>
+                <button className="btn btn-sec btn-kompakt" data-testid="chore-giveup" aria-label={TT("Kann nicht – {0}", t.name) /* wg-v122 (A11Y-9c): Name beginnt mit dem sichtbaren Text (WCAG 2.5.3), sonst findet Sprachsteuerung „Tippe Kann nicht" den Knopf nicht */} style={seitenKnopf} onClick={()=>giveUp(t)}>{TT("Kann nicht")}</button>
               </div>
             </div>
           );
@@ -12465,8 +12472,8 @@ function Finanzen() {
                 {TT("🔐 Dein privater Bereich liegt nur auf diesem Handy und steckt in keinem automatischen Backup.")} {days === null ? TT("Noch nie gesichert") : TT("Zuletzt gesichert vor {0} Tagen", days)} {TT("— „⬇︎ Sichern\" legt eine Datei ab.")}
               </div>); })()}
           <div style={{display:'flex',gap:9,marginTop:16}}>
-            <button className="btn" style={{background:'var(--bg3)',color:'var(--label2)',flex:1,fontSize:13}} onClick={backup}>{TT("⬇︎ Sichern")}</button>
-            <button className="btn" style={{background:'var(--bg3)',color:'var(--label2)',flex:1,fontSize:13}} onClick={()=>setLocked(true)}>{TT("🔒 Sperren")}</button>
+            <button className="btn btn-klein" style={{background:'var(--bg3)',color:'var(--label2)',flex:1}} onClick={backup}>{TT("⬇︎ Sichern")}</button>
+            <button className="btn btn-klein" style={{background:'var(--bg3)',color:'var(--label2)',flex:1}} onClick={()=>setLocked(true)}>{TT("🔒 Sperren")}</button>
           </div>
           <div className="section-ftr">{TT("Lokale Daten haben kein Cloud-Backup — „Sichern\" legt eine JSON-Datei ab.")}</div>
           </div>
@@ -12995,7 +13002,7 @@ function Einstellungen() {
               <div className="cell" style={{gap:8}}>
                 <input className="field" style={{flex:1,padding:'10px 12px',fontSize:16 /* wg-v118 (PWA-4): ≥ 16 px, sonst zoomt iOS beim Fokus hinein */}} placeholder={TT("Anderer WG-Code")}
                   value={codeInput} onChange={e=>setCodeInput(e.target.value.toUpperCase())}/>
-                <button onClick={joinCode} style={{background:'var(--mint)',border:'none',borderRadius:11,padding:'11px 14px',color:'var(--ink)',fontSize:14,fontWeight:800,flexShrink:0}}>
+                <button className="btn btn-klein" onClick={joinCode} style={{width:'auto',background:'var(--mint)',flexShrink:0}}>
                   {TT("Beitreten")}
                 </button>
               </div>
@@ -13087,8 +13094,8 @@ function Einstellungen() {
                   <span className="cell-title">{label}</span>
                 </div>
                 {/* Name + Zustand für Bildschirmleser (wg-v90) — vorher nur „An"/„Aus" ohne Bezug */}
-                <button aria-label={label} aria-pressed={!!mods[k]} onClick={()=>setMods({...mods,[k]:!mods[k]})}
-                  style={{background:mods[k]?c:'var(--bg3)',color:mods[k]?'var(--ink)':'var(--label)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800}}>
+                <button className="btn btn-kompakt" aria-label={label} aria-pressed={!!mods[k]} onClick={()=>setMods({...mods,[k]:!mods[k]})}
+                  style={{background:mods[k]?c:'var(--bg3)',color:mods[k]?'var(--ink)':'var(--label)'}}>
                   {mods[k]?TT("An"):TT("Aus")}
                 </button>
               </div>
@@ -13108,9 +13115,9 @@ function Einstellungen() {
                 <span className="cell-title">{TT("Pünktlich-Serie")}</span>
                 <span className="cell-sub">{TT("🔥 zählt Aufgaben, die du nicht überfällig werden lässt")}</span>
               </div>
-              <button data-testid="game-toggle" aria-pressed={mods.game!==false} aria-label={TT("Spielelemente")}
+              <button className="btn btn-kompakt" data-testid="game-toggle" aria-pressed={mods.game!==false} aria-label={TT("Spielelemente")}
                 onClick={()=>{ const on = mods.game===false; setMods({...mods, game:on}); setPref({game:on}); }}
-                style={{background:mods.game!==false?'var(--amber)':'var(--bg3)',color:mods.game!==false?'var(--ink)':'var(--label)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800}}>
+                style={{background:mods.game!==false?'var(--amber)':'var(--bg3)',color:mods.game!==false?'var(--ink)':'var(--label)'}}>
                 {mods.game!==false?TT("An"):TT("Aus")}
               </button>
             </div>
@@ -13133,8 +13140,8 @@ function Einstellungen() {
                 <span className="cell-title">{TT("Abgerechnetes archivieren")}</span>
                 <span className="cell-sub">{archiveCount>0 ? TT("{0} Posten älter als 3 Monate", archiveCount) : TT("Nichts zu archivieren")}{/* wg-v118 (EN-3) */}</span>
               </div>
-              <button onClick={doArchive} disabled={archiveCount===0}
-                style={{background:archiveCount>0?'var(--sky)':'var(--bg3)',color:archiveCount>0?'var(--ink)':'var(--label2)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800,opacity:archiveCount===0?.5:1}}>
+              <button className="btn btn-kompakt" onClick={doArchive} disabled={archiveCount===0}
+                style={{background:archiveCount>0?'var(--sky)':'var(--bg3)',color:archiveCount>0?'var(--ink)':'var(--label2)',opacity:archiveCount===0?.5:1}}>
                 {TT("Archivieren")}
               </button>
             </div>
@@ -13245,8 +13252,8 @@ function Einstellungen() {
                 <div style={{width:10,height:10,borderRadius:'50%',background:u.color,boxShadow:`0 0 8px ${u.color}`,flexShrink:0}}/>
                 <input className="field" maxLength={100} aria-label={TT("Name der Person")} readOnly={ro} style={{background:'transparent',border:'none',padding:0,fontSize:16,fontWeight:600,flex:1,...lockSt}}
                   value={u.name} onChange={e=>{ if (!ro) set('users',users.map(x=>x.id===u.id?{...x,name:e.target.value}:x)); }}/>
-                <button onClick={async()=>{ if (me && me!==u.id && !(await askConfirm({ title:TT("Bist du wirklich {0}?", u.name), body:TT("Dieses Handy gehört dann {0}: Putzplan, Zahlungen und das Profil gelten für {1}.", u.name, u.name), okLabel:TT("Ich bin {0}", u.name) }))) return; setMe(u.id); }}
-                  style={{background:me===u.id?u.color:'var(--bg3)',color:me===u.id?'#0a120c':'var(--label3)',border:'none',borderRadius:12,padding:'7px 12px',fontSize:12,fontWeight:800,flexShrink:0}}>
+                <button className="btn btn-kompakt" onClick={async()=>{ if (me && me!==u.id && !(await askConfirm({ title:TT("Bist du wirklich {0}?", u.name), body:TT("Dieses Handy gehört dann {0}: Putzplan, Zahlungen und das Profil gelten für {1}.", u.name, u.name), okLabel:TT("Ich bin {0}", u.name) }))) return; setMe(u.id); }}
+                  style={{background:me===u.id?u.color:'var(--bg3)',color:me===u.id?'#0a120c':'var(--label3)',flexShrink:0}}>
                   {me===u.id?TT("Das bin ich ✓"):TT("Das bin ich")}
                 </button>
                 {ro && <div data-testid="person-locked" style={{flexBasis:'100%',fontSize:12,color:'var(--label3)',paddingLeft:18,marginTop:4}}>{TT("🔒 Nur")} {u.name} {TT("kann das auf dem eigenen Handy ändern")}</div>}
@@ -13291,8 +13298,8 @@ function Einstellungen() {
                 <span className="cell-title">{TT("Lokale Erinnerungen")}</span>
                 <span className="cell-sub">{TT("Beim Öffnen: fällige Putzaufgaben & Abos")}</span>
               </div>
-              <button onClick={toggleNotify} aria-label={TT("🔔 Lokale Erinnerungen")} aria-pressed={!!notifyOn}
-                style={{background:notifyOn?'var(--amber)':'var(--bg3)',color:notifyOn?'var(--ink)':'var(--label2)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800}}>
+              <button className="btn btn-kompakt" onClick={toggleNotify} aria-label={TT("🔔 Lokale Erinnerungen")} aria-pressed={!!notifyOn}
+                style={{background:notifyOn?'var(--amber)':'var(--bg3)',color:notifyOn?'var(--ink)':'var(--label2)'}}>
                 {notifyOn?TT("An"):TT("Aus")}
               </button>
             </div>
@@ -13312,8 +13319,8 @@ function Einstellungen() {
                 <span className="cell-title">{/* wg-v119 (TEXT-1): „Benachrichtigungen an die WG" statt „Push an die WG" */}{TT("Benachrichtigungen an die WG")}</span>
                 <span className="cell-sub">{TT("Nur das Wichtige — auch bei geschlossener App")}</span>
               </div>
-              <button onClick={togglePush} disabled={pushDisabled} aria-label={TT("📲 Benachrichtigungen an die WG")} /* wg-v119 (TEXT-1): wie der Zeilentitel */ aria-pressed={!pushDisabled && !!pushOn}
-                style={{background:(!pushDisabled&&pushOn)?'var(--sky)':'var(--bg3)',color:(!pushDisabled&&pushOn)?'var(--ink)':'var(--label2)',border:'none',borderRadius:14,padding:'7px 16px',fontSize:13,fontWeight:800,opacity:pushDisabled?.5:1}}>
+              <button className="btn btn-kompakt" onClick={togglePush} disabled={pushDisabled} aria-label={TT("📲 Benachrichtigungen an die WG")} /* wg-v119 (TEXT-1): wie der Zeilentitel */ aria-pressed={!pushDisabled && !!pushOn}
+                style={{background:(!pushDisabled&&pushOn)?'var(--sky)':'var(--bg3)',color:(!pushDisabled&&pushOn)?'var(--ink)':'var(--label2)',opacity:pushDisabled?.5:1}}>
                 {pushBusy?'…':pushOn?TT("An"):TT("Aus")}
               </button>
             </div>
@@ -13363,8 +13370,8 @@ function Einstellungen() {
                   <span className="cell-title ganz">{em} {label}</span>
                 </div>
                 {/* aria-label + aria-pressed (wg-v90): vorher hörte ein Bildschirmleser 15-mal nur „An" oder „Aus" */}
-                <button aria-label={label} aria-pressed={!!pushPrefs[key]} onClick={()=>setPref({[key]: !pushPrefs[key]})}
-                  style={{background:pushPrefs[key]?'var(--sky)':'var(--bg3)',color:pushPrefs[key]?'var(--ink)':'var(--label2)',border:'none',borderRadius:14,padding:'5px 12px',fontSize:12,fontWeight:800}}>
+                <button className="btn btn-kompakt" aria-label={label} aria-pressed={!!pushPrefs[key]} onClick={()=>setPref({[key]: !pushPrefs[key]})}
+                  style={{background:pushPrefs[key]?'var(--sky)':'var(--bg3)',color:pushPrefs[key]?'var(--ink)':'var(--label2)'}}>
                   {pushPrefs[key]?TT("An"):TT("Aus")}
                 </button>
               </div>
@@ -13376,9 +13383,10 @@ function Einstellungen() {
                   <span className="cell-title ganz">{TT("🌙 Ruhezeiten")}</span>
                 </div>
                 {/* aria-label + aria-pressed (wg-v90): Bildschirmleser hörten nur „An". Die Größe passt: sichtbar ~24 px,
-                    zum Antippen 40 px über `.cell > button::after` — nicht vergrößern, sonst passt er nicht zu den Nachbarn. */}
-                <button data-testid="ruhe-toggle" aria-pressed={!!pushPrefs.quiet} aria-label={TT("Ruhezeiten")} onClick={()=>setPref({quiet: !pushPrefs.quiet})}
-                  style={{background:pushPrefs.quiet?'var(--sky)':'var(--bg3)',color:pushPrefs.quiet?'var(--ink)':'var(--label2)',border:'none',borderRadius:14,padding:'5px 12px',fontSize:12,fontWeight:800}}>
+                    zum Antippen 40 px über `.cell > button::after` — nicht vergrößern, sonst passt er nicht zu den Nachbarn.
+                    wg-v125 (REST-3): jetzt Kompakt-Stufe (.btn-kompakt: 40 px sichtbar, 44 px Tippfläche); alle An/Aus-Schalter einheitlich. */}
+                <button className="btn btn-kompakt" data-testid="ruhe-toggle" aria-pressed={!!pushPrefs.quiet} aria-label={TT("Ruhezeiten")} onClick={()=>setPref({quiet: !pushPrefs.quiet})}
+                  style={{background:pushPrefs.quiet?'var(--sky)':'var(--bg3)',color:pushPrefs.quiet?'var(--ink)':'var(--label2)'}}>
                   {pushPrefs.quiet?TT("An"):TT("Aus")}
                 </button>
               </div>
