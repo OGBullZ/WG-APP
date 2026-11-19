@@ -281,7 +281,7 @@ const kleineSchrift = page => page.evaluate(() => {
   check('c0 Vorbedingung: Index-Karte und sechs Gruppen gefunden', c.n >= 7, `${c.n} Karten`);
   check('c1 Abstand zwischen den Mehr-Karten höchstens 12 px', c.luecken.length > 0 && c.luecken.every(l => l <= 12 && l >= 4), JSON.stringify(c.luecken));
   check('c2 Fold-Titel 16 px / 700 (auch die Index-Karte „Was kann die App?")', c.titel === '16px/700' && c.index === '16px/700', `Gruppe ${c.titel} · Index ${c.index}`);
-  check('c3 „Alle lokalen Daten löschen": Textknopf ohne Rand und Fläche, ≥ 44 px hoch, rot', !!c.knopf && c.knopf.rand === '0px' && /rgba\(0, 0, 0, 0\)|transparent/.test(c.knopf.flaeche) && c.knopf.h >= 44, JSON.stringify(c.knopf));
+  check('c3 „Alle lokalen Daten löschen": Knopf ohne Fläche, mit 1-px-Rand (wg-v127 FARBE-6, vorher ohne Rand), ≥ 44 px hoch, rot', !!c.knopf && c.knopf.rand === '1px' && /rgba\(0, 0, 0, 0\)|transparent/.test(c.knopf.flaeche) && c.knopf.h >= 44, JSON.stringify(c.knopf));
   check('c4 … 20 px abgesetzt von der letzten Karte — und damit deutlich weiter als die Karten untereinander (> Kartenabstand + 5 px)', !!c.knopf && c.knopf.abstand !== null && c.knopf.abstand >= 19.5 && c.knopf.abstand > Math.max(...c.luecken) + 5, `${c.knopf?.abstand} px, Karten ${Math.max(...c.luecken)} px`);
   await M.page.getByRole('button', { name: 'Alle lokalen Daten löschen' }).click();
   await M.page.waitForTimeout(400);
