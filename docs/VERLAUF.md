@@ -1146,3 +1146,17 @@ Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen 
 
 **Folgefund (→ Roadmap G9):** Putzplan „Einsatz · letzte 30 Tage" bei 320 + „Sehr groß": „Konstantinopolitanowa" ragt rechts aus der Karte, in v124 identisch. **Werkzeug:** `bilder.mjs --hoehe N` für hohe Fenster (App scrollt intern, Bilder zeigten sonst nur den oberen Teil).
 
+## wg-v126 — Symbolfelder + Putzplan schmal: E3, G9 (19.11. abends, live `7437a01`, Vercel success, `npm run betrieb` grün — torbe: „ok weiter autonom")
+
+**Was:** E3 — 23 handgeschriebene Symbolfelder auf `.cell-icon[data-ton]` (neu lime/sky/red/green/indigo/grau, je mit Hellwert; lime/grau-Hellwert selbst gewählt, fehlten bei `[data-fold]`), 19 per Codemod mit Trockenlauf, 4 von Hand (Grow-Bilanz 🌱, Buchungen grün/rot, Suche, Statistik). `.em-saum` → `.cell-icon.klein` (28 px Feld, 16 px Emoji) an Müllabfuhr, Kalender und „Zuletzt erledigt". 24 × in `.del-btn` als SVG `DelX` (`ICONS.close`), Regel „Linie = Navigation und Aktion, Emoji = Inhalt" neben `ICONS` und in `CLAUDE.md`. G9 — Einsatz-Karte im Putzplan umbricht (`flexWrap`, `overflowWrap:anywhere`) statt bei langen Namen zu ragen; in „Zuletzt erledigt" bricht der Name (Mindestbreite 2,6 em, damit „Tom" nicht zeichenweise zerfällt) und das Datum bleibt in der Karte. Tests `symbolfeld_v126` 76 (Gegenprobe 29 rot), `putz_schmal_v126` 88 (Gegenprobe 16 rot).
+
+**Wie:** zwei Umsetzer parallel (Worktrees `g9`/`e3`, Ports 8101/8102, `--arbeiter 1`), der E3-Umsetzer fuhr die volle Regression selbst (92 min mit 1 Arbeiter). Worktree-Auf-/Abbau jetzt per `wt-anlegen.ps1`/`wt-weg.ps1` (Scratchpad; Abbau bricht ab, solange 8101–8104 belegt sind).
+
+**Was schiefging:**
+- Beide Pakete fassten die Zeile „Zuletzt erledigt" an (G9: Lücke 13 → 8 px, E3: freies Emoji → 28-px-Feld + Lücke 9) — Merge-Konflikt, und **zusammen** ragte das Datum bei 320 px + „Sehr groß" wieder 4 px heraus, obwohl jeder Zweig für sich grün war. Lücke 6 px. Lehre: zwei Pakete, die dieselbe Zeile berühren, nach dem Merge mit BEIDEN neuen Tests fahren.
+- `organisation` F5/F9/F12 rot — der Umsetzer stufte das als „datumsabhängig, auch am alten Stand rot" ein. **Falsch:** Ursache war E3 selbst (Kalender-Symbol jetzt in eigenem Flex-Span → `innerText` trennt mit Zeilenumbruch → `/✈️.*bis/` trifft nicht). Muster auf `[\s\S]*` bzw. `\s*` umgestellt. Lehre: „am alten Stand auch rot" eines Umsetzers immer selbst nachfahren.
+- Live-Smoke meldete „Live zeigt wg-v125" und `ship.mjs` endete mit Absturzcode — Deploy war fertig, das CDN hing ~1 min hinterher; Nachprüfung zeigte wg-v126.
+- Die `Pakete`-Parameterübergabe an die `.ps1` aus Git-Bash wurde zu EINEM Namen „g9,e3" (Worktree „g9,e3" angelegt) → aus PowerShell aufrufen.
+
+**Nicht geprüft:** Mehr-Unterseiten hinter den Mehr-Zeilen (Daten & Backup usw.) deckt `symbolfeld_v126` nicht ab, nur die aufgeklappten Faltköpfe. Weitere Text-× (`.onb-back`, `.es-x`, Chip-× der Einkaufsliste) bewusst gelassen → Folgepaket.
+
