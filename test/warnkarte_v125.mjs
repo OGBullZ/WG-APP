@@ -2,7 +2,7 @@
    Aufbau wie g8_folge_v125.mjs (Seed mit offenen Posten weit über der 50-€-Grenze, Firebase-Stub, echte Oberfläche auf „Haus").
    1 Struktur: .group.warn > .cell > .cell-icon[data-ton=amber] mit Emoji ⏳ + .cell-title ohne Emoji + .cell-sub; kein Inline-rgba mehr am Wurzelelement
    2 320 und 390 px (de + en): Knopf „Grenzen ändern" liegt UNTER dem Text (Range-Rects), links in der Textspalte, nichts ragt aus der Karte
-   3 Hell und Dunkel: Karten-Hintergrund ist nicht transparent und in beiden Themen verschieden
+   3 Hell und Dunkel: Karten-Hintergrund ist in beiden Themen nicht transparent (bewusst gleiche Tönung, s. Prüfung 3)
    4 Knopf öffnet das Blatt „Wann erinnern?" (echter Klick, die Funktion lebt noch)
    Vorzeitiger Ausstieg = FAIL (try/catch je Kombination, Summenzeile am Ende). */
 import { chromium } from 'playwright';
@@ -131,7 +131,9 @@ for (const w of [320, 390]) for (const lang of ['de', 'en']) {
       fail.push(`3 ${th}: Messung abgebrochen — ${String(e && e.message || e).slice(0, 200)}`);
     } finally { if (P) await P.ctx.close().catch(err => console.error('Kontext schließen:', err.message)); }
   }
-  check('3 Hintergrund in Hell ≠ Dunkel', !!bg.dark && !!bg.light && bg.dark !== bg.light, `dark ${String(bg.dark).slice(0, 70)} | light ${String(bg.light).slice(0, 70)}`);
+  /* bewusst KEIN „Hell ≠ Dunkel": .group.warn hat absichtlich keine Hellwerte (Kommentar an .group.warn — dunkles Amber wirkte im Bild stumpf-bräunlich);
+     der halbdurchsichtige Verlauf ergibt auf Weiß ein warmes Creme. Geprüft wird nur, dass beide Themen eine Tönung haben. */
+  check('3 Hintergrund in Hell und Dunkel gemessen', !!bg.dark && !!bg.light, `dark ${String(bg.dark).slice(0, 70)} | light ${String(bg.light).slice(0, 70)}`);
 }
 await browser.close();
 

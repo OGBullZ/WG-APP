@@ -613,8 +613,6 @@ button.cell { color:var(--label); }
    Verläufe, die sich weglöschen; eine flächige Tönung darf hell sein. Gefunden hat das die Gegenprobe:
    „Hellmodus-Override weg" blieb grün — und der Blick aufs Bild zeigte, dass die Fassung ohne ihn besser ist. */
 .group.warn { border-color:rgba(251,191,36,.34); background:linear-gradient(160deg, rgba(251,191,36,.10), rgba(251,191,36,.035)); }
-/* wg-v125 (REST-1): Hellwerte für Warnkarten (Push-Hinweis + „Zeit zum Abrechnen") — vorher gab es keine, helles Amber auf Weiß war kaum zu sehen; Ton = dunkles Amber wie .cell-icon[data-ton="amber"] im Hellmodus */
-[data-theme="light"] .group.warn { border-color:rgba(154,74,6,.30); background:linear-gradient(160deg, rgba(154,74,6,.10), rgba(154,74,6,.04)); }
 
 /* ── Kopfkarte „Heute" (wg-v92) ── */
 .hero-tag {
@@ -6609,7 +6607,7 @@ function DebtWatch() {
   return (
     <>
       {w && (
-        /* wg-v125 (REST-1): wie die Push-Warnkarte — .group.warn (Hellwerte inklusive, kein Inline-rgba mehr) + .cell mit getöntem Symbolfeld;
+        /* wg-v125 (REST-1): wie die Push-Warnkarte — .group.warn (bewusst ohne eigene Hellwerte, s. dort; kein Inline-rgba mehr) + .cell mit getöntem Symbolfeld;
            Emoji steht im Symbolfeld, der Titel wird ohne Emoji gezeigt (TT-Schlüssel bleibt unverändert, daher das Abschneiden statt neuem Wörterbuch-Eintrag) */
         <div className="group rise warn" data-testid="debt-watch">
          <div className="cell" style={{alignItems:'flex-start'}}>
