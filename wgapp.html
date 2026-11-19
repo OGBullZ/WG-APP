@@ -1181,6 +1181,23 @@ button.cell:not(.group):active:not(:disabled) { box-shadow:inset 0 0 0 999px var
    bliebe es bis zum Aushängen voll sichtbar und verschwände in einem Bild. */
 @keyframes sheetPop { from { transform:translateY(-8px) scale(.98); } }
 @keyframes sheetPopOut { 55% { opacity:1; } to { opacity:0; transform:translateY(-8px) scale(.98); } }
+/* wg-v124 (G4, PWA-3): Handy quer (z. B. 844 × 390). Es bekam die Desktop-Blatt-Geometrie (≥ 700 px breit: 39 px Rand oben, 24 unten) — mit Tastatur
+   (170 px) blieben 157 px Blatt, der Körper 0 px, die Knopfleiste ragte über den Rand, das Eingabefeld war unsichtbar. Jetzt: flachere Leisten,
+   Blatt oben mit 8 px Rand und bis 8 px über die Tastatur, kompaktere Kopf-/Schritt-/Knopfzeile (Knöpfe bleiben 44 px). Liegt VOR dem ≥ 1024-px-Block
+   (dessen --tb-h:0px für die Seitenleiste gewinnt); Tablets quer (Höhe ≥ 600) und Hochformat treffen die Bedingung nie. --vh-z wie in PWA-2 (Zoom). */
+@media (orientation:landscape) and (max-height:500px) {
+  :root { --nb-h:44px; --tb-h:max(48px, calc(44px + var(--safe-bot))); }
+  .tabbar { padding-top:4px; gap:2px; }
+  .tabitem { padding:4px 0; gap:2px; }
+  .overlay { --oben:4px; padding:4px 24px; }
+  .sheet { padding-top:2px; max-height:calc(var(--vh-z, 100dvh) - var(--kb,0px) - 8px); }
+  .sheet-hdr { padding-top:0; padding-bottom:2px; }
+  /* „Abbrechen": Tippfläche 40 px (Polster 12), der Layout-Platz bleibt 28 px (Rand −6) — mehr Fläche ohne Körperhöhe zu kosten */
+  .sheet-hdr .cancel-btn { padding:12px 4px; margin:-6px 0; }
+  .step-bar { padding-bottom:4px; }
+  .sheet-acts { padding:6px 20px calc(6px + var(--safe-bot) * var(--kb-zu, 1)); }
+  .sheet-acts .btn { height:40px; }
+}
 
 /* ── Hover nur mit echter Maus (wg-v112, P8) ──
    Vorher standen .cell:hover, .btn:hover, .done-btn:hover unter min-width:700px. Ein Tablet (834 px) ist breit genug, meldet
