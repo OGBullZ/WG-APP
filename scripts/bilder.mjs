@@ -36,6 +36,9 @@ const TAB_ID = { heute: 'heute', haus: 'haus', grow: 'grow', putz: 'putz', fin: 
 const ZOOM = { normal: 'n', gross: 'xg' };            // xg = "Aa Sehr groß" (html{zoom:1.25})
 const THEMA = { dunkel: 'dark', hell: 'light' };
 const HOEHE = { 320: 640, 390: 844, 768: 1024, 1440: 900 };
+// wg-v125: --hoehe N überschreibt die Fensterhöhe (Bild zeigt nur das Fenster, die App scrollt intern — für Zeilen weiter unten ein hohes Fenster nehmen)
+const HOEHE_FEST = Number(wert('hoehe', 0)) || 0;
+if (HOEHE_FEST) for (const k of Object.keys(HOEHE)) HOEHE[k] = HOEHE_FEST;
 for (const [n, liste_, karte] of [['tabs', TABS, TAB_ID], ['schrift', SCHRIFTEN, ZOOM], ['thema', THEMEN, THEMA]]) {
   const falsch = liste_.filter(x => !(x in karte));
   if (falsch.length) { console.error(`Unbekannter Wert bei --${n}: ${falsch.join(', ')} (erlaubt: ${Object.keys(karte).join(', ')})`); process.exit(2); }
