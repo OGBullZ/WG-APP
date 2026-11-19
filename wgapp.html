@@ -615,14 +615,14 @@ button.cell { color:var(--label); }
 [data-fold="home"]   { --akz:251,191,36; }
 [data-fold="people"] { --akz:129,140,248; }
 [data-fold="push"]   { --akz:74,222,128; }
-[data-fold="index"]  { --akz:251,113,133; }
+[data-fold="index"]  { --akz:148,163,184; }   /* wg-v127 (FARBE-6): Wegweiser neutral — Rot bleibt Gefahr/überfällig */
 [data-theme="light"] [data-fold="wg"]     { --akz:3,105,161; }
 [data-theme="light"] [data-fold="look"]   { --akz:109,40,217; }
 [data-theme="light"] [data-fold="data"]   { --akz:15,118,110; }
 [data-theme="light"] [data-fold="home"]   { --akz:154,74,6; }
 [data-theme="light"] [data-fold="people"] { --akz:67,56,202; }
 [data-theme="light"] [data-fold="push"]   { --akz:22,101,52; }
-[data-theme="light"] [data-fold="index"]  { --akz:190,18,60; }
+[data-theme="light"] [data-fold="index"]  { --akz:90,102,95; }
 
 /* ── Warnkarte (wg-v94) ──
    Die Push-Warnung sah aus wie jede Infokarte: gleiche Fläche, gleicher Rand (nachgemessen, identisch).
@@ -1160,6 +1160,8 @@ button.cell { color:var(--label); }
    der Farbton. „HEUTE" (Bernstein, getönt) und „IN 3d" (grau) bleiben ruhig → der gefüllte Chip ist das Einzige, das schreit. Der Hintergrund stand als Inline-Stil
    im JSX (schlug jede Klassenregel) → dort entfernt. */
 .due-chip.overdue { background:var(--red); color:var(--ink); }
+/* wg-v127 (FARBE-5c): „HEUTE" = Umriss (Rand in Bernstein, keine Fläche), „überfällig" = gefüllt, „in N Tagen" = grau — drei Zustände, auch ohne Farbe an der Füllung ablesbar. */
+.due-chip.heute { background:transparent; color:var(--amber); box-shadow:inset 0 0 0 1.5px var(--amber); }
 .cell > .due-chip { margin-left:auto; }
 /* wg-v110 (optische Runde): „IN 3d" hatte nur rgba(255,255,255,.06) als Fläche — im Hellmodus unsichtbar, der Chip schwebte
    als loser Text neben „HEUTE"/„ÜBERFÄLLIG", die eine Fläche haben. Jetzt je Thema eine sichtbare, ruhige Fläche. */
@@ -5311,8 +5313,12 @@ const ringFs = v => { const n = fmt(Math.abs(v)).length; return n <= 5 ? 23 : n 
 function Donut({ segs, size=148, sw=15, schmal=false, children }) {
   const r=(size-sw)/2, c=2*Math.PI*r;
   let acc=0;
+  const mehrere = segs.filter(s=>s.frac>0).length>1;
   const arcs = segs.map((s,i)=>{
-    const dash=Math.max(s.frac*c-3,0), start=acc; acc+=s.frac;
+    /* wg-v127 (FARBE-7): bei mehreren Segmenten sitzt die runde Kappe (sw/2 je Seite) über der Nachbarschaft — mit `-3` blieb von der Lücke
+       nichts übrig, der Ring war ein einziger Kreis (Graustufen: gar keine Segmente). Jetzt `-(sw+3)` = 3 px sichtbare Lücke zwischen den
+       Kappen; ein kleines Segment bleibt mit Mindestlänge `sw` sichtbar. Einzelring (ein Segment mit Anteil) unverändert. */
+    const dash=s.frac<=0?0:mehrere?Math.max(s.frac*c-(sw+3),sw):Math.max(s.frac*c-3,0), start=acc; acc+=s.frac;
     /* wg-v112 (P9): `anlauf` = der Bogen bleibt auch bei Länge 0 im Baum (unsichtbar, Deckkraft 0 — ein Strich der Länge 0 mit
        runder Kappe wäre sonst ein Punkt). Nur so hat die vorhandene Dash-Transition einen Startwert, wenn der ERSTE Eintrag
        den Geisterring (leere WG, 0 Pflanzen) füllt: ohne den Bogen im Baum würde er erst mit Endlänge neu entstehen — Ring
@@ -6877,7 +6883,9 @@ function RentCard({ oeffnen } = {}) {
 ══════════════════════════ */
 let JOIN_CODE = null;          // aus ?join=… (AppInner liest die URL einmal)
 const SETUP_KEY = 'wg_setup_v1';
-const ONB_COLORS = ['#38bdf8','#fbbf24','#a78bfa','#f472b6','#34d399','#fb923c'];
+/* wg-v127 (FARBE-2): Pink vor Violett — Violett (#a78bfa) lag als dritte Farbe nah am Himmelblau der ersten (bei Blau-Gelb-Schwäche kaum zu trennen).
+   Bestehende WGs behalten ihre gespeicherten Personenfarben (nirgends per Index nachberechnet). */
+const ONB_COLORS = ['#38bdf8','#fbbf24','#f472b6','#34d399','#a78bfa','#fb923c'];
 const ONB_WG_EM = ['🏠','🏡','🌿','🐈','🎸','🍕','🌻','🚲'];
 const ONB_MODS = [['putz','🧽',TT("Putzplan"),TT("Wer ist dran – fair verteilt")],['grow','🌱',TT("Growbox"),TT("Pflanzen, Gießen, Ernten · Kosten im Haushalt") /* wg-v116 */],['fin','🔒',TT("Privat"),TT("Eigene Finanzen, nur auf diesem Handy")],
   ['abos','📱',TT("Abos"),TT("Netflix & Co. mit Kündigungsfrist")],['stats','📊',TT("Übersicht"),TT("Monat, Zähler, Nebenkosten")],['game','🔥',TT("Spielelemente"),TT("Pünktlich-Serie")]];
@@ -11974,7 +11982,7 @@ function Putzplan() {
        kryptische Schreibweise für dieselbe Aussage. Kleinschreibung statt Versalien: der Chip ist jetzt ein Satz, kein Kürzel. */
     /* wg-v119 (FARBE-1): Fläche + Schriftfarbe jetzt in .due-chip.overdue (CSS) statt Inline-Stil — gefüllter Chip, s. dort */
     if(d<0)  return <span className="due-chip overdue">{TT("{0} Tag{1} überfällig", -d, tagePl(-d))}</span>;
-    if(d===0)return <span className="due-chip" style={{background:'rgba(251,191,36,.16)',color:'var(--amber)'}}>{TT("HEUTE")}</span>;
+    if(d===0)return <span className="due-chip heute">{TT("HEUTE")}</span>;
     /* wg-v119 (TEXT-4): „IN 1d" neben „1 Tag überfällig" waren zwei Schreibweisen für Fristen — jetzt dieselbe Sprache: „in 1 Tag" / „in 3 Tagen"
        (klein wie der Überfällig-Chip; EN „in 3 days"). plu(d,'en'): Deutsch Tag+en, Englisch day+s (Standard) */
     return <span className="due-chip bald">{TT("in {0} Tag{1}", d, plu(d,'en'))}</span>;
@@ -13478,7 +13486,7 @@ function Einstellungen() {
         {/* wg-v112 (P10): ruhiger roter Textknopf statt dritter gleichrangiger Kachel (Rand + Fläche + 50 px) unter den Gruppen: eine zerstörende
             Aktion soll gut zu finden, aber nicht verlockend sein. Kein Rand, keine Fläche, ≥ 44 px Treffer, 20 px abgesetzt (marginTop 10 + gap 10).
             Rot bleibt var(--red) (hell abgedunkelt); der Bestätigungsdialog (danger) bleibt unverändert die Absicherung. */}
-        <button className="press-breit" /* wg-v112 (P8): volle Breite → Drück-Rückmeldung nur .97 statt .94. wg-v117 (HIER-2): marginTop 16 statt 10 → 10 (Menü-gap) + 16 = 26 = Abschnittsstufe; die zerstörerische Aktion setzt sich vom Menü darüber ab (vorher 20 = die einzige Stufe, die es gab) */ style={{width:'100%',minHeight:44,marginTop:16,border:'none',background:'none',color:'var(--red)',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}
+        <button className="press-breit" /* wg-v112 (P8): volle Breite → Drück-Rückmeldung nur .97 statt .94. wg-v117 (HIER-2): marginTop 16 statt 10 → 10 (Menü-gap) + 16 = 26 = Abschnittsstufe; die zerstörerische Aktion setzt sich vom Menü darüber ab (vorher 20 = die einzige Stufe, die es gab) */ style={{width:'100%',minHeight:44,marginTop:16,border:'1px solid currentColor',borderRadius:12,background:'none',color:'var(--red)',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}
             onClick={async()=>{if(await askConfirm({title:TT("Alle lokalen Daten löschen"),body:TT("Entfernt alle Daten und Einstellungen auf diesem Gerät. Über den WG-Code synchronisierte Daten auf anderen Geräten bleiben erhalten — der private Finanzbereich (nur lokal, inkl. PIN) ist danach unwiderruflich weg."),okLabel:TT("Löschen"),danger:true})){['wg_data','fb_cfg','wg_code','wg_modules','wg_me','wg_priv','wg_priv_pin','wg_priv_tab_v1'].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>
           {TT("Alle lokalen Daten löschen")}
         </button>
@@ -13750,7 +13758,7 @@ function Statistik({ goHaus }) {   /* goHaus (wg-v112, P9): „Ausgabe eintragen
         {total===0 && <Leer ico="📊" text={TT("Noch keine Ausgaben im {0}", ymLabel(ym))} aktion={TT("Ausgabe eintragen")} onAktion={goHaus} farbe="var(--sky)" testid="stats-leer"/>}
         {total>0 && <div className="hero rise" style={{'--glow':'rgba(56,189,248,.16)',animationDelay:'40ms'}}>
           <div className="hero-lbl">{TT("WG-Ausgaben ·")} {ymLabel(ym)}</div>
-          <div className="hero-big" style={{color:'var(--sky)',margin:'6px 0 14px'}}>€<CountUp value={total}/></div>
+          <div className="hero-big" style={{color:'var(--label)',margin:'6px 0 14px'}}>€<CountUp value={total}/></div>
           {prev>0.005 && (
             <div style={{fontSize:12,fontWeight:700,margin:'-10px 0 10px',color:deltaRatio<=0.005?'var(--label3)':total>prev?'var(--amber)':'var(--mint)'}}>
               {/* wg-v110: bei kleinem Vormonat gaben Prozente Unsinn („▲ 2063 % vs. Vormonat" bei €3,50 → €75,70) —
