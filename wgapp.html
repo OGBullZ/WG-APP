@@ -12040,9 +12040,12 @@ function Putzplan() {
             <div className="fair-bar">
               {totN>0 && counts.map(c=>(<div key={c.id} className="fair-seg" style={{width:`${c.n/totN*100}%`,background:c.color}}/>))}
             </div>
-            <div style={{display:'flex',justifyContent:'space-between',marginTop:8}}>
+            {/* wg-v126 (G9): flexWrap + gap + je Eintrag maxWidth:100%/overflowWrap:anywhere — ein langer Name („Konstantinopolitanowa") ragte bei 320 px + „Sehr groß"
+                rechts aus der Karte (Flex-Kind schrumpft nie unter sein längstes Wort). Wrap statt Schrumpfen: kurze Namen („Tom") brechen nie um, sie rutschen
+                höchstens in die nächste Zeile; nur ein Eintrag, der allein breiter als die Karte ist, bricht mitten im Wort. */}
+            <div style={{display:'flex',flexWrap:'wrap',gap:'2px 12px',justifyContent:'space-between',marginTop:8}}>
               {/* wg-v111: Zahl + „P." zusammenhalten — bei langem Namen stand „P." allein in der nächsten Zeile */}
-              {counts.map(c=>(<span key={c.id} style={{fontSize:13,fontWeight:700,color:c.color}}>{c.name} <span style={{whiteSpace:'nowrap'}}><span className="num">{c.n}</span> {TT("P.")}</span></span>))}{/* wg-v118 (EN-3): „P." → „pts" (das Wörterbuch schreibt sonst schon „pts") */}
+              {counts.map(c=>(<span key={c.id} style={{fontSize:13,fontWeight:700,color:c.color,maxWidth:'100%',overflowWrap:'anywhere'}}>{c.name} <span style={{whiteSpace:'nowrap'}}><span className="num">{c.n}</span> {TT("P.")}</span></span>))}{/* wg-v118 (EN-3): „P." → „pts" (das Wörterbuch schreibt sonst schon „pts") */}
             </div>
             {(log.length===0 || regelOffen) && (
               <div style={{fontSize:11.5,color:'var(--label3)',marginTop:10,lineHeight:1.45,fontWeight:500}} data-testid="putz-regel">
@@ -12130,14 +12133,17 @@ function Putzplan() {
               {log.slice(0,3).map(l=>{
                 const u=users.find(x=>x.id===l.userId), vor=daysSince(l.date);
                 return(
-                  <div key={l.id} className={`cell${flashIds.has(l.id)?' flash':''}`} style={{minHeight:46,padding:'10px 16px',...(flashIds.has(l.id)?{'--flash-c':hexRgba(flashFarbe(l.id, u?.color||'#fbbf24'),1)}:null)}} data-testid="putz-log-row">
+                  <div key={l.id} className={`cell${flashIds.has(l.id)?' flash':''}`} style={{minHeight:46,padding:'10px 16px',gap:8 /* wg-v126 (G9): 13 → 8 px — bei 320 px + „Sehr groß" fehlten ~8 px (Symbol + Titel 3,5 em + Name + „vor 2 Tagen"), das Datum ragte aus der Karte */,...(flashIds.has(l.id)?{'--flash-c':hexRgba(flashFarbe(l.id, u?.color||'#fbbf24'),1)}:null)}} data-testid="putz-log-row">
                     <span style={{fontSize:16,lineHeight:1}}>{l.em||'🧽'}</span>
                     {/* wg-v117 (HIER-7): „Zuletzt erledigt" in der Zeilentitel-Stufe (.cell-title 16/600) statt eigener 14,5 */}
                     {/* wg-v117 (HIER-7): minWidth 4.5em — mit langem Namen („Maximilian-Alexander") und „vor 30 Tagen" schrumpfte die Titelspalte auf ~10 px und „Bad" stand als B / a / d untereinander (gesehen bei 320 px, schon vor Runde 2); jetzt umbrechen Name und Datum, der Titel bleibt lesbar */}
                     {/* wg-v120 (A11Y-4, Folgefehler von GRENZ-10b): 4.5em → 3.5em. Das Datum steht seit GRENZ-10b auf nowrap und ragte mit „Konstantinos" daneben 6 px (320 px) bzw. 18 px
                         („Aa Sehr groß" 390 px) aus der Karte — gemessen mit der Überlauf-Sonde, HEAD war sauber. 3.5em (56 px) trägt „Bad"/„Küche" noch ohne Buchstabenbruch, gibt 16 px Platz */}
                     <div className="cell-content" style={{minWidth:'3.5em'}}><span className="cell-title ganz">{l.name}</span></div>
-                    <span style={{fontSize:12.5,fontWeight:700,color:u?.color}}>{u?.name}</span>
+                    {/* wg-v126 (G9): minWidth:2.6em + overflowWrap:anywhere — der Name schrumpfte nie unter sein längstes Wort („Konstantinopolitanowa") und schob das Datum
+                        bei 320 px / „Sehr groß" (auch 390 px) aus der Karte; jetzt bricht er (am Leerzeichen/Bindestrich, nur notfalls im Wort), das Datum bleibt in der Karte.
+                        2,6em statt 0 als Untergrenze (trägt „Tom" in 12,5 px fett): ohne sie schrumpfte „Zoë"/„Tom" auf einen Buchstaben je Zeile (anywhere senkt die Mindestbreite auf 1 Zeichen) */}
+                    <span style={{fontSize:12.5,fontWeight:700,color:u?.color,minWidth:'2.6em',overflowWrap:'anywhere'}}>{u?.name}</span>
                     <span className="num" style={{fontSize:11,color:'var(--label3)',whiteSpace:'nowrap' /* wg-v120 (GRENZ-10b): „vor 994 Tagen" brach in zwei Zeilen — jetzt eine Zeile, lange Abstände in Mon./J. (vorTage) */}} title={isoMid(l.date).toLocaleDateString(LOC())}>{vorTage(vor)}</span>
                   </div>
                 );
