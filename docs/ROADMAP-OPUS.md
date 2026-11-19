@@ -484,9 +484,10 @@ Beim Abschluss eines Pakets hier abhaken (Datum, Version, Commit). Was sich als 
 | E3 Symbolfelder | offen | | |
 | E4 Farbbedeutung | offen | | |
 | G1 Geräte-Check | offen (torbe) | | |
-| G2 320 px + Sehr groß | offen | | |
-| G3 Große Beträge | offen | | |
-| G4 Querformat | offen | | |
+| G2 320 px + Sehr groß | ✅ Zeile bricht unter 350 px wirksam um, Tab-Labels 11 Geräte-px (Gegenprobe 20 rot) | wg-v124 | 19.11. |
+| G3 Große Beträge | ✅ Tausenderpunkt ab 10.000 (App + Push), CSV ohne, Legende unter dem Ring (Gegenprobe 23 rot) | wg-v124 | 19.11. |
+| G4 Querformat | ✅ Blatt mit Tastatur 115 px Körper statt 0 (Gegenprobe: Feld unerreichbar) | wg-v124 | 19.11. |
+| G8 Folgefunde v124 | offen — „Einkaufsliste (2)" bricht bei 320 + Sehr groß zweizeilig; Warnkarte „(eure Grenze: €50,00)" Klammer allein in neuer Zeile; Chips im Formular 29 px (mit `::after` ~41) | | |
 | G5 Erster Bildaufbau | offen | | |
 | G6 Lange Listen | Status prüfen | | |
 | G7 Langsame Geräte (FILM-5, F8l) | offen — nachstellbar mit `WG_CPU=4` | | |
@@ -494,7 +495,7 @@ Beim Abschluss eines Pakets hier abhaken (Datum, Version, Commit). Was sich als 
 | S2 Prüfnetz | Status prüfen | | |
 | S3 Server-Push Englisch | offen | | |
 | A1 Regelprüfung | offen | | |
-| A2 Fokus Randseiten | offen | | |
+| A2 Fokus Randseiten | ✅ `VollbildFalle` Onboarding + 4 Druckansichten, `fokusRueck()` nie BODY (Gegenprobe 20 rot) | wg-v124 | 19.11. |
 | A3 Vorlese-Protokoll | offen | | |
 | B1 Geheimnisse | offen (torbe) | | |
 | B2 Restore-Probe | offen | | |
