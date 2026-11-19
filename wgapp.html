@@ -529,6 +529,28 @@ button.cell { color:var(--label); }
 [data-theme="light"] .cell-icon[data-ton="mint"]   { --akz:15,118,110; }
 [data-theme="light"] .cell-icon[data-ton="amber"]  { --akz:154,74,6; }
 [data-theme="light"] .cell-icon[data-ton="violet"] { --akz:109,40,217; }
+/* wg-v126 (E3, FARBE-3): sechs weitere Töne — die Paare (dunkel/hell) sind dieselben wie bei [data-fold] (Gruppen unter „Mehr"); lime = Growbox,
+   sky = Haushalt/Statistik, red = Warnung/Wiederkehrend, green = Haken/Erfolg, indigo = Cloud/Personen, grau = neutral (Ordner, Sonstiges).
+   Vorher trug jedes dieser Felder Hintergrund + Schriftgröße inline (23 Stellen, im Hellmodus mit dem DUNKLEN Farbwert → kaum sichtbar).
+   color:rgb(var(--akz)) färbt Text-Zeichen im Feld (✓, Σ); Emoji bleiben davon unberührt. */
+.cell-icon[data-ton] { color:rgb(var(--akz)); }
+.cell-icon[data-ton="lime"]   { --akz:163,230,53; }
+.cell-icon[data-ton="sky"]    { --akz:56,189,248; }
+.cell-icon[data-ton="red"]    { --akz:251,113,133; }
+.cell-icon[data-ton="green"]  { --akz:74,222,128; }
+.cell-icon[data-ton="indigo"] { --akz:129,140,248; }
+.cell-icon[data-ton="grau"]   { --akz:148,163,184; }
+[data-theme="light"] .cell-icon[data-ton="lime"]   { --akz:63,98,18; }
+[data-theme="light"] .cell-icon[data-ton="sky"]    { --akz:3,105,161; }
+[data-theme="light"] .cell-icon[data-ton="red"]    { --akz:190,18,60; }
+[data-theme="light"] .cell-icon[data-ton="green"]  { --akz:22,101,52; }
+[data-theme="light"] .cell-icon[data-ton="indigo"] { --akz:67,56,202; }
+[data-theme="light"] .cell-icon[data-ton="grau"]   { --akz:71,85,105; }
+/* wg-v126 (E3, REST-6): kleine Stufe für kompakte Zeilen (Zuletzt erledigt, Müllabfuhr, Kalender-Termine): 28-px-Feld mit 16-px-Emoji statt freiem Emoji.
+   Steht NACH .cell-icon[data-ton] (gleiche Spezifität, spätere Regel gewinnt). Ersetzt .em-saum: ⚫ Restmüll/🟤 Bio gingen im Dunkelmodus auf Schwarz unter
+   — das Feld hinterlegt sie jetzt hell (grau, etwas kräftiger als die 12 % der normalen Felder), statt eines Schein-Rands um das Zeichen. */
+.cell-icon.klein { width:28px; height:28px; border-radius:9px; font-size:16px; }
+.cell-icon.klein[data-ton="grau"] { background:rgba(var(--akz), .22); }
 .cell-content { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
 .cell-title { font-size:16px; font-weight:600; letter-spacing:-.01em; color:var(--label); overflow-wrap:anywhere; hyphens:auto; }   /* wg-v111: lange Wörter („Einweihungsparty") liefen sonst unter den Betrag */
 /* wg-v117 (HIER-7): Titel, die beim Anheben auf 16 px (vorher 14–15) keine Wörter mehr trennen dürfen. hyphens:auto trennt in Chrome auch dort, wo das Wort in der
@@ -939,8 +961,7 @@ button.cell { color:var(--label); }
    Dunkelmodus auf fast schwarzem Grund und waren im Kalender unsichtbar, in der Liste nur zu erahnen.
    `drop-shadow` folgt der Form des Zeichens (anders als `box-shadow`) — der Kreis bekommt einen Rand,
    kein Kästchen. Im Hellmodus unnötig, dort heben sich alle fünf Farben vom Weiß ab. */
-.em-saum { filter:drop-shadow(0 0 1px rgba(255,255,255,.8)) drop-shadow(0 0 .5px rgba(255,255,255,.6)); }
-[data-theme="light"] .em-saum { filter:none; }
+/* wg-v126 (E3, REST-6): .em-saum ist weg — die drei Stellen (Müllabfuhr-Zeile, Kalender-Termine, Zuletzt erledigt) nutzen .cell-icon.klein (s. oben) */
 /* wg-v112 (P4): Silber-Emoji (🔧) sind hell kaum zu sehen — in der Überschrift „Kaputt & Vermieter" ein blassviolettes Etwas
    (gesehen im Nahbild, ≈1,3:1 auf Weiß; dunkel unauffällig). Farb-Emoji lassen sich nicht umfärben, ein Filter aufs Zeichen schon. */
 [data-theme="light"] .em-blass { filter:brightness(.55) contrast(1.25); }
@@ -952,7 +973,8 @@ button.cell { color:var(--label); }
 .kal-zeile { align-items:flex-start; padding-top:12px; padding-bottom:12px; min-height:0; }
 .kal-wann { width:74px; flex-shrink:0; font-size:12.5px; font-weight:700; padding-top:1px; }
 /* wg-v117 (HIER-7): Termin-Text in der Zeilentitel-Stufe 16/600 statt 14/400 (Datum links .kal-wann bleibt die Unterzeilen-Stufe); line-height 1.35 trägt auch die 16 */
-.kal-eintrag { font-size:16px; font-weight:600; letter-spacing:-.01em; color:var(--label); line-height:1.35; overflow-wrap:anywhere; }
+.kal-eintrag { font-size:16px; font-weight:600; letter-spacing:-.01em; color:var(--label); line-height:1.35; overflow-wrap:anywhere; display:flex; align-items:center; gap:8px; /* wg-v126 (E3): Symbolfeld + Text nebeneinander */ }
+.kal-eintrag > span:last-child { min-width:0; flex:1; }
 
 /* Fallschirm (wg-v97): Passt ein Platzhalter doch einmal nicht, endet er mit „…" statt mitten im Buchstaben.
    Zweimal ist genau das passiert (v94 „Schnell: 12,50", v97 „Was ist kaputt? … Heizung Ba") — die Texte sind
@@ -1123,6 +1145,7 @@ button.cell { color:var(--label); }
 .cell.dim { opacity:.38; --o0:.38; }   /* --o0 (wg-v112, P6): Startwert der Abgang-Animation — sonst sprang ein abgedunkeltes Feld beim × kurz auf volle Deckkraft */
 /* Tap-Ziele: WCAG 2.2 verlangt min. 24×24 CSS-px — vorher 21×30 bzw. 23×23 */
 .del-btn { background:none; border:none; padding:6px 3px 6px 9px; min-width:26px; color:var(--label4); font-size:22px; line-height:1; }
+.del-btn svg { display:block; margin:4px 0; }   /* wg-v126 (E3, FARBE-8): × ist jetzt ein 14-px-SVG; 4 px oben/unten halten die Knopfhöhe (22-px-Zeichen) wie vorher */
 .chk-btn { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all .2s; }
 
 /* ── Putzplan ── */
@@ -5176,7 +5199,12 @@ const ICONS = {
   sparkle:  'M12 3l1.9 4.6 4.6 1.9-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3zM19 14.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8.8-1.9z',
   chart:    'M4 20h16M7 20v-6M12 20V8M17 20v-9',
   sun:      'M12 17a5 5 0 100-10 5 5 0 000 10zM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4',
+  close:    'M18 6L6 18M6 6l12 12',   /* wg-v126 (E3, FARBE-8): × des Lösch-Knopfs als Linie */
 };
+/* wg-v126 (E3, FARBE-8) — Ikonen-Regel: LINIE (ICONS/<Ic>) = Navigation und Aktion (Tabs, Lösch-×, Knöpfe); EMOJI = Inhalt (Kategorien, Aufgaben, Tonnen,
+   Zeilen-Symbole im .cell-icon-Feld). Nie ein Linien-Symbol als Inhalt (Growbox-Bilanzzeile war so ein Ausreißer → jetzt 🌱) und nie ein Text-Zeichen (×) als Aktion. */
+/* wg-v126 (E3): Lösch-× aller .del-btn — 14 px, 2-px-Linie, currentColor (Farbe kommt vom Knopf); der aria-label bleibt am Knopf */
+const DelX = () => <Ic d={ICONS.close} size={14} sw={2}/>;
 const Ic = ({d,color='currentColor',size=25,sw=1.7}) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
     <path d={d}/>
@@ -5715,7 +5743,7 @@ function SettlementHistory({ settlements, users, accent }) {
           const from=nameOf(s.fromId), to=nameOf(s.toId), open=s.amount>0.01&&from&&to;
           return (
             <div key={s.id} className="cell">
-              <div className="cell-icon" style={{background:'rgba(74,222,128,.12)',color:'var(--green)',fontSize:15,fontWeight:800}}>✓</div>
+              <div className="cell-icon" data-ton="green" aria-hidden="true">✓</div>
               <div className="cell-content">
                 <span className="cell-title">
                   {open
@@ -6136,7 +6164,7 @@ function LoginShare({ oeffnen } = {}) {
                 <div style={rowTitle}>{s.svc}</div>
                 <div style={rowSub}>{s.used ? TT("{0} hat ihn um {1} geöffnet", nameOf(s.usedBy), fmtHM(s.used)) : TT("wartet auf {0} · Code gültig bis {1}", other, fmtHM(s.exp))}</div>
               </div>
-              <button className="del-btn" aria-label={s.used?'Hinweis entfernen':TT("Freigabe zurückziehen")} title={s.used?'Hinweis entfernen':TT("Freigabe zurückziehen")} onClick={()=>revoke(s.id)}>×</button>
+              <button className="del-btn" aria-label={s.used?'Hinweis entfernen':TT("Freigabe zurückziehen")} title={s.used?'Hinweis entfernen':TT("Freigabe zurückziehen")} onClick={()=>revoke(s.id)}><DelX/></button>
             </div>
           ))}
           <button ref={oeffnenKnopf} style={{...quietBtn,opacity:canCrypto?1:.5}} disabled={!canCrypto} onClick={openForm}>
@@ -6716,7 +6744,7 @@ function BookCard({ oeffnen } = {}) {
               <span className="cell-title">{k[2]} · {b.from}–{b.to}</span>
               <span className="cell-sub">{boardWhen(b.date)} · <b style={{color:u?.color}}>{b.by===me?TT("du"):u?.name||TT("jemand")}</b>{b.note?` · ${b.note}`:''}</span>
             </div>
-            {b.by===me && <button className="del-btn" aria-label={TT("{0} {1} entfernen", k[2], b.from)} onClick={()=>del(b)}>×</button>}
+            {b.by===me && <button className="del-btn" aria-label={TT("{0} {1} entfernen", k[2], b.from)} onClick={()=>del(b)}><DelX/></button>}
           </div>); })}
       </div>}
       {!list.length && <div className="group"><div className="cell"><div className="cell-content"><span className="cell-sub">{TT("Duschzeit, Waschtag, Lernphase oder Besuch eintragen – die anderen sehen es sofort.")}</span></div></div></div>}
@@ -6996,7 +7024,7 @@ function Onboarding({ mode: startMode, onDone }) {
       {f.mates.map((m,i)=><div key={i} className="onb-row" style={{display:'flex',flexDirection:'column',gap:6}}>
         <div style={{display:'flex',gap:6}}>
           <input className="field" maxLength={40} placeholder={TT("Name {0}", i+1)} aria-label={TT("Mitbewohner {0}", i+1)} value={m.name} style={{flex:1}} onChange={e=>up({ mates:f.mates.map((x,j)=>j===i?{...x,name:e.target.value}:x) })}/>
-          {f.mates.length>1 && <button type="button" className="del-btn" aria-label={TT("Mitbewohner {0} entfernen", i+1)} onClick={()=>up({ mates:f.mates.filter((_,j)=>j!==i) })}>×</button>}
+          {f.mates.length>1 && <button type="button" className="del-btn" aria-label={TT("Mitbewohner {0} entfernen", i+1)} onClick={()=>up({ mates:f.mates.filter((_,j)=>j!==i) })}><DelX/></button>}
         </div>
         <OnbDots value={m.color} onPick={c=>up({ mates:f.mates.map((x,j)=>j===i?{...x,color:c}:x) })} taken={[f.color, ...f.mates.filter((_,j)=>j!==i).map(x=>x.color)]}/>
       </div>)}
@@ -7320,7 +7348,7 @@ function PollCard({ oeffnen } = {}) {
             <div key={p.id} className="cell" data-testid="poll-row" style={{flexDirection:'column',alignItems:'stretch',gap:8,padding:'12px 16px'}}>
               <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
                 <span className="cell-title" style={{flex:1}}>{p.q}</span>
-                <button className="del-btn" aria-label={TT("Umfrage „{0}\" entfernen", p.q)} onClick={()=>del(p)}>×</button>
+                <button className="del-btn" aria-label={TT("Umfrage „{0}\" entfernen", p.q)} onClick={()=>del(p)}><DelX/></button>
               </div>
               {o.map((opt,i)=>{ const who=users.filter(u=>p['v_'+u.id]===i), pct=users.length?who.length/users.length*100:0; return (
                 <button key={i} type="button" disabled={done || !me} aria-pressed={mineV===i} onClick={()=>vote(p,i)}
@@ -7422,7 +7450,7 @@ function MaintCard() {
               <span className="cell-title">{t.name}</span>
               <span className="cell-sub" style={d<=0?{color:'var(--amber)',fontWeight:700}:undefined}>{!t.last ? TT("noch nie – jetzt fällig") : d<0 ? TT("seit {0} Tagen fällig", -d) : d===0 ? TT("heute fällig") : TT("nächstes Mal {0}", fmtDate(maintDue(t)))} {TT("· alle")} {t.every} {TT("Mon.")}</span>
             </div>
-            <button className="del-btn" aria-label={TT("{0} entfernen", t.name)} onClick={()=>del(t)}>×</button>
+            <button className="del-btn" aria-label={TT("{0} entfernen", t.name)} onClick={()=>del(t)}><DelX/></button>
           </div>); })}
         <div className="cell" style={{flexWrap:'wrap',gap:6,padding:'10px 16px'}}>
           {MAINT_PRESETS.filter(p=>!has(p[0])).map(([n,em,m])=><button key={n} type="button" data-testid="maint-preset" style={chipSt(false)} onClick={()=>add(n,em,m)}>{em} {n}</button>)}
@@ -8002,7 +8030,7 @@ function MealCard({ oeffnen } = {}) {
               <span className="cell-sub"><b style={{color:u?.color}}>{u?.id===me?TT("Du kochst"):TT("{0} kocht", u?.name||'?')}</b>{e.ings?` · ${e.ings}`:''}</span>
             </div>
             {e.ings && <button className="btn btn-sec btn-kompakt" aria-label={TT("Zutaten für {0} auf die Liste", e.dish)} style={{flexShrink:0}} onClick={()=>shop(e)}>{TT("🛒 Zutaten")}</button>}
-            <button className="del-btn" aria-label={TT("{0} entfernen", e.dish)} onClick={()=>del(e)}>×</button>
+            <button className="del-btn" aria-label={TT("{0} entfernen", e.dish)} onClick={()=>del(e)}><DelX/></button>
           </div>); })}
         {counts.length>1 && <div className="cell" style={{minHeight:40}}><span className="cell-sub" data-testid="meal-fair">{TT("Gekocht (30 Tage):")} {counts.map(c=>`${c.name} ${c.n}×`).join(' · ')}</span></div>}
       </div>
@@ -8121,7 +8149,7 @@ function InventoryCard() {
                   <span className="cell-title">{i.name}</span>
                   <span className="cell-sub">{[i.bought&&TT("gekauft {0}", fmtDate(i.bought)), i.price&&`€${fmt(i.price)}`, w!==null && (w<0?TT("Garantie abgelaufen"):w<=30?<b key="w" style={{color:'var(--amber)'}}>{/* wg-v119 (EN-4): ganzer Satz mit Mehrzahl (plu) — EN las „Warranty still 1 days", DE „1 Tage" */}{TT("Garantie noch {0} Tag{1}", w, plu(w,'e'))}</b>:TT("Garantie bis {0}", fmtDate(i.warranty)))].filter(Boolean).reduce((acc,x,k)=>k?[...acc,' · ',x]:[x],[])}</span>
                 </div>
-                <button className="del-btn" aria-label={TT("{0} entfernen", i.name)} onClick={()=>del(i)}>×</button>
+                <button className="del-btn" aria-label={TT("{0} entfernen", i.name)} onClick={()=>del(i)}><DelX/></button>
               </div>); })}
           </React.Fragment>) : null; })}
       </div>
@@ -8220,7 +8248,7 @@ function RulesCard() {
         {(showAll ? valid : valid.slice(0,3)).map(r=>(
           <div key={r.id} className="cell" data-testid="rule-valid">
             <div className="cell-content"><span className="cell-title">✅ {r.text}</span></div>
-            <button className="del-btn" aria-label={TT("Regel „{0}\" aufheben", r.text)} onClick={()=>reject(r)}>×</button>
+            <button className="del-btn" aria-label={TT("Regel „{0}\" aufheben", r.text)} onClick={()=>reject(r)}><DelX/></button>
           </div>
         ))}
         {valid.length>3 && <button className="cell hit" onClick={()=>setShowAll(s=>!s)} style={{background:'none',width:'100%',fontFamily:'inherit',color:'var(--label2)',fontSize:13,cursor:'pointer'}}>{showAll?TT("Weniger"):'Alle '+valid.length+' Regeln'}</button>}
@@ -8360,8 +8388,8 @@ function MonatsKalender({ ym, ruhig }) {   /* ruhig (wg-v112, P9): Monat ohne Au
             <div key={iso} className="cell kal-zeile" data-testid="kal-tag" data-tag={iso}>
               <span className="kal-wann" style={{color: iso === heute ? 'var(--sky)' : 'var(--label2)'}}>{wann(iso)}</span>
               <div className="cell-content" style={{gap:4}}>
-                {/* `em-saum` gibt dunklen Symbolen (⚫ Restmüll, 🟤 Bio) im Dunkelmodus einen hellen Rand (wg-v97) */}
-                {termine[iso].map((e, i) => <span key={i} className="kal-eintrag"><span className="em-saum">{e.em}</span> {e.t}</span>)}
+                {/* wg-v126 (E3, REST-6): Symbol im kleinen Feld (.cell-icon.klein, grau + etwas kräftiger) statt .em-saum — das Feld hebt ⚫ Restmüll/🟤 Bio im Dunkelmodus ab (wg-v97) */}
+                {termine[iso].map((e, i) => <span key={i} className="kal-eintrag"><span className="cell-icon klein" data-ton="grau" aria-hidden="true">{e.em}</span><span>{e.t}</span></span>)}
               </div>
             </div>
           ))}
@@ -8481,7 +8509,7 @@ function GeburtstagCard() {
               <div style={{fontSize:14,fontWeight:700}}>{g.name}</div>
               <div className="cell-sub">{fmtTagMonat(g.tag)} · {wann(g)}{alter(g)}</div>
             </div>
-            <button className="del-btn" aria-label={TT("Geburtstag entfernen")} onClick={() => del(g)}>×</button>
+            <button className="del-btn" aria-label={TT("Geburtstag entfernen")} onClick={() => del(g)}><DelX/></button>
           </div>
         ))}
         <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
@@ -8568,7 +8596,7 @@ function PinnwandCard() {
             {/* Zustand am Symbol, nicht an der Farbe: ein Emoji bringt seine eigene Farbe mit und ignoriert `color` */}
             <button type="button" data-testid="pw-anheften" aria-label={p.oben ? TT("Nicht mehr oben") : TT("Oben anheften")} title={p.oben ? TT("Nicht mehr oben") : TT("Oben anheften")} onClick={() => anheften(p)}
               style={{background:p.oben?'var(--bg3)':'none',borderRadius:10,border:'none',cursor:'pointer',fontSize:15,width:40,height:40,display:'flex',alignItems:'center',justifyContent:'center',padding:0,flexShrink:0,opacity:p.oben?1:.5}}>{p.oben ? '📌' : '📍'}</button>
-            <button className="del-btn" aria-label={TT("Von der Pinnwand entfernen")} onClick={() => del(p)}>×</button>
+            <button className="del-btn" aria-label={TT("Von der Pinnwand entfernen")} onClick={() => del(p)}><DelX/></button>
           </div>
         ))}
         {!offen && <button type="button" className="btn btn-sec" data-testid="pw-neu" onClick={() => setOffen(true)}>{TT("+ Info anpinnen")}</button>}
@@ -8622,7 +8650,7 @@ function BoardCard() {
               </div>
               <button aria-label={TT("Zum Kalender hinzufügen")} title={TT("Zum Kalender hinzufügen")} onClick={()=>addToCalendar(b)}
                 style={{background:'none',border:'none',cursor:'pointer',fontSize:17,padding:'2px 4px',lineHeight:1,flexShrink:0}}>📅</button>
-              <button className="del-btn" aria-label={TT("Ankündigung entfernen")} onClick={()=>del(b)}>×</button>
+              <button className="del-btn" aria-label={TT("Ankündigung entfernen")} onClick={()=>del(b)}><DelX/></button>
             </div>
           );
         })}
@@ -9594,12 +9622,13 @@ function PickupCard({ oeffnen } = {}) {
           const k = PICK_KINDS[p.kind] || ['🗑️', p.kind], n = linked(p.kind);
           return (
             <div key={p.id} className="cell" data-testid="pickup-row">
-              <span className="em-saum" style={{fontSize:20,lineHeight:1}}>{k[0]}</span>
+              {/* wg-v126 (E3, REST-6): .cell-icon.klein statt .em-saum (Tonnen-Emoji im Feld, grau kräftiger gegen ⚫/🟤 auf Dunkel); ganzes 36er-Feld wäre hier zu groß für die 2-Zeilen-Zeile */}
+              <span className="cell-icon klein" data-ton="grau" aria-hidden="true">{k[0]}</span>
               <div className="cell-content">
                 <span className="cell-title">{k[1]} · <b style={{color:p.d===shiftISO(today,1)?'var(--amber)':'inherit'}}>{boardWhen(p.d)}</b></span>
                 <span className="cell-sub">{TT("alle")} {p.every} {TT("Woche")}{plu(p.every,'n')}{n?TT(" · {0} Aufgabe{1} gekoppelt", n, plu(n,'n')):''}</span>
               </div>
-              <button className="del-btn" aria-label={TT("{0} entfernen", k[1])} onClick={()=>del(p)}>×</button>
+              <button className="del-btn" aria-label={TT("{0} entfernen", k[1])} onClick={()=>del(p)}><DelX/></button>
             </div>
           );
         })}
@@ -9653,7 +9682,7 @@ function AwayCard({ compact, oeffnen } = {}) {
           <span className="cell-title"><b style={{color:u?.color}}>{a.userId===me?TT("Du bist"):TT("{0} ist", u?.name||'Jemand')}</b> {now?TT("weg"):TT("bald weg")}</span>
           <span className="cell-sub">{fmtDM(a.from)}–{fmtDM(a.to)}{a.note?` · ${a.note}`:''}{now?TT(" · wird im Putzplan nicht eingeteilt"):''}</span>
         </div>
-        {!compact && <button className="del-btn" aria-label={TT("Abwesenheit entfernen")} onClick={()=>del(a)}>×</button>}
+        {!compact && <button className="del-btn" aria-label={TT("Abwesenheit entfernen")} onClick={()=>del(a)}><DelX/></button>}
       </div>
     );
   });
@@ -9837,7 +9866,7 @@ function RepairCard() {
           </span>
         </div>
         {r.status!=='erledigt' && <button className="btn btn-sec btn-kompakt" style={{flexShrink:0}} onClick={()=>step(r)}>{r.status==='offen'?TT("Gemeldet ✓"):TT("Erledigt ✓")}</button>}
-        <button className="del-btn" aria-label={TT("„{0}\" löschen", r.text)} onClick={e=>del(r, e.currentTarget.closest('.cell'))}>×</button>
+        <button className="del-btn" aria-label={TT("„{0}\" löschen", r.text)} onClick={e=>del(r, e.currentTarget.closest('.cell'))}><DelX/></button>
       </div>
     );
   };
@@ -10696,7 +10725,7 @@ function Haushalt({goPutz}) {
           <div className="betrag">€{fmt(item.price)}</div>
           <div className="betrag-sub" style={{color:'var(--lime)'}} /* wg-v125 (E1): Tag in der Sans-Unterzeile (11/600) */>{TT("Growbox")}</div>
         </div>
-        <button className="del-btn" aria-label={TT("{0} löschen", item.name) /* wg-v122 (A11Y-9b): Name mit Postennamen, sonst 5× „Ausgabe löschen" in einer Liste */} title={TT("Ausgabe löschen")} onClick={e=>delGi(item.id, e.currentTarget.closest('.cell'))}>×</button>
+        <button className="del-btn" aria-label={TT("{0} löschen", item.name) /* wg-v122 (A11Y-9b): Name mit Postennamen, sonst 5× „Ausgabe löschen" in einer Liste */} title={TT("Ausgabe löschen")} onClick={e=>delGi(item.id, e.currentTarget.closest('.cell'))}><DelX/></button>
       </div>
     );
   };
@@ -10711,7 +10740,7 @@ function Haushalt({goPutz}) {
           <span className="cell-sub">{TT("abgerechnet")} {fmtDate(item.settledAt||item.date)} · <span style={{color:payer?.color}}>{payer?.name}</span></span>
         </div>
         <div className="num" style={{fontSize:15,fontWeight:700,color:'var(--label3)'}}>€{fmt(item.price)}</div>
-        <button className="del-btn" aria-label={TT("{0} löschen", item.name) /* wg-v122 (A11Y-9b): Name mit Postennamen, sonst 5× „Ausgabe löschen" in einer Liste */} title={TT("Ausgabe löschen")} onClick={e=>delGi(item.id, e.currentTarget.closest('.cell'))}>×</button>
+        <button className="del-btn" aria-label={TT("{0} löschen", item.name) /* wg-v122 (A11Y-9b): Name mit Postennamen, sonst 5× „Ausgabe löschen" in einer Liste */} title={TT("Ausgabe löschen")} onClick={e=>delGi(item.id, e.currentTarget.closest('.cell'))}><DelX/></button>
       </div>
     );
   };
@@ -10839,7 +10868,7 @@ function Haushalt({goPutz}) {
           {growOn&&gc.tCost>0&&(
             /* wg-v116: reine Info-Zeile (vorher Knopf in den Grow-Tab) — die Grow-Posten stehen unten in den Einzelposten */
             <div className="group cell rise" data-testid="haus-grow-info" style={{border:'1px solid rgba(163,230,53,.28)',animationDelay:'50ms'}}>
-              <div className="cell-icon" style={{background:'rgba(163,230,53,.12)'}}><Ic d={ICONS.leaf} color="var(--lime)" size={19} sw={2}/></div>
+              <div className="cell-icon" data-ton="lime" aria-hidden="true">{/* wg-v126 (E3, FARBE-8): 🌱 statt Linien-Blatt — die Zeile ist Inhalt (Growbox-Posten), keine Aktion */}🌱</div>
               <div className="cell-content">
                 <span className="cell-title" style={{color:'var(--lime)',fontWeight:700}}>{TT("Growbox ·")} <span className="num">€{fmt(gc.tCost)}</span> {TT("offen")}</span>
                 <span className="cell-sub">{/* wg-v119 (EN-4): ganzer Satz mit der Endung je Sprache (DE „offener"/„offene", EN „item"/„items") — EN las „1 openr items" */}{TT("{0} offene{1} Posten", gc.open.length, LANG==='en' ? plu(gc.open.length,'','s') : (gc.open.length===1?'r':''))}</span>
@@ -10900,13 +10929,13 @@ function Haushalt({goPutz}) {
               <div className="group">
                 {recs.map(rc=>{const payer=users.find(u=>u.id===rc.paidBy);return(
                   <div key={rc.id} className="cell">
-                    <div className="cell-icon" style={{background:'rgba(94,234,212,.12)',fontSize:15}}>🔁</div>
+                    <div className="cell-icon" data-ton="mint" aria-hidden="true">🔁</div>
                     <div className="cell-content">
                       <span className="cell-title">{rc.name}</span>
                       <span className="cell-sub">{TT("jeden Monat ·")} <span style={{color:payer?.color}}>{payer?.name}</span></span>
                     </div>
                     <span className="num" style={{fontWeight:700,fontSize:15}}>€{fmt(rc.price)}</span>
-                    <button className="del-btn" aria-label={TT("Wiederkehrend beenden")} title={TT("Wiederkehrend beenden")} onClick={()=>delRec(rc.id)}>×</button>
+                    <button className="del-btn" aria-label={TT("Wiederkehrend beenden")} title={TT("Wiederkehrend beenden")} onClick={()=>delRec(rc.id)}><DelX/></button>
                   </div>
                 );})}
               </div>
@@ -10957,7 +10986,7 @@ function Haushalt({goPutz}) {
                               wg-v125 (E1, REST-4): Unterzeile als .betrag-sub (Sans 11/600) statt Mono 11/400 */}
                           <div className="betrag-sub" data-testid={istUmbuchung(item)?'exp-umbuchung':undefined} style={{color:'var(--label3)'}}>{istUmbuchung(item)?TT("↔ Umbuchung"):item.owedBy?TT("{0} zahlt alles", users.find(u=>u.id===item.owedBy)?.name||'?'):TT("je €{0}", fmt(item.price/users.length))}</div>
                         </div>
-                        <button className="del-btn" aria-label={TT("{0} löschen", item.name) /* wg-v122 (A11Y-9b): Name mit Postennamen, sonst 5× „Ausgabe löschen" in einer Liste */} title={TT("Ausgabe löschen")} onClick={e=>del(item.id, e.currentTarget.closest('.cell'))}>×</button>
+                        <button className="del-btn" aria-label={TT("{0} löschen", item.name) /* wg-v122 (A11Y-9b): Name mit Postennamen, sonst 5× „Ausgabe löschen" in einer Liste */} title={TT("Ausgabe löschen")} onClick={e=>del(item.id, e.currentTarget.closest('.cell'))}><DelX/></button>
                       </div>
                     );
                   })}
@@ -10984,7 +11013,7 @@ function Haushalt({goPutz}) {
                               <span className="cell-sub">{TT("abgerechnet")} {fmtDate(item.settledAt||item.date)} · <span style={{color:payer?.color}}>{payer?.name}</span></span>
                             </div>
                             <div className="num" style={{fontSize:15,fontWeight:700,color:'var(--label3)'}}>€{fmt(item.price)}</div>
-                            <button className="del-btn" aria-label={TT("{0} löschen", item.name) /* wg-v122 (A11Y-9b): Name mit Postennamen, sonst 5× „Ausgabe löschen" in einer Liste */} title={TT("Ausgabe löschen")} onClick={e=>del(item.id, e.currentTarget.closest('.cell'))}>×</button>
+                            <button className="del-btn" aria-label={TT("{0} löschen", item.name) /* wg-v122 (A11Y-9b): Name mit Postennamen, sonst 5× „Ausgabe löschen" in einer Liste */} title={TT("Ausgabe löschen")} onClick={e=>del(item.id, e.currentTarget.closest('.cell'))}><DelX/></button>
                           </div>
                         );
                       })}
@@ -11070,7 +11099,7 @@ function Haushalt({goPutz}) {
                         {i.done&&(
                           <button className="due-chip" style={{background:'rgba(94,234,212,.13)',color:'var(--mint)',border:'none',cursor:'pointer'}} onClick={()=>setConvItem(i)}>{TT("€ AUSGABE")}</button>
                         )}
-                        <button className="del-btn" aria-label={TT("Eintrag löschen")} title={TT("Eintrag löschen")} onClick={e=>delL(i.id, e.currentTarget.closest('.cell'))}>×</button>
+                        <button className="del-btn" aria-label={TT("Eintrag löschen")} title={TT("Eintrag löschen")} onClick={e=>delL(i.id, e.currentTarget.closest('.cell'))}><DelX/></button>
                       </div>
                     );
                   })}
@@ -11368,7 +11397,7 @@ function Grow() {
               </div>
               {ci.waterIn!==null ? (
                 <div className="cell">
-                  <div className="cell-icon" style={{background:'rgba(56,189,248,.12)',fontSize:15}}>💧</div>
+                  <div className="cell-icon" data-ton="sky" aria-hidden="true">💧</div>
                   <div className="cell-content">
                     {/* Ohne eingetragenes Gießen wäre „116 Tage überfällig" zwar korrekt gerechnet,
                         aber unsinnig zu lesen — dann lieber sagen, dass schlicht nichts erfasst ist. */}
@@ -11387,7 +11416,7 @@ function Grow() {
                 </div>
               ) : (
                 <div className="cell">
-                  <div className="cell-icon" style={{background:'rgba(163,230,53,.12)',fontSize:15}}>🍂</div>
+                  <div className="cell-icon" data-ton="lime" aria-hidden="true">🍂</div>
                   <div className="cell-content">
                     <span className="cell-title">{TT("Trocknung läuft")}</span>
                     <span className="cell-sub">{TT("In dieser Phase wird nicht gegossen — keine Erinnerungen")}</span>
@@ -11429,12 +11458,12 @@ function Grow() {
             <div className="group">
               {harv.map(h=>(
                 <div key={h.id} className="cell">
-                  <div className="cell-icon" style={{background:'rgba(163,230,53,.12)',fontSize:15}}>🌾</div>
+                  <div className="cell-icon" data-ton="lime" aria-hidden="true">🌾</div>
                   <div className="cell-content">
                     <span className="cell-title"><span className="num">{fmt(Number(h.grams)||0)} g</span>{h.note?` · ${h.note}`:''}</span>
                     <span className="cell-sub">{fmtDate(h.date)}</span>
                   </div>
-                  <button className="del-btn" aria-label={TT("Ernte löschen")} title={TT("Ernte löschen")} onClick={()=>delHarv(h.id)}>×</button>
+                  <button className="del-btn" aria-label={TT("Ernte löschen")} title={TT("Ernte löschen")} onClick={()=>delHarv(h.id)}><DelX/></button>
                 </div>
               ))}
             </div>
@@ -12133,8 +12162,9 @@ function Putzplan() {
               {log.slice(0,3).map(l=>{
                 const u=users.find(x=>x.id===l.userId), vor=daysSince(l.date);
                 return(
-                  <div key={l.id} className={`cell${flashIds.has(l.id)?' flash':''}`} style={{minHeight:46,padding:'10px 16px',gap:8 /* wg-v126 (G9): 13 → 8 px — bei 320 px + „Sehr groß" fehlten ~8 px (Symbol + Titel 3,5 em + Name + „vor 2 Tagen"), das Datum ragte aus der Karte */,...(flashIds.has(l.id)?{'--flash-c':hexRgba(flashFarbe(l.id, u?.color||'#fbbf24'),1)}:null)}} data-testid="putz-log-row">
-                    <span style={{fontSize:16,lineHeight:1}}>{l.em||'🧽'}</span>
+                  <div key={l.id} className={`cell${flashIds.has(l.id)?' flash':''}`} style={{minHeight:46,padding:'10px 16px',gap:8 /* wg-v126 (G9 + E3): 13 → 8 px — bei 320 px + „Sehr groß" fehlten ~8 px (Symbol + Titel 3,5 em + Name + „vor 2 Tagen"), das Datum ragte aus der Karte; das 28-px-Symbolfeld (E3) kostet zusätzlich ~12 px, die Namensspalte bricht dafür (G9) */,...(flashIds.has(l.id)?{'--flash-c':hexRgba(flashFarbe(l.id, u?.color||'#fbbf24'),1)}:null)}} data-testid="putz-log-row">
+                    {/* wg-v126 (E3, REST-6): freies 16-px-Emoji → kleines Symbolfeld (amber = Putzplan wie die Hinweise) */}
+                    <span className="cell-icon klein" data-ton="amber" aria-hidden="true">{l.em||'🧽'}</span>
                     {/* wg-v117 (HIER-7): „Zuletzt erledigt" in der Zeilentitel-Stufe (.cell-title 16/600) statt eigener 14,5 */}
                     {/* wg-v117 (HIER-7): minWidth 4.5em — mit langem Namen („Maximilian-Alexander") und „vor 30 Tagen" schrumpfte die Titelspalte auf ~10 px und „Bad" stand als B / a / d untereinander (gesehen bei 320 px, schon vor Runde 2); jetzt umbrechen Name und Datum, der Titel bleibt lesbar */}
                     {/* wg-v120 (A11Y-4, Folgefehler von GRENZ-10b): 4.5em → 3.5em. Das Datum steht seit GRENZ-10b auf nowrap und ragte mit „Konstantinos" daneben 6 px (320 px) bzw. 18 px
@@ -12374,7 +12404,7 @@ function Finanzen() {
               Änderung sonst beim Schließen der App spurlos verschwindet. */}
           {saveErr && (
             <div className="group rise" role="alert" style={{padding:'13px 16px',display:'flex',alignItems:'center',gap:12,border:'1px solid rgba(251,113,133,.42)',background:'rgba(251,113,133,.08)'}}>
-              <div className="cell-icon" style={{background:'rgba(251,113,133,.14)',fontSize:15}}>⚠️</div>
+              <div className="cell-icon" data-ton="red" aria-hidden="true">⚠️</div>
               <div className="cell-content">
                 <span className="cell-title" style={{color:'var(--red)'}}>{TT("Nicht gespeichert")}</span>
                 <span className="cell-sub">{TT("Der Gerätespeicher ist voll — beim Schließen der App wäre die Änderung weg. Jetzt „⬇︎ Sichern\" antippen, dann Speicher freimachen.")}</span>
@@ -12424,7 +12454,7 @@ function Finanzen() {
                   <div className="group">
                     {monTxs.map(t=>(
                       <div key={t.id} className="cell klick">
-                        <div className="cell-icon" style={{background:t.type==='inc'?'rgba(74,222,128,.13)':'rgba(251,113,133,.13)',fontSize:15}}>
+                        <div className="cell-icon" data-ton={t.type==='inc'?'green':'red'} aria-hidden="true">
                           {t.type==='inc'?'📈':'📉'}
                         </div>
                         <div className="cell-content" style={{cursor:'pointer'}} {...klickbar(()=>setEditTx(t), TT("{0} bearbeiten", t.note?t.note:TT(t.category))) /* wg-v122 (A11Y-3) */}>
@@ -12435,7 +12465,7 @@ function Finanzen() {
                         <span className="num" style={{fontWeight:700,fontSize:16,color:t.type==='inc'?'var(--green)':'var(--red)',cursor:'pointer'}} onClick={()=>setEditTx(t)}>
                           {t.type==='inc'?'+':'-'}€{fmt(t.amount)}
                         </span>
-                        <button className="del-btn" aria-label={TT("Buchung löschen")} title={TT("Buchung löschen")} onClick={()=>delTx(t.id)}>×</button>
+                        <button className="del-btn" aria-label={TT("Buchung löschen")} title={TT("Buchung löschen")} onClick={()=>delTx(t.id)}><DelX/></button>
                       </div>
                     ))}
                   </div>
@@ -12451,7 +12481,7 @@ function Finanzen() {
                   <div className="group">
                     {fixed.map(f=>(
                       <div key={f.id} className="cell klick">
-                        <div className="cell-icon" style={{background:'rgba(196,181,253,.13)',fontSize:15}}>📌</div>
+                        <div className="cell-icon" data-ton="violet" aria-hidden="true">📌</div>
                         <div className="cell-content" style={{cursor:'pointer'}} {...klickbar(()=>setEditFix(f), TT("{0} bearbeiten", f.name)) /* wg-v122 (A11Y-3) */}>
                           <span className="cell-title">{f.name}</span>
                           <span className="cell-sub">{f.freq==='m'?(f.day?TT("Monatlich · am {0}.", f.day):TT("Monatlich")):TT("Jährlich")}</span>
@@ -12460,7 +12490,7 @@ function Finanzen() {
                           <div className="num" style={{fontSize:15,fontWeight:700}}>€{fmt(f.amount)}</div>
                           {f.freq==='y'&&<div className="num" style={{fontSize:11,color:'var(--label3)'}}>€{fmt(f.amount/12)}{TT("/Mo.")}</div>}
                         </div>
-                        <button className="del-btn" aria-label={TT("Fixkosten löschen")} title={TT("Fixkosten löschen")} onClick={()=>delFix(f.id)}>×</button>
+                        <button className="del-btn" aria-label={TT("Fixkosten löschen")} title={TT("Fixkosten löschen")} onClick={()=>delFix(f.id)}><DelX/></button>
                       </div>
                     ))}
                   </div>
@@ -12591,7 +12621,7 @@ function Abos() {
                     return(
                       <div key={s.id} className="sub-card" style={{cursor:'pointer'}} onClick={()=>setEditSub(s)} onContextMenu={e=>{e.preventDefault();del(s.id);}}>
                         <button className="del-btn" aria-label={TT("Abo löschen")} title={TT("Abo löschen")} onClick={e=>{e.stopPropagation();del(s.id);}}
-                          style={{position:'absolute',top:6,right:6,padding:0,width:24,height:24,fontSize:18,color:'var(--label4)',zIndex:2}}>×</button>
+                          style={{position:'absolute',top:6,right:6,padding:0,width:24,height:24,fontSize:18,color:'var(--label4)',zIndex:2}}><DelX/></button>
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:2}}>
                           <span style={{fontSize:24,lineHeight:1}}>{s.em}</span>
                           <span className="num" style={{fontSize:10,color:'var(--label3)',letterSpacing:'.2em',marginRight:22}}>{s.iv==='m'?TT("MTL"):TT("JÄHR")}</span>{/* wg-v112 (P10): 10 statt 9 px (Mindestschrift) */}
@@ -13016,7 +13046,7 @@ function Einstellungen() {
               {status!=='moved' && (
                 <button className="cell" disabled={rotBusy} onClick={doRotate}
                   style={{width:'100%',border:'none',background:'none',textAlign:'left',fontFamily:'inherit',cursor:rotBusy?'default':'pointer'}}>
-                  <div className="cell-icon" style={{background:'rgba(251,113,133,.12)',fontSize:15}}>🔄</div>
+                  <div className="cell-icon" data-ton="red" aria-hidden="true">🔄</div>
                   <div className="cell-content">
                     <span className="cell-title">{rotBusy?TT("Wechsle Code …"):TT("WG-Code wechseln")}</span>
                     <span className="cell-sub">{TT("Z. B. wenn jemand ausgezogen ist — der alte Code wird gesperrt")}</span>
@@ -13074,7 +13104,7 @@ function Einstellungen() {
           {fbCfg&&!showSetup&&(
             <div className="group">
               <div className="cell">
-                <div className="cell-icon" style={{background:'rgba(163,230,53,.12)',fontSize:16}}>🔥</div>
+                <div className="cell-icon" data-ton="lime" aria-hidden="true">🔥</div>
                 <div className="cell-content">
                   <span className="cell-title">{TT("Verbunden")}</span>
                   <span className="cell-sub">{fbCfg.projectId}</span>
@@ -13116,7 +13146,7 @@ function Einstellungen() {
           <div className="group">
             <div className="cell">
               {/* wg-v102: Wochen-Duell entfernt — der Schalter regelt nur noch die Pünktlich-Serie */}
-              <div className="cell-icon" style={{background:'rgba(251,191,36,.12)',fontSize:17}}>🔥</div>
+              <div className="cell-icon" data-ton="amber" aria-hidden="true">🔥</div>
               <div className="cell-content">
                 <span className="cell-title">{TT("Pünktlich-Serie")}</span>
                 <span className="cell-sub">{TT("🔥 zählt Aufgaben, die du nicht überfällig werden lässt")}</span>
@@ -13141,7 +13171,7 @@ function Einstellungen() {
           <div className="section-hdr" role="heading" aria-level="2">{TT("Archiv")}</div>
           <div className="group">
             <div className="cell">
-              <div className="cell-icon" style={{background:'rgba(56,189,248,.12)',fontSize:15}}>🗄️</div>
+              <div className="cell-icon" data-ton="sky" aria-hidden="true">🗄️</div>
               <div className="cell-content">
                 <span className="cell-title">{TT("Abgerechnetes archivieren")}</span>
                 <span className="cell-sub">{archiveCount>0 ? TT("{0} Posten älter als 3 Monate", archiveCount) : TT("Nichts zu archivieren")}{/* wg-v118 (EN-3) */}</span>
@@ -13153,7 +13183,7 @@ function Einstellungen() {
             </div>
             {arc.length>0 && (
               <div className="cell klick" style={{cursor:'pointer'}} {...klickbar(()=>setShowArchive(true)) /* wg-v122 (A11Y-3) */}>
-                <div className="cell-icon" style={{background:'rgba(148,163,184,.12)',fontSize:15}}>📂</div>
+                <div className="cell-icon" data-ton="grau" aria-hidden="true">📂</div>
                 <div className="cell-content">
                   <span className="cell-title">{TT("Archiv ansehen")}</span>
                   <span className="cell-sub">{arc.length} {TT("Einträge")}</span>
@@ -13174,21 +13204,21 @@ function Einstellungen() {
           )}
           <div className="group">
             <div className="cell klick" style={{cursor:'pointer'}} {...klickbar(exportData) /* wg-v122 (A11Y-3): Export/Import sind der Rettungsweg → Tastatur */}>
-              <div className="cell-icon" style={{background:'rgba(74,222,128,.12)',fontSize:15}}>⬇️</div>
+              <div className="cell-icon" data-ton="green" aria-hidden="true">⬇️</div>
               <div className="cell-content">
                 <span className="cell-title">{TT("Als JSON exportieren")}</span>
                 <span className="cell-sub">{TT("Lädt eine Backup-Datei herunter")}</span>
               </div>
             </div>
             <div className="cell klick" style={{cursor:'pointer'}} {...klickbar(exportCsv) /* wg-v122 (A11Y-3) */}>
-              <div className="cell-icon" style={{background:'rgba(56,189,248,.12)',fontSize:15}}>📊</div>
+              <div className="cell-icon" data-ton="sky" aria-hidden="true">📊</div>
               <div className="cell-content">
                 <span className="cell-title">{TT("Als CSV exportieren")}</span>
                 <span className="cell-sub">{TT("Ausgaben + Abrechnungen für Excel/Sheets")}</span>
               </div>
             </div>
             <div className="cell klick" style={{cursor:'pointer'}} {...klickbar(()=>fileInputRef.current?.click()) /* wg-v122 (A11Y-3) */}>
-              <div className="cell-icon" style={{background:'rgba(94,234,212,.12)',fontSize:15}}>⬆️</div>
+              <div className="cell-icon" data-ton="mint" aria-hidden="true">⬆️</div>
               <div className="cell-content">
                 <span className="cell-title">{TT("Backup importieren")}</span>
                 <span className="cell-sub">{TT("Überschreibt aktuelle Daten")}</span>
@@ -13197,7 +13227,7 @@ function Einstellungen() {
             {PUSH_API && fbCfg && status!=='moved' && (
               <button className="cell" onClick={openBackups}
                 style={{width:'100%',border:'none',background:'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
-                <div className="cell-icon" style={{background:'rgba(129,140,248,.12)',fontSize:15}}>☁️</div>
+                <div className="cell-icon" data-ton="indigo" aria-hidden="true">☁️</div>
                 <div className="cell-content">
                   <span className="cell-title">{TT("Automatische Backups")}</span>
                   <span className="cell-sub">{TT("Täglich auf dem Server, je 14 Tage — löschen kann sie in der Zeit niemand")}</span>
@@ -13299,7 +13329,7 @@ function Einstellungen() {
           <div className="section-hdr" role="heading" aria-level="2">{TT("Erinnerungen")}</div>
           <div className="group">
             <div className="cell">
-              <div className="cell-icon" style={{background:'rgba(251,191,36,.12)',fontSize:15}}>🔔</div>
+              <div className="cell-icon" data-ton="amber" aria-hidden="true">🔔</div>
               <div className="cell-content">
                 <span className="cell-title">{TT("Lokale Erinnerungen")}</span>
                 <span className="cell-sub">{TT("Beim Öffnen: fällige Putzaufgaben & Abos")}</span>
@@ -13320,7 +13350,7 @@ function Einstellungen() {
           <div className="section-hdr" role="heading" aria-level="2">{/* wg-v119 (TEXT-1): „Benachrichtigungen" statt „Push-Benachrichtigungen" (ein Wort) */}{TT("Benachrichtigungen")}</div>
           <div className="group">
             <div className="cell">
-              <div className="cell-icon" style={{background:'rgba(56,189,248,.12)',fontSize:15}}>📲</div>
+              <div className="cell-icon" data-ton="sky" aria-hidden="true">📲</div>
               <div className="cell-content">
                 <span className="cell-title">{/* wg-v119 (TEXT-1): „Benachrichtigungen an die WG" statt „Push an die WG" */}{TT("Benachrichtigungen an die WG")}</span>
                 <span className="cell-sub">{TT("Nur das Wichtige — auch bei geschlossener App")}</span>
@@ -13472,7 +13502,7 @@ function Einstellungen() {
                   <div className="group">
                     {arr.map(it => (
                       <div key={it.src+'-'+it.id} className="cell">
-                        <div className="cell-icon" style={{background:it.src==='hs'?'rgba(94,234,212,.12)':it.src==='gi'?'rgba(163,230,53,.12)':'rgba(56,189,248,.12)',fontSize:14}}>
+                        <div className="cell-icon" data-ton={it.src==='hs'?'mint':it.src==='gi'?'lime':'sky'} aria-hidden="true">
                           {it.src==='hs'?'🏠':it.src==='gi'?'🌱':'🤝'}
                         </div>
                         <div className="cell-content">
@@ -13740,7 +13770,7 @@ function Statistik({ goHaus }) {   /* goHaus (wg-v112, P9): „Ausgabe eintragen
 
         {openAll.length>0&&(
           <div className="group rise" style={{padding:'13px 16px',display:'flex',alignItems:'center',gap:12,animationDelay:'55ms'}}>
-            <div className="cell-icon" style={{background:'rgba(56,189,248,.12)',fontSize:15}}>Σ</div>
+            <div className="cell-icon" data-ton="sky" aria-hidden="true">Σ</div>
             <div className="cell-content">
               {/* wg-v117 (HIER-7): Σ-Zeile in der Zeilentitel-Stufe (.cell-title 16/600) statt eigener 14,5 */}
               <span className="cell-title ganz">
@@ -13830,7 +13860,7 @@ function Statistik({ goHaus }) {   /* goHaus (wg-v112, P9): „Ausgabe eintragen
                   (Mint = Haushalt, Lime = Growbox); ohne Kategorie bleibt es beim alten Symbol. */}
               {top.map(i=>{const payer=users.find(u=>u.id===i.paidBy);const kat=(i.mod==='hs'?CATS:GROW_CATS).find(c=>c[0]===i.cat);return(
                 <div key={i.id} className="cell" data-testid="top-posten">
-                  <div className="cell-icon" style={{background:i.mod==='hs'?'rgba(94,234,212,.12)':'rgba(163,230,53,.12)',fontSize:14}}>{kat?kat[1]:(i.mod==='hs'?'🏠':'🌱')}</div>
+                  <div className="cell-icon" data-ton={i.mod==='hs'?'mint':'lime'} aria-hidden="true">{kat?kat[1]:(i.mod==='hs'?'🏠':'🌱')}</div>
                   <div className="cell-content">
                     <span className="cell-title">{i.name}</span>
                     <span className="cell-sub">{fmtDate(i.date)} · <span style={{color:payer?.color}}>{payer?.name}</span></span>
