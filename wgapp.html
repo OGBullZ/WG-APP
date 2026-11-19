@@ -232,6 +232,8 @@ input:focus-visible, button:focus-visible, textarea:focus-visible, [tabindex]:fo
 /* wg-v119 (A11Y-2): das Blatt selbst bekommt beim Öffnen den Fokus (tabIndex −1, per Skript gesetzt) — ohne Ring: ein Rahmen um den ganzen Dialog wäre
    Lärm, der erste Tab zeigt den Ring am ersten Bedienelement (die Regel oben, [tabindex]:focus-visible, würde ihn sonst um das Blatt legen) */
 .overlay [role="dialog"][tabindex="-1"]:focus-visible { outline:none; }
+/* wg-v124 (A2): dasselbe für Onboarding und Druckansichten (VollbildFalle) */
+.overlay.onb[tabindex="-1"]:focus-visible, .print-sheet[tabindex="-1"]:focus-visible { outline:none; }
 ::-webkit-scrollbar { width:8px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1); border-radius:999px; }
@@ -4929,12 +4931,57 @@ function useFokusZurueck(offen) {
     blattFokusHinein();   /* wg-v119 (A11Y-2): beim Öffnen den Fokus ins Blatt holen */
     return () => {
       const el = m.el; m.el = null;
-      if (!el || !el.isConnected || el === document.body || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
-      const a = document.activeElement;
-      if (a && a !== document.body && !a.closest('.overlay.zu')) return;
-      try { el.focus({ preventScroll: true }); } catch {}
+      fokusRueck(el);
     };
   }, [offen]);
+}
+/* wg-v124 (A2): Fokus zurück an den Auslöser — ist der weg (Zeile im Blatt gelöscht), versteckt oder ein Eingabefeld (Tastatur am Handy),
+   geht er auf <main> (tabIndex −1 seit wg-v122), nie auf BODY. Wie bisher nur, wenn der Fokus noch im schließenden Blatt oder am
+   Seitenrand hängt — ein schon woanders gelandeter Fokus wird nicht geklaut. */
+function fokusRueck(el) {
+  const a = document.activeElement;
+  if (a && a !== document.body && !a.closest('.overlay.zu')) return;
+  const brauchbar = el && el.isConnected && el !== document.body && !/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)
+    && !el.closest('[inert],[hidden]') && el.getClientRects().length;
+  const ziel = brauchbar ? el : document.querySelector('main');
+  try { if (ziel) ziel.focus({ preventScroll: true }); } catch {}
+}
+/* wg-v124 (A2): Fokus-Falle für Vollbild-Ueberlagerungen, die kein .overlay-Blatt sind: Onboarding (.onb) und die Druckansichten (.print-sheet).
+   Als Kind im Vollbild eingehängt (wie EscBei): Einhängen = offen, Aushängen = zu. Rendert nur ein verstecktes Anker-Span; die Überlagerung
+   ist dessen Elternelement.
+   - Öffnen: Fokus auf die Überlagerung selbst (tabIndex −1, ohne Ring) — kein Feld, damit am Handy keine Tastatur aufklappt.
+   - Tab/Shift+Tab bleiben drin (am Rand umlaufen; liegt der Fokus draußen oder auf body, geht er hinein).
+   - Escape schließt, wenn es einen Schließen-Weg gibt (onClose) und kein Blatt darüber liegt (ESC_STAPEL leer).
+   - Schließen: Fokus über fokusRueck zum Auslöser (oder <main>). */
+function VollbildFalle({ onClose }) {
+  const ankerRef = useRef(null);
+  const auf = useRef(null);
+  const ocRef = useRef(onClose); ocRef.current = onClose;
+  if (auf.current === null) auf.current = { el: document.activeElement };   /* im Render merken, bevor der Fokus hineinwandert */
+  useEffect(() => {
+    const w = ankerRef.current && ankerRef.current.parentElement;
+    if (!w) return;
+    if (!w.hasAttribute('tabindex')) w.setAttribute('tabindex', '-1');
+    if (!w.contains(document.activeElement)) { try { w.focus({ preventScroll: true }); } catch {} }
+    const h = e => {
+      if (e.defaultPrevented || e.isComposing) return;
+      if (e.key === 'Escape') {
+        if (ocRef.current && !ESC_STAPEL.length) { e.preventDefault(); ocRef.current(); }
+        return;
+      }
+      if (e.key !== 'Tab' || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (oberstesBlatt()) return;   /* ein Blatt über dem Onboarding bringt seine eigene Falle mit */
+      const z = blattFokusziele(w), a = document.activeElement;
+      if (!z.length) { e.preventDefault(); w.focus({ preventScroll: true }); return; }
+      const erst = z[0], letzt = z[z.length - 1];
+      if (!w.contains(a) || a === w) { e.preventDefault(); (e.shiftKey ? letzt : erst).focus(); }
+      else if (e.shiftKey && a === erst) { e.preventDefault(); letzt.focus(); }
+      else if (!e.shiftKey && a === letzt) { e.preventDefault(); erst.focus(); }
+    };
+    window.addEventListener('keydown', h);
+    return () => { window.removeEventListener('keydown', h); fokusRueck(auf.current.el); };
+  }, []);
+  return <span ref={ankerRef} hidden />;
 }
 /* wg-v119 (A11Y-2): Fokus INS Blatt und DRIN halten. Gemessen (Gutachten 2): nach dem Öffnen blieb der Fokus auf dem Auslöser HINTER dem Blatt
    (14 von 14 Tab-Stopps im Hintergrund; bei „Alle lokalen Daten löschen" erst nach 9 Tabs bei „Löschen/Abbrechen"), und auch aus Blättern mit
@@ -6336,6 +6383,7 @@ function LandlordCard() {
 
       {sheet && ReactDOM.createPortal(
         <div className="print-sheet" data-testid="ll-sheet" role="dialog" aria-label={TT("Mängelanzeige")}>
+          <VollbildFalle onClose={()=>setSheet(false)}/>{/* wg-v124 (A2) */}
           <div className="no-print" style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
             <button className="btn" style={{width:'auto',padding:'0 16px',background:'#0f766e',color:'#fff'}} onClick={()=>window.print()}>{TT("Drucken / PDF")}</button>
             {cf.email && <a className="btn" data-testid="ll-mail" href={mail()} style={{width:'auto',padding:'0 16px',background:'#e5e7eb',color:'#111',textDecoration:'none',display:'flex',alignItems:'center'}}>{TT("Als E-Mail")}</a>}
@@ -7036,6 +7084,7 @@ function Onboarding({ mode: startMode, onDone }) {
   const canBack = idx > 0 && !['done'].includes(step) && !(mode==='join' && step==='who') && step!=='welcome';
   return ReactDOM.createPortal(
     <div className="overlay onb" data-testid="onboarding" role="dialog" aria-modal="true" aria-label={TT("Einrichtung")}>
+      <VollbildFalle/>{/* wg-v124 (A2): Fokus rein + Tab-Falle, kein Schließen-Weg → kein Escape */}
       <div className="onb-card" ref={kartRef}>
         {step!=='welcome' && step!=='done' && <div className="onb-top">
           {canBack ? <button type="button" className="onb-back" aria-label={TT("Zurück")} onClick={back}>‹</button> : <span style={{width:32}}/>}
@@ -7460,6 +7509,7 @@ function ReportCard() {
       </button>
       {ym && ReactDOM.createPortal(
         <div className="print-sheet" data-testid="report-sheet" role="dialog" aria-label={TT("Monatsbericht")}>
+          <VollbildFalle onClose={()=>setYm(null)}/>{/* wg-v124 (A2) */}
           <div className="no-print" style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
             <button className="btn" style={{width:'auto',padding:'0 14px',background:'#e5e7eb',color:'#111'}} aria-label={TT("Vormonat")} onClick={()=>setYm(shiftYm(ym,-1))}>‹</button>
             <button className="btn" style={{width:'auto',padding:'0 14px',background:'#e5e7eb',color:'#111'}} aria-label={TT("Folgemonat")} onClick={()=>setYm(shiftYm(ym,1))}>›</button>
@@ -8090,6 +8140,7 @@ function MoveOutCard() {
       </button>
       {open && ReactDOM.createPortal(
         <div className="print-sheet" data-testid="moveout-sheet" role="dialog" aria-label={TT("Übergabe-Seite")}>
+          <VollbildFalle onClose={()=>setOpen(false)}/>{/* wg-v124 (A2) */}
           <div className="no-print" style={{display:'flex',gap:8,marginBottom:16}}>
             <button className="btn" style={{background:'#0f766e',color:'#fff'}} onClick={()=>window.print()}>{TT("Drucken / als PDF speichern")}</button>
             <button className="btn" style={{width:'auto',padding:'0 18px',background:'#e5e7eb',color:'#111'}} onClick={()=>setOpen(false)}>{TT("Schließen")}</button>
@@ -9809,6 +9860,7 @@ function JahresBlatt({ jahr, items, users, onClose }) {
   const eur = n => (n < 0 ? '−€' + fmt(-n) : '€' + fmt(n));
   return ReactDOM.createPortal(
     <div className="print-sheet" data-testid="jahr-blatt" role="dialog" aria-label={TT("Jahresübersicht")}>
+      <VollbildFalle onClose={onClose}/>{/* wg-v124 (A2) */}
       <div className="no-print" style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
         <button className="btn" data-testid="jahr-print" style={{width:'auto',padding:'0 16px',background:'#0f766e',color:'#fff'}} onClick={()=>window.print()}>{TT("Drucken / PDF")}</button>
         <button className="btn" style={{width:'auto',padding:'0 16px',background:'#e5e7eb',color:'#111'}} onClick={onClose}>{TT("Schließen")}</button>
