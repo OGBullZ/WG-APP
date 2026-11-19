@@ -1128,3 +1128,21 @@ Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen 
 
 **Folgefunde (→ Roadmap G8):** „Einkaufsliste (2)" bricht bei 320 + „Sehr groß" zweizeilig, Warnkarte „…(eure Grenze: €50,00)" mit allein umbrechender Klammer, Formular-Chips 29 px (mit `::after` ~41 px).
 
+## wg-v125 — Erscheinungsbild: G8, E1, E2 (19.11., live `62c585b`, Vercel success, `npm run betrieb` grün)
+
+**Was:** G8 (Umschalter „Einkaufsliste (2)" einzeilig, Betrag + Klammer in der Warnkarte zusammen, Formular-Chips 44 px Tippfläche) · E1/REST-7/5/4 (Einzelgänger-Schriftgrößen weg, `.betrag` 16/700 Mono für jeden Zeilenbetrag, `.betrag-sub` 11/600 Sans, Grow-Anteile Sans 12,5) · E2/REST-1 (Warnkarte „Zeit zum Abrechnen" als `.group.warn` + `.cell` + Symbolfeld, Knopf unter dem Text) · E2/REST-3 (drei Knopfstufen: `.btn` 54 px, `.btn-klein`/`.mini-btn` 15 px 44 px, neu `.btn-kompakt` 13/700 40 px + `::after` 44; ~36 Inline-Knöpfe und An/Aus-Schalter umgestellt). Tests `g8_folge_v125` 80, `schrift_v125` 43, `warnkarte_v125` 46, `knoepfe_v125` 32; Gegenproben 4 / 7 / 16 / 13 rot.
+
+**Wie:** G8 + E1 kamen als Worktree-Zweige aus der Vorsitzung, E2 lief als zwei Umsetzer parallel (Worktrees `r1`/`r3`, `WG_PORT` 8101/8102, `--arbeiter 1`), Zusammenführung zentral, ein Konflikt (Knopf „Grenzen ändern" — Platz aus REST-1, Klasse aus REST-3).
+
+**Was schiefging:**
+- Der E1-Umsetzer der Vorsitzung starb **vor dem Commit** — Code fertig im Worktree, Tests grün. Hauptloop hat Test + Gegenprobe selbst gefahren und committet. Im Worktree lief noch sein Testserver (python, Port 8102) und hielt den Ordner fest. **Regel:** vor dem Übernehmen fremder Arbeitskopien prüfen, ob dort noch ein Prozess/Agent läuft (`Get-NetTCPConnection` auf 8101–8104, Elternprozess).
+- Beide E2-Umsetzer liefen ins 5-Stunden-Limit und wurden nach dem Reset per Nachricht fortgesetzt (kein Neustart, Teilstand blieb erhalten).
+- **REST-1-Umsetzer baute Hellwerte für `.group.warn` ein** — genau die Überschreibung, die der Kommentar an `.group.warn` als Falle beschreibt (dunkles Amber wirkt im Hellmodus stumpf-bräunlich). Ursache: mein Auftrag behauptete „`.group.warn` hat Hellwerte" und der Test verlangte „Hell ≠ Dunkel". Zurückgenommen, Prüfung auf „beide Themen getönt" umgestellt, Hellbild angesehen (warmes Creme).
+- `git worktree remove --force` entfernte die `node_modules`-Junction **nicht** (blieb als Link liegen, `node_modules` im Haupt-Repo unversehrt). `cmd /c rmdir` aus Git-Bash fand den Pfad nicht (Pfadumsetzung) → Junction per PowerShell `[IO.Directory]::Delete(pfad, $false)`.
+- Ship-Lauf 0 startete gar nicht (Anführungszeichen in `cmd /c … > log` verschluckt, kein Log, 30 min Warten auf eine Datei, die nie entstand) → jetzt `.ps1`-Starter mit `Start-Process pwsh -File`. Ein Log im Repo-`scratchpad` wäre per `git add -A` mitcommittet worden → Log außerhalb des Repos.
+- Ship-Lauf 1 rot: `feinschliff` B brach ab, weil der Zeilenbetrag jetzt `.betrag` statt `.num` trägt (E1 — die Regression war vor dem Merge nicht gelaufen) → Selektor `.betrag, .num`. Dazu `fuer_andere` B5 „nur parallel rot" (Push-Timing unter Last, allein grün); Lauf 2 komplett grün.
+
+**Nicht geprüft:** An/Aus-Schalter auf den Mehr-Unterseiten (sichtbar 24 → 40 px) nur per Test-Sonde (Überlauf bei 320), nicht im Bild — `bilder.mjs` kennt keine Mehr-Unterseiten. iPhone weiter offen (G1).
+
+**Folgefund (→ Roadmap G9):** Putzplan „Einsatz · letzte 30 Tage" bei 320 + „Sehr groß": „Konstantinopolitanowa" ragt rechts aus der Karte, in v124 identisch. **Werkzeug:** `bilder.mjs --hoehe N` für hohe Fenster (App scrollt intern, Bilder zeigten sonst nur den oberen Teil).
+

@@ -479,15 +479,16 @@ Beim Abschluss eines Pakets hier abhaken (Datum, Version, Commit). Was sich als 
 | W3 Abnahme-Werkzeuge | ✅ `schnappschuss.mjs`, `abnahme.mjs` (gegenprobe/regression/liste), `abnahme-start.ps1`, `bilder.mjs` | Gegenprobe gegen v121 rot, Rücktausch gemessen | 17.11. |
 | W4 Tests vom Wortlaut lösen | offen | | |
 | W5 CI Linux grün | ◐ W5a 17.11.: `gutachten2_c3` F8 zeitnormiert (Gegenprobe v120: 9 F8 rot), `feinschliff` P1 Platzhalter gekürzt, `WG_CPU` in b/c3 · **offen W5b:** `gutachten2_b` W5 FILM-5 = echter Langsam-Gerät-Fund → G7 | wg-v124 | 17.11. |
-| E1 Schrift | offen | | |
-| E2 Warnkarte + Knöpfe | offen | | |
+| E1 Schrift | ✅ Einzelgänger 10,5/14,5/15,5/16,5 weg, `.betrag` + `.betrag-sub`, Grow-Anteile Sans 12,5 (Test `schrift_v125` 43, Gegenprobe 7 rot) | wg-v125 `62c585b` | 19.11. |
+| E2 Warnkarte + Knöpfe | ✅ REST-1 „Zeit zum Abrechnen" als `.group.warn` + Symbolfeld, Knopf unter dem Text (`warnkarte_v125` 46, Gegenprobe 16 rot) · REST-3 `.btn-kompakt` 13/700 40 px + `::after` 44, `.mini-btn` 15 px, ~36 Knöpfe umgestellt (`knoepfe_v125` 32, Gegenprobe 13 rot) | wg-v125 `62c585b` | 19.11. |
 | E3 Symbolfelder | offen | | |
 | E4 Farbbedeutung | offen | | |
 | G1 Geräte-Check | offen (torbe) | | |
 | G2 320 px + Sehr groß | ✅ Zeile bricht unter 350 px wirksam um, Tab-Labels 11 Geräte-px (Gegenprobe 20 rot) | wg-v124 | 19.11. |
 | G3 Große Beträge | ✅ Tausenderpunkt ab 10.000 (App + Push), CSV ohne, Legende unter dem Ring (Gegenprobe 23 rot) | wg-v124 | 19.11. |
 | G4 Querformat | ✅ Blatt mit Tastatur 115 px Körper statt 0 (Gegenprobe: Feld unerreichbar) | wg-v124 | 19.11. |
-| G8 Folgefunde v124 | offen — „Einkaufsliste (2)" bricht bei 320 + Sehr groß zweizeilig; Warnkarte „(eure Grenze: €50,00)" Klammer allein in neuer Zeile; Chips im Formular 29 px (mit `::after` ~41) | | |
+| G8 Folgefunde v124 | ✅ Umschalter einzeilig, Betrag+Klammer zusammen, Chip-Tippfläche 44 px (`g8_folge_v125` 80, Gegenprobe 4 rot; Warnkarten-Teil nur Vorbeugung) | wg-v125 `62c585b` | 19.11. |
+| G9 Folgefund v125 | offen — Putzplan „Einsatz · letzte 30 Tage" bei 320 + Sehr groß: langer Name („Konstantinopolitanowa") ragt rechts aus der Karte (in v124 identisch) | | |
 | G5 Erster Bildaufbau | offen | | |
 | G6 Lange Listen | Status prüfen | | |
 | G7 Langsame Geräte (FILM-5, F8l) | offen — nachstellbar mit `WG_CPU=4` | | |
