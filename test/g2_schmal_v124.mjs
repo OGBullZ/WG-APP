@@ -21,7 +21,8 @@ const check = (n, c, extra = '') => (c ? pass : fail).push(n + (extra !== '' ? `
 const map = arr => Object.fromEntries(arr.map((x, i) => [x.id, { seq: 100 - i, ...x }]));
 
 /* Messwerte VOR der Änderung (Stand 4e1cf55, 390 px, normale Schrift, de): erste Haushalt-Zeile und erste Growbox-Zeile, in CSS-px gerundet */
-const VORHER = { haus: { w: 356, h: 85 }, gi: { w: 356, h: 165 } };
+/* wg-v125 (E1): Grow-Anteile 11 -> 12.5 px, Zeile bewusst hoeher (gi 165 -> 177) */
+const VORHER = { haus: { w: 356, h: 85 }, gi: { w: 356, h: 177 } };
 
 const U = [{ id: 'u1', name: 'Maximilian-Alexander', color: '#38bdf8' }, { id: 'u2', name: 'Zoë', color: '#fbbf24' }, { id: 'u3', name: 'Tom', color: '#f472b6' }];
 const NAMEN = ['Großeinkauf Drogerie', 'Kaution Nachzahlung', 'Küchenzeile', 'Strom Abschlag', 'Internet Router', 'Sofa Ecklösung', 'Waschmaschine', 'Pizza Abend'];
