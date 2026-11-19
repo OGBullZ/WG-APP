@@ -25,7 +25,7 @@
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
 
-const URL_ = process.env.WG_URL || 'http://127.0.0.1:8099/wgapp.html';
+const URL_ = process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const MESSE = !!process.env.MESSE;   // MESSE=1: nur die Höhen für (d) ausgeben (Basis neu bestimmen)
 const pass = [], fail = [];
 const check = (n, c, extra = '') => (c ? pass : fail).push(n + (extra !== '' ? ` — ${extra}` : ''));

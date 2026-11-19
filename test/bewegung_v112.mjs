@@ -80,7 +80,7 @@ async function wg({ reduce = false, theme = 'dark', fire = true, w = 390, h = 84
   const fehler = [];
   page.on('pageerror', e => fehler.push(e.message));
   // WG_URL: Gegenprobe gegen eine Kopie mit zurückgenommenem Fix (scratchpad/p2-gegenprobe.mjs)
-  await page.goto(process.env.WG_URL || 'http://127.0.0.1:8099/wgapp.html', { waitUntil: 'domcontentloaded' });
+  await page.goto(process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html', { waitUntil: 'domcontentloaded' });
   await page.locator('.tabbar').waitFor({ timeout: 30000 });
   if (fire) { await page.evaluate(() => window.__wg.fire()); await page.waitForTimeout(800); }
   return { page, ctx, fehler };

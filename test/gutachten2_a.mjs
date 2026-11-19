@@ -37,7 +37,7 @@
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
 
-const url = process.env.WG_URL || 'http://127.0.0.1:8099/wgapp.html';   /* 127.0.0.1 statt localhost: localhost kostet unter Windows 2 s (IPv6-Versuch) */
+const url = process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';   /* 127.0.0.1 statt localhost: localhost kostet unter Windows 2 s (IPv6-Versuch) */
 const z = n => String(n).padStart(2, '0');
 const tagVor = n => { const d = new Date(); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
 const T = tagVor(0);
@@ -498,7 +498,7 @@ for (const theme of ['dark', 'light']) {
     check(`Z1 PWA-4 ${name}: alle Felder ≥ 16 px (mindestens ${min} gemessen)`, ok && f.length >= min && klein.length === 0, ok ? (klein.length ? 'zu klein: ' + klein.map(x => `${x.tag} „${x.name}" ${x.fs}px`).join(', ') : `${f.length} Felder, kleinste ${f.length ? Math.min(...f.map(x => x.fs)) : '-'} px`) : f);
   }
   const mehr = szenen.find(s => /^Mehr/.test(s[0]))[1];
-  const brauche = [/Anderen Code/i, /PayPal/i, /Kontoinhaber/i, /IBAN/i, /BIC/i];
+  const brauche = [/Anderer WG-Code/i /* wg-v124 (W5a): Platzhalter gekürzt, vorher „Anderen Code eingeben" */, /PayPal/i, /Kontoinhaber/i, /IBAN/i, /BIC/i];
   const fehlt = Array.isArray(mehr) ? brauche.filter(re => !mehr.some(x => re.test(x.name))).map(String) : ['keine Messung'];
   check('Z1b PWA-4 Mehr: die fünf Felder des Berichts (Anderen Code, PayPal.me, Kontoinhaber, IBAN, BIC) sind unter den gemessenen', fehlt.length === 0, fehlt.join(', ') || 'alle da');
   /* Ruhezeit ab/bis: die zwei <select> erscheinen nur bei eingeschaltetem Push + Ruhezeit (hier nicht herstellbar) → Wache im Quelltext: jedes <select> trägt in den

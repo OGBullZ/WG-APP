@@ -2,7 +2,7 @@
    node <pfad>/audit.mjs   — Server muss auf 8099 laufen. */
 import { chromium, devices } from 'playwright';
 
-const url = 'http://localhost:8099/wgapp.html';
+const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const today = (() => { const d = new Date(), z = n => String(n).padStart(2,'0'); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; })();
 const DEMO = {
   users: [ { id:'u1', name:'Torben', color:'#38bdf8', pp:'TorbenSteen' }, { id:'u2', name:'Tom', color:'#fbbf24' } ],

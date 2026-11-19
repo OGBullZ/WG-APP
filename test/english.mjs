@@ -13,7 +13,7 @@ const DE_TEXTE = Object.entries(DICT)
   .filter(([de, en]) => de !== en && de.length >= 10 && !de.includes('{') && /[A-Za-zÄÖÜäöüß]/.test(de))
   .map(([de]) => de.trim());
 
-const url = 'http://localhost:8099/wgapp.html';
+const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const z = n => String(n).padStart(2, '0');
 const dayAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
 const T = dayAgo(0);

@@ -11,7 +11,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { gateLauf, leiseLaufenAsync } from './leise.mjs';
-import { testServer } from './testserver.mjs';
+import { testServer, BASIS } from './testserver.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 process.chdir(REPO);   // W3: Testdateien relativ zur Repo-Wurzel, egal von wo gestartet
@@ -35,7 +35,7 @@ function arbeiterLesen(a) {
 
 // W3: Gate-Gruppe fahren (Testserver sicherstellen/aufräumen) → true, wenn alles grün
 async function gate(dateien, arbeiter) {
-  const ts = testServer(8099);
+  const ts = testServer() /* Port aus WG_PORT, Standard 8099 */;
   try {
     log(`   Test-Server: ${await ts.serverSicherstellen()}`);
     const g = await gateLauf(dateien, { arbeiter, ts, log: s => log(String(s).split('\n').map(z => '   ' + z).join('\n')) });
@@ -56,7 +56,7 @@ async function gegenprobe(test, name) {
   if (!istServer && !istBrowser) throw new Error(`${test}: weder '../api/' noch WG_URL im Quelltext — Art des Tests nicht erkennbar, Abbruch`);
   log(`== GEGENPROBE ${test} gegen ${name} (${istServer ? 'Server-Test: api/ getauscht' : 'Browser-Test: alte App per WG_URL'}; erwartet: rot)`);
 
-  const ts = testServer(8099);
+  const ts = testServer() /* Port aus WG_PORT, Standard 8099 */;
   let ergebnis, ende = null;
   try {
     await ts.serverSicherstellen();
@@ -86,7 +86,7 @@ async function gegenprobe(test, name) {
       const kopie = path.join(REPO, 'wgapp_gp_vor.html');
       fs.copyFileSync(path.join(snap, 'wgapp.html'), kopie);
       try {
-        process.env.WG_URL = 'http://127.0.0.1:8099/wgapp_gp_vor.html';
+        process.env.WG_URL = `${BASIS}/wgapp_gp_vor.html`;   /* 19.11.: Port aus WG_PORT (testserver.mjs) */
         ergebnis = await leiseLaufenAsync(test);
       } finally {
         fs.rmSync(kopie, { force: true });

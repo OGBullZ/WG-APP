@@ -107,7 +107,7 @@ await page.addInitScript(([s, t]) => {
   localStorage.setItem('wg_tab', JSON.stringify('haus'));
   localStorage.setItem('wg_push_nudge', JSON.stringify({ until: Date.now() + 864e5 * 30 }));
 }, [SEED, T]);
-await page.goto('http://localhost:8099/wgapp.html', { waitUntil: 'domcontentloaded' });
+await page.goto((process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html', { waitUntil: 'domcontentloaded' });
 await page.locator('.tabbar').waitFor({ timeout: 30000 });
 await page.evaluate(() => window.__wg.fire());
 await page.waitForTimeout(1300);
@@ -176,7 +176,7 @@ async function lage(me) {
     localStorage.setItem('wg_tab', JSON.stringify('haus'));
     localStorage.setItem('wg_push_nudge', JSON.stringify({ until: Date.now() + 864e5 * 30 }));
   }, [{ users: U, hs: { k: SEED.hs.k } }, T, me]);
-  await p.goto('http://localhost:8099/wgapp.html', { waitUntil: 'domcontentloaded' });
+  await p.goto((process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html', { waitUntil: 'domcontentloaded' });
   await p.locator('.tabbar').waitFor({ timeout: 30000 });
   await p.evaluate(() => window.__wg.fire());
   await p.waitForTimeout(1200);
@@ -210,7 +210,7 @@ check('U9 ohne Gerät: große Zahl „Offene Ausgaben" €0,00 (die Kaution ist 
     localStorage.setItem('wg_tab', JSON.stringify('haus'));
     localStorage.setItem('wg_push_nudge', JSON.stringify({ until: Date.now() + 864e5 * 30 }));
   }, [{ users: U, hs: { k: { id: 'k', name: '🔑 Kaution zurück: Anteil Tom', price: 300, paidBy: 'u2', owedBy: 'u1', cat: 'fix', ub: true, date: T, settled: false } } }, T]);
-  await p.goto('http://localhost:8099/wgapp.html', { waitUntil: 'domcontentloaded' });
+  await p.goto((process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html', { waitUntil: 'domcontentloaded' });
   await p.locator('.tabbar').waitFor({ timeout: 30000 });
   await p.evaluate(() => window.__wg.fire());
   await p.waitForTimeout(1300);

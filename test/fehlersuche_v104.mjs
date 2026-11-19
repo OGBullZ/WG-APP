@@ -10,7 +10,7 @@
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
 
-const url = 'http://localhost:8099/wgapp.html';
+const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const z = n => String(n).padStart(2, '0');
 const tag = n => { const d = new Date(); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
 const T = tag(0), YM = T.slice(0, 7);
@@ -139,7 +139,7 @@ check('F2 nach dem Tipp alle 10 sichtbar', await fr.count() === 10, String(await
 // ── E: Beitreten mit kaputtem / unbekanntem Code ──
 await page.locator('.tabbar .tabitem', { hasText: 'Mehr' }).click(); await page.waitForTimeout(500);
 await page.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click())); await page.waitForTimeout(400);
-const feld = page.locator('input[placeholder="Anderen Code eingeben"]');
+const feld = page.locator('input[placeholder="Anderer WG-Code"]');
 check('E0 Code-Feld da (Vorbedingung)', await feld.count() === 1);
 if (await feld.count() === 1) {
   // kurze Zeitlimits + catch: in der alten Fassung bricht der kaputte Code die Seite — das soll ROT melden, nicht abstürzen

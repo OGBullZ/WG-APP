@@ -10,7 +10,7 @@ import { chromium, devices } from 'playwright';
 import { readFileSync, writeFileSync, unlinkSync } from 'fs';
 
 const COPY = 'test/_jsxcache-tmp.html';
-const url  = 'http://localhost:8099/' + COPY;
+const url  = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/' + COPY;
 const today = (() => { const d = new Date(), z = n => String(n).padStart(2,'0'); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; })();
 const DEMO = {
   users: [ { id:'u1', name:'Torben', color:'#38bdf8' }, { id:'u2', name:'Tom', color:'#fbbf24' } ],

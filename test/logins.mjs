@@ -7,7 +7,7 @@ import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
 import { openTool } from './_heute.mjs';   // „Login teilen" ist ohne Freigabe seit wg-v82 ein Chip auf Heute
 
-const url = 'http://localhost:8099/wgapp.html';
+const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const USERS = [{ id: 'u1', name: 'Torben', color: '#38bdf8' }, { id: 'u2', name: 'Tom', color: '#fbbf24' }];
 const SECRET_U = 'wg-test@example.org', SECRET_P = 'Geheim#Passwort-4711';
 const CODE_RE = /^[2-9A-HJKMNP-Z]{4}-[2-9A-HJKMNP-Z]{4}$/;

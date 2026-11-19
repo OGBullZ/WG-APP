@@ -31,7 +31,7 @@ await page.addInitScript((t) => {
   localStorage.setItem('wg_tab', JSON.stringify('set'));
   localStorage.setItem('wg_push_nudge', JSON.stringify({ until: Date.now() + 864e5 * 30 }));
 }, T);
-await page.goto('http://localhost:8099/wgapp.html', { waitUntil: 'domcontentloaded' });
+await page.goto((process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html', { waitUntil: 'domcontentloaded' });
 await page.locator('.tabbar').waitFor({ timeout: 30000 });
 await page.evaluate(() => window.__wg.fire());
 await page.waitForTimeout(1300);

@@ -10,7 +10,7 @@
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
 
-const url = process.env.WG_URL || 'http://127.0.0.1:8099/wgapp.html';   /* 127.0.0.1 statt localhost: localhost kostet unter Windows 2 s */
+const url = process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';   /* 127.0.0.1 statt localhost: localhost kostet unter Windows 2 s */
 const z = n => String(n).padStart(2, '0');
 const iso = d => `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
 const vor = n => iso(new Date(Date.now() - n * 864e5));

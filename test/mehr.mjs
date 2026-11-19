@@ -5,7 +5,7 @@ import { chromium } from 'playwright';
 import { readFileSync } from 'fs';
 import { STUB } from './_fbstub.mjs';
 
-const url = 'http://localhost:8099/wgapp.html';
+const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const z = n => String(n).padStart(2, '0');
 const dayAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
 const T = dayAgo(0), YM = T.slice(0, 7);
@@ -341,7 +341,7 @@ check('K7 keine Seitenfehler', BK.errs.length === 0, BK.errs.join(' | '));
 await BK.ctx.close();
 // Torben schuldet: Überweisung an Toms Kontoinhaber, Kopieren
 const BK2 = await open({ users: [{ ...USERS[0] }, { ...USERS[1], iban: IBAN, holder: 'Tom-Luca Beispiel' }], hs: map([{ id: 'b1', name: 'Einkauf', price: 40, paidBy: 'u2', date: T, settled: false }]) }, { tab: 'haus' });
-await BK2.ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 'http://localhost:8099' });
+await BK2.ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '' });
 const bb = BK2.page.locator('[data-testid="bank-box"]');
 check('K4 ich schulde Tom → Überweisung an den Kontoinhaber', /Überweisung an Tom-Luca Beispiel/.test(await bb.innerText().catch(() => '')) && /DE89 3704 0044 0532 0130 00/.test(await bb.innerText().catch(() => '')));
 await bb.getByRole('button', { name: 'IBAN kopieren' }).click(); await BK2.page.waitForTimeout(300);

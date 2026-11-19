@@ -52,7 +52,7 @@ import { chromium } from 'playwright';
 import { mkdirSync } from 'fs';
 import { STUB } from './_fbstub.mjs';
 
-const url = process.env.WG_URL || 'http://127.0.0.1:8099/wgapp.html';   /* 127.0.0.1 statt localhost: localhost kostet unter Windows 2 s (IPv6-Versuch) */
+const url = process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';   /* 127.0.0.1 statt localhost: localhost kostet unter Windows 2 s (IPv6-Versuch) */
 const z = n => String(n).padStart(2, '0');
 const iso = d => `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
 const vor = n => iso(new Date(Date.now() - n * 864e5));
@@ -90,6 +90,8 @@ async function open(seed, { tab = 'heute', w = 390, h = 844, theme = 'dark', red
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, serviceWorkers: 'block', reducedMotion: reduce ? 'reduce' : 'no-preference' });
   await ctx.routeWebSocket(/./, () => {});
   const page = await ctx.newPage();
+  /* W5 (17.11.): WG_CPU=<n> drosselt die CPU um Faktor n (CDP) — CI-Bedingungen (langsame, unregelmäßige Bilder) lokal nachstellen; Standard aus */
+  if (process.env.WG_CPU) await (await ctx.newCDPSession(page)).send('Emulation.setCPUThrottlingRate', { rate: Number(process.env.WG_CPU) });
   const errs = [];
   page.on('pageerror', e => errs.push(e.message));
   await page.route('**/*', r => {
@@ -421,7 +423,11 @@ const lauf = (page, o) => page.evaluate(async o => {
    Bild) bleibt ein Sprung, denn dort ist der Bildabstand normal. Bilder dichter als 4 ms (doppelte rAF-Aufrufe) werden übersprungen. */
 const kenn = r => {
   const b = r.bilder.filter((x, i, a) => i === 0 || x.ts - a[i - 1].ts >= 4);
-  const v = b.slice(1).map((x, i) => (x.y - b[i].y) / (x.ts - b[i].ts) * (1000 / 60)), dv = v.slice(1).map((x, i) => Math.abs(x - v[i]));
+  /* W5 (17.11.): auch der Wechsel wird auf 16,7 ms umgerechnet. v_i sind Mittel über ein Bildintervall; die Differenz zweier Mittel wächst mit dem Abstand m der
+     Intervallmitten (unregelmäßige Bilder: CI Linux F8k 6,9 px, Pool F8d 6,5 px bei unverändertem Stand). Wie folgeAus in gutachten2_b: nur langsame Abstände
+     abwerten (16,7 / max(m, 16,7)), nie aufwerten — ein echter Sprung in einem normalen Bild bleibt einer. */
+  const v = b.slice(1).map((x, i) => (x.y - b[i].y) / (x.ts - b[i].ts) * (1000 / 60));
+  const mitte = i => (b[i].ts + b[i + 1].ts) / 2, dv = v.slice(1).map((x, i) => Math.abs(x - v[i]) * 16.7 / Math.max(mitte(i + 1) - mitte(i), 16.7));
   return { tempo: runde(maxAbs(v)), wechsel: runde(Math.max(0, ...dv)), bewegt: v.filter(x => Math.abs(x) > 0.5).length, verschoben: runde(b[b.length - 1].y - r.y0) };
 };
 /* „Heute": gemessen wird today-rows. Erwartete Verschiebung = −(Rand + Block − Leer-Zeile) — Block und Rand stehen VOR dem Tipp fest */

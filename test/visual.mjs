@@ -11,7 +11,7 @@
 import { chromium, devices } from 'playwright';
 import { mkdirSync } from 'fs';
 
-const url = 'http://localhost:8099/wgapp.html';
+const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const OUT = 'test/shots';
 mkdirSync(OUT, { recursive: true });
 

@@ -12,7 +12,7 @@ import { STUB } from './_fbstub.mjs';
 
 const require = createRequire(import.meta.url);
 const { taskWho } = require('../api/_wg.js');
-const url = process.env.WG_URL || 'http://localhost:8099/wgapp.html';   // WG_URL: Gegenprobe gegen eine Kopie (wg-v114)
+const url = process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';   // WG_URL: Gegenprobe gegen eine Kopie (wg-v114)
 const z = n => String(n).padStart(2, '0');
 const dayAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
 const pass = [], fail = [];

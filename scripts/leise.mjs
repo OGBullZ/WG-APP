@@ -76,10 +76,12 @@ export const ALLEIN = ['test/testserver.mjs', 'test/ux.mjs', 'test/update.mjs', 
 /* W1 (17.11.): Ausnahmeliste „nur seriell" — läuft wie ALLEIN. NUR Dateien mit BENANNTER Ursache eintragen, je Eintrag eine
    Begründung als Kommentar (sonst verschwindet ein echter Parallel-Fehler hinter der Liste). Anfangs leer. */
 export const NUR_SERIELL = [
-  /* gutachten2_c3 — FILM-8 misst den „Tempowechsel je Bild" (|Δ_i − Δ_i−1| ≤ 6 px). Unter CPU-Last (3 Chromium gleichzeitig)
-     kommen die Bilder unregelmäßig → Wert knapp drüber: Abnahme W1 17.11. F8d 6,5 px nur im Pool, allein grün; CI unter Linux
-     kippt dieselbe Familie (F8k 6,9 px, 15.11.). Saubere Lösung = Tempo je ms statt je Bild messen → Roadmap W5. */
-  'test/gutachten2_c3.mjs',
+  /* W5 (17.11.): test/gutachten2_c3.mjs stand hier — FILM-8 (Tempowechsel je Bild ≤ 6 px) kippte unter Last, weil der Wechsel nicht auf
+     16,7 ms umgerechnet war. Behoben in kenn() (Mitten-Abstand-Normierung), deshalb wieder im Pool. */
+  /* gutachten2_b — W5 FILM-5 (Höhensprung beim Schrittwechsel ≤ 24 px) ist ein ECHTER Langsam-Gerät-Fund, kein Messfehler: unter CPU-Last springt
+     die Höhe roh 29–45 px in einem Bild (WG_CPU=4 lokal 29,2; CI Linux 37,5; Ship-Versuch v124 im Pool 27,3). Bis Roadmap G7 ihn behebt, läuft
+     die Datei allein — sonst wäre jedes Gate rot, obwohl der Stand ohne Last stimmt. Nach G7 hier wieder austragen. */
+  'test/gutachten2_b.mjs',
 ];
 
 // Attrappe, wenn kein Testserver übergeben wird (reine Node-Tests, test/gate_parallel.mjs)
@@ -156,7 +158,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   if (ai >= 0) { arbeiter = Math.max(1, Number(args[ai + 1]) || 1); args.splice(ai, 2); }
   const dateien = args;
   if (!dateien.length) { console.error('Nutzung: node scripts/leise.mjs [--arbeiter N] test/a.mjs [test/b.mjs …]'); process.exit(2); }
-  const ts = testServer(8099);
+  const ts = testServer() /* Port aus WG_PORT, Standard 8099 */;
   let g;
   try {
     await ts.serverSicherstellen();

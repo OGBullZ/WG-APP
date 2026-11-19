@@ -36,7 +36,7 @@ async function wg(seed, { me = 'u1', theme = 'dark' } = {}) {
     localStorage.setItem('wg_push_nudge', JSON.stringify({ until: Date.now() + 864e5 * 30 }));
   }, [{ users: USERS, ...seed }, T, theme, me]);
   const page = await ctx.newPage();
-  await page.goto('http://127.0.0.1:8099/wgapp.html', { waitUntil: 'domcontentloaded' });
+  await page.goto((process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html', { waitUntil: 'domcontentloaded' });
   await page.locator('.tabbar').waitFor({ timeout: 30000 });
   await page.evaluate(() => window.__wg.fire());
   await page.waitForTimeout(800);

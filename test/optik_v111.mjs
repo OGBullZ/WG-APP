@@ -63,7 +63,7 @@ async function wg({ w = 320, h = 3200, lang = 'de', seed = SEED, theme = 'dark' 
   const page = await ctx.newPage();
   const fehler = [];
   page.on('pageerror', e => fehler.push(e.message));
-  await page.goto('http://127.0.0.1:8099/wgapp.html', { waitUntil: 'domcontentloaded' });
+  await page.goto((process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html', { waitUntil: 'domcontentloaded' });
   await page.locator('.tabbar').waitFor({ timeout: 30000 });
   await page.evaluate(() => window.__wg.fire());
   await page.waitForTimeout(800);

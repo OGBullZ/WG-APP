@@ -120,7 +120,7 @@ async function prefsAfterLoad(saved) {
     localStorage.setItem('wg_tab', JSON.stringify('set'));
     if (p) localStorage.setItem('wg_push_prefs', JSON.stringify(p));
   }, [new Date().toISOString().slice(0, 10), saved]);
-  await page.goto('http://localhost:8099/wgapp.html', { waitUntil: 'domcontentloaded' });
+  await page.goto((process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html', { waitUntil: 'domcontentloaded' });
   await page.locator('.tabbar').waitFor({ timeout: 30000 });
   await page.waitForTimeout(1200);
   const out = await page.evaluate(() => JSON.parse(localStorage.getItem('wg_push_prefs') || 'null'));

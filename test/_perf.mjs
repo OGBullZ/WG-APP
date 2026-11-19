@@ -3,7 +3,7 @@
    Server muss laufen (npm run serve). CPU=4 node test/_perf.mjs */
 import { chromium, devices } from 'playwright';
 
-const url = 'http://localhost:8099/wgapp.html';
+const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const RATE = +(process.env.CPU || 4);
 const today = (() => { const d = new Date(), z = n => String(n).padStart(2,'0'); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; })();
 const DEMO = {

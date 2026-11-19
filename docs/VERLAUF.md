@@ -1091,3 +1091,21 @@ Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen 
 
 **Fund beim ersten Belastungsbild** (320 px, „Sehr groß", `--last`): Ring-Betrag „€46551,3…" abgeschnitten (bekannt, G3/GRENZ-8) und **Tab-Beschriftungen gekürzt** („He…", „Haus…") — neu, in G2 aufgenommen.
 
+## W5a — drei CI-Funde unter Linux (wg-v124, 17.11.)
+
+**Ausgang:** CI seit Wochen rot mit 3 Dateien (je 1 Prüfung): `gutachten2_c3` F8k (Tempowechsel 6,9 > 6), `gutachten2_b` W5 FILM-5 (Höhensprung 37,5 > 24), `feinschliff` P1 (Platzhalter „Anderen Code eingeben" 174 > 171 px bei 360 px).
+
+**Was:**
+- `gutachten2_c3` `kenn()`: der Tempowechsel wird wie das Tempo auf 16,7 ms umgerechnet (Abstand der Intervallmitten, nur langsame Abstände abwerten — dieselbe Regel wie `folgeAus` in `gutachten2_b`). Schwellen unverändert. **Gegenprobe gegen v120 (FILM-8-Fehler drin): 22 rot, darunter F8a/b/d/h/i/j/k/l/m** — die Prüfung ist nicht blind geworden. `NUR_SERIELL` wieder leer, Parallel-Lauf grün.
+- Platzhalter → „Anderer WG-Code" („Another flat code"). Das Feld erbt die Webschrift; unter Linux 3 px zu breit, auf schmalen Android-Geräten droht dasselbe → App-Fund, nicht Messfehler.
+- `WG_CPU=<n>` in `gutachten2_b` und `gutachten2_c3` (CDP-CPU-Bremse), um CI-Bedingungen lokal nachzustellen.
+
+**Was schiefging / gefunden**
+- **FILM-5 ist kein Messfehler:** mit `WG_CPU=4` lokal nachgestellt — 29,2 px **roh** in einem Bild mit normalem Abstand (erwartbar ~10 px). → neues Paket **G7** (Langsame Geräte). Bis dahin bleibt CI bei `gutachten2_b` rot (W5b).
+- **F8l unter CPU 4× rot** (Wechsel 10,9 / 10,8, deterministisch; ohne Bremse grün) — ebenfalls G7.
+- Messplan „gutachten2_b je 3× mit CPU 4 und 6" war zu teuer (gebremst ~25 min je Lauf) — nach dem ersten Lauf abgebrochen, der Beleg reichte.
+- Umsetzer: ein gebremster Lauf überlagerte den nächsten (zwei Läufe auf 8099) → neu gestartet. Er meldete außerdem „Assertion failed … UV_HANDLE_CLOSING, Exit 127" nach jedem Lauf — **vom Hauptloop nicht nachstellbar** (6 Läufe seriell/parallel/gebremst: Exit 0, keine Assertion; Ship v123 Exit 0). Beobachten, falls ein Gate grundlos mit 127 endet.
+- **Erster Ship-Versuch v124 (17.11.) brach im Gate ab:** `test/testserver.mjs` starb an einer **internen Assertion von undici** (Nodes `fetch`, `Socket.onHttpSocketError`) — nicht fangbar, der Prozess endet. Der Test beendet absichtlich Server und fragt sofort nach; selten trifft die Abfrage den sterbenden Socket. `scripts/testserver.mjs` `serverDa()` fragt jetzt per `node:http` (derselbe Fall ist dort ein normales `error` → „nicht da"). 3× hintereinander 8/8 grün. Vermutlich dieselbe Familie wie die „Assertion failed"-Meldung des Umsetzers.
+- **Zweiter Ship-Versuch v124 (19.11.) rot:** (1) `gutachten2_a` Z1b suchte `/Anderen Code/i` — der Umsetzer hatte nur nach dem vollen alten Text gegreppt → Erwartung nachgezogen. (2) `gutachten2_b` W5 FILM-5 „nur parallel rot" (Sprung 27,3 px unter Pool-Last) = der G7-Fund, jetzt auch lokal unter Last → `NUR_SERIELL` mit Verweis auf G7.
+- **Port aus `WG_PORT` (19.11., Vorbereitung paralleler Agenten):** `scripts/testserver.mjs` exportiert `PORT`/`BASIS` und setzt `WG_BASIS`; alle 79 Testdateien lesen `process.env.WG_BASIS || 'http://127.0.0.1:8099'` (Codemod `scratchpad/codemod-port.mjs`, 82 Stellen, `localhost` dabei → `127.0.0.1`). Beleg: zwei Läufe gleichzeitig auf 8099 und 8101 grün; ohne Server auf 8099 nur mit `WG_PORT=8101` grün; Gegenprobe `WG_BASIS` auf leeren Port → rot. Release v124 wird mit den Bedienbarkeits-Paketen zusammen ausgeliefert.
+

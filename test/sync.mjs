@@ -12,7 +12,7 @@
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs'; // Firebase-Ersatz, geteilt mit logins.mjs
 
-const url = 'http://localhost:8099/wgapp.html';
+const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 
 const USERS = [{ id: 'u1', name: 'Torben', color: '#38bdf8' }, { id: 'u2', name: 'Tom', color: '#fbbf24' }];
 const browser = await chromium.launch();

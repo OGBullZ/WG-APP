@@ -30,7 +30,7 @@
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
 
-const url = process.env.WG_URL || 'http://127.0.0.1:8099/wgapp.html';   /* 127.0.0.1 statt localhost: localhost kostet unter Windows 2 s (IPv6-Versuch) */
+const url = process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';   /* 127.0.0.1 statt localhost: localhost kostet unter Windows 2 s (IPv6-Versuch) */
 const z = n => String(n).padStart(2, '0');
 const tagVor = n => { const d = new Date(); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
 const T = tagVor(0);
@@ -48,6 +48,8 @@ async function open(seed, { tab = 'haus', w = 390, h = 844, theme = 'dark', redu
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, serviceWorkers: 'block', isMobile: w < 768, hasTouch: w < 768, reducedMotion: reduce ? 'reduce' : 'no-preference' });
   await ctx.routeWebSocket(/./, () => {});
   const page = await ctx.newPage();
+  /* W5 (17.11.): WG_CPU=<n> drosselt die CPU um Faktor n (CDP) — CI-Bedingungen (langsame, unregelmäßige Bilder) lokal nachstellen; Standard aus */
+  if (process.env.WG_CPU) await (await ctx.newCDPSession(page)).send('Emulation.setCPUThrottlingRate', { rate: Number(process.env.WG_CPU) });
   const errs = [];
   page.on('pageerror', e => errs.push(e.message));
   await page.route('**/*', r => {
@@ -948,7 +950,7 @@ const x3j = await versuch(async () => {
   const S = await open(SEED_J, { tab: 'set', lang: 'en' }), p = S.page;
   await p.evaluate(() => { window.__wg.tree.wg['SONNENALLEE-7'] = { users: [{ id: 'x1', name: 'Max' }] }; });   /* der Code muss „existieren" (onbCodeExists liest wg/<code>/users aus dem Stub), sonst kommt „keine WG unter diesem Code" statt des Blatts */
   await alleFoldsAuf(p);
-  const feld = p.locator('input.field[placeholder="Enter another code"]');
+  const feld = p.locator('input.field[placeholder="Another flat code"]');
   await feld.scrollIntoViewIfNeeded();
   await feld.fill('SONNENALLEE-7');
   await p.getByRole('button', { name: 'Join', exact: true }).click({ timeout: 4000 });
@@ -962,7 +964,7 @@ const x3jd = await versuch(async () => {
   const S = await open(SEED_J, { tab: 'set' }), p = S.page;
   await p.evaluate(() => { window.__wg.tree.wg['SONNENALLEE-7'] = { users: [{ id: 'x1', name: 'Max' }] }; });
   await alleFoldsAuf(p);
-  const feld = p.locator('input.field[placeholder="Anderen Code eingeben"]');
+  const feld = p.locator('input.field[placeholder="Anderer WG-Code"]');
   await feld.scrollIntoViewIfNeeded();
   await feld.fill('SONNENALLEE-7');
   await p.getByRole('button', { name: 'Beitreten', exact: true }).click({ timeout: 4000 });

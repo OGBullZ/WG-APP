@@ -7,7 +7,7 @@
 import { chromium, devices } from 'playwright';
 import { STUB } from './_fbstub.mjs';
 
-const url = 'http://localhost:8099/wgapp.html';
+const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const MIN_TAP = Number(process.env.A11Y_MIN) || 40;   // Apple empfiehlt 44, WCAG 2.2 AA verlangt 24 — 40 ist die Latte dieser App
 // (A11Y_MIN=44 prüft die Reserve: Linux-Schriften der CI sind etwas kleiner, v81 kippte dort bei knapp 40)
 const BERICHT = process.argv.includes('--bericht');

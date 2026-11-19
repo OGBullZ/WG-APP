@@ -291,6 +291,14 @@ Seit v119 steht offen, dass nie am iPhone geprüft wurde. Opus erstellt **eine**
 - **Vor** dem Einbau der Wisch-Test: 80 Posten, hoch und runter wischen, Layout-Verschiebungen zählen (`PerformanceObserver('layout-shift')`). Springt die Seite, **nicht** einbauen und das hier vermerken.
 - **Aufwand:** S + Messung M.
 
+### G7 — Langsame Geräte: Bewegung ruckelt unter CPU-Last (neu 17.11., aus W5)
+
+- **Nachstellen:** `WG_CPU=4 node scripts/leise.mjs test/gutachten2_b.mjs` bzw. `test/gutachten2_c3.mjs` (W5: CDP `Emulation.setCPUThrottlingRate` in beiden Tests). Ein Lauf dauert gebremst 10–25 min — losgelöst starten (`scripts/abnahme-start.ps1`).
+- **Fund 1 — FILM-5 Schrittwechsel (gutachten2_b W5, Desktop 1440):** Höhe springt in einem Bild mit normalem Abstand um 29,2 px (CPU 4×; CI Linux 37,5 px). Erwartet wären bei 116 px Hub, 300 ms und Sinus-Easing höchstens ~10 px je Bild → **kein Messfehler**. Die Höhenfahrt ist eine WAAPI-Animation aus `useLayoutEffect` (`grep -n "hoehe-fahrt" wgapp.html`). Verdacht (nicht belegt): bei langer JS-Arbeit liegt der Startzeitpunkt der Animation vor dem ersten gezeichneten Bild. Prüfweg: Performance-Trace (Playwright `tracing` mit Screenshots) unter CPU 4×, `a.startTime` gegen `document.timeline.currentTime` beim ersten Bild loggen. Möglicher Fix: Animation erst im nächsten `requestAnimationFrame` starten bzw. `a.startTime` auf das erste Bild setzen.
+- **Fund 2 — FILM-8 zweiter Tipp nach 450 ms (gutachten2_c3 F8l):** Tempowechsel 10,9 / 10,8 px (deterministisch, CPU 4×), ohne Bremse grün.
+- **Folge:** Solange Fund 1 offen ist, bleibt die CI unter Linux bei `gutachten2_b` W5 rot (W5b).
+- **Aufwand:** M (Diagnose per Trace), Fix vermutlich S.
+
 ---
 
 ## Block S — Sprache
@@ -470,7 +478,7 @@ Beim Abschluss eines Pakets hier abhaken (Datum, Version, Commit). Was sich als 
 | W2 Wörterbuch-Zeile | ✅ ein Eintrag je Zeile, Objekt vorher = nachher (1788), längste Zeile 700 | wg-v123 | 17.11. |
 | W3 Abnahme-Werkzeuge | ✅ `schnappschuss.mjs`, `abnahme.mjs` (gegenprobe/regression/liste), `abnahme-start.ps1`, `bilder.mjs` | Gegenprobe gegen v121 rot, Rücktausch gemessen | 17.11. |
 | W4 Tests vom Wortlaut lösen | offen | | |
-| W5 CI Linux grün | offen — Spur: FILM-8 in `gutachten2_c3` misst Tempo je Bild statt je ms (kippt unter Last und unter Linux) | | |
+| W5 CI Linux grün | ◐ W5a 17.11.: `gutachten2_c3` F8 zeitnormiert (Gegenprobe v120: 9 F8 rot), `feinschliff` P1 Platzhalter gekürzt, `WG_CPU` in b/c3 · **offen W5b:** `gutachten2_b` W5 FILM-5 = echter Langsam-Gerät-Fund → G7 | wg-v124 | 17.11. |
 | E1 Schrift | offen | | |
 | E2 Warnkarte + Knöpfe | offen | | |
 | E3 Symbolfelder | offen | | |
@@ -481,6 +489,7 @@ Beim Abschluss eines Pakets hier abhaken (Datum, Version, Commit). Was sich als 
 | G4 Querformat | offen | | |
 | G5 Erster Bildaufbau | offen | | |
 | G6 Lange Listen | Status prüfen | | |
+| G7 Langsame Geräte (FILM-5, F8l) | offen — nachstellbar mit `WG_CPU=4` | | |
 | S1 Aufräumen Sprache | offen | | |
 | S2 Prüfnetz | Status prüfen | | |
 | S3 Server-Push Englisch | offen | | |

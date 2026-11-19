@@ -2149,6 +2149,7 @@ window.__WG_EN = {
 "Anderen Code eingeben":"Enter another code",
 "anderer Laden":"another shop",
 "Anderer Laden":"Another shop",
+"Anderer WG-Code":"Another flat code",
 "Ändern":"Change",
 "Android:":"Android:",
 "Angaben":"Details",
@@ -12846,7 +12847,7 @@ function Einstellungen() {
                 </button>
               </div>
               <div className="cell" style={{gap:8}}>
-                <input className="field" style={{flex:1,padding:'10px 12px',fontSize:16 /* wg-v118 (PWA-4): ≥ 16 px, sonst zoomt iOS beim Fokus hinein */}} placeholder={TT("Anderen Code eingeben")}
+                <input className="field" style={{flex:1,padding:'10px 12px',fontSize:16 /* wg-v118 (PWA-4): ≥ 16 px, sonst zoomt iOS beim Fokus hinein */}} placeholder={TT("Anderer WG-Code")}
                   value={codeInput} onChange={e=>setCodeInput(e.target.value.toUpperCase())}/>
                 <button onClick={joinCode} style={{background:'var(--mint)',border:'none',borderRadius:11,padding:'11px 14px',color:'var(--ink)',fontSize:14,fontWeight:800,flexShrink:0}}>
                   {TT("Beitreten")}

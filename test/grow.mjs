@@ -1,7 +1,7 @@
 /* Grow-Zyklus: Phasen-Tracker + Gieß-Erinnerung (Anzeige, Aktionen, Ernte beendet den Zyklus). */
 import { chromium } from 'playwright';
 
-const url = 'http://localhost:8099/wgapp.html';
+const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 420, height: 880 } });
 // RTDB synct per WebSocket — route() fängt WS NICHT ab, ohne das hier leaken Testdaten in die echte DB

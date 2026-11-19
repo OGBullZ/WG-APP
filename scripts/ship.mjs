@@ -25,7 +25,7 @@ sh('node scripts/csp-hashes.mjs --write');
 
 // 1) Test-Gate gegen lokalen Server — sichergestellt statt blind gestartet (wg-v110, Begründung in scripts/testserver.mjs)
 console.log('▶ 1/6 Test-Gate …');
-const ts = testServer(8099);
+const ts = testServer() /* Port aus WG_PORT, Standard 8099 */;
 let gateOk = false;
 try {
   console.log(`   Test-Server: ${await ts.serverSicherstellen()}`);

@@ -9,10 +9,25 @@
                             (echte Testfehler bleiben rot: ist der Server noch da, wird der Fehler weitergereicht) */
 import { spawn, execSync } from 'child_process';
 import { setTimeout as sleep } from 'timers/promises';
+import http from 'node:http';
 
-export function testServer(port = 8099, { log = console.log } = {}) {
+/* 19.11. (parallele Agenten in eigenen Arbeitskopien): Port aus WG_PORT, Standard 8099. WG_BASIS wird gesetzt, damit jeder gestartete Test
+   (alle lesen `process.env.WG_BASIS || 'http://127.0.0.1:8099'`) denselben Server trifft — sonst prüfte ein Agent die App eines anderen.
+   Nie 8096–8098 nehmen (feste Ports von testserver/ux/update/upgrade_dist). */
+export const PORT = Number(process.env.WG_PORT) || 8099;
+export const BASIS = `http://127.0.0.1:${PORT}`;
+if (!process.env.WG_BASIS) process.env.WG_BASIS = BASIS;
+
+export function testServer(port = PORT, { log = console.log } = {}) {
   const eigene = [];
-  const serverDa = async () => { try { return (await fetch(`http://127.0.0.1:${port}/wgapp.html`, { signal: AbortSignal.timeout(1500) })).ok; } catch { return false; } };
+  /* W5 (19.11.): node:http statt fetch. Ship v124 brach ab, weil undici (Nodes fetch) bei einem Socket-Fehler eine INTERNE Assertion wirft
+     (Socket.onHttpSocketError) — kein fangbarer Fehler, der ganze Prozess stirbt. Genau das provoziert test/testserver.mjs: Server beenden
+     und gleich danach abfragen. http.get meldet denselben Fall als normalen 'error' → false. */
+  const serverDa = () => new Promise(fertig => {
+    const req = http.get({ host: '127.0.0.1', port, path: '/wgapp.html', timeout: 1500 }, res => { res.resume(); fertig(res.statusCode === 200); });
+    req.on('timeout', () => { req.destroy(); fertig(false); });
+    req.on('error', () => fertig(false));   /* Server weg / verweigert = „nicht da", das ist hier das Ergebnis, kein Fehler */
+  });
   const serverSicherstellen = async () => {
     if (await serverDa()) return 'vorhanden';
     eigene.push(spawn('python', ['-m', 'http.server', String(port)], { stdio: 'ignore' }));

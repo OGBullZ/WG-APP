@@ -25,7 +25,7 @@ import { chromium } from 'playwright';
 import { createHash } from 'crypto';
 import { STUB } from './_fbstub.mjs';
 
-const URL_ = process.env.WG_URL || 'http://127.0.0.1:8099/wgapp.html';
+const URL_ = process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const REF = process.env.WG_REF || null;
 // Gegenprobe der Messung: DESKTOP_SABOTAGE='<css>' hängt dieses CSS nach dem Laden in die geprüfte Fassung (nicht in WG_REF) —
 // z. B. '@media (max-width:1023px){.zz-paar,.zz-l,.zz-r{display:block!important}}' muss d1/d2 rot machen

@@ -13,7 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { STUB } from '../test/_fbstub.mjs';
-import { testServer } from './testserver.mjs';
+import { testServer, BASIS } from './testserver.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -81,8 +81,8 @@ function seedLast() {
 }
 
 // ---- Lauf -------------------------------------------------------------------------------------------------
-const url = `http://127.0.0.1:8099/${APP.replace(/\\/g, '/')}`;
-const ts = testServer(8099);
+const url = `${BASIS}/${APP.replace(/\\/g, '/')}`;   /* 19.11.: Port aus WG_PORT (testserver.mjs), Standard 8099 */
+const ts = testServer();
 const fehler = [];     // { bild, meldung }
 let anzahl = 0;
 let browser;

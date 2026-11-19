@@ -34,7 +34,7 @@ import { chromium } from 'playwright';
 import { readFileSync } from 'fs';
 import { STUB } from './_fbstub.mjs';
 
-const url = process.env.WG_URL || 'http://127.0.0.1:8099/wgapp.html';   /* 127.0.0.1 statt localhost: localhost kostet unter Windows 2 s (IPv6-Versuch) */
+const url = process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';   /* 127.0.0.1 statt localhost: localhost kostet unter Windows 2 s (IPv6-Versuch) */
 const pass = [], fail = [];
 const check = (n, c, extra = '') => (c ? pass : fail).push(n + (extra ? ` — ${extra}` : ''));
 const z = n => String(n).padStart(2, '0');
