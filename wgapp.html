@@ -249,6 +249,11 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 
 .disp { font-family:var(--disp); }
 .num  { font-family:var(--mono); font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
+/* wg-v125 (E1, REST-5): „Betrag am Zeilenende" in EINER Fassung (Mono, 16/700) — Haushalt, Größte Posten, Σ-Zeile, Jahresrückblick.
+   Nicht für Diagramm-Legenden (.bil-eur, .bar-val) und Anzeigewerte (Banner, hero-big). */
+.betrag { font-family:var(--mono); font-variant-numeric:tabular-nums; letter-spacing:-.02em; font-size:16px; font-weight:700; }
+/* wg-v125 (E1, REST-4): Unterzeile unter dem Betrag („je €x", Tag „Growbox") — Sans 11/600, Ziffern bündig */
+.betrag-sub { font-size:11px; font-weight:600; font-variant-numeric:tabular-nums; }
 
 /* ── Screen layout ── */
 .screen {
@@ -446,10 +451,10 @@ button.cell { color:var(--label); }
 @keyframes onbBack { from { opacity:0; transform:translateX(-34px); } }
 .onb-title { text-align:center; margin-bottom:6px; }
 .onb-title h2 { font-size:26px; font-weight:800; margin:6px 0 4px; }
-.onb-title p { font-size:14.5px; color:var(--label2); line-height:1.5; margin:0; }
+.onb-title p { font-size:14px; color:var(--label2); line-height:1.5; margin:0; }
 .onb-em { font-size:56px; line-height:1.1; animation:onbPop .6s cubic-bezier(.3,1.6,.5,1) both .08s; }
 @keyframes onbPop { from { transform:scale(.3) rotate(-12deg); opacity:0; } }
-.onb-big { font-size:16.5px; padding:15px; border-radius:16px; transition:transform .12s, filter .2s; }
+.onb-big { font-size:16px; padding:15px; border-radius:16px; transition:transform .12s, filter .2s; }
 .onb-big:active { transform:scale(.97); }
 .onb-list { display:flex; flex-direction:column; gap:8px; }
 .onb-li { display:flex; gap:10px; align-items:center; background:var(--bg2); border-radius:12px; padding:10px 12px; font-size:14px; animation:rise .45s both; }
@@ -5136,7 +5141,7 @@ function GlobalUI() {
               <span className="sheet-title" style={{color:confReq.danger?'var(--red)':'var(--label)'}}>{confReq.title||TT("Bestätigen")}</span>
             </div>
             {confReq.body && (
-              <div className="sheet-body"><div style={{fontSize:14.5,color:'var(--label2)',lineHeight:1.55}}>{confReq.body}</div></div>
+              <div className="sheet-body"><div style={{fontSize:14,color:'var(--label2)',lineHeight:1.55}}>{confReq.body}</div></div>
             )}
             <div className="sheet-acts">
               <button className="btn btn-sec" onClick={()=>closeConfirm(false)}>{confReq.cancelLabel||TT("Abbrechen")}</button>
@@ -5510,7 +5515,7 @@ function BankBox({ c, d, amount, me, flach }) {
        dieselbe Stufe, die .folge (-6 auf gap 14) in Spalten erzeugt. Ein .folge hätte hier nur 2 px gelassen (gap 8 - 6). */
     <div className={flach ? undefined : 'group rise'} data-testid="bank-box" style={flach ? {display:'flex',flexDirection:'column',gap:8,borderTop:'1px solid var(--sep)',paddingTop:12} : {padding:'12px 14px',display:'flex',flexDirection:'column',gap:8}}>
       <div style={{fontSize:13,color:'var(--label2)'}}>{TT("🏦 Überweisung an")} <b style={{color:'var(--label)'}}>{holder}</b></div>
-      <div data-testid="bank-iban" className="num" style={{fontSize:15.5,fontWeight:700,letterSpacing:.3,userSelect:'all',wordBreak:'break-all'}}>{ibanFmt(c.iban)}</div>
+      <div data-testid="bank-iban" className="num" style={{fontSize:15,fontWeight:700,letterSpacing:.3,userSelect:'all',wordBreak:'break-all'}}>{ibanFmt(c.iban)}</div>
       {me===c.id ? (
         <button className={`btn btn-sec${kl}`} onClick={share}>{/* wg-v119 (EN-4): ganzer Satz mit {0}; EN: „Send bank details to Tom" (vorher „Bank details to Tom send") */}{TT("Bankdaten an {0} schicken", d.name)}</button>
       ) : (
@@ -8385,7 +8390,7 @@ function RhythmusCard() {
   return (
     <div className="group rise" data-testid="rhythmus-card" style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:10}}>
       <div>
-        <div style={{fontWeight:700,fontSize:14.5}}>{TT("🔁 Wieder dran?")}</div>
+        <div style={{fontWeight:700,fontSize:14}}>{TT("🔁 Wieder dran?")}</div>
         <div className="cell-sub">{TT("Kauft ihr regelmäßig — zuletzt ist eine Weile her.")}</div>
       </div>
       {faellig.map(r => (
@@ -9514,7 +9519,7 @@ function StockCard() {
                 style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,padding:'10px 4px',borderRadius:12,border:`1px solid ${warn?'var(--amber)':'transparent'}`,
                   background:on&&!edit?'rgba(94,234,212,.10)':'var(--bg3)',color:on&&!edit?'var(--mint)':'var(--label)',fontWeight:700,fontSize:12,fontFamily:'inherit',cursor:'pointer',lineHeight:1.2}}>
                 <span style={{fontSize:20}}>{it.em}</span>{it.name}
-                <span style={{fontSize:10.5,fontWeight:600,color:on&&!edit?'var(--mint)':warn?'var(--amber)':'var(--label2)'}}>
+                <span style={{fontSize:10,fontWeight:600,color:on&&!edit?'var(--mint)':warn?'var(--amber)':'var(--label2)'}}>
                   {edit ? TT("× ausblenden") : on ? TT("✓ auf der Liste") : it.learned ? TT("+ auf die Liste") : left===null ? TT("fast leer?") : left<=0 ? TT("jetzt leer?") : TT("~{0} Tag{1}", left, plu(left,'e'))}
                 </span>
               </button>
@@ -9926,7 +9931,7 @@ function YearReview({ all, pl, pt, users }) {
       {!auf && (
         <button type="button" className="group jahr-zeile" data-chip="jahr" aria-expanded="false" onClick={()=>setAuf(true)}>
           <span>📅 {TT("Jahresrückblick")} {y}</span>
-          <span className="num" style={{marginLeft:'auto',fontWeight:800}}>€{fmt(total)}</span>
+          <span className="betrag" style={{marginLeft:'auto'}} /* wg-v125 (E1): 800 -> 700 */>€{fmt(total)}</span>
           <span aria-hidden="true" style={{color:'var(--label3)'}}>›</span>
         </button>
       )}
@@ -10051,7 +10056,7 @@ function AboVorschlag() {
   return (
     <div className="group rise" data-testid="abo-vorschlag" style={{padding:'12px 16px',display:'flex',flexDirection:'column',gap:10}}>
       <div>
-        <div style={{fontWeight:700,fontSize:14.5}}>{TT("💡 Kommt „{0}“ jeden Monat?", k.name)}</div>
+        <div style={{fontWeight:700,fontSize:14}}>{TT("💡 Kommt „{0}“ jeden Monat?", k.name)}</div>
         <div className="cell-sub">{TT("{0}× in verschiedenen Monaten · zuletzt €{1}", k.n, fmt(k.preis))}</div>
       </div>
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
@@ -10663,7 +10668,8 @@ function Haushalt({goPutz}) {
               · Zoë €10,00" am Zeilenende bzw. -anfang). Die Anteile bleiben je Person ein Teil; Name und Betrag hängen per geschütztem Leerzeichen zusammen („Zoë €10,00" bricht nicht
               mitten im Betrag), aber statt nowrap (das ein zu langes Teil rechts abgeschnitten hätte) darf ein überlanges Teil am Bindestrich/überall innen umbrechen. */}
           <Teile>{fmtDate(item.date)}<span style={{color:payer?.color}}>{payer?.name}</span></Teile>
-          <Teile className="cell-sub num" data-testid="grow-anteile" style={{fontSize:11}}>
+          {/* wg-v125 (E1, REST-4): kein .num (Mono) und kein fontSize:11 mehr — Satzteile in Sans, erbt .cell-sub (12,5/500); Ziffern per tabular-nums bündig */}
+          <Teile className="cell-sub" data-testid="grow-anteile" style={{fontVariantNumeric:'tabular-nums'}}>
             <span style={{color:'var(--lime)',fontWeight:700}}>{TT("nach Pflanzen")}</span>
             {/* wg-v120 (GRENZ-5): Personen ohne Pflanzen (Anteil 0) stehen nicht mehr als „Maximilian-Alexander €0,00" in der Zeile — bei 4 Personen 1–2 Zeilen weniger je Grow-Posten.
                 Ohne Pflanzen insgesamt teilt growCalc gleichmäßig auf, dort hat jede Person Anteil > 0 und der Filter greift nicht. */}
@@ -10673,8 +10679,8 @@ function Haushalt({goPutz}) {
           </Teile>
         </div>
         <div style={{textAlign:'right',flexShrink:0,cursor:'pointer'}} onClick={bearbeiten}>
-          <div className="num" style={{fontSize:16,fontWeight:700}}>€{fmt(item.price)}</div>
-          <div style={{fontSize:11,color:'var(--lime)',fontWeight:700}}>{TT("Growbox")}</div>
+          <div className="betrag">€{fmt(item.price)}</div>
+          <div className="betrag-sub" style={{color:'var(--lime)'}} /* wg-v125 (E1): Tag in der Sans-Unterzeile (11/600) */>{TT("Growbox")}</div>
         </div>
         <button className="del-btn" aria-label={TT("{0} löschen", item.name) /* wg-v122 (A11Y-9b): Name mit Postennamen, sonst 5× „Ausgabe löschen" in einer Liste */} title={TT("Ausgabe löschen")} onClick={e=>delGi(item.id, e.currentTarget.closest('.cell'))}>×</button>
       </div>
@@ -10932,9 +10938,10 @@ function Haushalt({goPutz}) {
                             wg-v119 (GRENZ-2): jetzt noch eine Stufe weiter — der Knopf steht gar nicht mehr in der Zeile, sondern in der Unterzeile des
                             Titels (s. oben). Der Betrag grenzt weiterhin in jeder Zeile an das ×, und die Titelspalte ist nicht mehr vom Zahler abhängig. */}
                         <div style={{textAlign:'right',flexShrink:0,cursor:'pointer'}} onClick={()=>setEditItem(item)}>
-                          <div className="num" style={{fontSize:16,fontWeight:700}}>€{fmt(item.price)}</div>
-                          {/* Umbuchung (wg-v107): „Tom zahlt alles" stimmte hier nicht — es ist Geld, das nur weitergegeben wurde */}
-                          <div className="num" data-testid={istUmbuchung(item)?'exp-umbuchung':undefined} style={{fontSize:11,color:'var(--label3)'}}>{istUmbuchung(item)?TT("↔ Umbuchung"):item.owedBy?TT("{0} zahlt alles", users.find(u=>u.id===item.owedBy)?.name||'?'):TT("je €{0}", fmt(item.price/users.length))}</div>
+                          <div className="betrag">€{fmt(item.price)}</div>
+                          {/* Umbuchung (wg-v107): „Tom zahlt alles" stimmte hier nicht — es ist Geld, das nur weitergegeben wurde.
+                              wg-v125 (E1, REST-4): Unterzeile als .betrag-sub (Sans 11/600) statt Mono 11/400 */}
+                          <div className="betrag-sub" data-testid={istUmbuchung(item)?'exp-umbuchung':undefined} style={{color:'var(--label3)'}}>{istUmbuchung(item)?TT("↔ Umbuchung"):item.owedBy?TT("{0} zahlt alles", users.find(u=>u.id===item.owedBy)?.name||'?'):TT("je €{0}", fmt(item.price/users.length))}</div>
                         </div>
                         <button className="del-btn" aria-label={TT("{0} löschen", item.name) /* wg-v122 (A11Y-9b): Name mit Postennamen, sonst 5× „Ausgabe löschen" in einer Liste */} title={TT("Ausgabe löschen")} onClick={e=>del(item.id, e.currentTarget.closest('.cell'))}>×</button>
                       </div>
@@ -11970,7 +11977,7 @@ function Putzplan() {
       <div className="cat-grid">
         {CHORE_PTS.map(([v,em,l,sub])=>(
           <button key={v} className={`cat-btn${chorePts(d)===v?' on':''}`} aria-pressed={!!(chorePts(d)===v)} style={{height:'auto',padding:'9px 4px',display:'flex',flexDirection:'column',alignItems:'center',gap:2}} onClick={()=>sd({...d,pts:v})}>
-            <span style={{fontSize:18}}>{em}</span><span>{l}</span><span style={{fontSize:10.5,opacity:.7,fontWeight:500}}>{sub}</span>
+            <span style={{fontSize:18}}>{em}</span><span>{l}</span><span style={{fontSize:10,opacity:.7,fontWeight:500}}>{sub}</span>
           </button>
         ))}
       </div>
@@ -13722,10 +13729,10 @@ function Statistik({ goHaus }) {   /* goHaus (wg-v112, P9): „Ausgabe eintragen
                     <span data-testid="stats-plan" style={{display:'flex',flexDirection:'column',gap:6}}>{settlePlan(nets).map(t=>(
                       <span key={t.from+t.to} data-testid="stats-plan-row" style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:10}}>
                         <span style={{minWidth:0}}><b style={{color:users.find(u=>u.id===t.from)?.color,fontWeight:800}}>{t.fromName}</b> → <b style={{color:users.find(u=>u.id===t.to)?.color,fontWeight:800}}>{t.toName}</b></span>
-                        <span className="num" style={{fontWeight:800,flexShrink:0,whiteSpace:'nowrap'}}>€{fmt(t.amount)}</span>
+                        <span className="betrag" style={{flexShrink:0,whiteSpace:'nowrap'}} /* wg-v125 (E1): 800 -> 700 */>€{fmt(t.amount)}</span>
                       </span>))}</span>
                   : netDeb&&netCred
-                  ? <><span style={{color:netDeb.color,fontWeight:800}}>{netDeb.name}</span> {TT("schuldet")} <span style={{color:netCred.color,fontWeight:800}}>{netCred.name}</span> {TT("insgesamt")} <span className="num" style={{fontWeight:800}}>€{fmt(Math.abs(netDeb.net))}</span></>
+                  ? <><span style={{color:netDeb.color,fontWeight:800}}>{netDeb.name}</span> {TT("schuldet")} <span style={{color:netCred.color,fontWeight:800}}>{netCred.name}</span> {TT("insgesamt")} <span className="betrag" /* wg-v125 (E1): 800 -> 700 */>€{fmt(Math.abs(netDeb.net))}</span></>
                   : <>{TT("Netto über alles:")} <span style={{color:'var(--green)',fontWeight:800}}>{TT("ausgeglichen ✓")}</span></>}
               </span>
               <span className="cell-sub">{TT("Haushalt inkl. Growbox, offene Posten · abgerechnet wird im Haushalt")}</span>{/* wg-v116: Grow-Geld wird nur noch im Haushalt abgerechnet */}
@@ -13806,7 +13813,7 @@ function Statistik({ goHaus }) {   /* goHaus (wg-v112, P9): „Ausgabe eintragen
                     <span className="cell-title">{i.name}</span>
                     <span className="cell-sub">{fmtDate(i.date)} · <span style={{color:payer?.color}}>{payer?.name}</span></span>
                   </div>
-                  <span className="num" style={{fontWeight:700,fontSize:15}}>€{fmt(i.price)}</span>
+                  <span className="betrag" /* wg-v125 (E1): 15 -> 16, wie im Haushalt */>€{fmt(i.price)}</span>
                 </div>
               );})}
             </div>
@@ -13913,7 +13920,7 @@ function DebtAlert({ info, onClose }){
         <div className="sheet-body" style={{textAlign:'center',alignItems:'center',gap:6,paddingTop:6}}>
           <div style={{fontSize:44,lineHeight:1}}>💸</div>
           <div className="hero-lbl" style={{marginTop:6}}>{TT("Deine Bilanz")}</div>
-          <div style={{fontSize:15.5,color:'var(--label2)',fontWeight:600}}>{TT("Du schuldest")} {info.other?.name || TT("der WG")}</div>
+          <div style={{fontSize:15,color:'var(--label2)',fontWeight:600}}>{TT("Du schuldest")} {info.other?.name || TT("der WG")}</div>
           <div className="num" style={{fontSize:56,fontWeight:800,color:'var(--amber)',lineHeight:1.05,margin:'6px 0 4px'}}>€{fmt(amt)}</div>
         </div>
         <div className="sheet-acts">
