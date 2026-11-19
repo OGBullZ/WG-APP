@@ -150,7 +150,8 @@ const flucht = await S.page.evaluate(() => {
   const liste = [...document.querySelectorAll('.screen .group')].find(g => /Rewe Wocheneinkauf/.test(g.textContent) && g.querySelector('.del-btn'));
   if (!liste) return null;
   const zeilen = [...liste.querySelectorAll(':scope > .cell')];
-  const kanten = zeilen.map(c => Math.round([...c.querySelectorAll('.num')].find(n => /€/.test(n.textContent)).getBoundingClientRect().right));
+  /* wg-v125 (E1): der Zeilenbetrag trägt jetzt .betrag statt .num */
+  const kanten = zeilen.map(c => Math.round([...c.querySelectorAll('.betrag, .num')].find(n => /€/.test(n.textContent)).getBoundingClientRect().right));
   // Fragezeichen: nur fremde Posten haben eins — ohne diese Mischung würde die Prüfung nichts messen
   const mitFrage = zeilen.filter(c => [...c.querySelectorAll('button')].some(b => /❓|\?/.test(b.textContent) || /frag/i.test(b.getAttribute('aria-label') || ''))).length;
   return { zeilen: zeilen.length, kanten, mitFrage };
