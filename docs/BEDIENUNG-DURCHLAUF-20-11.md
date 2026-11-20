@@ -11,12 +11,12 @@ Nicht gespielt: echter Erststart ohne Seed (deckt `test/onboarding.mjs` ab), Tas
 |---|---|---|---|
 | 1 | hoch | **Einkaufsliste:** Die Liste beginnt erst nach 8 Vorrats-Kacheln und dem Wochen-Korb (gemessen: erste Zeile bei y = 818 px auf 844 px Höhe). Im Laden sucht man die Liste. „2 auf der Einkaufsliste" auf Heute führt genau dorthin. | **behoben** (PR) |
 | 2 | mittel | **Betrag „-20" wird still zu +20,00 €** (`parseNum` verwirft das Vorzeichen). Wer eine Erstattung meint, bucht eine Ausgabe. „abc" bleibt im Feld stehen und meldet nur „fehlt noch: Wie viel?". | **behoben** (PR) |
-| 3 | mittel | **Posten bearbeiten startet beim Namen.** Der häufigste Korrekturgrund ist ein falscher Betrag, dazu muss man erst „Weiter" tippen. Vorschlag: Bearbeiten öffnet im Schritt „Wie viel?" oder zeigt Name/Betrag/Zahler auf einer Seite. | offen |
+| 3 | mittel | **Posten bearbeiten startet beim Namen.** Der häufigste Korrekturgrund ist ein falscher Betrag, dazu muss man erst „Weiter" tippen. Bearbeiten öffnet jetzt im Schritt „Wie viel?". | **behoben** (PR 2) |
 | 4 | mittel | **Schnell-Zeile erkannte „1.200 Miete" und „1.234,56 Rewe" nicht**, der ganze Text landete als Name im Formular. | **behoben** (PR) |
-| 5 | mittel | **Mehr → Personen:** Aufgeklappt steht zuerst das Geburtstags-Formular, die Personen (PayPal, IBAN) folgen erst darunter. Der Name selbst ist nur über den Assistenten „Mein Profil einrichten" änderbar. Vorschlag: Personen zuerst, Geburtstage danach, „Name ändern" direkt an der Person. | offen |
-| 6 | niedrig–mittel | **Ausgabe über den Assistenten zeigt nach „Fertig" keinen Rückgängig-Balken** (beobachtet, im Screenshot 700 ms danach nichts). Die Schnell-Zeile hat ihn („eingetragen · Rückgängig"). Ein Vertipper im Assistenten bleibt bis zum manuellen Löschen/Bearbeiten stehen. Vorschlag: gleicher Balken wie bei der Schnell-Zeile. | offen |
+| 5 | mittel | **Mehr → Personen:** Aufgeklappt steht zuerst das Geburtstags-Formular, die Personen (PayPal, IBAN) folgen erst darunter. *Korrektur:* der Name ist direkt in der Zeile änderbar (Feld ohne Rahmen, sieht aus wie Text; das hatte ich zuerst falsch als „nur per Assistent" notiert). Personen stehen jetzt vor den Geburtstagen. Offen: Namensfeld als Eingabe erkennbar machen. | **teilweise behoben** (PR 2) |
+| 6 | niedrig–mittel | **Ausgabe über den Assistenten zeigt nach „Fertig" keinen Rückgängig-Balken** (beobachtet, im Screenshot 700 ms danach nichts). Die Schnell-Zeile hat ihn („eingetragen · Rückgängig"). Ein Vertipper im Assistenten bleibt bis zum manuellen Löschen/Bearbeiten stehen. Jetzt derselbe Balken wie bei der Schnell-Zeile (nicht beim Kassenzettel). | **behoben** (PR 2) |
 | 7 | niedrig–mittel | **Heute: 11 „Hinzufügen"-Kacheln** (Status, Maschine, Kühlschrank, Essensplan, Belegung, Umfrage, Kaputt, Login teilen …) füllen die untere Bildschirmhälfte, obwohl die meisten selten gebraucht werden. Vorschlag: nach Nutzung sortieren, Rest unter „Mehr Funktionen" einklappen. | offen |
-| 8 | niedrig | **Mitbewohner-Wechsel:** „Wer zieht aus?" ist mit der *anderen* Person (Tom) vorbelegt. Abgefedert, weil offene Beträge den Knopf sperren, aber eine Vorbelegung bei einer solchen Aktion sollte leer sein. | offen |
+| 8 | – | **Mitbewohner-Wechsel:** „Wer zieht aus?" ist mit der *anderen* Person (Tom) vorbelegt. *Korrektur nach Prüfung:* gewollt (die andere Person zieht typischerweise aus, das Gerät gehört der bleibenden), dazu Sperre bei offenen Beträgen und Bestätigungsdialog. Kein Fehler. | **gestrichen** |
 | 9 | niedrig | **Tab-Leiste hat 7 Tabs** (Growbox und Privat sind standardmäßig an). Bei 320 px sind die Beschriftungen auf 11 Geräte-px gedrückt. Vorschlag: Growbox standardmäßig aus, beim Einrichten fragen. (Ungeprüft: ob die Einrichtung schon fragt.) | offen, prüfen |
 | 10 | niedrig | **Einkaufszeile: Abhaken-Kreis 26×26 px und Löschen-× 26×34 px** (sichtbare Fläche). Die Tippfläche kann per `::after` größer sein, wurde hier nicht gemessen — `test/a11y.mjs --bericht` prüfen, dass der Kreis ≥ 44 px trifft. | offen, messen |
 
@@ -33,9 +33,6 @@ Weiter-Hinweis im Assistenten, Mitbewohner-Wechsel gesperrt bei offenen Beträge
 
 ## Roadmap-Vorschläge (Reihenfolge nach Nutzen/Aufwand)
 
-1. **B1 Posten bearbeiten im Betrag-Schritt** (#3) — klein, `initialStep` für `Wiz` im Bearbeiten-Blatt.
-2. **B2 Rückgängig nach Assistent-Ausgabe** (#6) — klein, `undo()` gibt es schon (Schnell-Zeile).
-3. **B3 Personen vor Geburtstagen, „Name ändern" an der Person** (#5) — klein bis mittel, Test `mehr.mjs` anpassen.
-4. **B4 Heute: Kachelwand nach Nutzung** (#7) — mittel, braucht einen Nutzungszähler pro Kachel (lokal, nicht gesynct).
-5. **B5 Vorbelegung Mitbewohner-Wechsel leeren** (#8) — winzig.
-6. **B6 Tippflächen Einkaufszeile messen, Growbox-Standard prüfen** (#9, #10) — erst messen, dann entscheiden.
+1. **B3 Namensfeld unter Personen als Eingabe erkennbar machen** (#5-Rest) — klein.
+2. **B4 Heute: Kachelwand nach Nutzung** (#7) — mittel, braucht einen Nutzungszähler pro Kachel (lokal, nicht gesynct).
+3. **B6 Tippflächen Einkaufszeile messen, Growbox-Standard prüfen** (#9, #10) — erst messen, dann entscheiden.

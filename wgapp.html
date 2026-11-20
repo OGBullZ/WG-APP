@@ -5374,14 +5374,14 @@ function WizSum({ name, price }) {
 }
 
 // onDelete/deleteLabel (wg-v102): leiser Lösch-Knopf unten im Bearbeiten-Fenster — ersetzt das × an jeder Listenzeile
-function Wiz({ open, onClose, title, color, steps, onFinish, initial, quickOk, quickLabel, onDelete, deleteLabel }) {
+function Wiz({ open, onClose, title, color, steps, onFinish, initial, quickOk, quickLabel, onDelete, deleteLabel, startStep }) {   // startStep: Schritt, mit dem das Blatt öffnet (Bearbeiten: gleich beim Betrag)
   const [step,setStep] = useState(0);
   const [data,setData] = useState({});
   const [dir,setDir] = useState(0);   /* wg-v112 (P7): Richtung des letzten Schrittwechsels (+1 weiter, −1 zurück, 0 = frisch geöffnet → erster Schritt ohne Bewegung) */
   // Nur beim ÖFFNEN zurücksetzen (deps bewusst ohne initial): Edit-Sheets bekommen initial
   // als Inline-Objekt — jedes Remote-Update rendert den Parent neu und würde sonst mitten
   // in der Eingabe Schritt + Formulardaten auf Anfang zurückwerfen.
-  useEffect(()=>{ if(open){setStep(0);setDir(0);setData(initial||{});} },[open]);
+  useEffect(()=>{ if(open){setStep(Math.min(startStep||0, steps.length-1));setDir(0);setData(initial||{});} },[open]);
   /* „Weiter" lief bei fehlender Angabe in ein stummes `return` (wg-v96). Gemessen im Putz-Formular:
      Der Knopf meldete `disabled:false`, ohne `aria-disabled`, volle Deckkraft, `pointer-events:auto` —
      er sah klickbar aus, war es auch, und tat trotzdem nichts. Der Nutzer tippt und erfährt nicht, warum
@@ -10303,7 +10303,9 @@ function Haushalt({goPutz}) {
   };
   const delRec = id => { const r=recs.find(x=>x.id===id); set('rec',recs.filter(x=>x.id!==id)); undo(TT("„{0}\" beendet", r?.name||'Posten'), ()=>setFn('rec', cur => cur.some(x=>x.id===id)?cur:[r,...cur])); };
 
-  const add    = d => { const amt=parseNum(d.price)||0; const nid=uid(); set('hs',[{id:nid,name:d.name||'Einkauf',price:amt,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),owedBy:d.owedBy||null,cat:d.cat||null,shop:(d.shop||'').trim()||null,settled:false},...items]); markiere([nid]) /* wg-v112 (P6): eigener Posten leuchtet kurz auf */; flyExpense(amt,'var(--mint)',heroRef.current) /* wg-v112 (P4): Token statt festem Pastell — hell der dunklere Akzent */; notifyOthers(TT("💸 {0} hat {1} € eingetragen", meName, fmt(amt)), d.name||'Einkauf', "wg-exp", "exp"); };
+  const add    = (d, mitUndo) => { const amt=parseNum(d.price)||0; const nid=uid(); set('hs',[{id:nid,name:d.name||'Einkauf',price:amt,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),owedBy:d.owedBy||null,cat:d.cat||null,shop:(d.shop||'').trim()||null,settled:false},...items]); markiere([nid]) /* wg-v112 (P6): eigener Posten leuchtet kurz auf */; flyExpense(amt,'var(--mint)',heroRef.current) /* wg-v112 (P4): Token statt festem Pastell — hell der dunklere Akzent */; notifyOthers(TT("💸 {0} hat {1} € eingetragen", meName, fmt(amt)), d.name||'Einkauf', "wg-exp", "exp");
+    /* Bedienung (Handy-Durchlauf 20.11.): wie die Schnell-Zeile — ein Vertippen im Assistenten bleibt sonst bis zum manuellen Löschen stehen. Nicht beim Kassenzettel (der leert zugleich die Liste). */
+    if (mitUndo) undo(TT("💸 „{0}\" €{1} eingetragen", d.name||'Einkauf', fmt(amt)), ()=>setFn('hs', cur=>(cur||[]).filter(x=>x && x.id!==nid))); };
   // Vergessenes schnell melden: landet in der Einkaufsliste + Sofort-Push „bitte bring X mit" an den anderen
   const sendBring = () => {
     const n=bringName.trim(); if(!n){ return; }
@@ -10545,7 +10547,7 @@ function Haushalt({goPutz}) {
       if (rest > 0.004) add({ ...d, owedBy:null, price:String(rest).replace('.',','), name:('Einkauf: '+(sharedNames.join(', ')||'gemeinsam')).slice(0,120) });
       const meins = hsItem({ name:(`Einkauf nur ${nameOfU(users, me)}: ${mineNames.join(', ')}`).slice(0,120), price:mine, paidBy:payer, owedBy:me, cat:d.cat||null, date:d.date||todayISO() });
       setFn('hs', cur=>[meins, ...(cur||[])]); markiere([meins.id]) /* wg-v112 (P6): auch der „nur ich"-Posten leuchtet */;
-    } else add(d);
+    } else add(d, !wizInit?.receipt);
     if (wizInit?.receipt) { const ids=boughtItems.map(i=>i.id); setFn('sl', cur=>cur.filter(i=>!ids.includes(i.id))); const nb={t:0,ids:[]}; ss('wg_bought',nb); setBought(nb); }
   };
   // Schritt 3 (Bezahler + Aufteilung kombiniert) mit Review-Karte oben — geteilt von steps/recSteps
@@ -11090,7 +11092,7 @@ function Haushalt({goPutz}) {
           dort führt „Weiter" zu Schritt 3 mit der echten Aufteilung. Kassenzettel, Bearbeiten, Übernehmen: fester Bereich (stepsHs/stepsGi),
           keine Wahl, kein Umzug zwischen hs und gi. */}
       <Wiz open={wiz} onClose={()=>{ setWiz(false); setWizInit(null); }} title={TT("Ausgabe")} color="var(--mint)" steps={wizInit?.receipt ? stepsHs : steps} onFinish={addFromWiz} initial={wizInit||addInit} quickOk={d=>d.bereich!=='gi'&&d.name?.trim()&&betragOk(d.price)&&d.paidBy}/>
-      <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title={TT("Bearbeiten")} color="var(--mint)" steps={editItem?.mod==='gi' ? stepsGi : stepsHs} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,owedBy:editItem.owedBy||null,cat:editItem.cat||null,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>
+      <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title={TT("Bearbeiten")} color="var(--mint)" startStep={1} steps={editItem?.mod==='gi' ? stepsGi : stepsHs} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,owedBy:editItem.owedBy||null,cat:editItem.cat||null,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>
       <Wiz open={!!convItem} onClose={()=>setConvItem(null)} title={TT("Als Ausgabe übernehmen")} color="var(--mint)" steps={stepsHs} onFinish={convert} initial={convItem?{name:convItem.name,paidBy:me||undefined,date:todayISO()}:null}/>
       <Wiz open={recWiz} onClose={()=>setRecWiz(false)} title={TT("Wiederkehrend (monatlich)")} color="var(--mint)" steps={recSteps} onFinish={addRec} initial={addInit}/>
       {bringOpen && ReactDOM.createPortal(
@@ -13246,7 +13248,6 @@ function Einstellungen() {
         <MoveOutCard/>
         </Fold>
         <Fold id="people" title={TT("👥 Personen")} sub={TT("Wer bist du, Namen, Farben, PayPal, Geburtstage")} alert={!me}>
-        <GeburtstagCard/>
         {/* Persons */}
         <div className="rise" style={{animationDelay:'200ms'}}>
           <div className="section-hdr" role="heading" aria-level="2">{TT("Personen")}</div>
@@ -13289,6 +13290,7 @@ function Einstellungen() {
           </button>
           <div className="section-ftr">{TT("„Das bin ich\" gilt nur für dieses Gerät. PayPal.me-Name und IBAN erscheinen beim Schuldenausgleich zum Antippen bzw. Kopieren – nur für die WG, nie im Gast-Link.")}</div>
         </div>
+        <GeburtstagCard/>   {/* Bedienung 20.11.: nach den Personen — vorher stand das Geburtstags-Formular vor Name/PayPal/IBAN */}
 
         </Fold>
         <PushJump/>
