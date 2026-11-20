@@ -16,7 +16,7 @@ Nur lesend erhoben (`npm view`, `npm audit`, Lockfile, `vendor/`). **Nichts aktu
 
 ## Funde
 1. **`CLAUDE.md` nennt Firebase 9.23.0, im Repo liegt 12.19.0** (`sw.js` und `vendor/` tragen 12.19.0, seit Oktober). Die Doku ist veraltet, nicht die App. → Satz in `CLAUDE.md` bei der nächsten Gelegenheit auf 12.19.0 korrigieren (Hauptloop pflegt `CLAUDE.md`).
-2. **Node-Version war nicht festgelegt:** CI läuft auf Node 24, die Cloud-Umgebung hat 22, lokal unbekannt. `package.json` bekommt `engines.node >= 22` (nur Hinweis, `npm` warnt, blockiert nicht).
+2. **Node-Version war nicht festgelegt:** CI läuft auf Node 24, die Cloud-Umgebung hat 22, lokal unbekannt. `package.json` bekommt `engines.node: "22.x"` (nur Hinweis, `npm` warnt, blockiert nicht; bewusst keine offene Spanne `>=22`: Vercel liest `engines.node` und würde bei offener Spanne die jeweils höchste unterstützte Version wählen, ohne dass es jemand merkt; CI auf Node 24 zeigt höchstens eine Warnung).
 3. Playwright im Lockfile (1.61.0) ≠ Cloud (1.63) ≠ aktuell (1.65.1): Linux-Schriftrundung unterscheidet sich ohnehin schon zwischen Windows und Linux (siehe W5); eine Version mehr ändert daran nichts, erklärt aber mögliche 1-px-Abweichungen zwischen Cloud und lokal.
 
 ## Reihenfolge, falls aktualisiert wird
