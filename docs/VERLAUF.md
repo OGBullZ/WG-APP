@@ -1160,3 +1160,28 @@ Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen 
 
 **Nicht geprüft:** Mehr-Unterseiten hinter den Mehr-Zeilen (Daten & Backup usw.) deckt `symbolfeld_v126` nicht ab, nur die aufgeklappten Faltköpfe. Weitere Text-× (`.onb-back`, `.es-x`, Chip-× der Einkaufsliste) bewusst gelassen → Folgepaket.
 
+## wg-v127 — E4 Farbe bedeutet eine Sache (20.11., live `b934739`, Gate 103/103, Vercel success) — erstes Paket aus einer Cloud-Sitzung
+
+**Was:** Cloud-PR 1 (FARBE-7 Ring-Naht, FARBE-2 Pink vor Violett, FARBE-6 Rot nur Gefahr, FARBE-5a/c Summe neutral + „HEUTE" als Umriss), dazu die zwei 🧑-Fragen **nach meiner Empfehlung entschieden** (torbe 20.11.: „autonom weiter", Coordinator: „nach Empfehlung entscheiden und im VERLAUF begründen"):
+- **FARBE-4 Kategorie-Balken im Modulton** (Haushalt Mint, Growbox Lime; Budget ≥ 80 % bleibt Amber/Rot). Begründung: auf der Übersicht standen „Haushaltswaren" in Torben-Blau und „Freizeit" in Tom-Amber direkt unter „Wer hat bezahlt" — Farbe sagte dort „Person", meinte aber „Kategorie". Identität tragen Emoji + Name, Rang die Länge. Verworfen: Kategorie-eigene Farben ohne Personentöne (bei 5 Kategorien + 3–4 Personen geht die Palette nicht auf, das Gutachten maß ΔE deutan 1,9 zwischen Dünger und Erde). `catChips` im Formular behalten ihre Farbe (dort nur Auswahlzustand).
+- **FARBE-5b „Heute" neutral** (Tab + Seitentitel `NBar`, keine h1). Begründung: „Heute" mischt alle Module; Mint gehört dem Haushalt, vorher waren zwei Tabs Mint. Zurückdrehen: je ein Einzeiler (`TABS`, `NBar` in `Heute`, zwei `color:` in `catBuckets`/`gcatBuckets`).
+- Tests `farbe_v127` 15 (Gegenprobe 9 rot), `farbe_v128` 14 (Gegenprobe 6 rot).
+
+**Was schiefging:**
+- Der PR basierte auf v125 und setzte `sw.js` schon auf `wg-v127` — `ship.mjs` zählt selbst hoch, das hätte v128 ergeben. Übernahme per Cherry-pick ohne `sw.js`, Gate-Liste von Hand.
+- Ship-Lauf 1 starb mit der Sitzung (Rechner aus, 22:55). Lauf 2: `gutachten2_b` hing 30 min bei 4 s CPU — **zeitgleich liefen meine Tests in einer Arbeitskopie (Last)**; Prozess beendet, Datei allein 127/127. Lehre: während eines Ship-Gates keine eigenen Testläufe. Lauf 3 grün.
+
+## wg-v128 — Sammel-Release aus acht Cloud-PRs (20.11., live `d8c4a6e`, Gate 110/110, Vercel success, `npm run betrieb` grün)
+
+**Was:** S1 (tote Schlüssel, Sprachlecks) + S2 (Prüfnetz `i18n-roh.mjs` gegen rohe deutsche Texte) · W4 (zentrale Wortlaut-Tabelle `test/_finden.mjs`) · A1 (axe-core, 30 Abschnittsköpfe: `role="heading"` auf den Titel, Knopf nicht mehr im Überschriftennamen; PR 6 genommen, PR 5 doppelt gebaut und geschlossen — PR 6 deckte zusätzlich Onboarding, PIN, Dialog und einen Selbsttest ab) · A3 Vorlese-Protokoll · B2 Restore-Probe (Werkzeug) · B3 Regeltest · B4 Abhängigkeiten + `engines.node` 22.x · G5 Teil 1 (Karten starten bei Deckkraft .75).
+
+**Wie:** alle acht Zweige in eine Arbeitskopie gemergt (Skript: `sw.js`/`firebase.json`/`ship.mjs` immer HEAD, Gate-Einträge von Hand), Vorlese-Dateien nach A1 neu geschrieben, volle Regression 105/105 vor dem Ship.
+
+**Was schiefging:**
+- Ship-Lauf 1: `vorlesen_v134` 8 rot — **CRLF**: die Vergleichsdateien kamen beim Windows-Checkout (`core.autocrlf`) mit CRLF an, das Protokoll hat LF; in der Arbeitskopie (vom Skript geschrieben) war alles LF, daher Regression grün. → `.gitattributes` `test/vorlesen/*.txt eol=lf` + Normierung im Vergleich. Dazu `gutachten2_b` W5 (G7-Wackler).
+- Ship-Lauf 2: `vorlesen_v134` „mehr" rot — das Protokoll enthielt die Testserver-URL **mit Port** (geschrieben auf 8101, Gate auf 8099) → Normierung auf `http://LOKAL`. `gutachten2_c3` F8d nur parallel rot (6,3 statt ≤ 6 px).
+- Coordinator-Frage „beeinflusst G5 `gutachten2_b`?": auf v128-Stand zweimal allein 127/127 — kein Einfluss erkennbar.
+- **Nach dem Ship den Hilfszweig `v128-lokal` gelöscht → GitHub schloss sechs PRs (15–20), die ihn als Basis hatten.** Zweig wiederhergestellt, PRs neu geöffnet, Basis auf `main`. Lehre: vor dem Löschen eines Zweigs `gh pr list --base <zweig>` prüfen.
+
+**Offen:** Restore-Probe live braucht den WG-Code (liegt bewusst nur in der Vercel-Env und auf den Geräten) → torbe.
+
