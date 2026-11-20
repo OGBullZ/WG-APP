@@ -50,14 +50,16 @@ module.exports = async (req, res) => {
   const safeTitle = title.slice(0, 80);
   const safeBody = typeof msgBody === 'string' ? msgBody.slice(0, 200) : '';
 
-  // Bremse: höchstens 30 Pushes je WG in 10 Minuten (Zähler serverseitig, s. _sv.rateLimit)
-  if (!(await rateLimit(code, 30, 10 * 60e3))) {
-    res.status(429).json({ error: 'zu viele Nachrichten — kurz warten' });
-    return;
-  }
-
   try {
     const subs = await loadSubs(code);
+    // Unbekannte WG (keine Push-Geräte): nichts zu senden und — wichtiger — keinen Zähler anlegen. Vorher schrieb jeder
+    // Aufruf mit einem erfundenen Code einen Knoten nach sv/<Schlüssel>/rl/ (anonym, unbegrenzt viele → Datenmüll/Kontingent).
+    if (!subs.length) { res.status(200).json({ sent: 0, removed: 0, skipped: 0 }); return; }
+    // Bremse: höchstens 30 Pushes je WG in 10 Minuten (Zähler serverseitig, s. _sv.rateLimit)
+    if (!(await rateLimit(code, 30, 10 * 60e3))) {
+      res.status(429).json({ error: 'zu viele Nachrichten — kurz warten' });
+      return;
+    }
     const payload = { title: safeTitle, body: safeBody, tag: typeof tag === 'string' ? tag.slice(0, 40) : undefined, url };
     const { sent, removed, skipped, errors } = await sendToSubs(subs, payload, { excludeDevice: from, type });
     if (errors && errors.length) console.error('push errors:', JSON.stringify(errors));

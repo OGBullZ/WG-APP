@@ -5,7 +5,7 @@
 // Berechtigung = der aktuelle (alte) Code. Bewusste Grenze: wer den alten Code noch hat, könnte auch
 // selbst wechseln — bemerkt würde das sofort, weil die App dann „Code geändert" meldet.
 
-const { hasKey, currentCode, setCode, CODE_FORMAT } = require('./_sv');
+const { hasKey, sameStr, currentCode, setCode, CODE_FORMAT } = require('./_sv');
 const { loadSubs, sendToSubs } = require('./_push');
 
 module.exports = async (req, res) => {
@@ -23,7 +23,7 @@ module.exports = async (req, res) => {
   const oldCode = body.old, newCode = body.new;
 
   const cur = await currentCode();
-  if (typeof oldCode !== 'string' || !cur || oldCode !== cur) { res.status(403).json({ error: 'falscher WG-Code' }); return; }
+  if (!cur || !sameStr(oldCode, cur)) { res.status(403).json({ error: 'falscher WG-Code' }); return; }
   if (typeof newCode !== 'string' || !CODE_FORMAT.test(newCode) || newCode === oldCode) { res.status(400).json({ error: 'ungültiger neuer Code' }); return; }
 
   try {

@@ -12673,7 +12673,7 @@ function Einstellungen() {
   const fmtErrTime = t => { const d = new Date(t || 0), z = n => String(n).padStart(2, '0'); return `${z(d.getDate())}.${z(d.getMonth()+1)}. ${z(d.getHours())}:${z(d.getMinutes())}`; };
   const loadBackups = async () => {
     setBkDays(null); setBkMsg('');
-    try { const r = await fetch(`${PUSH_API}/api/backup?code=${encodeURIComponent(wgCode)}`); const j = await r.json(); if (!r.ok) throw new Error(j.error || r.status); setBkDays(j.days || []); ss('wg_bk_age', backupAgeDays(j.days || [])); }
+    try { const r = await bkPost({ code: wgCode, action:'list' }); const j = await r.json(); if (!r.ok) throw new Error(j.error || r.status); setBkDays(j.days || []); ss('wg_bk_age', backupAgeDays(j.days || [])); }
     catch (e) { setBkDays(TT("Backups gerade nicht erreichbar ({0}).", (e && e.message) || '?')); }   /* wg-v118 (EN-3): ganzer Satz mit {0} statt Bruchstücken */
   };
   const openBackups = () => { setBkOpen(true); loadBackups(); };
@@ -12694,7 +12694,7 @@ function Einstellungen() {
     setBkMsg('Lade …');
     try {
       await bkPost({ code: wgCode, action:'snapshot' }).catch(() => {});   // Sicherheitsnetz: jetzigen Stand vorher sichern
-      const r = await fetch(`${PUSH_API}/api/backup?code=${encodeURIComponent(wgCode)}&day=${encodeURIComponent(day)}`);
+      const r = await bkPost({ code: wgCode, action:'get', day });   /* Code im Body statt in der URL (Zugriffsprotokolle) */
       const j = await r.json(); if (!r.ok || !j.data) throw new Error(j.error || r.status);
       // Snapshot kommt im DB-Format (Listen als {id:item}) — für replaceData in Arrays umwandeln, sonst wären alle Listen leer
       replaceData(normalizeRemote(j.data)); setBkMsg('✓ Eingespielt'); setBkOpen(false);
@@ -14157,7 +14157,7 @@ function AppInner() {
     if (!PUSH_API || status !== 'synced' || !navigator.onLine || !wgCode) return;
     if (Date.now() - (ls('wg_bk_check', 0) || 0) < 6 * 3600e3) return;
     ss('wg_bk_check', Date.now());
-    fetch(`${PUSH_API}/api/backup?code=${encodeURIComponent(wgCode)}`).then(r => r.ok ? r.json() : null).then(j => {
+    fetch(`${PUSH_API}/api/backup`, { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ code: wgCode, action:'list' }) }).then(r => r.ok ? r.json() : null).then(j => {
       if (!j || !Array.isArray(j.days)) return;
       const age = backupAgeDays(j.days); ss('wg_bk_age', age); setBkAge(age);
     }).catch(() => {});

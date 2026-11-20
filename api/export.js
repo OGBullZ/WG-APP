@@ -7,13 +7,13 @@
 // Enthält bewusst NICHT den WG-Code. Wiederherstellen: Datei in der App unter „Backup importieren".
 
 const { DB_BASE } = require('./_push');
-const { hasKey, currentCode, stripForBackup, listSnapshots, readSnapshot } = require('./_sv');
+const { hasKey, sameStr, currentCode, stripForBackup, listSnapshots, readSnapshot } = require('./_sv');
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const tok = process.env.EXPORT_TOKEN;
   if (!tok || tok.length < 32) { res.status(503).json({ error: 'EXPORT_TOKEN nicht gesetzt' }); return; }
-  if ((req.headers && req.headers.authorization) !== `Bearer ${tok}`) { res.status(401).json({ error: 'unauthorized' }); return; }
+  if (!sameStr(String((req.headers && req.headers.authorization) || ''), `Bearer ${tok}`)) { res.status(401).json({ error: 'unauthorized' }); return; }
   try {
     if (hasKey()) {
       const days = await listSnapshots();
