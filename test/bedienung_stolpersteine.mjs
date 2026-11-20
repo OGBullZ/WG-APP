@@ -103,6 +103,20 @@ for (const lang of ['de', 'en']) {
   await ctx.close();
 }
 
+/* 2b) „⚡ Sofort speichern" darf die Prüfung nicht umgehen (Fund beim Bilder-Ansehen: der Knopf stand bei „-20" da und hätte +20 gebucht) */
+{
+  const { ctx, page } = await open();
+  await page.getByText('+ Ausgabe hinzufügen').click(); await page.waitForTimeout(450);
+  await page.locator('.overlay input').first().fill('Test');
+  await page.getByTestId('wiz-next').click(); await page.waitForTimeout(400);
+  const sofort = page.getByText(/Sofort speichern/);
+  await page.locator('.overlay input').first().fill('12,50'); await page.waitForTimeout(250);
+  check('2b Sofort-speichern-Knopf bei 12,50 da', await sofort.count() === 1);
+  await page.locator('.overlay input').first().fill('-20'); await page.waitForTimeout(250);
+  check('2b Sofort-speichern-Knopf bei -20 weg', await sofort.count() === 0);
+  await ctx.close();
+}
+
 /* 3) Schnell-Eingabe mit Tausenderpunkt */
 {
   const { ctx, page } = await open();
