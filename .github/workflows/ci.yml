@@ -5,11 +5,18 @@ on:
   pull_request:
     branches: [main]
 
+# Aufteilung (Roadmap „Testlauf beschleunigen"): vorher EIN Job mit 65 Dateien hintereinander (~59 min, und eine feste Liste, die der
+# Gate-Liste hinterherhinkte). Jetzt: dieselbe Liste wie das lokale Gate (scripts/gate-liste.mjs), verteilt auf 4 Jobs nach gemessener
+# Dauer (test/zeiten.json, Neumessen: node scripts/zeiten.mjs --json test/zeiten.json), je Job 2 Arbeiter. test/gate_shard.mjs sichert, dass
+# jede Datei in genau einem Job läuft. Der Visual-Lauf ist ein eigener Job (er schreibt die Screenshots).
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false   # alle Shards zu Ende laufen lassen — ein roter verdeckt sonst die Ergebnisse der anderen
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
-      # v7: laufen auf Node 24 — die v4-Actions liefen auf Node 20 und erzeugten bei jedem Lauf eine Deprecation-Warnung
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
@@ -19,82 +26,37 @@ jobs:
         run: npm ci
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
-      - name: Serve + Tests + Visual-Render-Check
-        # 14.11.: vorher 65 Einzelaufrufe unter `set -e` — die erste rote Datei brach den Schritt ab und verdeckte alle dahinter
-        # (seit wg-v117 liefen die 15 Dateien nach optik_v117 in CI nie). leise.mjs läuft ALLE durch, zeigt je Datei eine Zeile
-        # (bei Rot einen Auszug) und endet mit Exit 1, sobald eine rot ist. Die Liste bleibt ausdrücklich: nicht jede Datei unter
-        # test/ ist CI-tauglich. Der Server wird hier gestartet (python3); leise.mjs findet ihn auf 8099 und benutzt ihn.
+      - name: Tests (Shard ${{ matrix.shard }}/4)
+        # leise.mjs: eine Zeile je Datei, Auszug nur bei Rot, Exit 1 sobald eine rot ist. Server: python3 auf 8099 (leise.mjs nutzt ihn).
+        # Rot im Pool wird allein wiederholt (⚠ nur parallel rot zählt als rot).
         run: |
           python3 -m http.server 8099 &
           SRV=$!
           for i in $(seq 1 30); do curl -sf http://localhost:8099/wgapp.html >/dev/null && break || sleep 0.5; done
           RC=0
-          node scripts/leise.mjs \
-            test/split.mjs \
-            test/persist.mjs \
-            test/paybtn.mjs \
-            test/archive.mjs \
-            test/privat.mjs \
-            test/sync.mjs \
-            test/sync_robust.mjs \
-            test/fehlersuche_v104.mjs \
-            test/kacheln.mjs \
-            test/putz_fest.mjs \
-            test/umbuchung.mjs \
-            test/logins.mjs \
-            test/selfhost.mjs \
-            test/startflow.mjs \
-            test/backup_api.mjs \
-            test/rotate.mjs \
-            test/errlog.mjs \
-            test/notify_api.mjs \
-            test/bkwatch.mjs \
-            test/update.mjs \
-            test/putz.mjs \
-            test/cron_duel.mjs \
-            test/alltag.mjs \
-            test/cron_alltag.mjs \
-            test/extra.mjs \
-            test/ux.mjs \
-            test/upgrade_dist.mjs \
-            test/plus.mjs \
-            test/mehr.mjs \
-            test/onboarding.mjs \
-            test/miete.mjs \
-            test/gross.mjs \
-            test/fair.mjs \
-            test/laden.mjs \
-            test/english.mjs \
-            test/push_diaet.mjs \
-            test/neu.mjs \
-            test/a11y.mjs \
-            test/heute.mjs \
-            test/breite.mjs \
-            test/komfort.mjs \
-            test/geld.mjs \
-            test/organisation.mjs \
-            test/verzahnung.mjs \
-            test/push_versand.mjs \
-            test/putz_push_v114.mjs \
-            test/ruhezeit.mjs \
-            test/namen.mjs \
-            test/grow_haus_v116.mjs \
-            test/optik_v117.mjs \
-            test/gutachten2_a.mjs \
-            test/gutachten2_b.mjs \
-            test/gutachten2_c.mjs \
-            test/gutachten2_c3.mjs \
-            test/orte.mjs \
-            test/optik.mjs \
-            test/fuer_andere.mjs \
-            test/abgang.mjs \
-            test/formular.mjs \
-            test/feinschliff.mjs \
-            test/sprung.mjs \
-            test/csp_hash.mjs \
-            test/datum.mjs \
-            test/zahlen.mjs \
-            test/visual.mjs || RC=$?
+          node scripts/leise.mjs --gate --shard ${{ matrix.shard }}/4 --arbeiter 2 || RC=$?
+          kill $SRV 2>/dev/null || true
+          exit $RC
+
+  visual:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install deps
+        run: npm ci
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Visual-Render-Check
+        run: |
+          python3 -m http.server 8099 &
+          SRV=$!
+          for i in $(seq 1 30); do curl -sf http://localhost:8099/wgapp.html >/dev/null && break || sleep 0.5; done
+          RC=0
+          node scripts/leise.mjs test/visual.mjs || RC=$?
           kill $SRV 2>/dev/null || true
           exit $RC
       - name: Upload Screenshots
