@@ -8,6 +8,7 @@ const CACHE = 'wg-v128';
    inhaltlichen Änderung mitändert (vendor/ mit Version, fonts/ mit Inhalts-Hash). Vorher wurden solche Dateien beim activate-Cleanup jedes Deploys mitgelöscht: bis zum
    nächsten vollen Online-Load war die App offline ein weißer Screen (HTML da, Skripte weg). */
 const CDN_CACHE = 'wg-cdn';
+const NAV_MS = 4000;   // so lange darf das Netz für die Startseite brauchen, bevor die gespeicherte App einspringt
 const SHELL = ['./', './wgapp.html', './manifest.json', './icon.svg'];
 /* Selbst gehostete Bibliotheken + Schriften: schon beim Installieren laden. Babel wird nach JEDEM Deploy
    einmal gebraucht (der JSX-Cache ist dann ungültig) und muss auch offline da sein.
@@ -44,7 +45,10 @@ const precacheImmutable = () => caches.open(CDN_CACHE).then(c =>
 self.addEventListener('install', e => {
   self.skipWaiting();
   e.waitUntil(Promise.all([
-    caches.open(CACHE).then(c => c.addAll(SHELL)).catch(() => {}),
+    /* KEIN .catch: Scheitert die Shell (schlechte Verbindung mitten im Update), muss die Installation scheitern.
+       Vorher blieb ein LEERER neuer Cache übrig, der alte flog beim activate raus — der nächste Offline-Start
+       zeigte nur noch die Browser-Fehlerseite. Jetzt bleibt der alte Worker samt Cache, das Update kommt beim nächsten Versuch. */
+    caches.open(CACHE).then(c => c.addAll(SHELL)),
     precacheImmutable(),
   ]));
 });
@@ -115,20 +119,28 @@ self.addEventListener('fetch', e => {
   if (isLiveData(url)) return;                 // durchlassen, nie cachen
   if (isImmutable(url)) { e.respondWith(cacheFirst(req, CDN_CACHE)); return; }
 
-  // Navigationen: network-first (frische App), Offline-Fallback aus Cache
+  // Navigationen: network-first (frische App), Offline-Fallback aus Cache.
+  // Bei „Netz da, aber kein Durchkommen" (Funkloch, Tunnel, Captive Portal) wartete der Start bis zum Browser-Timeout
+  // (gemessen > 40 s weiße Seite). Antwortet das Netz nicht binnen NAV_MS und liegt die App im Cache, startet sie von dort;
+  // die Netzantwort läuft weiter und erneuert den Cache für den nächsten Start.
   if (req.mode === 'navigate') {
-    e.respondWith(
-      fetch(req).then(res => {
-        // Nur die App selbst und nur bei Erfolg als Offline-Hülle ablegen (wg-v104). Bis v103 landete JEDE Navigation dort —
-        // eine vertippte Adresse (404-Seite) ersetzte die App, und offline startete danach die Fehlerseite.
-        const pfad = new URL(url).pathname;
-        if (res.ok && (pfad === '/' || pfad.endsWith('/wgapp.html') || pfad.endsWith('/'))) {
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put('./wgapp.html', copy));
-        }
-        return res;
-      }).catch(() => caches.match('./wgapp.html').then(h => h || caches.match('./')))
-    );
+    const gespeicherteApp = () => caches.match('./wgapp.html').then(h => h || caches.match('./'));
+    const netz = fetch(req).then(res => {
+      // Nur die App selbst und nur bei Erfolg als Offline-Hülle ablegen (wg-v104). Bis v103 landete JEDE Navigation dort —
+      // eine vertippte Adresse (404-Seite) ersetzte die App, und offline startete danach die Fehlerseite.
+      const pfad = new URL(url).pathname;
+      if (res.ok && (pfad === '/' || pfad.endsWith('/wgapp.html') || pfad.endsWith('/'))) {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put('./wgapp.html', copy)).catch(() => {});
+      }
+      return res;
+    });
+    e.waitUntil(netz.catch(() => {}));   // Cache-Erneuerung zu Ende laufen lassen, auch wenn schon der Cache antwortete
+    const nachFrist = new Promise(res => setTimeout(res, NAV_MS)).then(() => gespeicherteApp()).then(h => h || netz);
+    e.respondWith(Promise.race([
+      netz.catch(() => gespeicherteApp().then(h => h || netz)),   // Netz kaputt → Cache, sonst der echte Netzfehler
+      nachFrist,
+    ]));
     return;
   }
 
