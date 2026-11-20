@@ -1160,3 +1160,11 @@ Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen 
 
 **Nicht geprüft:** Mehr-Unterseiten hinter den Mehr-Zeilen (Daten & Backup usw.) deckt `symbolfeld_v126` nicht ab, nur die aufgeklappten Faltköpfe. Weitere Text-× (`.onb-back`, `.es-x`, Chip-× der Einkaufsliste) bewusst gelassen → Folgepaket.
 
+
+## Offline-Prüfung sw.js (20.11., Branch claude/project-thread-y3y122, Basis v128-lokal)
+
+Gemessen mit `dist/` + eigenem Server, der Antworten festhält bzw. mit 503 abweist (`test/offline_sw.mjs`):
+- **Funkloch-Start:** Netz „da", Antwort kommt nie → Navigation hing > 40 s (weiße Seite), obwohl die App im Cache liegt. Jetzt springt nach `NAV_MS` (4 s) die gespeicherte App ein, die Netzantwort erneuert den Cache nebenher.
+- **Update bei schlechter Verbindung:** `addAll(SHELL)` hatte ein `.catch(()=>{})` → Install „gelang" mit leerem neuen Cache, `activate` löschte den alten → nächster Offline-Start = Browser-Fehlerseite (`ERR_FAILED`). Jetzt scheitert die Installation, alter Worker + Cache bleiben.
+- Test-Falle: festgehaltene Anfragen halten Chromium davon ab, den neuen Worker zu aktivieren (`waiting` bleibt) → im Test `closeAllConnections()`.
+- Geprüft und ohne Befund: Erst-Read/Replay (`wg_pending`/`wg_confirmed`), Listener-Schutz (dirty ∪ inflight) — durch `sync.mjs`/`sync_robust.mjs` abgedeckt. Nicht geändert: `sw.js`-CACHE-Version (bumpt `ship`).

@@ -50,6 +50,7 @@ jobs:
             test/notify_api.mjs \
             test/bkwatch.mjs \
             test/update.mjs \
+            test/offline_sw.mjs \
             test/putz.mjs \
             test/cron_duel.mjs \
             test/alltag.mjs \
