@@ -5,7 +5,10 @@
    Umgebung:  WG_CODE (Pflicht, aus der Umgebung — nicht aus einer Datei im Repo) · PROBE_BASE (Standard https://wgapp-65484.web.app)
               WG_URL / WG_BASIS (lokale App; `npm run serve` auf 8099) · PROBE_LOG (Protokolldatei, Standard scratchpad/restore-probe-letzt.json)
    Hinweis: Die Sicherungen sind NICHT verschlüsselt (Klartext-JSON unter dem geheimen Pfad sv/<BACKUP_KEY>/bk, Zugriff per WG-Code über
-   /api/backup). `BACKUP_KEY` braucht dieser Weg nicht — nur der Server kennt ihn. Quartalsweise wiederholen; das Datum liest `npm run betrieb`. */
+   /api/backup). `BACKUP_KEY` braucht dieser Weg nicht — nur der Server kennt ihn. Quartalsweise wiederholen; das Datum liest `npm run betrieb`.
+   Grenze: geprüft wird, dass die Sicherung lesbar ist und die App sie über den Erst-Read (gegen den STUB) unverändert einliest — NICHT der Bedienweg
+   „Sicherung importieren" / joinMode / /api/rotate. Der WG-Code geht als ?code= an /api/backup (so liest auch die App selbst; der Endpunkt kennt
+   für GET keinen anderen Weg) und steht damit in Zugriffsprotokollen des Servers; die Fehlermeldungen hier maskieren ihn. */
 import { chromium } from 'playwright';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -94,7 +97,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   console.log('Listen (Sicherung → App):', Object.entries(r.soll.anzahl).map(([k, n]) => `${k} ${n}→${r.ist.anzahl[k] || 0}`).join(' · '));
   console.log(`Summe Haushalt €${r.soll.summe.hs} → €${r.ist.summe.hs} · Growbox €${r.soll.summe.gi} → €${r.ist.summe.gi} · jüngstes Datum ${r.soll.juengstes} → ${r.ist.juengstes} · Personen ${r.soll.personen} → ${r.ist.personen}`);
   if (r.vsLive) console.log('Live (nur gelesen):', r.vsLive.fehler ? r.vsLive.fehler : `Posten Haushalt ${r.vsLive.anzahl.hs || 0} (Sicherung ${r.soll.anzahl.hs || 0}), Summe €${r.vsLive.summe.hs}`);
-  console.log(r.ok ? `✓ Wiederherstellung belegt (${r.anfragen} Lese-Anfragen, nichts geschrieben)` : '✗ ABWEICHUNG:\n  ' + r.unterschiede.join('\n  '));
+  console.log(r.ok ? `✓ Sicherung lesbar und von der App unverändert eingelesen (${r.anfragen} Lese-Anfragen, nichts geschrieben)` : '✗ ABWEICHUNG:\n  ' + r.unterschiede.join('\n  '));
   const logDatei = process.env.PROBE_LOG || path.join(hier, '..', 'scratchpad', 'restore-probe-letzt.json');
   fs.mkdirSync(path.dirname(logDatei), { recursive: true });
   fs.writeFileSync(logDatei, JSON.stringify({ gelaufen: new Date().toISOString(), ok: r.ok, sicherung: r.day, alterStd: r.alterStd, kennzahlen: r.soll, unterschiede: r.unterschiede }, null, 2));
