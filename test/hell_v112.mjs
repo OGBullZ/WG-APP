@@ -17,6 +17,7 @@
 import { chromium } from 'playwright';
 import fs from 'node:fs';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const URL_ = process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const pass = [], fail = [];
@@ -205,14 +206,14 @@ async function statisch(theme) {
   sonder[theme].focusSchein = await css(page, '.sheet input.field', 'boxShadow');
   await page.locator('.sheet input.field').first().fill('Testkauf'); await page.waitForTimeout(250);   // „Weiter" wird erst nach dem Render „bereit"
   sonder[theme].weiterSchatten = await css(page, '.sheet [data-testid="wiz-next"]', 'boxShadow');
-  await page.getByRole('button', { name: 'Weiter' }).click(); await page.waitForTimeout(350);
+  await page.getByRole('button', { name: WT.weiter }).click(); await page.waitForTimeout(350);
   await page.locator('input[inputmode="decimal"]').fill('12,50');
   w('datetoggle_rand', await messe(page, 'rand', '.sheet .date-toggle'));
   w('datetoggle_flaeche', await messe(page, 'flaeche', '.sheet .date-toggle'));
-  await page.getByRole('button', { name: 'Weiter' }).click(); await page.waitForTimeout(350);
+  await page.getByRole('button', { name: WT.weiter }).click(); await page.waitForTimeout(350);
   w('wizsum_rand', await messe(page, 'rand', '.sheet .wiz-sum'));
   w('wizsum_flaeche', await messe(page, 'flaeche', '.sheet .wiz-sum'));
-  await page.getByRole('button', { name: 'Abbrechen' }).click(); await page.waitForTimeout(400);
+  await page.getByRole('button', { name: WT.abbrechen }).click(); await page.waitForTimeout(400);
 
   // ── Haushalt → Einkaufsliste: leere Kreise tragen jetzt auch dort chk-leer ──
   await page.locator('.tab-view .seg-btn', { hasText: 'Einkaufsliste' }).first().click(); await page.waitForTimeout(600);
@@ -334,12 +335,12 @@ async function dynamisch(theme) {
   // Ausgabe eintragen → Chip fliegt los (.fly-chip), danach pulsiert der Hero (.hero-pulse)
   await page.getByText('+ Ausgabe hinzufügen').click(); await page.waitForTimeout(450);
   await page.locator('.sheet input.field').first().fill('Pulstest');
-  await page.getByRole('button', { name: 'Weiter' }).click(); await page.waitForTimeout(350);
+  await page.getByRole('button', { name: WT.weiter }).click(); await page.waitForTimeout(350);
   await page.locator('input[inputmode="decimal"]').fill('9,90');
-  await page.getByRole('button', { name: 'Weiter' }).click(); await page.waitForTimeout(350);
+  await page.getByRole('button', { name: WT.weiter }).click(); await page.waitForTimeout(350);
   await page.locator('.sheet .pick-btn', { hasText: /^Tom$/ }).click();
   await page.locator('.sheet .pick-btn', { hasText: 'Gleich teilen' }).click();
-  await page.getByRole('button', { name: 'Fertig', exact: true }).click();
+  await page.getByRole('button', { name: WT.fertig, exact: true }).click();
   b.chip = await hoehepunkt(page, { sel: '.fly-chip', lies: { bgRatio: true, textRatio: true, schatten: true, bg: true } });
   // Hero-Puls: Höhepunkt = 35 % von 0,7 s → 245 ms. Die Animation heißt hell heroPulseHell, dunkel heroPulse — der Regex /^heroPulse/
   // nimmt beide (so zeigt die Gegenprobe gegen HEAD den falschen Namen statt „keine Animation")

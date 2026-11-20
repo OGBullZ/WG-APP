@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const browser = await chromium.launch();
@@ -25,20 +26,20 @@ const check = (name, cond) => (cond ? pass : fail).push(name);
 await page.addInitScript(() => { if (!localStorage.getItem('wg_setup_v1')) localStorage.setItem('wg_setup_v1', JSON.stringify('2026-01-01')); });
 await page.goto(url, { waitUntil: 'domcontentloaded' });
 await page.locator('.tabbar').waitFor({ timeout: 30000 });   // siehe archive.mjs
-await page.locator('.tabbar .tabitem', { hasText: 'Haushalt' }).click();   // seit wg-v66 startet eine neue App auf „Heute“
+await page.locator('.tabbar .tabitem', { hasText: WT.tabHaushalt }).click();   // seit wg-v66 startet eine neue App auf „Heute“
 await page.waitForTimeout(2000);
 
 // --- Wizard-Struktur: 3 Schritte, Datum eingeklappt, Zusammenfassung am Ende ---
 await page.getByText('+ Ausgabe hinzufügen').click();
 check('Wizard hat 3 Schritte (statt 4)', await page.locator('.step-seg').count() === 3);
 await page.locator('.sheet input.field').first().fill('Testkauf');
-await page.getByRole('button', { name: 'Weiter' }).click();
+await page.getByRole('button', { name: WT.weiter }).click();
 await page.locator('input[inputmode="decimal"]').fill('12,50');
 check('Datum ist eingeklappt (Heute-Toggle)', await page.locator('.date-toggle').count() === 1);
-await page.getByRole('button', { name: 'Weiter' }).click();
+await page.getByRole('button', { name: WT.weiter }).click();
 const sumTxt = await page.locator('.wiz-sum').innerText().catch(() => '');
 check('Letzter Schritt zeigt Zusammenfassung Name+Preis', /Testkauf/.test(sumTxt) && /12,50/.test(sumTxt));
-await page.getByRole('button', { name: 'Abbrechen' }).click();
+await page.getByRole('button', { name: WT.abbrechen }).click();
 await page.waitForTimeout(300);
 
 // Helper: eine Ausgabe über den Wizard anlegen
@@ -46,14 +47,14 @@ async function addExpense({ name, price, paidBy, split }) {
   await page.getByText('+ Ausgabe hinzufügen').click();
   // Schritt 1: Name
   await page.locator('.sheet input.field').first().fill(name);
-  await page.getByRole('button', { name: 'Weiter' }).click();
+  await page.getByRole('button', { name: WT.weiter }).click();
   // Schritt 2: Preis (Datum eingeklappt → kein Pflicht-Tap)
   await page.locator('input[inputmode="decimal"]').fill(price);
-  await page.getByRole('button', { name: 'Weiter' }).click();
+  await page.getByRole('button', { name: WT.weiter }).click();
   // Schritt 3 (NEU kombiniert): Bezahler + Aufteilung auf einem Screen mit Zusammenfassung
   await page.locator('.sheet .pick-btn', { hasText: new RegExp('^' + paidBy + '$') }).click();
   await page.locator('.sheet .pick-btn', { hasText: split }).click();
-  await page.getByRole('button', { name: 'Fertig', exact: true }).click();
+  await page.getByRole('button', { name: WT.fertig, exact: true }).click();
   await page.waitForTimeout(400);
 }
 

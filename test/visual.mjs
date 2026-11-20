@@ -10,6 +10,7 @@
    müssen alle drei Breakpoints UND der Tastatur-offen-Zustand mit-geprüft werden. */
 import { chromium, devices } from 'playwright';
 import { mkdirSync } from 'fs';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const OUT = 'test/shots';
@@ -103,7 +104,7 @@ async function run(prefix, ctxOpts, mode) {
   }
 
   await shot('heute');                  // seit wg-v66 Startseite
-  await page.locator('.tabbar .tabitem', { hasText: 'Haushalt' }).click(); await page.waitForTimeout(420);
+  await page.locator('.tabbar .tabitem', { hasText: WT.tabHaushalt }).click(); await page.waitForTimeout(420);
   await shot('haushalt');               // personalisierter Hero + gemischter Split + PayPal
 
   // Wizard: auf Tablet/Desktop zentriertes Modal, auf Handy Bottom-Sheet
@@ -126,7 +127,7 @@ async function run(prefix, ctxOpts, mode) {
   await shot('wizard-3-zusammenfassung-split');
   await page.getByRole('button', { name:'Abbrechen' }).click(); await page.waitForTimeout(300);
 
-  await page.locator('.tabbar .tabitem', { hasText: 'Heute' }).click(); await page.waitForTimeout(420);                   // Abo-Logins leben seit wg-v66 auf „Heute“
+  await page.locator('.tabbar .tabitem', { hasText: WT.tabHeute }).click(); await page.waitForTimeout(420);                   // Abo-Logins leben seit wg-v66 auf „Heute“
   // ── Abo-Logins: Karte → Code eingeben → sichtbarer Login → Freigabe anlegen → Code ──
   // Auf den unteren Knopf der Karte zielen — die Überschrift allein landet hinter der Tabbar
   await page.getByRole('button', { name:/Login freigeben/ }).scrollIntoViewIfNeeded(); await page.waitForTimeout(300);
@@ -139,15 +140,15 @@ async function run(prefix, ctxOpts, mode) {
   await shot('logins-3-sichtbar');
   await page.getByRole('button', { name:'Schließen' }).click(); await page.waitForTimeout(300);
   await page.getByRole('button', { name:/Login freigeben/ }).click(); await page.waitForTimeout(350);
-  await page.getByLabel('Dienst').fill('Disney+');
+  await page.getByLabel(WT.dienst).fill('Disney+');
   await page.getByLabel('E-Mail oder Benutzername').fill('wg@example.org');
-  await page.getByLabel('Passwort').fill('geheim');
+  await page.getByLabel(WT.passwort).fill('geheim');
   await shot('logins-4-freigeben');
   if (mode === 'mobile') {
-    await page.getByLabel('Passwort').focus();
+    await page.getByLabel(WT.passwort).focus();
     await page.evaluate(() => document.documentElement.style.setProperty('--kb', '336px'));
     // iOS scrollt das fokussierte Feld selbst ins Bild — headless nicht, also nachbilden
-    await page.getByLabel('Passwort').scrollIntoViewIfNeeded();
+    await page.getByLabel(WT.passwort).scrollIntoViewIfNeeded();
     await shot('logins-4-freigeben-tastatur-offen');
     await page.evaluate(() => document.documentElement.style.setProperty('--kb', '0px'));
   }
@@ -158,7 +159,7 @@ async function run(prefix, ctxOpts, mode) {
   await shot('logins-6-karte-danach');
 
   if (mode === 'mobile') {
-    await page.locator('.tabbar .tabitem', { hasText: 'Haushalt' }).click(); await page.waitForTimeout(420);
+    await page.locator('.tabbar .tabitem', { hasText: WT.tabHaushalt }).click(); await page.waitForTimeout(420);
     await tap('🛒 Einkaufsliste'); await shot('einkaufsliste');
     await tap('Growbox');  await shot('growbox');
     await tap('Putzplan'); await shot('putzplan');

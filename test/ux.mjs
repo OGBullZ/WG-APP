@@ -8,6 +8,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { STUB } from './_fbstub.mjs';
 import { openTool } from './_heute.mjs';   // leere Werkzeuge auf Heute sind seit wg-v82 Chips
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const z = n => String(n).padStart(2, '0');
@@ -101,15 +102,15 @@ check('B3 Haushalt ohne Ankündigungen/Nachrichten/Timer/„Du bist dran“', aw
 // ── C: eine Eingabezeile ──
 const qBtn = page.locator('[data-testid="quick-expense"] button[type="submit"]');
 check('C1 leer → Knopf „+ Ausgabe hinzufügen“', await qBtn.innerText() === '+ Ausgabe hinzufügen');
-await page.getByLabel('Ausgabe in einem Satz').fill('Pizza');
+await page.getByLabel(WT.ausgabeSatz).fill('Pizza');
 check('C2 ohne Betrag: Hinweis aufs volle Formular', /ganze Formular/.test(await page.locator('[data-testid="quick-preview"]').innerText()));
 await qBtn.click(); await page.waitForTimeout(400);
 check('C3 öffnet das Formular mit „Pizza“ vorbelegt', await page.locator('.sheet input.field').first().inputValue() === 'Pizza');
-await page.getByRole('button', { name: 'Abbrechen' }).first().click(); await page.waitForTimeout(300);
-await page.getByLabel('Ausgabe in einem Satz').fill('Pizza 9');
+await page.getByRole('button', { name: WT.abbrechen }).first().click(); await page.waitForTimeout(300);
+await page.getByLabel(WT.ausgabeSatz).fill('Pizza 9');
 check('C4 mit Betrag → „Eintragen“', await qBtn.innerText() === 'Eintragen');
-await page.getByLabel('Ausgabe in einem Satz').fill('');
-check('C5 der große Extra-Knopf ist weg (nur noch einer)', await page.getByRole('button', { name: '+ Ausgabe hinzufügen' }).count() === 1);
+await page.getByLabel(WT.ausgabeSatz).fill('');
+check('C5 der große Extra-Knopf ist weg (nur noch einer)', await page.getByRole('button', { name: WT.ausgabeHinzufuegen }).count() === 1);
 
 // ── D: Abrechnen nur durch den, der Geld bekommt ──
 check('D1 Schuldner sieht Hinweis statt „Alles abrechnen“', await page.locator('[data-testid="settle-hint"]').count() === 1 && await page.getByRole('button', { name: /Alles abrechnen/ }).count() === 0);
@@ -136,7 +137,7 @@ await E.ctx.close();
 const F = await open(SEED, { me: null });
 check('F1 Heute zeigt „Wer bist du?“', await F.page.locator('[data-testid="who-am-i"]').count() === 1);
 await F.tabTo('Haushalt');
-check('F2 auch im Haushalt, „+ Ausgabe hinzufügen“ bleibt erreichbar', await F.page.locator('[data-testid="who-am-i"]').count() === 1 && await F.page.getByRole('button', { name: '+ Ausgabe hinzufügen' }).count() === 1);
+check('F2 auch im Haushalt, „+ Ausgabe hinzufügen“ bleibt erreichbar', await F.page.locator('[data-testid="who-am-i"]').count() === 1 && await F.page.getByRole('button', { name: WT.ausgabeHinzufuegen }).count() === 1);
 await F.page.getByRole('button', { name: 'Ich bin Tom' }).click(); await F.page.waitForTimeout(400);
 check('F3 ein Tipp setzt die Person, Hinweis verschwindet', await F.page.evaluate(() => JSON.parse(localStorage.getItem('wg_me'))) === 'u2' && await F.page.locator('[data-testid="who-am-i"]').count() === 0);
 await F.ctx.close();
@@ -147,7 +148,7 @@ await G.page.getByRole('button', { name: 'Bad putzen auf morgen' }).click(); awa
 let g = (await G.data()).pt[0];
 check('G1 „Morgen“ setzt snooze, Aufgabe verschwindet aus „Du bist dran“', g.snooze === dayAgo(-1) && await G.page.locator('[data-testid="chore-quick"]').count() === 0, JSON.stringify(g));
 check('G2 Serie bleibt heil (nicht überfällig)', await G.page.evaluate(() => choreDueIn(JSON.parse(localStorage.getItem('wg_data')).pt[0])) === 1);
-await G.page.getByRole('button', { name: 'Rückgängig' }).click(); await G.page.waitForTimeout(400);
+await G.page.getByRole('button', { name: WT.rueckgaengig }).click(); await G.page.waitForTimeout(400);
 check('G3 Rückgängig holt sie zurück', !(await G.data()).pt[0].snooze && await G.page.locator('[data-testid="chore-quick"]').count() === 1);
 // Abhaken löscht ein gesetztes „Morgen“
 await G.page.getByRole('button', { name: 'Bad putzen auf morgen' }).click(); await G.page.waitForTimeout(300);
@@ -164,7 +165,7 @@ const washOeffnen = async () => { if (!(await openTool(G.page, 'wash'))) { await
 await washOeffnen();
 await G.page.locator('.sheet button', { hasText: 'Trockner' }).click();
 await G.page.locator('.sheet button', { hasText: '30 Min.' }).click();
-await G.page.getByRole('button', { name: 'Abbrechen' }).first().click(); await G.page.waitForTimeout(300);
+await G.page.getByRole('button', { name: WT.abbrechen }).first().click(); await G.page.waitForTimeout(300);
 await washOeffnen();
 await G.page.locator('.sheet button', { hasText: 'Waschmaschine' }).click();
 const w1 = await G.page.locator('.sheet button', { hasText: /^Starten/ }).innerText();
@@ -174,7 +175,7 @@ const fin = m => { const d = new Date(Date.now() + m * 60000); return `${z(d.get
 // eine Minute Toleranz: die Knopftexte entstanden kurz vorher (Wackler am 19.09. genau über einen Minutenwechsel)
 const near = (txt, m) => txt.includes(fin(m)) || txt.includes(fin(m - 1));
 check('H1 Trockner merkt 30 Min., Waschmaschine hat ihren Standard (90)', near(w2, 30) && near(w1, 90), `${w1} / ${w2}`);
-await G.page.getByRole('button', { name: 'Abbrechen' }).first().click(); await G.page.waitForTimeout(300);
+await G.page.getByRole('button', { name: WT.abbrechen }).first().click(); await G.page.waitForTimeout(300);
 
 // ── I: Push je Art ──
 await G.tabTo('Mehr');
@@ -208,7 +209,7 @@ await L.ctx.close();
 
 // ── L: Funde der Fehlersuche 17.09. ──
 const Q = await open(SEED, { tab: 'haus', extra: { wg_modules: { heute: false, haus: true, putz: true, game: true } } });
-check('L1 alter Modul-Schnappschuss (heute:false aus v64/65) → Heute kommt einmalig zurück', await Q.page.locator('.tabbar .tabitem', { hasText: 'Heute' }).count() === 1 && await Q.page.evaluate(() => JSON.parse(localStorage.getItem('wg_modules')).heute) === true);
+check('L1 alter Modul-Schnappschuss (heute:false aus v64/65) → Heute kommt einmalig zurück', await Q.page.locator('.tabbar .tabitem', { hasText: WT.tabHeute }).count() === 1 && await Q.page.evaluate(() => JSON.parse(localStorage.getItem('wg_modules')).heute) === true);
 const areas = await Q.page.evaluate(() => ['Reis','Eis','Eier','Tomatenmark','Butterkekse','Weißwein','Butter','Apfelsaft','TK Spinat','Spinat','Eistee','Reiseführer','Äpfel'].map(n => shopArea(n)[0]).join(','));
 check('L2 Laden-Bereiche: Reis/Butterkekse/Tomatenmark → Vorrat, Weißwein/Apfelsaft/Eistee → Getränke, Eis/TK → Tiefkühl', areas === 'vorrat,tk,kuehl,vorrat,vorrat,drinks,kuehl,drinks,tk,obst,drinks,sonst,obst', areas);
 await Q.page.getByRole('button', { name: /Einkaufsliste/ }).first().click(); await Q.page.waitForTimeout(400);
@@ -229,7 +230,7 @@ await S2.ctx.close();
 
 // ── K: „Heute“ ausgeschaltet → alles wieder im Haushalt ──
 const N = await open(SEED, { tab: 'haus', extra: { wg_modules: { heute: false }, wg_heute_v1: 1 } });
-check('K1 ohne Heute: Karten im Haushalt', await N.page.locator('.tabbar .tabitem', { hasText: 'Heute' }).count() === 0 &&
+check('K1 ohne Heute: Karten im Haushalt', await N.page.locator('.tabbar .tabitem', { hasText: WT.tabHeute }).count() === 0 &&
   await N.page.locator('[data-testid="board-card"]').count() === 1 && await N.page.locator('[data-testid="chore-quick"]').count() === 1 && await N.page.locator('[data-testid="wash-card"]').count() === 1);
 await N.ctx.close();
 

@@ -10,6 +10,7 @@
    g  Ein ausgelöster Fehler zeigt den neuen Satz (Belegung doppelt eintragen → „Zu dieser Zeit ist schon jemand eingetragen …"). */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const url = process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';   /* 127.0.0.1 statt localhost: localhost kostet unter Windows 2 s */
 const z = n => String(n).padStart(2, '0');
@@ -156,7 +157,7 @@ for (const w of [390, 320]) {
     const knopf = P.page.locator('[data-testid="book-card"] button:has-text("+ Eintragen")').first();
     if (!(await knopf.isVisible().catch(() => false))) { lauf += `${tab}:keine Karte `; continue; }
     await knopf.click();
-    await P.page.getByRole('button', { name: 'Speichern' }).first().click({ timeout: 4000 }).catch(() => {});
+    await P.page.getByRole('button', { name: WT.speichern }).first().click({ timeout: 4000 }).catch(() => {});
     msg = await P.page.locator('[data-testid="book-msg"]').first().innerText({ timeout: 3000 }).catch(() => null);
     lauf += `${tab}:${msg}`;
     break;

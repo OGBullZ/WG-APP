@@ -21,6 +21,7 @@
    (Erhaltungsprüfungen ausgenommen, im Bericht genannt: A12 Doppelklick-Updater, D13 „Tag 2: Hinweise wieder da", E-Spalten bei 320/390). */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const URL_ = process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const pass = [], fail = [];
@@ -169,7 +170,7 @@ await blk('A Sprünge', async () => {
 await blk('A Ausgabe', async () => {
   const A = await open();
   const { page } = A;
-  await page.getByLabel('Ausgabe in einem Satz').fill('12,50 Pizza');
+  await page.getByLabel(WT.ausgabeSatz).fill('12,50 Pizza');
   await page.locator('[data-testid="quick-expense"] button[type="submit"]').click(); await page.waitForTimeout(700);
   const z1 = await page.evaluate(() => ({ ok: document.querySelector('[data-testid="fs-hs"]')?.getAttribute('data-ok'), rest: ['fs-sl', 'fs-pt'].map(k => document.querySelector(`[data-testid="${k}"]`)?.getAttribute('data-ok')),
     haken: getComputedStyle(document.querySelector('[data-testid="fs-hs"] .es-haken svg') || document.body).opacity, now: document.querySelector('.es-spur')?.getAttribute('aria-valuenow') }));
@@ -252,8 +253,8 @@ await blk('D Assistent', async () => {
   const onb = page.locator('[data-testid="onboarding"]');
   const weiter = () => onb.locator('[data-testid="onb-next"]').click().then(() => page.waitForTimeout(450));
   await onb.locator('[data-testid="onb-found"]').click(); await page.waitForTimeout(450);
-  await onb.getByLabel('Dein Name', { exact: true }).fill('Lena');
-  await onb.getByLabel('Mitbewohner 1', { exact: true }).fill('Max');
+  await onb.getByLabel(WT.deinName, { exact: true }).fill('Lena');
+  await onb.getByLabel(WT.mitbewohner1, { exact: true }).fill('Max');
   await weiter();                                                            // Personen
   await onb.getByLabel('Name der WG').fill('WG Start');
   await weiter();                                                            // WG-Name
@@ -275,11 +276,11 @@ await blk('D Assistent', async () => {
     await page.locator('[data-testid="push-nudge"]').count() === 0 && !/bekommt keine Benachrichtigungen|Benachrichtigungen sind (blockiert|aus)/.test(await page.locator('.content').innerText()), await page.locator('[data-testid="push-nudge"]').count() + ' Hinweis(e)');
   check('D6 Heute zeigt „Erste Schritte": Putzplan abgehakt (1 von 3), Gitter zugeklappt', await karte(page).count() === 1 && await page.locator('[data-testid="fs-pt"]').getAttribute('data-ok') === '1' && /1 von 3 erledigt/.test(await zahl(page) || '')
     && await sichtbar(page, '[data-testid="tool-chips"] .wz-kachel') === 0, await zahl(page) || '—');
-  await page.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).click(); await page.waitForTimeout(700);
+  await page.locator('.tabbar .tabitem', { hasText: WT.tabPutzplan }).click(); await page.waitForTimeout(700);
   const chips = await page.locator('[data-testid="chore-row"] .due-chip').allInnerTexts();
   /* wg-v119 (TEXT-4): Chips sprechen jetzt wie „N Tage überfällig" in ganzen Wörtern („in 1 Tag", „in 2 Tagen") statt „IN 1d" — Prüfung gleich streng */
   check('D7 Putzplan: genau eine Aufgabe „HEUTE", die anderen „in 1 Tag / in 2 Tagen / in 3 Tagen"', chips.filter(c => /^HEUTE$/.test(c.trim())).length === 1 && chips.length === 4 && ['in 1 Tag', 'in 2 Tagen', 'in 3 Tagen'].every(c => chips.some(x => x.replace(/\s+/g, ' ').trim() === c)), JSON.stringify(chips));
-  await page.locator('.tabbar .tabitem', { hasText: 'Heute' }).click(); await page.waitForTimeout(500);
+  await page.locator('.tabbar .tabitem', { hasText: WT.tabHeute }).click(); await page.waitForTimeout(500);
   const quick = await page.evaluate(() => document.querySelectorAll('[data-testid="chore-quick"] .cell:not(.schatten)').length);
   check('D8 „Du bist dran" zeigt höchstens eine Aufgabe', quick <= 1, `${quick} Zeile(n)`);
   check('D9 keine Seitenfehler am Tag 1', D.errs.length === 0, D.errs.join(' | '));
@@ -289,7 +290,7 @@ await blk('D Assistent', async () => {
   check('D10 die Seiten-Uhr steht wirklich auf morgen (Testaufbau)', morgen === nach(1), morgen);
   const eigen = await page.locator('[data-testid="push-nudge-own"]').count(), andere = await page.locator('[data-testid="push-nudge-other"]').allInnerTexts();
   check('D13 Tag 2: Push-Hinweise kommen wieder (eigenes Gerät und „Max bekommt keine Benachrichtigungen")', eigen === 1 && andere.length === 1 && /Max bekommt keine Benachrichtigungen/.test(andere[0]), `${eigen} eigen · ${JSON.stringify(andere)}`);
-  await page.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).click(); await page.waitForTimeout(700);
+  await page.locator('.tabbar .tabitem', { hasText: WT.tabPutzplan }).click(); await page.waitForTimeout(700);
   const chips2 = await page.locator('[data-testid="chore-row"] .due-chip').allInnerTexts();
   check('D14 Tag 2: zwei Aufgaben „HEUTE" (die erste und die vom Vortag gestaffelte), zwei noch in der Zukunft', chips2.filter(c => /^HEUTE$/.test(c.trim())).length === 2, JSON.stringify(chips2));
   check('D15 keine Seitenfehler am Tag 2', D.errs.length === 0, D.errs.join(' | '));

@@ -5,6 +5,7 @@
    Reihenfolge der Zonen (Jetzt dran → Neu → Eingeben → Werkzeuge); Englisch; keine Seitenfehler. */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const browser = await chromium.launch();
@@ -71,12 +72,12 @@ await A.page.locator('[data-chip="fridge"]').click();
 await A.page.waitForTimeout(400);
 check('B1 Kachel „Kühlschrank" öffnet direkt das Eingabeblatt, keine leere Karte im Feed',
   await A.page.locator('.sheet:visible').getByPlaceholder('Was? z. B. Milch').count() === 1 && !(await tools(A.page)).includes('fridge'));
-await A.page.locator('.sheet:visible').getByRole('button', { name: 'Abbrechen' }).first().click(); await A.page.waitForTimeout(300);
+await A.page.locator('.sheet:visible').getByRole('button', { name: WT.abbrechen }).first().click(); await A.page.waitForTimeout(300);
 check('B2 Abbrechen: Kachel bleibt, nichts gespeichert', (await chips(A.page)).includes('fridge') && await A.page.locator('.sheet:visible').count() === 0);
 // Karten-Werkzeug (Eingabe in der Karte): Blatt mit der Karte darin
 await A.page.locator('[data-chip="board"]').click(); await A.page.waitForTimeout(400);
 check('B2b Kachel „Ankündigung" öffnet ein Blatt mit der Karte', await A.page.locator('.sheet:visible [data-testid="board-card"]').count() === 1 && !(await tools(A.page)).includes('board'));
-await A.page.locator('.sheet:visible').getByRole('button', { name: 'Abbrechen' }).first().click(); await A.page.waitForTimeout(300);
+await A.page.locator('.sheet:visible').getByRole('button', { name: WT.abbrechen }).first().click(); await A.page.waitForTimeout(300);
 check('B3 keine Seitenfehler', A.errs.length === 0, A.errs.join(' | '));
 await A.ctx.close();
 

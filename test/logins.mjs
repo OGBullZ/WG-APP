@@ -6,6 +6,7 @@
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
 import { openTool } from './_heute.mjs';   // „Login teilen" ist ohne Freigabe seit wg-v82 ein Chip auf Heute
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const USERS = [{ id: 'u1', name: 'Torben', color: '#38bdf8' }, { id: 'u2', name: 'Tom', color: '#fbbf24' }];
@@ -57,7 +58,7 @@ async function device({ me, seed = null, code = 'TEST-LOKAL-LOGIN01' }) {
     await page.evaluate(() => window.__wg.fire());
     await page.waitForTimeout(900);
     for (let i = 0; i < 3; i++) {
-      const l = page.getByRole('button', { name: 'Später' });
+      const l = page.getByRole('button', { name: WT.spaeter });
       if (await l.count()) { await l.first().click(); await page.waitForTimeout(300); }
     }
   };
@@ -78,12 +79,12 @@ const A = await device({ me: 'u1' });
 // ohne Freigabe ist „Login teilen" eine Kachel — seit wg-v105 öffnet sie das Formular direkt
 if (!(await openTool(A.page, 'login'))) await A.page.getByRole('button', { name: /Login freigeben/ }).click();
 await A.page.waitForTimeout(300);
-check('A0 Button „Code erzeugen" ist ohne Eingaben gesperrt', await A.page.getByRole('button', { name: 'Code erzeugen' }).isDisabled());
-await A.page.getByLabel('Dienst').fill('Netflix');
+check('A0 Button „Code erzeugen" ist ohne Eingaben gesperrt', await A.page.getByRole('button', { name: WT.codeErzeugen }).isDisabled());
+await A.page.getByLabel(WT.dienst).fill('Netflix');
 await A.page.getByLabel('E-Mail oder Benutzername').fill(SECRET_U);
-await A.page.getByLabel('Passwort').fill(SECRET_P);
+await A.page.getByLabel(WT.passwort).fill(SECRET_P);
 await A.page.getByRole('button', { name: '5 Min', exact: true }).click();
-await A.page.getByRole('button', { name: 'Code erzeugen' }).click();
+await A.page.getByRole('button', { name: WT.codeErzeugen }).click();
 await A.page.locator('[data-testid="lg-code"]').waitFor({ timeout: 8000 });
 const code = (await A.page.locator('[data-testid="lg-code"]').innerText()).trim();
 check('A1 Code hat das Format XXXX-XXXX ohne Verwechsel-Zeichen', CODE_RE.test(code));
@@ -112,7 +113,7 @@ check('A9 Push an Tom enthält den Code', !!codePush && (codePush.body || '').in
 await A.page.waitForTimeout(900);   // Flush durchlassen
 const nachPush = JSON.stringify(await A.page.evaluate(() => ({ r: window.__wg.remote, u: window.__wg.updates, l: localStorage.getItem('wg_data') })));
 check('A9b Einmal-Code auch nach dem Push-Versand nirgends gespeichert (Verlauf, Server, Writes)', ![code, rawCode].some(c => nachPush.includes(c)));
-await A.page.getByRole('button', { name: 'Fertig', exact: true }).click();
+await A.page.getByRole('button', { name: WT.fertig, exact: true }).click();
 await A.page.waitForTimeout(300);
 check('A10 Karte zeigt „wartet auf Tom"', /wartet auf Tom/.test(await card(A.page).innerText()));
 
@@ -120,7 +121,7 @@ check('A10 Karte zeigt „wartet auf Tom"', /wartet auf Tom/.test(await card(A.p
 const serverAfterA = await A.page.evaluate(() => window.__wg.remote);
 const B = await device({ me: 'u2', seed: serverAfterA });
 check('B1 Empfänger sieht die Freigabe von Torben', /Netflix[\s\S]*von Torben/.test(await card(B.page).innerText()));
-await B.page.getByRole('button', { name: 'Code eingeben' }).click();
+await B.page.getByRole('button', { name: WT.codeEingeben }).click();
 await B.page.waitForTimeout(300);
 const codeField = B.page.getByLabel('Einmal-Code');
 await codeField.fill('2222-2222');
@@ -148,14 +149,14 @@ check('B10 Ersteller bekommt „geöffnet"-Push', B.pushes.some(p => /geöffnet/
 const view = await B.page.evaluate(() => JSON.parse(localStorage.getItem('wg_lg_view') || 'null'));
 check('B11 sichtbarer Login lokal mit Ablauf ≈ 5 Min', !!view && Math.abs(view.until - Date.now() - 5 * 60e3) < 60e3);
 
-await B.page.getByRole('button', { name: 'Schließen' }).click();
+await B.page.getByRole('button', { name: WT.schliessen }).click();
 await B.page.waitForTimeout(300);
 const bCard = await card(B.page).innerText();
-check('B12 Karte zeigt „noch … sichtbar" statt „Code eingeben"', /Netflix · noch \d+:\d\d sichtbar/.test(bCard) && !(await B.page.getByRole('button', { name: 'Code eingeben' }).count()));
+check('B12 Karte zeigt „noch … sichtbar" statt „Code eingeben"', /Netflix · noch \d+:\d\d sichtbar/.test(bCard) && !(await B.page.getByRole('button', { name: WT.codeEingeben }).count()));
 
 await B.reload();
 check('B13 nach Neustart: Login bleibt bis Ablauf erreichbar', /noch \d+:\d\d sichtbar/.test(await card(B.page).innerText()));
-check('B14 nach Neustart: kein erneutes Einlösen angeboten', !(await B.page.getByRole('button', { name: 'Code eingeben' }).count()));
+check('B14 nach Neustart: kein erneutes Einlösen angeboten', !(await B.page.getByRole('button', { name: WT.codeEingeben }).count()));
 
 // Ablauf während die App offen ist: Timer muss den Klartext selbst löschen
 await B.page.evaluate(() => { const v = JSON.parse(localStorage.getItem('wg_lg_view')); v.until = Date.now() + 2500; localStorage.setItem('wg_lg_view', JSON.stringify(v)); });
@@ -176,10 +177,10 @@ check('C1 Ersteller sieht „Tom hat ihn … geöffnet"', /Tom hat ihn um \d\d:\
 if (!(await openTool(A.page, 'login'))) await A.page.getByRole('button', { name: /Login freigeben/ }).click();
 await A.page.waitForTimeout(300);
 await A.page.locator('.sheet').getByRole('button', { name: 'Netflix', exact: true }).click();
-check('C2 Chip füllt gemerkten Login ein', (await A.page.getByLabel('Passwort').inputValue()) === SECRET_P);
-await A.page.getByRole('button', { name: 'Code erzeugen' }).click();
+check('C2 Chip füllt gemerkten Login ein', (await A.page.getByLabel(WT.passwort).inputValue()) === SECRET_P);
+await A.page.getByRole('button', { name: WT.codeErzeugen }).click();
 await A.page.locator('[data-testid="lg-code"]').waitFor({ timeout: 8000 });
-await A.page.getByRole('button', { name: 'Fertig', exact: true }).click();
+await A.page.getByRole('button', { name: WT.fertig, exact: true }).click();
 await A.page.waitForTimeout(900);
 check('C3 zweite Freigabe beim Server', (await remoteLs(A.page)).filter(s => s.ct).length === 1);
 // .first() = die neueste (Liste ist absteigend sortiert); ohne Grabstein (Gegenprobe) stehen hier zwei
@@ -191,7 +192,7 @@ check('C4 zurückgezogene Freigabe ist beim Server weg', (await remoteLs(A.page)
 const stale = { ...sh, id: 'alt1', exp: Date.now() - 1000 };
 const D = await device({ me: 'u2', seed: { users: USERS, ls: { alt1: stale } }, code: 'TEST-LOKAL-LOGIN02' });
 await D.page.waitForTimeout(900);
-check('C5 abgelaufene Freigabe wird nicht angeboten', !(await D.page.getByRole('button', { name: 'Code eingeben' }).count()));
+check('C5 abgelaufene Freigabe wird nicht angeboten', !(await D.page.getByRole('button', { name: WT.codeEingeben }).count()));
 check('C6 abgelaufene Freigabe beim Server entfernt', (await remoteLs(D.page)).length === 0);
 
 // ── K) Krypto direkt: falscher Code / vertauschte ID schlagen fehl ────────────────

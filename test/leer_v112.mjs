@@ -28,6 +28,7 @@
    Gegenprobe: WG_URL=http://127.0.0.1:8099/wgapp_gp_p9.html (Kopie von `git show HEAD:wgapp.html`) — a bis g müssen dort ROT sein. */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const URL_ = process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const pass = [], fail = [];
@@ -172,7 +173,7 @@ const wachsend = f => { const g = f.filter(x => x >= 0); const d = [...new Set(g
   check('b3 … Geisterring: Spur in var(--spur), KEIN sichtbarer Bogen, kein Schein (filter überall none), „+" in der Mitte', !!rg && rg.spurOk && rg.sichtbar.length === 0 && rg.filter.every(f => f === 'none') && rg.mitte === '+', JSON.stringify(rg));
   check('b4 … der separate .empty-Block darunter („Noch keine Ausgaben") entfällt', info.empty === 0 && !/Noch keine Ausgaben/.test(info.tab), JSON.stringify({ empty: info.empty }));
   // erster Eintrag über die echte Oberfläche (Schnell-Eingabe) → Ring wächst
-  await B.page.getByLabel('Ausgabe in einem Satz').fill('12,50 Pizza');
+  await B.page.getByLabel(WT.ausgabeSatz).fill('12,50 Pizza');
   const folge = await wachstum(B.page, '.tab-view .hero', 0, `document.querySelector('[data-testid="quick-expense"] button[type="submit"]').click()`);
   check('b5 erster Eintrag: der Ring WÄCHST über mehrere Bilder (vorhandene Dash-Transition), springt nicht', wachsend(folge), `${folge.length} Bilder, ${[...new Set(folge)].length} verschiedene Längen, ${folge[0]} → ${folge[folge.length - 1]}`);
   const nach = await B.page.evaluate(() => ({ legende: document.querySelectorAll('.tab-view .bil-leg').length, leer: document.querySelectorAll('[data-testid="haus-leer"]').length }));
@@ -276,8 +277,8 @@ const wachsend = f => { const g = f.filter(x => x >= 0); const d = [...new Set(g
   const welcome = await messe();
   check('e1 welcome bleibt mittig (justify-content: center)', welcome.step === 'welcome' && welcome.justify === 'center', JSON.stringify(welcome));
   await onb.locator('[data-testid="onb-found"]').click(); await page.waitForTimeout(700);
-  await onb.getByLabel('Dein Name', { exact: true }).fill('Lena');
-  await onb.getByLabel('Mitbewohner 1', { exact: true }).fill('Max');
+  await onb.getByLabel(WT.deinName, { exact: true }).fill('Lena');
+  await onb.getByLabel(WT.mitbewohner1, { exact: true }).fill('Max');
   const schritte = [];
   for (let i = 0; i < 7; i++) {
     const m = await messe();
