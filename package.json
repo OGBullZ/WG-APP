@@ -23,6 +23,9 @@
     "url": "https://github.com/OGBullZ/WG-APP/issues"
   },
   "homepage": "https://github.com/OGBullZ/WG-APP#readme",
+  "engines": {
+    "node": ">=22"
+  },
   "devDependencies": {
     "playwright": "^1.61.0"
   },
