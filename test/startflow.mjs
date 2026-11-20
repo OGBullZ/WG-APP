@@ -3,6 +3,7 @@
    ~0,7 s später die Push-Aufforderung über das halb ausgefüllte Formular. Jetzt wartet der Ablauf, bis
    kein Fenster mehr offen ist — und erscheint DANN (der Hinweis darf nicht verloren gehen). */
 import { chromium } from 'playwright';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const browser = await chromium.launch();
@@ -47,7 +48,7 @@ check('1b Knopf „Weiter" im Assistenten liegt oben (nichts verdeckt ihn)', awa
 }));
 
 // Assistent schließen → jetzt muss das Startfenster kommen
-await page.getByRole('button', { name: 'Abbrechen' }).click({ force: true });
+await page.getByRole('button', { name: WT.abbrechen }).click({ force: true });
 await page.clock.runFor(3000);          // nächster Wiederholversuch findet kein Fenster mehr → Startfenster
 await page.waitForTimeout(400);
 const o2 = await overlays();

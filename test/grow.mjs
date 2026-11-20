@@ -1,5 +1,6 @@
 /* Grow-Zyklus: Phasen-Tracker + Gieß-Erinnerung (Anzeige, Aktionen, Ernte beendet den Zyklus). */
 import { chromium } from 'playwright';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const browser = await chromium.launch();
@@ -44,10 +45,10 @@ const openGrow = async () => {
   await page.locator('.tabbar').waitFor({ timeout: 30000 });
   await page.waitForTimeout(1500);
   for (let i = 0; i < 2; i++) {
-    const later = page.getByRole('button', { name: 'Später' });
+    const later = page.getByRole('button', { name: WT.spaeter });
     if (await later.count()) { await later.first().click(); await page.waitForTimeout(400); }
   }
-  await page.locator('.tabbar .tabitem', { hasText: 'Growbox' }).click();
+  await page.locator('.tabbar .tabitem', { hasText: WT.tabGrowbox }).click();
   await page.waitForTimeout(500);
 };
 
@@ -180,10 +181,10 @@ await p3.goto(url, { waitUntil: 'domcontentloaded' });
 await p3.locator('.tabbar').waitFor({ timeout: 30000 });
 await p3.waitForTimeout(1500);
 for (let i = 0; i < 2; i++) {
-  const later = p3.getByRole('button', { name: 'Später' });
+  const later = p3.getByRole('button', { name: WT.spaeter });
   if (await later.count()) { await later.first().click(); await p3.waitForTimeout(400); }
 }
-await p3.locator('.tabbar .tabitem', { hasText: 'Growbox' }).click();
+await p3.locator('.tabbar .tabitem', { hasText: WT.tabGrowbox }).click();
 await p3.waitForTimeout(500);
 const neverCell = p3.locator('.cell', { hasText: 'Noch nicht gegossen' });
 check('15b nie gegossen zeigt keine absurde Überfällig-Zahl', await neverCell.locator('.cell-title').innerText() === 'Noch nichts eingetragen');
@@ -208,10 +209,10 @@ await p2.goto(url, { waitUntil: 'domcontentloaded' });
 await p2.locator('.tabbar').waitFor({ timeout: 30000 });
 await p2.waitForTimeout(1500);
 for (let i = 0; i < 2; i++) {
-  const later = p2.getByRole('button', { name: 'Später' });
+  const later = p2.getByRole('button', { name: WT.spaeter });
   if (await later.count()) { await later.first().click(); await p2.waitForTimeout(400); }
 }
-await p2.locator('.tabbar .tabitem', { hasText: 'Growbox' }).click();
+await p2.locator('.tabbar .tabitem', { hasText: WT.tabGrowbox }).click();
 await p2.waitForTimeout(500);
 check('16 leerer Grow-Tab zeigt den Start-Button statt einer leeren Karte', await p2.locator('.mini-btn', { hasText: 'Zyklus starten' }).count() === 1);
 check('16b Grow-Tab rendert trotzdem den Split-Hero', await p2.locator('.hero').count() === 1);

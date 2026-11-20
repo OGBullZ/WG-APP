@@ -7,6 +7,7 @@
    „Mehr" — die Gegenprobe (Label entfernt) blieb grün. Deshalb N0: ohne erreichten Push-Bereich bricht der Test laut ab. */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const pass = [], fail = [];
 const check = (n, c, extra = '') => (c ? pass : fail).push(n + (extra ? ` — ${extra}` : ''));
@@ -101,7 +102,7 @@ check('N3 jeder Auswahl-Knopf meldet seinen Zustand, nicht nur seine Farbe', stu
 
 // N4: Laufzeit — stimmt die Ansage mit dem überein, was man sieht, und wechselt sie beim Tippen?
 // Ein Attribut, das da ist, aber nicht mitwandert, wäre schlimmer als keins.
-await page.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).first().click(); await page.waitForTimeout(700);
+await page.locator('.tabbar .tabitem', { hasText: WT.tabPutzplan }).first().click(); await page.waitForTimeout(700);
 await page.getByRole('button', { name: /Aufgabe anlegen/ }).first().click(); await page.waitForTimeout(600);   // sichtbar „+ Neu" seit wg-v102
 const feld = page.locator('.sheet input:visible').first();
 await feld.click(); await feld.pressSequentially('Staubsaugen', { delay: 5 });

@@ -3,6 +3,7 @@
    Historie: bis wg-v44 schluckte ss() jeden Schreibfehler; die Buchung stand in der UI,
    war nach dem Neustart weg, und niemand hat es erfahren. */
 import { chromium } from 'playwright';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const browser = await chromium.launch();
@@ -36,7 +37,7 @@ const openPrivat = async (pin) => {
   await page.locator('#root > *').first().waitFor({ timeout: 30000 });
   await page.waitForTimeout(2000);
   for (let i = 0; i < 2; i++) {
-    const l = page.getByRole('button', { name: 'Später' });
+    const l = page.getByRole('button', { name: WT.spaeter });
     if (await l.count()) { await l.first().click(); await page.waitForTimeout(400); }
   }
   await page.locator('.tabbar').getByText('Privat', { exact: true }).click();
@@ -91,7 +92,7 @@ await p2.goto(url, { waitUntil: 'domcontentloaded' });
 await p2.locator('#root > *').first().waitFor({ timeout: 30000 });
 await p2.waitForTimeout(2000);
 for (let i = 0; i < 2; i++) {
-  const l = p2.getByRole('button', { name: 'Später' });
+  const l = p2.getByRole('button', { name: WT.spaeter });
   if (await l.count()) { await l.first().click(); await p2.waitForTimeout(400); }
 }
 await p2.locator('.tabbar').getByText('Privat', { exact: true }).click();

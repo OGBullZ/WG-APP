@@ -9,6 +9,7 @@
 import { chromium } from 'playwright';
 import { createRequire } from 'module';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const require = createRequire(import.meta.url);
 const { taskWho } = require('../api/_wg.js');
@@ -99,7 +100,7 @@ check('F0 letzter Schritt fragt „Wer macht\'s?" mit Abwechselnd / Nur eine Per
 await sheet.locator('[data-testid="chore-fest"]').click();
 // i: die Unterzeile steht per CSS in Großbuchstaben („WER?")
 check('F0b nach „Nur eine Person" heißt die Frage „Wer?" statt „Wer fängt an?"', /Wer\?/i.test(await sheet.innerText()) && !/Wer fängt an/i.test(await sheet.innerText()), (await sheet.innerText()).slice(0, 120));
-await sheet.getByRole('button', { name: 'Tom', exact: true }).click();
+await sheet.getByRole('button', { name: WT.tom, exact: true }).click();
 await A.page.locator('[data-testid="wiz-next"]').click(); await A.page.waitForTimeout(500);
 let bw = await A.task('Boden wischen');
 check('F1 gespeichert: fix = Tom, Tom dran, wöchentlich', !!bw && bw.fix === 'u2' && bw.assignee === 'u2' && bw.interval === 7, JSON.stringify(bw));
@@ -128,7 +129,7 @@ check('E2 auf „Abwechselnd" gestellt: fix weg, Zeile mit „danach"', !bw.fix 
 await A.zeile('Boden wischen').locator('[data-testid="chore-stand"]').click(); await A.page.waitForTimeout(300);
 for (let i = 0; i < 4; i++) { await A.page.locator('[data-testid="wiz-next"]').click(); await A.page.waitForTimeout(150); }
 await sheet.locator('[data-testid="chore-fest"]').click();
-await sheet.getByRole('button', { name: 'Torben', exact: true }).click();
+await sheet.getByRole('button', { name: WT.torben, exact: true }).click();
 await A.page.locator('[data-testid="wiz-next"]').click(); await A.page.waitForTimeout(500);
 bw = await A.task('Boden wischen');
 check('E3 fest auf Torben umgestellt: fix + dran sofort Torben, Zeile „Nur du"', bw.fix === 'u1' && bw.assignee === 'u1' && /^Nur du · /.test(await A.wer('Boden wischen')), JSON.stringify(bw));

@@ -4,6 +4,7 @@
 import { chromium } from 'playwright';
 import { readFileSync } from 'fs';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const z = n => String(n).padStart(2, '0');
@@ -132,22 +133,22 @@ await lc.getByRole('button', { name: '+ Eintrag' }).click(); await page.waitForT
 await sheet.getByRole('button', { name: 'Wir leihen' }).click();
 await sheet.getByLabel('Gegenstand der Ausleihe').fill('Leiter');
 await sheet.getByLabel('Person').fill('Frau Meier');
-await sheet.getByRole('button', { name: 'Speichern' }).click(); await page.waitForTimeout(400);
+await sheet.getByRole('button', { name: WT.speichern }).click(); await page.waitForTimeout(400);
 const le = (await data()).lh.find(l => l.what === 'Leiter');
 check('L2 geliehen, Rückgabe in 14 Tagen', !!le && le.dir === 'in' && le.person === 'Frau Meier' && le.due === dayAgo(-14), JSON.stringify(le));
 await lc.getByRole('button', { name: 'Beamer ist zurück' }).click(); await page.waitForTimeout(300);
 check('L3 „Zurück" entfernt', !(await data()).lh.some(l => l.id === 'l2'));
 // Kaution
 const dc = page.locator('[data-testid="deposit-card"]');
-await dc.getByRole('button', { name: '+ Eintragen' }).click(); await page.waitForTimeout(300);
+await dc.getByRole('button', { name: WT.eintragen }).click(); await page.waitForTimeout(300);
 await sheet.getByLabel('Kaution gesamt').fill('1000');
-await sheet.getByRole('button', { name: 'Speichern' }).click(); await page.waitForTimeout(400);
+await sheet.getByRole('button', { name: WT.speichern }).click(); await page.waitForTimeout(400);
 let kt = (await data()).kt.find(k => k.id === 'k');
 check('K1 Kaution, leer = gleich verteilt', !!kt && kt.total === 1000 && kt.c_u1 === 500 && kt.c_u2 === 500, JSON.stringify(kt));
 await dc.getByRole('button', { name: 'Ändern' }).click(); await page.waitForTimeout(300);
 await sheet.getByLabel('Kaution Torben').fill('600');
 await sheet.getByLabel('Kaution Tom').fill('400');
-await sheet.getByRole('button', { name: 'Speichern' }).click(); await page.waitForTimeout(300);
+await sheet.getByRole('button', { name: WT.speichern }).click(); await page.waitForTimeout(300);
 await dc.locator('[data-testid="deposit-refund"]').click(); await page.waitForTimeout(300);
 await sheet.getByLabel('Rückzahlung').fill('900');
 await sheet.getByRole('button', { name: 'Verrechnen' }).click(); await page.waitForTimeout(500);
@@ -161,7 +162,7 @@ const gc = page.locator('[data-testid="guest-card"]');
 await gc.getByRole('button', { name: 'Angaben' }).click(); await page.waitForTimeout(300);
 await sheet.getByLabel('WLAN-Name').fill('WG-Netz');
 await sheet.getByLabel('WLAN-Passwort').fill('geheim123');
-await sheet.getByRole('button', { name: 'Speichern' }).click(); await page.waitForTimeout(300);
+await sheet.getByRole('button', { name: WT.speichern }).click(); await page.waitForTimeout(300);
 check('G1 Angaben gespeichert (v = 1)', (await data()).ga.some(x => x.id === 'info' && x.wifi === 'WG-Netz' && x.pw === 'geheim123' && x.v === 1));
 await gc.getByRole('button', { name: 'Link erzeugen' }).click(); await page.waitForTimeout(500);
 check('G2 Link mit Schlüssel, nicht mit dem Code', /\/api\/guest\?t=GASTTOKEN$/.test(await page.locator('[data-testid="guest-url"]').innerText()) && guestBodies[0]?.code === 'TEST-LOKAL-MEHR' && guestBodies[0]?.v === 1);
@@ -171,7 +172,7 @@ check('G3 ungültig machen: v = 2, Link weg', (await data()).ga.find(x => x.id =
 await page.locator('[data-testid="moveout-card"] button').click(); await page.waitForTimeout(300);
 const mkt = await page.locator('[data-testid="moveout-kt"]').innerText().catch(() => '');
 check('A1 Übergabe-Seite: Kaution', /€1000,00 · Torben €600,00 · Tom €400,00 · zurück €900,00/.test(mkt), mkt);
-await page.locator('[data-testid="moveout-sheet"]').getByRole('button', { name: 'Schließen' }).click(); await page.waitForTimeout(200);
+await page.locator('[data-testid="moveout-sheet"]').getByRole('button', { name: WT.schliessen }).click(); await page.waitForTimeout(200);
 
 // ── V/R: Übersicht ──
 const mu = await page.evaluate(() => monthlyUse([{ date: '2025-01-01', value: 1000 }, { date: '2025-03-01', value: 1200 }, { date: '2025-04-01', value: 1300 }]).map(x => `${x.ym}:${x.use.toFixed(2)}`).join(' '));
@@ -189,7 +190,7 @@ const rt = await rs.locator('[data-testid="report-total"]').innerText();
 check('R1 Monatsbericht: Summe des Monats ohne die Kaution-Umbuchung', /Gesamt: €110,00/.test(rt), rt);
 const rp = await rs.locator('[data-testid="report-people"]').innerText();
 check('R2 pro Person bezahlt/Anteil (ohne Umbuchung)', /Torben\s+bezahlt €50,00\s+Anteil €65,00/.test(rp.replace(/\t/g, ' ')) && /Tom\s+bezahlt €60,00\s+Anteil €45,00/.test(rp.replace(/\t/g, ' ')), rp);
-await rs.getByRole('button', { name: 'Schließen' }).click(); await page.waitForTimeout(200);
+await rs.getByRole('button', { name: WT.schliessen }).click(); await page.waitForTimeout(200);
 
 // ── B: Wochen-Korb ──
 await tabTo('Haushalt');
@@ -307,7 +308,7 @@ const po = PO.page.locator('[data-testid="push-nudge-other"]');
 check('N4 Tom ohne Push → Hinweis mit WhatsApp-Link', /Tom bekommt keine Benachrichtigungen/.test(await po.innerText().catch(() => ''))
   && /^https:\/\/wa\.me\/\?text=Hey%20Tom/.test(await PO.page.locator('[data-testid="push-nudge-wa"]').getAttribute('href') || ''));
 check('N5 ohne Service Worker kein Eigen-Hinweis (nichts behaupten)', await PO.page.locator('[data-testid="push-nudge-own"]').count() === 0);
-await po.getByRole('button', { name: 'Später' }).click(); await PO.page.waitForTimeout(300);
+await po.getByRole('button', { name: WT.spaeter }).click(); await PO.page.waitForTimeout(300);
 check('N6 „Später" blendet 7 Tage aus', await po.count() === 0 && await PO.page.evaluate(() => JSON.parse(localStorage.getItem('wg_push_nudge')).until > Date.now() + 6 * 864e5));
 check('N7 keine Seitenfehler', PO.errs.length === 0, PO.errs.join(' | '));
 await PO.ctx.close();
@@ -333,7 +334,7 @@ await tIban.type('DE12', { timeout: 3000 }).catch(() => {});
 check('L2 Tippen in fremde IBAN ändert nichts', !(await BK.data()).users.find(u => u.id === 'u1').iban);
 await BK.page.locator('[data-testid="person-row"]', { hasText: 'Torben' }).getByRole('button', { name: 'Das bin ich' }).click(); await BK.page.waitForTimeout(300);
 check('L3 „Das bin ich" für eine andere Person fragt nach', /Bist du wirklich Torben/i.test(await BK.page.locator('body').innerText()));
-await BK.page.getByRole('button', { name: 'Abbrechen' }).last().click().catch(() => {}); await BK.page.waitForTimeout(300);
+await BK.page.getByRole('button', { name: WT.abbrechen }).last().click().catch(() => {}); await BK.page.waitForTimeout(300);
 check('L4 abgebrochen → weiter Tom', await BK.page.evaluate(() => JSON.parse(localStorage.getItem('wg_me'))) === 'u2');
 await BK.tabTo('Haushalt');
 check('K8 als Gläubiger: „Bankdaten an Torben schicken"', await BK.page.locator('[data-testid="bank-box"]').getByRole('button', { name: 'Bankdaten an Torben schicken' }).count() === 1);

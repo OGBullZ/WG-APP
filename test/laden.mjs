@@ -4,6 +4,7 @@
    C) Einkaufs-Touren (Laden je Eintrag, Tour übernehmen, „Nur meine Tour") */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const z = n => String(n).padStart(2, '0');
@@ -53,7 +54,7 @@ const calc = await A.page.evaluate(() => { const D = JSON.parse(localStorage.get
 check('A1 günstigster Laden zuerst', /"shop":"Lidl","price":0.99/.test(calc) && calc.indexOf('Lidl') < calc.indexOf('Rewe'), calc);
 await A.page.getByRole('button', { name: /Ausgabe hinzufügen/ }).first().click(); await A.page.waitForTimeout(400);
 await A.sheet.locator('input.field').first().fill('Milch');
-await A.sheet.getByRole('button', { name: 'Weiter' }).click(); await A.page.waitForTimeout(300);
+await A.sheet.getByRole('button', { name: WT.weiter }).click(); await A.page.waitForTimeout(300);
 check('A2 Hinweis: zuletzt Rewe 1,19', /Wie zuletzt: €1,19/.test(await A.sheet.innerText()) && /Rewe/.test(await A.sheet.innerText()));
 check('A3 günstigster Laden wird genannt', /💰 Günstigster: Lidl €0,99/.test(await A.sheet.locator('[data-testid="price-best"]').innerText().catch(() => '')));
 await A.sheet.locator('input[inputmode="decimal"]').first().fill('1,09');
@@ -137,10 +138,10 @@ check('D5 Frist steht an der Reparatur', /Frist bis/.test(await D1.page.locator(
 // Notfall-Infos
 await D1.tabTo('Mehr');
 await D1.page.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click())); await D1.page.waitForTimeout(300);
-await lc.getByRole('button', { name: '+ Eintragen' }).last().click(); await D1.page.waitForTimeout(300);
+await lc.getByRole('button', { name: WT.eintragen }).last().click(); await D1.page.waitForTimeout(300);
 await D1.sheet.getByLabel('Sicherungskasten').fill('Flur links oben');
 await D1.sheet.getByLabel('Wasser-Absperrhahn').fill('unter der Spüle');
-await D1.sheet.getByRole('button', { name: 'Speichern' }).click(); await D1.page.waitForTimeout(500);
+await D1.sheet.getByRole('button', { name: WT.speichern }).click(); await D1.page.waitForTimeout(500);
 check('D6 Notfall-Infos gespeichert und sichtbar', (await D1.data()).cf.some(x => x.id === 'notfall' && x.strom === 'Flur links oben')
   && /Flur links oben/.test(await lc.locator('[data-testid="nf-row"]').first().innerText()));
 check('D7 keine Seitenfehler', D1.errs.length === 0, D1.errs.join(' | '));

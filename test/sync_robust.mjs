@@ -8,6 +8,7 @@
    Der Stub (test/_fbstub.mjs) wirft jetzt wie das SDK bei undefined und entfernt leere Elternknoten wie die RTDB. */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const z = n => String(n).padStart(2, '0');
@@ -51,7 +52,7 @@ const erledigt = page.getByRole('button', { name: 'Filter wechseln erledigt' });
 check('A0 fällige Wartung steht auf Heute (Vorbedingung)', await erledigt.count() === 1);
 if (await erledigt.count() === 1) {
   await erledigt.click(); await page.waitForTimeout(250);
-  await page.getByRole('button', { name: 'Rückgängig' }).click();
+  await page.getByRole('button', { name: WT.rueckgaengig }).click();
   await page.waitForTimeout(1000);   // Flush nach 400 ms + Antwort
   const w = await page.evaluate(() => window.__wg.undefWuerfe || 0);
   check('A1 kein Write mit undefined (der Stub wirft dabei wie das echte SDK)', w === 0, `${w} Würfe`);
@@ -67,7 +68,7 @@ const slNach = (await lokal()).sl || [];
 check('D1 remote geleerte Liste kommt an: „Milch" ist auch hier weg', !slNach.some(i => i.id === 's1'), JSON.stringify(slNach));
 
 // ── N: Hin-und-zurück auf einem Nicht-Listen-Key (gp) ──
-await page.locator('.tabbar .tabitem', { hasText: 'Growbox' }).click(); await page.waitForTimeout(700);
+await page.locator('.tabbar .tabitem', { hasText: WT.tabGrowbox }).click(); await page.waitForTimeout(700);
 const mehr = page.getByRole('button', { name: 'Eine Pflanze mehr für Torben' });
 check('N0 Pflanzen-Zähler erreichbar (Vorbedingung)', await mehr.count() >= 1);
 if (await mehr.count()) {

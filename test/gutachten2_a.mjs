@@ -36,6 +36,7 @@
    stehen die Phasen noch deutsch (59/59, grün); mit dem EN-Wert „Germination" statt „Seedling" misst sie 60/59 und wird rot (so gesehen am 24.10., Kopie mit getauschtem Wörterbucheintrag). */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const url = process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';   /* 127.0.0.1 statt localhost: localhost kostet unter Windows 2 s (IPv6-Versuch) */
 const z = n => String(n).padStart(2, '0');
@@ -368,12 +369,12 @@ const kontrast = (a, b) => { const x = leuchte(a), y = leuchte(b); return (Math.
 const loeschKnopf = async theme => {
   const S = await open(SEED_LISTE, { tab: 'set', theme });
   const p = S.page;
-  await p.getByRole('button', { name: 'Alle lokalen Daten löschen' }).click();
+  await p.getByRole('button', { name: WT.datenLoeschen }).click();
   const knopf = p.locator('.overlay:not(.zu) .sheet-acts .btn:not(.btn-sec)');
   await knopf.waitFor({ timeout: 4000 });
   await p.waitForTimeout(500);
   const m = await knopf.evaluate(e => { const cs = getComputedStyle(e); return { farbe: cs.color, flaeche: cs.backgroundColor, text: e.textContent.trim() }; });
-  await p.getByRole('button', { name: 'Abbrechen' }).first().click();
+  await p.getByRole('button', { name: WT.abbrechen }).first().click();
   return { ...m, verhaeltnis: kontrast(faerb(m.farbe), faerb(m.flaeche)) };
 };
 for (const [id, theme, bleibt] of [['K1a', 'dark', ''], ['K1b', 'light', '[bleibt] ']]) {

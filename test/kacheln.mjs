@@ -8,6 +8,7 @@
    P  Putzplan: Müllabfuhr-Kachel öffnet direkt „Tonne eintragen" */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const z = n => String(n).padStart(2, '0');
@@ -60,11 +61,11 @@ check('K3 Kacheln groß genug zum Tippen (≥ 44 px)', maße.every(([w, h]) => w
 await kachel('fridge').click(); await page.waitForTimeout(400);
 check('F1 ein Tipp öffnet direkt das Eingabeblatt (kein zweiter Tipp nötig)', await blatt.count() === 1 && await page.getByPlaceholder('Was? z. B. Milch').count() === 1);
 check('F2 die leere Karte erscheint dabei NICHT im Feed', !(await page.locator('[data-testid="fridge-card"]').isVisible()));
-await page.getByRole('button', { name: 'Abbrechen' }).first().click(); await page.waitForTimeout(300);
+await page.getByRole('button', { name: WT.abbrechen }).first().click(); await page.waitForTimeout(300);
 check('F3 Abbrechen: Blatt zu, Kachel bleibt', await blatt.count() === 0 && await kachel('fridge').count() === 1);
 await kachel('fridge').click(); await page.waitForTimeout(400);
 await page.getByPlaceholder('Was? z. B. Milch').fill('Joghurt');
-await blatt.getByRole('button', { name: 'Speichern' }).click(); await page.waitForTimeout(600);
+await blatt.getByRole('button', { name: WT.speichern }).click(); await page.waitForTimeout(600);
 check('F4 nach dem Speichern: Karte im Feed, Kachel weg', await page.locator('[data-testid="fridge-card"]').isVisible() && await kachel('fridge').count() === 0
   && /Joghurt/.test(await page.locator('[data-testid="fridge-card"]').innerText()));
 
@@ -79,24 +80,24 @@ check('Q2 nach dem Senden schließt das Blatt, die Karte steht im Feed', await b
 // (erster Entwurf: Blatt mit Karte → zweiter Tipp „Login freigeben", und das Blatt schloss sich samt Code, sobald die
 // Freigabe existierte; die Karte wird beim Wechsel neu eingehängt → Code steht in `lgMadeMerk`)
 await kachel('login').click(); await page.waitForTimeout(400);
-check('L1 Kachel „Login teilen" öffnet direkt das Formular', await page.getByLabel('Dienst').count() === 1 && await blatt.count() === 1);
-await page.getByLabel('Dienst').fill('Netflix');
-await page.getByLabel('Passwort').fill('x-geheim-1');
-await page.getByRole('button', { name: 'Code erzeugen' }).click();
+check('L1 Kachel „Login teilen" öffnet direkt das Formular', await page.getByLabel(WT.dienst).count() === 1 && await blatt.count() === 1);
+await page.getByLabel(WT.dienst).fill('Netflix');
+await page.getByLabel(WT.passwort).fill('x-geheim-1');
+await page.getByRole('button', { name: WT.codeErzeugen }).click();
 await page.locator('[data-testid="lg-code"]').waitFor({ timeout: 8000 }).catch(() => {});
 await page.waitForTimeout(600);
 check('L2 Code bleibt sichtbar, obwohl die Karte jetzt im Feed steht', await page.locator('[data-testid="lg-code"]').isVisible() && await page.locator('[data-tool="login"]').count() === 1 && await kachel('login').count() === 0);
-await page.getByRole('button', { name: 'Fertig', exact: true }).click(); await page.waitForTimeout(300);
+await page.getByRole('button', { name: WT.fertig, exact: true }).click(); await page.waitForTimeout(300);
 check('L3 „Fertig" schließt, Code ist weg (auch nach erneutem Öffnen des Formulars)', await blatt.count() === 0
-  && await (async () => { await page.getByRole('button', { name: /Login freigeben/ }).click(); await page.waitForTimeout(300); const da = await page.locator('[data-testid="lg-code"]').count(); await page.getByRole('button', { name: 'Abbrechen' }).first().click(); await page.waitForTimeout(300); return da === 0; })());
+  && await (async () => { await page.getByRole('button', { name: /Login freigeben/ }).click(); await page.waitForTimeout(300); const da = await page.locator('[data-testid="lg-code"]').count(); await page.getByRole('button', { name: WT.abbrechen }).first().click(); await page.waitForTimeout(300); return da === 0; })());
 
 // L4 (wg-v108): der Einmal-Code darf nach einem Reiterwechsel von außen NICHT von selbst wieder aufspringen.
 // Der Merker `lgMadeMerk` ist nur für das Neueinhängen der Karte (Millisekunden) gedacht und verfällt nach 5 s.
 // Vorher blieb er stehen, wenn das Blatt nicht über „Fertig" zuging (z. B. Push-Link wechselt den Reiter).
 await page.getByRole('button', { name: /Login freigeben/ }).click(); await page.waitForTimeout(300);
-await page.getByLabel('Dienst').fill('Disney');
-await page.getByLabel('Passwort').fill('y-geheim-2');
-await page.getByRole('button', { name: 'Code erzeugen' }).click();
+await page.getByLabel(WT.dienst).fill('Disney');
+await page.getByLabel(WT.passwort).fill('y-geheim-2');
+await page.getByRole('button', { name: WT.codeErzeugen }).click();
 await page.locator('[data-testid="lg-code"]').waitFor({ timeout: 8000 }).catch(() => {});
 await page.evaluate(() => window.dispatchEvent(new CustomEvent('wg-tab', { detail: 'haus' })));   // Blatt bleibt offen, Heute geht weg
 await page.waitForTimeout(5600);
@@ -104,10 +105,10 @@ await page.evaluate(() => window.dispatchEvent(new CustomEvent('wg-tab', { detai
 check('L4 nach Reiterwechsel von außen springt das Code-Blatt nicht wieder auf', await page.locator('[data-testid="lg-code"]').count() === 0 && await blatt.count() === 0);
 
 // ── P: Putzplan ──
-await page.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).click(); await page.waitForTimeout(600);
+await page.locator('.tabbar .tabitem', { hasText: WT.tabPutzplan }).click(); await page.waitForTimeout(600);
 await kachel('pickup').click(); await page.waitForTimeout(400);
 check('P1 Müllabfuhr-Kachel öffnet direkt „Tonne eintragen"', await blatt.count() === 1 && /Papier|Restmüll|Bio/.test(await blatt.innerText()), (await blatt.innerText().catch(() => '')).slice(0, 80));
-await page.getByRole('button', { name: 'Abbrechen' }).first().click(); await page.waitForTimeout(300);
+await page.getByRole('button', { name: WT.abbrechen }).first().click(); await page.waitForTimeout(300);
 
 check('Z1 kein Write mit undefined', await page.evaluate(() => window.__wg.undefWuerfe || 0) === 0);
 check('Z2 keine Seitenfehler', errs.length === 0, errs.slice(0, 2).join(' | '));

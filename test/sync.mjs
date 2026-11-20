@@ -11,6 +11,7 @@
    er auch nie ankam. Gegenprobe „WG übernehmen" muss weiterhin verwerfen. */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs'; // Firebase-Ersatz, geteilt mit logins.mjs
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 
@@ -56,7 +57,7 @@ async function open({ localData = {}, joinMode = null, code = 'TEST-LOKAL-SYNC00
   await page.locator('.tabbar').waitFor({ timeout: 30000 });
   await page.waitForTimeout(600);
   for (let i = 0; i < 2; i++) {
-    const l = page.getByRole('button', { name: 'Später' });
+    const l = page.getByRole('button', { name: WT.spaeter });
     if (await l.count()) { await l.first().click(); await page.waitForTimeout(300); }
   }
   return page;
@@ -266,7 +267,7 @@ const remoteHs = page => page.evaluate(() => Object.values(window.__wg.remote.hs
 
   // Löschen in dieser (frischen) Sitzung muss beim Server ankommen
   // Kein ×-Knopf = Ankündigung gar nicht sichtbar → laut rot statt Timeout-Absturz
-  await page.locator('.tabbar .tabitem', { hasText: 'Heute' }).click(); await page.waitForTimeout(500);   // Ankündigungen leben seit wg-v66 auf „Heute“
+  await page.locator('.tabbar .tabitem', { hasText: WT.tabHeute }).click(); await page.waitForTimeout(500);   // Ankündigungen leben seit wg-v66 auf „Heute“
   const delBtn = page.locator('.del-btn[aria-label="Ankündigung entfernen"]');
   check('H4a Ankündigung ist in der UI sichtbar (×-Knopf da)', await delBtn.count() > 0);
   if (await delBtn.count()) {
