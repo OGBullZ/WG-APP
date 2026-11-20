@@ -1,0 +1,35 @@
+- text: Haushalt
+- button "Suchen":
+  - img
+- text: STATUS
+- button "💶 Ausgaben" [pressed]
+- button "🛒 Einkaufsliste (2)"
+- text: Deine Bilanz € 11,50 ich schulde Haushalt 86% €37,50 Growbox 14% €6,00 Torben Tom €11,50 Per Klick zahlen geht, sobald Tom unter Mehr → Personen PayPal oder IBAN hinterlegt hat.
+- button "✓ Ich habe €11,50 bezahlt"
+- text: "Erst „Ich habe bezahlt“ tippen. Tom rechnet ab, sobald das Geld da ist. Unterm Strich verrechnet: Haushalt −€17,50 · Growbox +€6,00 (aus Sicht von Torben)"
+- textbox "Ausgabe in einem Satz":
+  - /placeholder: "⚡ Schnell: „12,50 Pizza“"
+- button "+ Ausgabe hinzufügen"
+- heading "Hinzufügen" [level=2]
+- button "Monatsbudget"
+- button "Sparziel"
+- button "Miete"
+- button "Regelmäßig"
+- heading "Einzelposten" [level=2]
+- button "Pizza als abgerechnet markieren"
+- button "Pizza bearbeiten": Pizza
+- text: DATUM Torben €20,00 je €10,00
+- button "Pizza löschen":
+  - img
+- button "Strom als abgerechnet markieren"
+- button "Strom bearbeiten": Strom
+- text: DATUM Tom
+- button "Was war das? – Strom"
+- text: €55,00 je €27,50
+- button "Strom löschen":
+  - img
+- button "Erde als abgerechnet markieren"
+- button "Erde bearbeiten": 🌱 Erde DATUM Torben nach Pflanzen Torben €6,00 Tom €6,00
+- text: €12,00 Growbox
+- button "Erde löschen":
+  - img

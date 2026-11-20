@@ -5,6 +5,7 @@
 import { chromium } from 'playwright';
 import { readFileSync } from 'fs';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const z = n => String(n).padStart(2, '0');
@@ -94,8 +95,8 @@ check('K1 sortiert nach Datum, Abgelaufenes zuerst', /Käse/.test(fr[0]) && /sei
 check('K2 „läuft morgen ab" + Besitzer', /Milch · Tom/.test(fr[1]) && /läuft morgen ab/.test(fr[1]), fr[1]);
 await page.locator('[data-testid="fridge-card"]').getByRole('button', { name: '+ Eintrag' }).click(); await page.waitForTimeout(300);
 await sheet.getByLabel('Lebensmittel').fill('Joghurt');
-await sheet.getByRole('button', { name: 'Torben' }).click();
-await sheet.getByRole('button', { name: 'Speichern' }).click(); await page.waitForTimeout(500);
+await sheet.getByRole('button', { name: WT.torben }).click();
+await sheet.getByRole('button', { name: WT.speichern }).click(); await page.waitForTimeout(500);
 d = await data();
 check('K3 neuer Eintrag: +3 Tage, gehört mir', d.kf.some(k => k.name === 'Joghurt' && k.exp === dayAgo(-3) && k.owner === 'u1'), JSON.stringify(d.kf));
 // wg-v95: Die Zeile gleitet erst weg (420 ms), erst danach wird entfernt.
@@ -124,7 +125,7 @@ check('E4 Vorschlag: Tom kocht (hat seltener gekocht)', (await sheet.locator('.p
 check('E5 erster freier Tag vorbelegt (heute ist belegt → morgen)', (await sheet.getByLabel('Tag').inputValue()) === dayAgo(-1));
 await sheet.getByLabel('Gericht').fill('Chili');
 await sheet.getByLabel('Zutaten').fill('Bohnen, Mais');
-await sheet.getByRole('button', { name: 'Speichern' }).click(); await page.waitForTimeout(500);
+await sheet.getByRole('button', { name: WT.speichern }).click(); await page.waitForTimeout(500);
 d = await data();
 check('E6 Gericht gespeichert', d.ep.some(e => e.dish === 'Chili' && e.cook === 'u2' && e.date === dayAgo(-1) && e.ings === 'Bohnen, Mais'), JSON.stringify(d.ep));
 check('E7 Wochenliste zeigt beide Gerichte', await page.locator('[data-testid="meal-row"]').count() === 2);
@@ -153,9 +154,9 @@ await sheet.getByRole('button', { name: 'Vermerken' }).click(); await page.waitF
 check('S2 Einzahlung addiert (c_u1 60 → 65)', (await data()).sg.find(g => g.id === 'g1').c_u1 === 65);
 await page.getByRole('button', { name: /Rückgängig/ }).first().click().catch(() => {}); await page.waitForTimeout(400);
 check('S3 Rückgängig nimmt sie zurück', (await data()).sg.find(g => g.id === 'g1').c_u1 === 60);
-await sc.getByRole('button', { name: 'Gekauft' }).click(); await page.waitForTimeout(300);
+await sc.getByRole('button', { name: WT.gekauft }).click(); await page.waitForTimeout(300);
 check('S4 Kaufpreis = Ziel vorbelegt', (await sheet.getByLabel('Kaufpreis').inputValue()) === '120');
-await sheet.getByRole('button', { name: 'Als Ausgabe eintragen' }).click(); await page.waitForTimeout(500);
+await sheet.getByRole('button', { name: WT.alsAusgabeEintragen }).click(); await page.waitForTimeout(500);
 d = await data();
 const sgItems = d.hs.filter(i => i.sg === 'g1');
 check('S5 zwei Posten: Kauf (ich zahle, 50/50) + Toms Einzahlung an mich', sgItems.length === 2
@@ -174,7 +175,7 @@ await page.getByRole('button', { name: /Einkaufsliste/ }).first().click(); await
 await page.getByRole('button', { name: 'Brot abhaken' }).click(); await page.waitForTimeout(300);
 await page.getByRole('button', { name: 'Bier abhaken' }).click(); await page.waitForTimeout(1000);
 await page.locator('[data-testid="receipt-btn"]').click(); await page.waitForTimeout(400);
-await sheet.getByRole('button', { name: 'Weiter' }).click(); await page.waitForTimeout(200);
+await sheet.getByRole('button', { name: WT.weiter }).click(); await page.waitForTimeout(200);
 await sheet.locator('input[inputmode="decimal"]').first().fill('20');
 check('G1 Artikel zur Auswahl', await sheet.locator('[data-testid="receipt-mine"] button').count() === 2);
 await sheet.locator('[data-testid="receipt-mine"]').getByRole('button', { name: 'Bier' }).click();
@@ -193,12 +194,12 @@ const receipt = async (names, price, mineName, mineAmt, step3) => {
   for (const n of names) { await page.getByRole('button', { name: n + ' abhaken' }).click(); await page.waitForTimeout(250); }
   await page.waitForTimeout(900);
   await page.locator('[data-testid="receipt-btn"]').click(); await page.waitForTimeout(400);
-  await sheet.getByRole('button', { name: 'Weiter' }).click(); await page.waitForTimeout(200);
+  await sheet.getByRole('button', { name: WT.weiter }).click(); await page.waitForTimeout(200);
   await sheet.locator('input[inputmode="decimal"]').first().fill(price);
   if (mineName) { await sheet.locator('[data-testid="receipt-mine"]').getByRole('button', { name: mineName }).click(); await sheet.getByLabel('Betrag nur für dich').fill(mineAmt); }
-  await sheet.getByRole('button', { name: 'Weiter', exact: true }).click(); await page.waitForTimeout(300);
+  await sheet.getByRole('button', { name: WT.weiter, exact: true }).click(); await page.waitForTimeout(300);
   await step3();
-  await sheet.getByRole('button', { name: 'Fertig', exact: true }).click(); await page.waitForTimeout(600);
+  await sheet.getByRole('button', { name: WT.fertig, exact: true }).click(); await page.waitForTimeout(600);
 };
 await receipt(['Chips', 'Saft'], '10', 'Chips', '4', () => sheet.locator('.pick-btn', { hasText: /^Tom$/ }).click());
 d = await data();
@@ -217,7 +218,7 @@ const cc = page.locator('[data-testid="costs-card"]');
 // leere Nebenkosten sind eine Kachel — seit wg-v105 öffnet ein Tipp darauf direkt „Nebenkosten verteilen"
 check('N0 ohne Abrechnung: Kachel statt Karte', await page.locator('[data-chip="nk"]').count() === 1 && !(await cc.isVisible()));
 await page.locator('[data-chip="nk"]').click(); await page.waitForTimeout(300);
-await sheet.getByLabel('Betrag der Nebenkostenabrechnung').fill('300');
+await sheet.getByLabel(WT.nebenkosten).fill('300');
 await sheet.locator('#nk-share').fill('60');
 const np = await sheet.locator('[data-testid="nk-preview"]').innerText().catch(() => '');
 check('N1 Vorschau nach Anteil 60/40', /Torben €180,00 · Tom €120,00/.test(np), np);
@@ -228,16 +229,16 @@ const jahrFeld = sheet.getByLabel('Jahr der Nebenkostenabrechnung');
 await jahrFeld.fill(''); await jahrFeld.pressSequentially('x20y24z9');
 const jahrWert = await jahrFeld.inputValue();
 check('N1b Abrechnungsjahr nimmt nur Ziffern (max. 4): „x20y24z9" getippt → 2024', jahrWert === '2024', `Wert: „${jahrWert}"`);
-await sheet.getByRole('button', { name: 'Verteilen' }).click(); await page.waitForTimeout(500);
+await sheet.getByRole('button', { name: WT.verteilen }).click(); await page.waitForTimeout(500);
 d = await data();
 let nk = d.hs.filter(i => i.nk);
 check('N2 Nachzahlung: je Person ein Posten, ich habe bezahlt', nk.length === 2 && nk.every(i => i.paidBy === 'u1' && i.cat === 'fix'), JSON.stringify(nk));
 check('N3 Tom schuldet 120', Math.abs(net(nk, 'u2') + 120) < 0.001 && Math.abs(net(nk, 'u1') - 120) < 0.001);
 await cc.getByRole('button', { name: '+ Nebenkosten' }).click(); await page.waitForTimeout(300);
 await sheet.getByRole('button', { name: 'Guthaben' }).click();
-await sheet.getByLabel('Betrag der Nebenkostenabrechnung').fill('80');
+await sheet.getByLabel(WT.nebenkosten).fill('80');
 await sheet.locator('.pick-btn', { hasText: 'Tom' }).click();
-await sheet.getByRole('button', { name: 'Verteilen' }).click(); await page.waitForTimeout(500);
+await sheet.getByRole('button', { name: WT.verteilen }).click(); await page.waitForTimeout(500);
 d = await data();
 const gut = d.hs.filter(i => i.nk && /Guthaben/.test(i.name));
 check('N4 Guthaben bei Tom → Tom schuldet mir meine Hälfte (40)', gut.length === 1 && Math.abs(net(gut, 'u1') - 40) < 0.001 && Math.abs(net(gut, 'u2') + 40) < 0.001, JSON.stringify(gut));
@@ -250,10 +251,10 @@ check('V1 Sprach-Vorlage', /\/\?a=ausgabe&t=$/.test(await page.locator('[data-te
 const ic = page.locator('[data-testid="inventory-card"]');
 await ic.getByRole('button', { name: '+ Gegenstand' }).click(); await page.waitForTimeout(300);
 await sheet.getByLabel('Gegenstand').fill('Sofa');
-await sheet.getByRole('button', { name: 'Torben' }).click();
+await sheet.getByRole('button', { name: WT.torben }).click();
 await sheet.getByLabel('Preis').fill('250');
 await sheet.locator('#inv-w').fill(dayAgo(-10));
-await sheet.getByRole('button', { name: 'Speichern' }).click(); await page.waitForTimeout(500);
+await sheet.getByRole('button', { name: WT.speichern }).click(); await page.waitForTimeout(500);
 check('I1 gespeichert mit Besitzer', (await data()).inv.some(i => i.name === 'Sofa' && i.owner === 'u1' && i.price === 250 && i.warranty === dayAgo(-10)));
 const ir = await ic.innerText();
 check('I2 gruppiert + Garantie-Warnung', /Torben · 1/.test(ir) && /Garantie noch 10 Tage/.test(ir), ir);
@@ -268,14 +269,14 @@ check('A2 offene Beträge = Bilanz', n1 > 0 ? bal === `Tom schuldet Torben €${
 await page.emulateMedia({ media: 'print' });
 check('A3 Druckansicht: nur die Seite, ohne Knöpfe und Tab-Leiste', await ms.isVisible() && !(await page.locator('.tabbar').isVisible()) && !(await ms.getByRole('button', { name: /Drucken/ }).isVisible()));
 await page.emulateMedia({ media: 'screen' });
-await ms.getByRole('button', { name: 'Schließen' }).click(); await page.waitForTimeout(300);
+await ms.getByRole('button', { name: WT.schliessen }).click(); await page.waitForTimeout(300);
 check('A4 Schließen', await ms.count() === 0);
 check('Z1 keine Seitenfehler', M.errs.length === 0, M.errs.join(' | '));
 await M.ctx.close();
 
 // ── V: Sprach-Kurzbefehl öffnet die Schnell-Zeile vorbelegt ──
 const V = await open(SEED, { query: '?a=ausgabe&t=' + encodeURIComponent('12,50 Pizza') });
-const qi = V.page.getByLabel('Ausgabe in einem Satz');
+const qi = V.page.getByLabel(WT.ausgabeSatz);
 check('V2 Haushalt offen, Schnell-Zeile vorbelegt', (await qi.inputValue().catch(() => '')) === '12,50 Pizza');
 check('V3 Hinweis „per Sprache" + kein Formular', await V.page.locator('[data-testid="quick-voice"]').count() === 1 && await V.page.locator('.sheet:visible').count() === 0);
 check('V4 Adresse bereinigt', await V.page.evaluate(() => location.search) === '');
@@ -299,10 +300,10 @@ const Z = await open({ users: U3 }, { tab: 'stats' });
 const zs = Z.page.locator('.sheet:visible');
 await Z.page.locator('[data-chip="nk"]').click(); await Z.page.waitForTimeout(300);   // Kachel öffnet direkt (wg-v105)
 check('N6 drei Personen: kein Anteil-Schieber', await zs.locator('#nk-share').count() === 0);
-await zs.getByLabel('Betrag der Nebenkostenabrechnung').fill('100');
+await zs.getByLabel(WT.nebenkosten).fill('100');
 const z3 = await zs.locator('[data-testid="nk-preview"]').innerText();
 check('N7 gleich verteilt, Cent-Rest an die Letzte', z3 === 'Torben €33,33 · Tom €33,33 · Kim €33,34', z3);
-await zs.getByRole('button', { name: 'Verteilen' }).click(); await Z.page.waitForTimeout(500);
+await zs.getByRole('button', { name: WT.verteilen }).click(); await Z.page.waitForTimeout(500);
 const z3i = (await Z.data()).hs.filter(i => i.nk);
 check('N8 drei Posten, Summe 100', z3i.length === 3 && Math.abs(z3i.reduce((a, i) => a + i.price, 0) - 100) < 0.001, JSON.stringify(z3i.map(i => i.price)));
 check('N9 keine Seitenfehler', Z.errs.length === 0, Z.errs.join(' | '));
@@ -310,7 +311,7 @@ await Z.ctx.close();
 const Q = await open({ users: USERS }, { tab: 'stats' });
 const qs = Q.page.locator('.sheet:visible');
 await Q.page.locator('[data-chip="nk"]').click(); await Q.page.waitForTimeout(300);   // Kachel öffnet direkt (wg-v105)
-await qs.getByLabel('Betrag der Nebenkostenabrechnung').fill('100,01');
+await qs.getByLabel(WT.nebenkosten).fill('100,01');
 const q2 = await qs.locator('[data-testid="nk-preview"]').innerText();
 check('N10 zwei Personen 100,01 → 50,01 + 50,00', q2 === 'Torben €50,01 · Tom €50,00', q2);
 await Q.ctx.close();
@@ -327,7 +328,7 @@ check('R6 gültige Regel aufgehoben → Push', X.pushes.some(p => /Regel aufgeho
 // Sparziel auflösen: Toms Einzahlung zurück
 await X.tabTo('Haushalt');
 const xs = X.page.locator('.sheet:visible');
-await X.page.locator('[data-testid="savings-card"]').getByRole('button', { name: 'Gekauft' }).click(); await X.page.waitForTimeout(300);
+await X.page.locator('[data-testid="savings-card"]').getByRole('button', { name: WT.gekauft }).click(); await X.page.waitForTimeout(300);
 await xs.getByRole('button', { name: /Ziel auflösen/ }).click(); await X.page.waitForTimeout(500);
 const xd = await X.data();
 const back = xd.hs.filter(i => i.sg === 'g2');

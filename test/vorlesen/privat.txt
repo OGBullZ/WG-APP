@@ -1,0 +1,17 @@
+- text: Privat
+- button "Suchen":
+  - img
+- text: LOKAL 🔒
+- heading "PIN festlegen" [level=2]
+- text: Vier Ziffern schützen deinen privaten Bereich. Die Daten liegen nur auf diesem Gerät und werden nicht mit der WG geteilt.
+- button "1"
+- button "2"
+- button "3"
+- button "4"
+- button "5"
+- button "6"
+- button "7"
+- button "8"
+- button "9"
+- button "0"
+- button "Löschen": ⌫

@@ -6,6 +6,7 @@ import { chromium } from 'playwright';
 import { readFileSync } from 'fs';
 import { STUB } from './_fbstub.mjs';
 import { openTool } from './_heute.mjs';   // leere Werkzeuge auf Heute sind seit wg-v82 Chips
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const z = n => String(n).padStart(2, '0');
@@ -97,7 +98,7 @@ const rb = page.locator('[data-testid="receipt-btn"]');
 check('C1 nach dem Abhaken: „1 abgehakt · Betrag eintragen"', /1 abgehakt/.test(await rb.innerText().catch(() => '')));
 await rb.click(); await page.waitForTimeout(400);
 check('C2 Name vorbelegt', (await page.locator('.sheet input.field').first().inputValue()) === 'Einkauf: Milch');
-await page.getByRole('button', { name: 'Weiter' }).click(); await page.waitForTimeout(200);
+await page.getByRole('button', { name: WT.weiter }).click(); await page.waitForTimeout(200);
 await page.locator('.sheet input[inputmode="decimal"]').fill('12,50');
 await page.getByRole('button', { name: /Sofort speichern/ }).click(); await page.waitForTimeout(600);
 d = await data();
@@ -130,11 +131,11 @@ check('E2 eigene Nachricht', (await data()).qm.some(m => m.text === 'Bringe Brö
 
 // ── F: Reparaturen ──
 check('F1 seit 20 Tagen gemeldet → rot „nachhaken"', /seit 20 Tagen gemeldet – nachhaken/.test(await page.locator('[data-testid="repair-row"]', { hasText: 'Fenster klemmt' }).innerText()));
-await page.getByLabel('Kaputtes eintragen').fill('Heizung Bad'); await page.getByLabel('Kaputtes eintragen').press('Enter'); await page.waitForTimeout(400);
+await page.getByLabel(WT.kaputtesEintragen).fill('Heizung Bad'); await page.getByLabel(WT.kaputtesEintragen).press('Enter'); await page.waitForTimeout(400);
 const hz = page.locator('[data-testid="repair-row"]', { hasText: 'Heizung Bad' });
 check('F2 neu: „noch nicht gemeldet" + Push', /noch nicht gemeldet/.test(await hz.innerText()) && pushes.some(p => /Kaputt: Heizung Bad/.test(p.title)));
 await hz.getByRole('button', { name: 'Gemeldet ✓' }).click(); await page.waitForTimeout(400);
-await page.getByLabel('Kaputtes eintragen').fill('Vertipt'); await page.getByLabel('Kaputtes eintragen').press('Enter'); await page.waitForTimeout(300);
+await page.getByLabel(WT.kaputtesEintragen).fill('Vertipt'); await page.getByLabel(WT.kaputtesEintragen).press('Enter'); await page.waitForTimeout(300);
 // wg-v95: Die Zeile gleitet erst weg (420 ms), danach wird gelöscht — deshalb länger warten.
 // Vorher wird bewusst geprüft, dass der Abgang läuft: sonst würde ein längeres Warten nur den Fehler verdecken.
 // Tippen und Nachsehen in EINEM Zug im Browser: Zwischen zwei Playwright-Befehlen kann auf einem langsamen
@@ -170,7 +171,7 @@ await page.locator('.sheet button', { hasText: 'Alle 2 Wochen' }).click();
 await page.locator('.sheet button', { hasText: 'Speichern' }).click(); await page.waitForTimeout(400);
 check('H1 Tonne angelegt: „Papier · morgen"', /Papier · morgen/.test(await page.locator('[data-testid="pickup-row"]').first().innerText()));
 await page.locator('[data-testid="chore-row"]', { hasText: 'Papier raus' }).locator('.cell-content').click(); await page.waitForTimeout(300);
-await page.getByRole('button', { name: 'Weiter' }).click(); await page.waitForTimeout(200);
+await page.getByRole('button', { name: WT.weiter }).click(); await page.waitForTimeout(200);
 await page.locator('[data-testid="pk-opt"]', { hasText: 'Papier' }).click();
 await page.getByRole('button', { name: /Änderung speichern/ }).click(); await page.waitForTimeout(500);
 const pRow = await page.locator('[data-testid="chore-row"]', { hasText: 'Papier raus' }).innerText();
@@ -203,7 +204,7 @@ await M.ctx.close();
   const C = await open(S2, 'u2');
   check('G2b gleicher Betrag → kein Abweichungs-Hinweis', await C.page.locator('[data-testid="pay-diff"]').count() === 0);
   check('G3 Gläubiger sieht „Torben hat €20,00 bezahlt"', /Torben hat €20,00 bezahlt/.test(await C.page.locator('[data-testid="pay-confirm"]').innerText().catch(() => '')));
-  await C.page.getByRole('button', { name: 'Angekommen ✓' }).click(); await C.page.waitForTimeout(600);
+  await C.page.getByRole('button', { name: WT.angekommen }).click(); await C.page.waitForTimeout(600);
   const cd = await C.data();
   check('G4 bestätigt → Posten abgerechnet, Meldung ok, Abrechnung erfasst', cd.hs.every(i => i.settled) && cd.pr[0].status === 'ok' && cd.stl.some(s => s.mod === 'hs' && s.amount === 20), JSON.stringify({ pr: cd.pr, stl: cd.stl }));
   await C.ctx.close();
@@ -211,10 +212,10 @@ await M.ctx.close();
   const S3 = { ...S2, hs: map([...Object.values(SEED.hs), { id: 'h9', name: 'Nachzügler', price: 10, paidBy: 'u2', date: T, settled: false }]) };
   const X = await open(S3, 'u2');
   check('G5a Betrag geändert → „Offen sind inzwischen €25,00"', /€25,00/.test(await X.page.locator('[data-testid="pay-diff"]').innerText().catch(() => '')));
-  await X.page.getByRole('button', { name: 'Angekommen ✓' }).click(); await X.page.waitForTimeout(400);
+  await X.page.getByRole('button', { name: WT.angekommen }).click(); await X.page.waitForTimeout(400);
   const asked = /Betrag hat sich geändert/i.test(await X.page.locator('body').innerText());
   check('G5b Nachfrage erscheint', asked);
-  if (asked) { await X.page.getByRole('button', { name: 'Abbrechen' }).last().click(); await X.page.waitForTimeout(400); }
+  if (asked) { await X.page.getByRole('button', { name: WT.abbrechen }).last().click(); await X.page.waitForTimeout(400); }
   check('G5c Abbrechen → nichts abgerechnet, Meldung bleibt offen', (await X.data()).hs.every(i => !i.settled) && (await X.data()).pr[0].status === 'open');
   await X.ctx.close();
   const R = await open({ ...S2 }, 'u2');
@@ -249,7 +250,7 @@ check('K1 Manifest: sechs Kürzel mit Name und Symbol', kuerzel.map(s => s.url).
   await K.page.waitForTimeout(800);
   const kd = await K.data();
   check('K5 ?a=muell → Müll abgehakt (mit Rückgängig), Putzplan offen', kd.pl.some(l => l.taskId === 't2' && l.userId === 'u1' && l.date === T)
-    && await K.page.locator('.tabbar .tabitem.on', { hasText: 'Putzplan' }).count() === 1 && await K.page.getByRole('button', { name: 'Rückgängig' }).count() === 1);
+    && await K.page.locator('.tabbar .tabitem.on', { hasText: 'Putzplan' }).count() === 1 && await K.page.getByRole('button', { name: WT.rueckgaengig }).count() === 1);
   await K.page.reload({ waitUntil: 'domcontentloaded' }); await K.page.locator('.tabbar').waitFor(); await K.page.evaluate(() => window.__wg.fire()); await K.page.waitForTimeout(800);
   check('K6 Neuladen hakt nicht erneut ab (Parameter weg)', !K.page.url().includes('?a=') && (await K.data()).pl.filter(l => l.taskId === 't2' && l.date === T).length <= 1);
   await K.ctx.close();

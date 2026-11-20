@@ -1,0 +1,27 @@
+- text: Übersicht
+- button "Suchen":
+  - img
+- text: STATUS
+- button "Vorheriger Monat": ‹
+- button "MONAT JJJJ"
+- button "Nächster Monat" [disabled]: ›
+- text: WG-Ausgaben · MONAT JJJJ € 87,00 Haushalt €75,00 Growbox €12,00 Abos/Mo. €0,00 Torben schuldet Tom insgesamt €11,50 Haushalt inkl. Growbox, offene Posten · abgerechnet wird im Haushalt
+- heading "Wer hat bezahlt" [level=2]
+- text: Torben €32,00 Tom €55,00
+- heading "Kategorien · Haushalt" [level=2]
+- button "Haushaltswaren – Budget bearbeiten": 🧴 Haushaltswaren €55,00
+- button "Lebensmittel – Budget bearbeiten": 🛒 Lebensmittel €20,00
+- text: Kategorie antippen, um ein Monatsbudget zu setzen — ab 80 % warnt die App per Benachrichtigung.
+- heading "Kategorien · Growbox" [level=2]
+- text: 🪴 Erde €12,00
+- heading "Größte Posten" [level=2]
+- text: Strom DATUM · Tom €55,00 Pizza DATUM · Torben €20,00 Erde DATUM · Torben €12,00 Der Verlauf erscheint ab dem zweiten Monat
+- heading "Demnächst" [level=2]
+- text: Heute Bad putzen Küche wischen
+- button "+ 3 Wochen"
+- heading "Monatsbericht" [level=2]
+- button "Bericht öffnen Kategorien, wer hat was gezahlt, größte Posten – zum Drucken, als PDF oder als Text"
+- button "📅 Jahresrückblick JJJJ €87,00"
+- heading "Hinzufügen" [level=2]
+- button "Zählerstände"
+- button "Nebenkosten"

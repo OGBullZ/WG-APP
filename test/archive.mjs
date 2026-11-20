@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const browser = await chromium.launch();
@@ -58,12 +59,12 @@ await page.waitForTimeout(1500);
 // Wöchentlicher Start-Flow (PayPal-Einrichtung → Schulden-Hinweis) legt ein Overlay über die
 // Tabbar und blockiert jeden Klick — beide Sheets per „Später" schließen.
 for (let i = 0; i < 2; i++) {
-  const later = page.getByRole('button', { name: 'Später' });
+  const later = page.getByRole('button', { name: WT.spaeter });
   if (await later.count()) { await later.first().click(); await page.waitForTimeout(400); }
 }
 
 // --- Zum Mehr-Tab wechseln und archivieren ---
-await page.locator('.tabbar .tabitem', { hasText: 'Mehr' }).click();
+await page.locator('.tabbar .tabitem', { hasText: WT.tabMehr }).click();
 await page.waitForTimeout(300); await page.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click()));   // Mehr-Gruppen aufklappen (seit wg-v66 zu)
 await page.waitForTimeout(300);
 
@@ -88,7 +89,7 @@ check('arc hat 3 Einträge', (data.arc || []).length === 3);
 check('Aktive stl-Liste hat den alten Abrechnungs-Eintrag NICHT mehr', !(data.stl || []).some(s => s.id === 'stlOld'));
 
 // --- Übersicht: alter Monat zeigt weiterhin die archivierten Ausgaben ---
-await page.locator('.tabbar .tabitem', { hasText: 'Übersicht' }).click();
+await page.locator('.tabbar .tabitem', { hasText: WT.tabUebersicht }).click();
 await page.waitForTimeout(300);
 for (let i = 0; i < 5; i++) {
   await page.locator('.seg-btn', { hasText: '‹' }).click();

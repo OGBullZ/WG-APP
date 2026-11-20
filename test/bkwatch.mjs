@@ -3,6 +3,7 @@
    → nichts. /api/backup wird abgefangen, Firebase per Stub (der Wächter läuft erst nach dem Sync). */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const z = n => String(n).padStart(2, '0');
@@ -32,8 +33,8 @@ async function run(days) {
   await page.locator('.tabbar').waitFor({ timeout: 30000 });
   await page.evaluate(() => window.__wg.fire());
   await page.waitForTimeout(1500);
-  const dot = await page.locator('.tabbar .tabitem', { hasText: 'Mehr' }).locator('.tab-dot').count();
-  await page.locator('.tabbar .tabitem', { hasText: 'Mehr' }).click(); await page.waitForTimeout(500);
+  const dot = await page.locator('.tabbar .tabitem', { hasText: WT.tabMehr }).locator('.tab-dot').count();
+  await page.locator('.tabbar .tabitem', { hasText: WT.tabMehr }).click(); await page.waitForTimeout(500);
   const warn = await page.locator('[role="alert"]', { hasText: 'Letzte automatische Sicherung' }).count();
   // zweiter Start innerhalb von 6 Std. fragt nicht erneut (Drossel)
   const before = calls;

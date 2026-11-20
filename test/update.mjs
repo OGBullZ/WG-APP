@@ -8,6 +8,7 @@ import { cpSync, mkdtempSync, readFileSync, writeFileSync, utimesSync, rmSync } 
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { spawn, execSync } from 'child_process';
+import { WT } from './_finden.mjs';
 
 const PORT = 8098;
 const dir = mkdtempSync(join(tmpdir(), 'wg-update-'));
@@ -59,7 +60,7 @@ try {
   check('3 mit offenem Formular kein Neuladen', (await page.evaluate(() => window.__bleib)) === 1 && (await page.locator('.sheet .field').first().inputValue()) === 'HalbeEingabe');
 
   // Fenster zu, dann zurückkehren → lädt neu
-  await page.getByRole('button', { name: 'Abbrechen' }).click();
+  await page.getByRole('button', { name: WT.abbrechen }).click();
   await page.waitForTimeout(400);
   const nav = page.waitForEvent('load', { timeout: 15000 }).then(() => true).catch(() => false);
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
