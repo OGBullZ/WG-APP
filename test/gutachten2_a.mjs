@@ -276,11 +276,12 @@ const blattDurchlauf = async (s, { zuBis }) => {
   const min = (a, bis) => { const f = a.filter(x => x.t <= bis); return { n: f.length, min: f.length ? Math.min(...f.map(x => x.o)) : -1 }; };
   return { rs, dim, auf: min(rs.auf, 200), zu: min(rs.zu, zuBis) };
 };
-for (const [name, opt, zuBis, dimAlpha] of [['Handy dunkel', { w: 390, theme: 'dark' }, 170, '0.7'], ['Handy hell', { w: 390, theme: 'light' }, 170, '0.35'], ['Desktop 1440', { w: 1440, h: 900, theme: 'dark' }, 90, '0.7']]) {
+/* wg-v136 (G7): Abdunkelung .7 → .76 / hell .35 → .42 — Ausgleich für die weggefallene Unschärfe (backdrop-filter kostete am Desktop jedes Bild 50–67 ms, test/fahrt_v136.mjs) */
+for (const [name, opt, zuBis, dimAlpha] of [['Handy dunkel', { w: 390, theme: 'dark' }, 170, '0.76'], ['Handy hell', { w: 390, theme: 'light' }, 170, '0.42'], ['Desktop 1440', { w: 1440, h: 900, theme: 'dark' }, 90, '0.76']]) {
   const S = await open(SEED_LISTE, { tab: 'haus', ...opt });
   const r = await versuch(() => blattDurchlauf(S, { zuBis }));
   const ok = typeof r === 'object';
-  /* Mindestzahl Bilder: am Desktop rendert headless den Blur auf 1440 px nur mit ≈ 25 Bildern/s (gemessen: 5 Bilder in 200 ms) — dort reichen weniger */
+  /* Mindestzahl Bilder: am Desktop renderte headless den Blur auf 1440 px nur mit ≈ 25 Bildern/s (gemessen: 5 Bilder in 200 ms) — dort reichen weniger. Seit wg-v136 ohne Blur (G7), die Schwelle bleibt als Untergrenze */
   const nAuf = opt.w >= 768 ? 3 : 4, nZu = opt.w >= 768 ? 2 : 3;
   check(`F4a ${name}: Blatt beim ÖFFNEN von Bild 1 an deckend (Deckkraft der Kette ≥ 0,99 in den ersten 200 ms)`, ok && r.auf.n >= nAuf && r.auf.min >= 0.99, ok ? `${r.auf.n} Bilder, kleinste Deckkraft ${r.auf.min.toFixed(2)}` : r);
   check(`F4b ${name}: … und beim SCHLIESSEN (bis ${zuBis} ms nach Beginn)`, ok && r.zu.n >= nZu && r.zu.min >= 0.99, ok ? `${r.zu.n} Bilder, kleinste Deckkraft ${r.zu.min.toFixed(2)}` : r);
