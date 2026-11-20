@@ -60,15 +60,18 @@ const besuch = async (page, nr) => {
 
 const N = await (async () => { const { ctx, page } = await open(false); const n = await page.locator('.tabbar .tabitem').count(); await ctx.close(); return n; })();
 const { ctx, page } = await open(false);
+/* Schranke .3 statt .4: wirksam sind .45 (Tab .6 × Karte .75). Mit .4 blieben nur .05 Spielraum, und eine leichte Änderung der
+   Tab-Einblendung (.6 → .5) hätte den Test gekippt, ohne dass der Inhalt je leer wäre. Die Gegenprobe (main: 0,00) trennt weiter klar. */
+const MIN = 0.3;
 let schlecht = [], gemessen = 0, ende = [];
 for (const nr of [1, 3, 5, 6].filter(i => i < N)) {   // erster Besuch jedes Tabs
   const fr = await besuch(page, nr);
   gemessen += fr.length;
   const m = Math.min(...fr.map(f => f.min));
-  if (m < 0.4) schlecht.push(`Tab ${nr}: niedrigste Deckkraft ${m.toFixed(2)}`);
+  if (m < MIN) schlecht.push(`Tab ${nr}: niedrigste Deckkraft ${m.toFixed(2)}`);
   ende.push(fr.at(-1).min);
 }
-check(`B1 erster Besuch von 4 Tabs: in keinem der ${gemessen} Bilder ist ein Inhaltsblock unter Deckkraft .4 (Tab .6 × Karte .75 = .45 wirksam)`, gemessen > 20 && schlecht.length === 0, schlecht.join(' | '));
+check(`B1 erster Besuch von 4 Tabs: in keinem der ${gemessen} Bilder ist ein Inhaltsblock unter Deckkraft .3 (Tab .6 × Karte .75 = .45 wirksam)`, gemessen > 20 && schlecht.length === 0, schlecht.join(' | '));
 check('B2 am Ende ist alles voll deckend', ende.every(o => o > 0.99), ende.map(o => o.toFixed(2)).join(','));
 await ctx.close();
 
