@@ -25,6 +25,7 @@
    (reine Erhaltungsprüfungen ausgenommen, sie sind im Namen mit „[bleibt]" markiert). */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const URL_ = process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const pass = [], fail = [];
@@ -283,11 +284,11 @@ const kleineSchrift = page => page.evaluate(() => {
   check('c2 Fold-Titel 16 px / 700 (auch die Index-Karte „Was kann die App?")', c.titel === '16px/700' && c.index === '16px/700', `Gruppe ${c.titel} · Index ${c.index}`);
   check('c3 „Alle lokalen Daten löschen": Textknopf ohne Rand und Fläche, ≥ 44 px hoch, rot', !!c.knopf && c.knopf.rand === '0px' && /rgba\(0, 0, 0, 0\)|transparent/.test(c.knopf.flaeche) && c.knopf.h >= 44, JSON.stringify(c.knopf));
   check('c4 … 20 px abgesetzt von der letzten Karte — und damit deutlich weiter als die Karten untereinander (> Kartenabstand + 5 px)', !!c.knopf && c.knopf.abstand !== null && c.knopf.abstand >= 19.5 && c.knopf.abstand > Math.max(...c.luecken) + 5, `${c.knopf?.abstand} px, Karten ${Math.max(...c.luecken)} px`);
-  await M.page.getByRole('button', { name: 'Alle lokalen Daten löschen' }).click();
+  await M.page.getByRole('button', { name: WT.datenLoeschen }).click();
   await M.page.waitForTimeout(400);
   const dlg = await M.page.evaluate(() => ({ text: document.body.innerText.includes('Entfernt alle Daten und Einstellungen'), url: location.href }));
   check('c5 [bleibt] der Bestätigungsdialog erscheint (nichts wird ohne Rückfrage gelöscht)', dlg.text);
-  await M.page.getByRole('button', { name: 'Abbrechen' }).first().click();
+  await M.page.getByRole('button', { name: WT.abbrechen }).first().click();
   await M.page.waitForTimeout(300);
   const daten = await M.page.evaluate(() => !!localStorage.getItem('wg_data') && !!localStorage.getItem('wg_code'));
   check('c6 [bleibt] „Abbrechen" lässt Daten und WG-Code stehen', daten);

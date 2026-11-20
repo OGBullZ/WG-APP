@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const browser = await chromium.launch();
@@ -22,7 +23,7 @@ await page.goto(url, { waitUntil: 'domcontentloaded' });
 await page.waitForTimeout(2000);
 
 // 1) Mehr → Personen: Tom einen PayPal.me-Namen geben
-await page.locator('.tabitem', { hasText: 'Mehr' }).click();
+await page.locator('.tabitem', { hasText: WT.tabMehr }).click();
 await page.waitForTimeout(300); await page.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click()));   // Mehr-Gruppen aufklappen (seit wg-v66 zu)
 await page.waitForTimeout(500);
 // pp-Input von Tom (zweites paypal.me-Feld)
@@ -32,17 +33,17 @@ await ppInputs.nth(1).fill('tom-wg');           // Tom = zweiter User
 await page.waitForTimeout(300);
 
 // 2) Zurück zu Haushalt, Ausgabe: Tom zahlt 20, Torben trägt alles → Torben schuldet Tom 20
-await page.locator('.tabitem', { hasText: 'Haushalt' }).click();
+await page.locator('.tabitem', { hasText: WT.tabHaushalt }).click();
 await page.waitForTimeout(500);
 await page.getByText('+ Ausgabe hinzufügen').click();
 await page.locator('.sheet input.field').first().fill('Pizza');
-await page.getByRole('button', { name: 'Weiter' }).click();
+await page.getByRole('button', { name: WT.weiter }).click();
 await page.locator('input[inputmode="decimal"]').fill('20');
-await page.getByRole('button', { name: 'Weiter' }).click();
+await page.getByRole('button', { name: WT.weiter }).click();
 // Formular hat seit wg-v29 drei Schritte: Bezahler + Aufteilung stehen auf derselben Seite
 await page.locator('.sheet .pick-btn', { hasText: /^Tom$/ }).click();
 await page.locator('.sheet .pick-btn', { hasText: 'Torben zahlt alles' }).click();
-await page.getByRole('button', { name: 'Fertig', exact: true }).click();
+await page.getByRole('button', { name: WT.fertig, exact: true }).click();
 await page.waitForTimeout(800);
 
 // 3) PayPal-Button prüfen

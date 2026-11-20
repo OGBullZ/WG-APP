@@ -4,6 +4,7 @@
    und ein Absturz beim Rendern zeigt eine Notfall-Ansicht statt einer weißen Seite (ErrorBoundary). */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const today = (() => { const d = new Date(), z = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; })();
@@ -51,12 +52,12 @@ await page.waitForTimeout(900);
 check('5 Fehler aus Browser-Erweiterungen/fremden Skripten gefiltert', !(await remoteErr()).some(x => /ErweiterungsFehler|FremdSkript/.test(x.m)));
 
 // Punkt am Tab „Mehr", Liste, gesehen-Markierung
-check('6 roter Punkt am Tab „Mehr"', (await page.locator('.tabbar .tabitem', { hasText: 'Mehr' }).locator('.tab-dot').count()) === 1);
-await page.locator('.tabbar .tabitem', { hasText: 'Mehr' }).click(); await page.waitForTimeout(500);
+check('6 roter Punkt am Tab „Mehr"', (await page.locator('.tabbar .tabitem', { hasText: WT.tabMehr }).locator('.tab-dot').count()) === 1);
+await page.locator('.tabbar .tabitem', { hasText: WT.tabMehr }).click(); await page.waitForTimeout(500);
 const list = await page.locator('.err-row').allInnerTexts();
 check('7 Liste unter „Mehr" zeigt die Fehler', list.some(t => /Laufzeit-222/.test(t)) && list.some(t => /Ablehnung-333/.test(t)), String(list.length));
-await page.locator('.tabbar .tabitem', { hasText: 'Haushalt' }).click(); await page.waitForTimeout(300);
-check('8 Punkt nach dem Ansehen weg', (await page.locator('.tabbar .tabitem', { hasText: 'Mehr' }).locator('.tab-dot').count()) === 0);
+await page.locator('.tabbar .tabitem', { hasText: WT.tabHaushalt }).click(); await page.waitForTimeout(300);
+check('8 Punkt nach dem Ansehen weg', (await page.locator('.tabbar .tabitem', { hasText: WT.tabMehr }).locator('.tab-dot').count()) === 0);
 
 // Obergrenze 30
 await page.evaluate(() => { for (let i = 0; i < 40; i++) window.__wgErr('Flut-' + i, '', 0); });
@@ -75,7 +76,7 @@ check('10b Render-Absturz steht im Protokoll', (await remoteErr()).some(x => /Re
 
 // Leeren
 await page.evaluate(() => document.getElementById('eb-test')?.remove());
-await page.locator('.tabbar .tabitem', { hasText: 'Mehr' }).click(); await page.waitForTimeout(400);
+await page.locator('.tabbar .tabitem', { hasText: WT.tabMehr }).click(); await page.waitForTimeout(400);
 // Knopf gibt es nur bei Einträgen — fehlt er, laut rot statt Timeout-Absturz
 const clear = page.getByRole('button', { name: 'Protokoll leeren' });
 check('11a Knopf „Protokoll leeren" vorhanden', await clear.count() === 1);

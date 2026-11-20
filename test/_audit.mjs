@@ -1,6 +1,7 @@
 /* Perf- & a11y-Messung der WG-APP (isoliert, Firebase geblockt).
    node <pfad>/audit.mjs   — Server muss auf 8099 laufen. */
 import { chromium, devices } from 'playwright';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const today = (() => { const d = new Date(), z = n => String(n).padStart(2,'0'); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; })();
@@ -179,14 +180,14 @@ async function report(label) {
 
 await page.waitForTimeout(900);
 await report('Heute');   // seit wg-v66 Startseite
-await page.locator('.tabbar .tabitem', { hasText: 'Haushalt' }).click(); await page.waitForTimeout(600);
+await page.locator('.tabbar .tabitem', { hasText: WT.tabHaushalt }).click(); await page.waitForTimeout(600);
 await report('Haushalt');
 for (const t of ['🛒 Einkaufsliste','Growbox','Putzplan','Übersicht','Mehr']) {
   await page.locator(`text=${t}`).first().click(); await page.waitForTimeout(600);
   await report(t);
 }
 // Wizard
-await page.locator('.tabbar .tabitem', { hasText: 'Haushalt' }).click(); await page.waitForTimeout(400);
+await page.locator('.tabbar .tabitem', { hasText: WT.tabHaushalt }).click(); await page.waitForTimeout(400);
 await page.getByText('+ Ausgabe hinzufügen').click(); await page.waitForTimeout(500);
 await report('Wizard');
 // Fokus-Sichtbarkeit / Tastatur

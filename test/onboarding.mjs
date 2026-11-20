@@ -6,6 +6,7 @@
    E) „Mehr → Mein Profil einrichten" öffnet den persönlichen Teil */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const z = n => String(n).padStart(2, '0');
@@ -53,8 +54,8 @@ async function open({ fresh = true, query = '', init = {}, other = false } = {})
   check('A1 frisches Gerät → Assistent mit Willkommen', await onb.count() === 1 && /Willkommen/.test(await onb.innerText()));
   await onb.locator('[data-testid="onb-found"]').click(); await page.waitForTimeout(500);
   check('A2 Weiter gesperrt ohne eigenen Namen', await onb.locator('[data-testid="onb-next"]').isDisabled());
-  await onb.getByLabel('Dein Name', { exact: true }).fill('Lena');
-  await onb.getByLabel('Mitbewohner 1', { exact: true }).fill('Max');
+  await onb.getByLabel(WT.deinName, { exact: true }).fill('Lena');
+  await onb.getByLabel(WT.mitbewohner1, { exact: true }).fill('Max');
   await onb.getByRole('button', { name: '+ Weitere Person' }).click();
   await onb.getByLabel('Mitbewohner 2', { exact: true }).fill('Kim');
   await nextBtn();
@@ -160,14 +161,14 @@ check('A12 Einladen: Code + WhatsApp-Link mit ?join=', !!code && decodeURICompon
   const D2 = await open({ init: { wg_start_shown: T }, fresh: false, query: '?join=' + OTHER, other: true });
   check('D2 Einladungslink mit fremdem Code auf bestehendem Gerät: ignoriert, Code bleibt', await D2.onb.count() === 0 && await D2.page.evaluate(() => JSON.parse(localStorage.getItem('wg_code'))) === 'ALT-CODE-XYZ234');
   // E: persönlicher Teil aus „Mehr"
-  await D2.page.locator('.tabbar .tabitem', { hasText: 'Mehr' }).click(); await D2.page.waitForTimeout(400);
+  await D2.page.locator('.tabbar .tabitem', { hasText: WT.tabMehr }).click(); await D2.page.waitForTimeout(400);
   await D2.page.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click())); await D2.page.waitForTimeout(300);
   await D2.page.locator('[data-testid="onb-open"]').click(); await D2.page.waitForTimeout(500);
   check('E1 „Mein Profil einrichten" → Assistent ab „Das bist du"', /Das bist du/.test(await D2.onb.innerText().catch(() => '')));
-  await D2.onb.getByLabel('Dein Name', { exact: true }).fill('Torben S.');
+  await D2.onb.getByLabel(WT.deinName, { exact: true }).fill('Torben S.');
   await D2.onb.locator('[data-testid="onb-next"]').click(); await D2.page.waitForTimeout(400);
   check('E2 Name geändert', (await D2.data()).users.find(u => u.id === 'u1').name === 'Torben S.');
-  await D2.onb.getByRole('button', { name: 'Schließen' }).click(); await D2.page.waitForTimeout(300);
+  await D2.onb.getByRole('button', { name: WT.schliessen }).click(); await D2.page.waitForTimeout(300);
   check('E3 Schließen jederzeit möglich', await D2.onb.count() === 0);
   check('E4 keine Seitenfehler', D2.errs.length === 0 && D1.errs.length === 0, D2.errs.join(' | '));
   await D2.ctx.close();

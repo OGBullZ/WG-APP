@@ -1,5 +1,6 @@
 /* Ad-hoc-Verifikation privater Finanzbereich (PIN + lokal-only). */
 import { chromium } from 'playwright';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const browser = await chromium.launch();
@@ -37,7 +38,7 @@ await page.locator('#root > *').first().waitFor({ timeout: 30000 });
 await page.waitForTimeout(2200);
 // Start-Pop-ups wegklicken
 for (let i = 0; i < 2; i++) {
-  const later = page.getByRole('button', { name: 'Später' });
+  const later = page.getByRole('button', { name: WT.spaeter });
   if (await later.count()) { await later.first().click(); await page.waitForTimeout(400); }
 }
 
@@ -82,9 +83,9 @@ await page.waitForTimeout(300);
 await page.getByRole('button', { name: '+ Fixkosten' }).click();
 await page.waitForTimeout(300);
 await page.locator('.sheet input.field').first().fill('Miete');
-await page.getByRole('button', { name: 'Weiter' }).click();
+await page.getByRole('button', { name: WT.weiter }).click();
 await page.locator('input[inputmode="decimal"]').fill('480,50');
-await page.getByRole('button', { name: 'Weiter' }).click();
+await page.getByRole('button', { name: WT.weiter }).click();
 await page.getByRole('button', { name: 'Monatlich' }).click();
 await page.waitForTimeout(200);
 await page.locator('input[inputmode="numeric"]').fill('3');
@@ -100,9 +101,9 @@ await page.waitForTimeout(300);
 await page.getByRole('button', { name: '+ Buchung' }).click();
 await page.waitForTimeout(300);
 await page.getByRole('button', { name: '📈 Einnahme' }).click();
-await page.getByRole('button', { name: 'Weiter' }).click();
+await page.getByRole('button', { name: WT.weiter }).click();
 await page.locator('input[inputmode="decimal"]').fill('1450');
-await page.getByRole('button', { name: 'Weiter' }).click();
+await page.getByRole('button', { name: WT.weiter }).click();
 await page.getByRole('button', { name: 'Wohnen', exact: true }).click();
 await page.locator('input.field[placeholder*="Notiz"]').fill('Gehalt');
 await page.getByRole('button', { name: /Fertig|Speichern/ }).click();
@@ -141,7 +142,7 @@ try {
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(2500);
   for (let i = 0; i < 2; i++) {
-    const later = page.getByRole('button', { name: 'Später' });
+    const later = page.getByRole('button', { name: WT.spaeter });
     if (await later.count()) { await later.first().click(); await page.waitForTimeout(400); }
   }
   if (await page.locator('.pin-pad').count() === 0) {

@@ -3,6 +3,7 @@
    überfällig · Heute-Zeile · wer darf was abhaken. */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const z = n => String(n).padStart(2, '0');
@@ -54,7 +55,7 @@ await sheet.getByLabel('Miete gesamt').fill('1200');
 await sheet.locator('#mi-day').fill('3');
 await sheet.getByRole('button', { name: 'Eine Person sammelt' }).click();
 await sheet.getByLabel('Mietanteil Kim').fill('500');
-await sheet.getByRole('button', { name: 'Speichern' }).click(); await page.waitForTimeout(500);
+await sheet.getByRole('button', { name: WT.speichern }).click(); await page.waitForTimeout(500);
 let d = await data();
 const cfg = d.mi.find(x => x.id === 'cfg');
 check('A1 Einstellung gespeichert (Tag, Modus, Sammler, Anteil Kim)', !!cfg && cfg.total === 1200 && cfg.day === 3 && cfg.mode === 'holder' && cfg.holder === 'u1' && cfg.s_u3 === 500, JSON.stringify(cfg));
@@ -63,7 +64,7 @@ check('A2 Rest gleich verteilt: 350 / 350 / 500', /Torben · €350,00/.test(row
 check('A3 Kopfzeile: Monat, 0 von 3, Fälligkeit, Empfänger', /0\/3 bezahlt/.test(await card.locator('[data-testid="rent-month"]').innerText()) && /€1200,00 gesamt · fällig am 3\./.test(await card.innerText()) && /an Torben/.test(await card.innerText()));
 // als Sammler darf ich alle abhaken
 check('A4 Sammler darf alle abhaken', await card.locator('[data-testid="rent-pay"]').count() === 3);
-await card.locator('[data-testid="rent-row"]', { hasText: 'Tom' }).getByRole('button', { name: 'Tom hat gezahlt' }).click(); await page.waitForTimeout(400);
+await card.locator('[data-testid="rent-row"]', { hasText: 'Tom' }).getByRole('button', { name: WT.tomHatGezahlt }).click(); await page.waitForTimeout(400);
 d = await data();
 const pay = d.mi.find(x => x.id === `${YM}-u2`);
 check('A5 Zahlung vermerkt (Monat, Person, Betrag, wer eingetragen hat)', !!pay && pay.ym === YM && pay.userId === 'u2' && pay.amount === 350 && pay.by === 'u1', JSON.stringify(pay));
@@ -80,8 +81,8 @@ await A.ctx.close();
 // ── B: nur die eigene Zeile, wenn jemand anderes sammelt ──
 const B = await open({ users: U3, mi: map([{ id: 'cfg', total: 1200, day: 3, mode: 'holder', holder: 'u1' }]) }, { me: 'u2' });
 check('B1 ohne Sammler-Rolle nur die eigene Zeile abhakbar', await B.card.locator('[data-testid="rent-pay"]').count() === 1
-  && (await B.card.locator('[data-testid="rent-row"]', { hasText: 'Tom' }).getByRole('button', { name: 'Tom hat gezahlt' }).count()) === 1);
-await B.card.getByRole('button', { name: 'Tom hat gezahlt' }).click(); await B.page.waitForTimeout(400);
+  && (await B.card.locator('[data-testid="rent-row"]', { hasText: 'Tom' }).getByRole('button', { name: WT.tomHatGezahlt }).count()) === 1);
+await B.card.getByRole('button', { name: WT.tomHatGezahlt }).click(); await B.page.waitForTimeout(400);
 check('B2 eigene Zahlung eingetragen (400 = 1200/3)', (await B.data()).mi.some(x => x.id === `${YM}-u2` && x.amount === 400 && x.by === 'u2'));
 check('B3 keine Seitenfehler', B.errs.length === 0, B.errs.join(' | '));
 await B.ctx.close();
