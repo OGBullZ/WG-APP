@@ -32,6 +32,7 @@ const slug = t => t.toLowerCase().replace('ü', 'ue');
 
 /* unstete Teile normieren: Uhrzeiten, relative Tage, Jahreszahlen, Tageszeit-Gruß, Wochentage/Datum */
 export const normiere = s => s
+  .replace(/https?:\/\/127\.0\.0\.1:\d+/g, 'http://LOKAL')   // wg-v128: Testserver-Adresse samt Port (8099 im Gate, 8101… in Arbeitskopien) — sonst hängt das Protokoll am Port
   .replace(/\b(?:LIVE|SYNC\S*|OFFLINE)\b( \d{1,2}\b)?/g, 'STATUS')   // Verbindungsstatus (LIVE/SYNC…) + große Tageszahl der Kopfkarte
   .replace(/\b\d{1,2}:\d{2}\b/g, 'HH:MM')
   .replace(/\b20\d{2}\b/g, 'JJJJ')

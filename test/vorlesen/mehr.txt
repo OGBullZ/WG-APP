@@ -53,7 +53,7 @@
 - text: Wer den Link hat, sieht diese Termine. Nach „WG-Code wechseln“ gilt er nicht mehr.
 - heading "Sprach-Kurzbefehl" [level=2]
 - text: "iPhone (Kurzbefehle-App): „Diktierten Text“ → „URL“ mit der Vorlage unten + Text dahinter → „URLs öffnen“. Namen z. B. „WG Ausgabe“, dann: „Hey Siri, WG Ausgabe“ – „12,50 Pizza“. Android: Vorlage mit dem Text dahinter als Lesezeichen/Verknüpfung öffnen (z. B. mit „HTTP Shortcuts“)."
-- code: http://127.DATUM1:8101/?a=ausgabe&t=
+- code: http://LOKAL/?a=ausgabe&t=
 - button "Vorlage kopieren"
 - text: Die App öffnet sich mit ausgefüllter Schnell-Zeile – ein Tipp auf „Eintragen“ bestätigt.
 - button "Daten & Backup Archiv, Backups, Fehlerprotokoll" [expanded]
