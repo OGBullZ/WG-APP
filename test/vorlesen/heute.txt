@@ -13,7 +13,7 @@
 - button "Du schuldest Tom €11,50 ›"
 - text: Benachrichtigungen sind blockiert In den Handy-Einstellungen erlauben – sonst fehlen Müll, Putzplan und Zahlungen.
 - textbox "Ausgabe in einem Satz":
-  - /placeholder: "⚡ Schnell: „12,50 Pizza“"
+  - /placeholder: ⚡ „12,50 Pizza“
 - button "Eintragen"
 - heading "Kühlschrank" [level=2]
 - button "+ Eintrag"

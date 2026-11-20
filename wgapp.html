@@ -169,7 +169,7 @@
 [data-theme="light"] .sheet { background:rgba(252,253,252,.98); }
 [data-theme="light"] .toast, [data-theme="light"] .undo-toast { background:rgba(255,255,255,.96); box-shadow:0 8px 24px rgba(0,0,0,.12); }
 [data-theme="light"] .field { background:#fff; border-color:rgba(0,0,0,.14); }
-[data-theme="light"] .overlay::before { background:rgba(0,0,0,.35); }   /* wg-v118 (FILM-4): Abdunkelung liegt auf dem Pseudoelement (vorher auf .overlay) */
+[data-theme="light"] .overlay::before { background:rgba(0,0,0,.42); }   /* wg-v118 (FILM-4): Abdunkelung liegt auf dem Pseudoelement (vorher auf .overlay); wg-v136 (G7): .35 → .42 als Ausgleich für die weggefallene Unschärfe */
 [data-theme="light"] .moved-banner { background:#fff1f2; }
 [data-theme="light"] .upd-banner { background:#ecfdf5; }
 [data-theme="light"] .btn-sec { background:#e6ece8; color:var(--label); }
@@ -292,12 +292,15 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 .navbar-title {
   font-family:var(--disp); font-size:15px; font-weight:700;
   letter-spacing:.06em; text-transform:uppercase; flex:1;
+  /* A1 (320 px + Sehr groß, EN): langer Titel (EN „Household" bei 320 px + Sehr groß) kürzt sich mit …, statt die LIVE-Pille über den Rand zu schieben */
+  min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
+:root[data-eng-xs] .navbar-title { font-size:12.5px; letter-spacing:.01em; }   /* schmal: erst enger setzen, dann erst kürzen */
 .live-pill {
   display:flex; align-items:center; gap:6px;
   font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.18em;
   padding:5px 10px 5px 8px; border-radius:999px;
-  border:1px solid; opacity:.95;
+  border:1px solid; opacity:.95; flex-shrink:0; white-space:nowrap;
 }
 /* wg-v112: der Punkt steht still (LIVE/LOKAL/OFFLINE/FEHLER/CODE ALT) und pulsiert NUR, solange „SYNC…" läuft (Klasse .puls):
    ein Dauerpuls im Normalzustand ist Unruhe ohne Aussage, und der alte box-shadow-Puls war ein Dauer-Repaint. Jetzt nur opacity. */
@@ -885,10 +888,14 @@ button.cell { color:var(--label); }
    Jetzt ist das Blatt von Bild 1 an deckend und fährt nur noch per Transform (sheetUp/sheetDown); ein Pseudoelement mit z-index:-1
    bleibt im Stapel von .overlay (position:fixed + z-index → eigener Stapelkontext) hinter dem Blatt. Klicks auf die Abdunkelung treffen
    weiter .overlay selbst (Pseudoelemente sind keine Ziele) → onClick={onClose} unverändert. */
-.overlay::before { content:''; position:absolute; inset:0; z-index:-1; background:rgba(0,0,0,.7); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+/* wg-v136 (G7): KEINE Unschärfe mehr hinter dem Blatt. Gemessen (Chromium ohne GPU wie in der CI, Desktop 1440, Schrittwechsel 1→2): mit backdrop-filter
+   kam während der Höhenfahrt nur alle 50–67 ms ein Bild (15–20 Bilder/s), ohne alle 17 ms (60/s) — schon ohne CPU-Bremse. Der Hauptthread war es nicht
+   (~40 ms Arbeit in 600 ms): der Compositor rechnet eine Unschärfe über das ganze Fenster in JEDEM Bild neu, in dem sich darüber etwas bewegt (Öffnen,
+   Schrittwechsel, Schließen). Ausgleich: etwas stärker abdunkeln (.7 → .76, hell .35 → .42) — die Seite dahinter bleibt ruhig, ohne Rechenlast. */
+.overlay::before { content:''; position:absolute; inset:0; z-index:-1; background:rgba(0,0,0,.76);
   animation:ovIn var(--dur-kurz) ease-out; }
 /* Einrichtung (.onb): bleibt wie vor wg-v118 — die Karte blendet mit der Fläche ein, Hintergrund (.82) steht schon in der Regel weiter oben */
-.overlay.onb { animation:ovIn var(--dur-kurz) ease-out; backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
+.overlay.onb { animation:ovIn var(--dur-kurz) ease-out; }   /* wg-v136 (G7): Unschärfe weg wie bei .overlay::before; die Fläche deckt hier ohnehin zu 82 % */
 .overlay.onb::before { content:none; }
 /* wg-v112 (P7): SCHLIESSEN mit Bewegung. Der Hook useZu hält das Blatt nur für die Anzeige 180 ms länger im DOM und setzt .zu;
    Daten/onClose liefen schon vorher. pointer-events:none, damit der Tipp auf die Seite dahinter durchgeht und ein zweiter Tipp auf
@@ -1325,6 +1332,10 @@ button.cell:not(.group):active:not(:disabled) { box-shadow:inset 0 0 0 999px var
    Steht VOR dem 1024-Block, damit dessen display:grid/flex gewinnt; Heutes .heute-col (echte Spalten seit wg-v83, weiter unten) gewinnt
    hier absichtlich — Heute bleibt am Handy, wie es war. */
 .zz-paar, .zz-l, .zz-r { display:contents; }
+/* Bedienung (Handy-Durchlauf 20.11.): Reiter „Einkaufsliste" — im Laden will man die LISTE sehen, nicht erst 8 Vorrats-Kacheln + Wochen-Korb überscrollen
+   (gemessen 390 px: Liste begann bei ~1,6 Bildschirmen). Unter 1024 px rutschen Vorrat + Wochen-Korb hinter die Liste (order, die Hüllen sind display:contents);
+   ab 1024 px bleibt es wie es war (links Werkzeuge, rechts Liste). */
+@media (max-width:1023px) { [data-testid="stock-card"], [data-testid="basket-card"] { order:2; } }
 
 /* ── Breite Bildschirme ab 1024 px (wg-v83, Optik „Desktop & Tablet nutzen die Breite") ──
    Vorher eine 640-px-Spalte: auf 1366 px blieben 53 % leer, die Tab-Leiste lag unten wie am Handy.
@@ -1782,12 +1793,12 @@ window.__WG_EN = {
 "„{0}\" entfernt":"\"{0}\" removed",
 "„{0}“ erscheint hier, {1}.":"\"{0}\" shows up here {1}.",
 "„{0}\" gelöscht":"\"{0}\" deleted",
-"„{0}“ gibt es nicht mehr":"“{0}” no longer exists",
+"„{0}“ gibt es nicht mehr":"\"{0}\" no longer exists",
 "„{0}“ ist ausgeschaltet – hier lässt es sich einschalten.":"\"{0}\" is switched off – you can turn it on here.",
 "„{0}“ ist hier gerade nicht zu sehen.":"\"{0}\" is not shown here right now.",
 "„{0}\" löschen":"delete \"{0}\"",
 "„{0}\" übernommen":"took over \"{0}\"",
-"„{0}“ wurde inzwischen schon gekauft":"“{0}” has already been bought in the meantime",
+"„{0}“ wurde inzwischen schon gekauft":"\"{0}\" has already been bought in the meantime",
 "„Das bin ich\" gilt nur für dieses Gerät. PayPal.me-Name und IBAN erscheinen beim Schuldenausgleich zum Antippen bzw. Kopieren – nur für die WG, nie im Gast-Link.":"\"That's me\" applies to this phone only. Your PayPal.me name and IBAN show up when settling up, ready to tap or copy – only inside the flat, never on the guest link.",
 "„Diktierten Text“ → „URL“ mit der Vorlage unten + Text dahinter → „URLs öffnen“. Namen z. B. „WG Ausgabe“, dann: „Hey Siri, WG Ausgabe“ – „12,50 Pizza“.":"\"Dictated text\" → \"URL\" with the template below + the text after it → \"Open URLs\". Name it e.g. \"Flat expense\", then say: \"Hey Siri, flat expense\" – \"12.50 pizza\".",
 "„getragen“ = Anteil nach Aufteilung. Archivierte Posten sind enthalten; laufende Abrechnungen nicht verrechnet.":"\"share\" = your part after splitting. Archived items are included; open settlements are not offset.",
@@ -1830,7 +1841,7 @@ window.__WG_EN = {
 "{0} entfernt":"{0} removed",
 "{0} erledigt":"{0} done",
 "{0} erledigte anzeigen":"show {0} done",
-"{0} erledigte Einträge aus dem Wagen entfernen?":"Remove {0} ticked entries from the cart?",
+"{0} erledigte Einträge aus dem Wagen entfernen?":"Remove {0} ticked entries from the trolley?",
 "{0} hat":"{0} has",
 "{0} hat €{1} bezahlt":"{0} paid €{1}",
 "{0} hat €{1} bezahlt – bitte bestätigen":"{0} paid €{1} – please confirm",
@@ -1870,7 +1881,7 @@ window.__WG_EN = {
 "{0} Tag{1} überfällig":"{0} day{1} overdue",
 "{0} Tagen":"{0} days",
 "{0} Treffer":"{0} results",
-"{0} übernimmt den Platz: offene Putz-Aufgaben und der Kautions-Anteil gehen über, die Putz-Zählung startet für alle neu. Rückgängig geht das nicht.":"{0} takes over the place: open cleaning tasks and the deposit share move across, and the cleaning count restarts for everyone. This cannot be undone.",
+"{0} übernimmt den Platz: offene Putz-Aufgaben und der Kautions-Anteil gehen über, die Putz-Zählung startet für alle neu. Rückgängig geht das nicht.":"{0} takes over the spot: open cleaning tasks and the deposit share move across, and the cleaning count restarts for everyone. This cannot be undone.",
 "{0} von {1} erledigt":"{0} of {1} done",
 "{0} von {1} zurückholen":"get {0} back from {1}",
 "{0} weg bis {1}":"{0} away until {1}",
@@ -1883,7 +1894,7 @@ window.__WG_EN = {
 "{0} zahlte":"{0} paid",
 "{0} zieht aus":"{0} is moving out",
 "{0}–{1}{2} · Putzplan übernimmt das":"{0}–{1}{2} · the cleaning plan handles it",
-"{0}, du bist dran! ({1})":"{0}, you're up next! ({1})",
+"{0}, du bist dran! ({1})":"{0}, it's your turn! ({1})",
 "{0}: nächste Abholung":"{0}: next collection",
 "{0}: Rhythmus":"{0}: how often",
 "{0}: Zahlung zurücknehmen":"{0}: undo payment",
@@ -1941,8 +1952,8 @@ window.__WG_EN = {
 "⚠️ IBAN stimmt noch nicht":"⚠️ IBAN not valid yet",
 "⚠️ Letzte automatische Sicherung vor {0} Tagen — der tägliche Server-Job läuft offenbar nicht. „Automatische Backups → Jetzt sichern\" hilft sofort; bitte Bescheid geben.":"⚠️ The last automatic backup was {0} days ago — the daily server job doesn't seem to be running. \"Automatic backups → Back up now\" fixes it right away; please let us know.",
 "⚠️ Steht unverschlüsselt in eurer WG-Datenbank — wer den WG-Code hat, liest mit. Echte Zugangsdaten gehören unter „Logins teilen“.":"⚠️ Stored unencrypted in your flat's database — anyone with the flat code can read it. Real credentials belong under \"Share logins\".",
+"⚡ „12,50 Pizza“":"⚡ \"12.50 pizza\"",
 "⚡ Änderung speichern":"⚡ Save changes",
-"⚡ Schnell: „12,50 Pizza“":"⚡ Quick: \"12.50 pizza\"",
 "⚡ Sofort speichern · ich fange an":"⚡ Save now · I'll start",
 "⚡ Sofort speichern · ich zahle, 50/50":"⚡ Save instantly · I pay, 50/50",
 "⚡ Strom":"⚡ Electricity",
@@ -2026,7 +2037,7 @@ window.__WG_EN = {
 "💶 Ausgaben":"💶 Expenses",
 "💶 Miete {0}: {1} hat gezahlt":"💶 Rent {0}: {1} has paid",
 "💸 „{0}\" €{1} eingetragen":"💸 \"{0}\" €{1} added",
-"💸 {0} hat {1} € eingetragen":"💸 {0} entered {1} €",
+"💸 {0} hat {1} € eingetragen":"💸 {0} entered €{1}",
 "💸 {0} hat €{1} eingetragen":"💸 {0} entered €{1}",
 "💸 Als Ausgabe eintragen":"💸 Add as expense",
 "💾 Daten & Backup":"💾 Data & backup",
@@ -2153,8 +2164,15 @@ window.__WG_EN = {
 "€{0} auf dem Konto von {1} – Anteile stehen in der Abrechnung":"€{0} in {1}'s account – the shares are in the settlement",
 "€{0} drüber":"€{0} over",
 "€{0} kopieren":"copy €{0}",
+"1 abgerechneter Eintrag wandert ins Archiv. Er bleibt in der Übersicht sichtbar.":"1 settled entry moves to the archive. It stays visible in the Overview.",
+"1 Änderung wartet auf Netz":"1 change waiting for a connection",
+"1 Eintrag archiviert":"1 entry archived",
+"1 erledigten Eintrag aus dem Wagen entfernen?":"Remove 1 ticked entry from the trolley?",
+"1 Posten älter als 3 Monate":"1 item older than 3 months",
+"1 Sache von der Liste":"1 thing from the list",
 "1 Std":"1 h",
 "1 Tag":"1 day",
+"1 Treffer":"1 result",
 "15 Min":"15 min",
 "3 Monate":"3 months",
 "30 Min. +":"30 min +",
@@ -2172,7 +2190,7 @@ window.__WG_EN = {
 "abgerechnet":"settled",
 "Abgerechnetes archivieren":"Archive settled items",
 "Abgeschickt – Frist merken":"Sent – remember the deadline",
-"Abhaken = im Einkaufswagen. Über „€ Ausgabe\" landet der Einkauf direkt in der Kostenteilung.":"Ticking puts it in the cart. \"€ Expense\" turns the shopping straight into a shared cost.",
+"Abhaken = im Einkaufswagen. Über „€ Ausgabe\" landet der Einkauf direkt in der Kostenteilung.":"Ticking puts it in the trolley. \"€ Expense\" turns the shopping straight into a shared cost.",
 "Abholtage eintragen – Erinnerung am Vorabend.":"Add collection days – reminder the evening before.",
 "Abholtermin":"Collection day",
 "Ablehnen":"Decline",
@@ -2235,7 +2253,7 @@ window.__WG_EN = {
 "Als Nächstes: erste Ausgabe oder Einkauf eintragen":"Next up: add a first expense or a shopping item",
 "Als Text":"As text",
 "als zuletzt":"than last time",
-"Alter Link ist ungültig – neuen erzeugen.":"The old link is dead – create a new one.",
+"Alter Link ist ungültig – neuen erzeugen.":"The old link is no longer valid – create a new one.",
 "Altglas & Pfand":"Glass & deposit bottles",
 "Altpapier":"Paper recycling",
 "am":"on",
@@ -2267,7 +2285,7 @@ window.__WG_EN = {
 "Anteil €":"Share €",
 "Anteile (leer = gleich verteilt)":"Shares (leave empty to split evenly)",
 "Anteile nach Pflanzen":"Shares by plants",
-"Antippen, was bei euch anfällt – wer dran ist, verteilt die App fair.":"Tap whatever comes up in your flat – the app shares out whose turn it is fairly.",
+"Antippen, was bei euch anfällt – wer dran ist, verteilt die App fair.":"Tap whatever comes up in your flat – the app works out fairly whose turn it is.",
 "Antwort":"Reply",
 "Antworten":"Reply",
 "Anzeigen":"Show",
@@ -2380,6 +2398,7 @@ window.__WG_EN = {
 "Bis einschließlich":"Up to and including",
 "Bist du wirklich {0}?":"Are you really {0}?",
 "Bitte ausräumen":"Please empty it",
+"Bitte einen Betrag über 0 eingeben, z. B. 12,50":"Please enter an amount above 0, e.g. 12.50",
 "Bitte in der App bestätigen":"Please confirm in the app",
 "Bitte mitbringen":"Please bring",
 "bleibt":"stays",
@@ -2421,7 +2440,7 @@ window.__WG_EN = {
 "Daten & Backup":"Data & backup",
 "Datum ändern":"Change date",
 "Davon eingezahlt (leer = gleich verteilt)":"Of which paid in (leave empty to split evenly)",
-"dein Gerät für deine persönliche Bilanz.":"your device for your personal balance.",
+"dein Gerät für deine persönliche Bilanz.":"and pick your device for your personal balance.",
 "dein Mitbewohner":"your flatmate",
 "Dein Mitbewohner":"Your flatmate",
 "Dein Name":"Your name",
@@ -2435,7 +2454,7 @@ window.__WG_EN = {
 "Der Code wird nur jetzt angezeigt.":"The code is shown only now.",
 "Der Gerätespeicher ist voll — beim Schließen der App wäre die Änderung weg. Jetzt „⬇︎ Sichern\" antippen, dann Speicher freimachen.":"The device storage is full — closing the app would lose this change. Tap \"⬇︎ Save\" now, then free up space.",
 "Der Link konnte nicht erstellt werden – bitte gleich noch einmal versuchen.":"The link couldn't be created – please try again in a moment.",
-"Der Link konnte nicht erstellt werden – der Server kennt diesen WG-Code nicht. Bitte unter Mehr → WG-Code & Verbindung prüfen.":"The link couldn't be created – the server doesn't know this flat code. Please check it under More → Flat code & sync.",
+"Der Link konnte nicht erstellt werden – der Server kennt diesen WG-Code nicht. Bitte unter Mehr → WG-Code & Verbindung prüfen.":"The link couldn't be created – the server doesn't know this flat code. Please check it under More → Flat code & connection.",
 "Der Server sichert eure WG jeden Morgen. Jede Sicherung bleibt 14 Tage und kann in der Zeit von niemandem gelöscht werden — auch nicht mit dem WG-Code.":"The server backs up your flat every morning. Each backup is kept for 14 days and nobody can delete it in that time — not even with the flat code.",
 "Der Verlauf erscheint ab dem zweiten Monat":"The trend appears from the second month on",
 "der WG":"the flat",
@@ -2495,8 +2514,8 @@ window.__WG_EN = {
 "Eigene Aufgabe":"Add task",
 "Eigene Finanzen, nur auf diesem Handy":"Your own finances, on this phone only",
 "Eigene Infos dazu: Zählernummern, Paketstation, Reinigungsfirma …":"Add your own: meter numbers, parcel locker, cleaning company …",
-"Eigene Nachricht":"Own message",
-"Eigene Nachricht …":"Own message …",
+"Eigene Nachricht":"Custom message",
+"Eigene Nachricht …":"Custom message …",
 "Eigenen Vorrat hinzufügen":"Add your own staple",
 "Eigenes, z. B. Zahnpasta":"Something else, e.g. toothpaste",
 "Ein Eintrag":"An entry",
@@ -2547,7 +2566,7 @@ window.__WG_EN = {
 "Ernte erfassen":"Log a harvest",
 "Ernte gelöscht":"Harvest deleted",
 "Ernte löschen":"Delete harvest",
-"Erst „Ich habe bezahlt“ tippen. {0} rechnet ab, sobald das Geld da ist.":"First tap „I paid“. {0} settles up once the money has arrived.",
+"Erst „Ich habe bezahlt“ tippen. {0} rechnet ab, sobald das Geld da ist.":"First tap \"I paid\". {0} settles up once the money has arrived.",
 "Erst du, dann deine Mitbewohner. Farben helfen beim schnellen Erkennen.":"You first, then your flatmates. Colours make everyone easy to spot.",
 "Erst synchronisieren lassen, dann nochmal.":"Let it sync first, then try again.",
 "Erst zum Home-Bildschirm hinzufügen":"Add to the home screen first",
@@ -2595,7 +2614,7 @@ window.__WG_EN = {
 "Garantie abgelaufen":"Warranty expired",
 "Garantie bis (optional)":"Warranty until (optional)",
 "Garantie bis {0}":"Warranty until {0}",
-"Garantie noch {0} Tag{1}":"Warranty still {0} day{1}",
+"Garantie noch {0} Tag{1}":"Warranty: {0} day{1} left",
 "Gas":"Gas",
 "Gast-Link":"Guest link",
 "Geburtstag":"Birthday",
@@ -2648,7 +2667,7 @@ window.__WG_EN = {
 "getragen":"share",
 "Getränke":"Drinks",
 "Gib den Einmal-Code ein. Danach siehst du den Login {0} Min lang.":"Enter the one-time code. You'll then see the login for {0} min.",
-"Gib ihn deinem Mitbewohner persönlich oder per Messenger. Auf seinem Handy steht jetzt „WG-Code wurde geändert\" — dort unter „Mehr\" eingeben und":"Give it to your flatmate in person or by messenger. Their phone now says \"flat code has changed\" — enter it there under \"More\" and",
+"Gib ihn deinem Mitbewohner persönlich oder per Messenger. Auf seinem Handy steht jetzt „WG-Code wurde geändert\" — dort unter „Mehr\" eingeben und":"Give it to your flatmate in person or by messenger. Their phone now says \"flat code has changed\" — enter it there under \"More\" and choose",
 "Gieß-Abstand einen Tag kürzer":"Watering interval one day shorter",
 "Gieß-Abstand einen Tag länger":"Watering interval one day longer",
 "Gießen alle wie viel Tage?":"Water every how many days?",
@@ -2659,7 +2678,7 @@ window.__WG_EN = {
 "Gilt nur für dieses Gerät. Punkte und Fairness zählen immer, du blendest nur die Serie aus.":"Applies to this device only. Points and fairness always count, you only hide the streak.",
 "Glas":"Glass",
 "Gleich teilen · 50/50":"Split evenly · 50/50",
-"Gleichstand":"Level",
+"Gleichstand":"Tie",
 "Gleichstand: {0}":"Tie: {0}",
 "Grenze in Euro":"Limit in euros",
 "Grenzen ändern":"Change limits",
@@ -2886,7 +2905,7 @@ window.__WG_EN = {
 "Miete gesamt":"Rent in total",
 "Miete gesamt (warm)":"Rent in total (incl. bills)",
 "Miete, Strom, Handy …":"Rent, electricity, phone …",
-"Milch, Klopapier, Müllbeutel …":"Milk, loo roll, bin bags …",
+"Milch, Klopapier …":"Milk, loo roll …",
 "Milchreis":"Rice pudding",
 "Mindestens ein Bereich muss aktiv sein.":"At least one area has to stay on.",
 "Mit + trägst du eure Pflanzen ein — danach teilen sich Grow-Ausgaben im Haushalt nach diesen Anteilen.":"Tap + to add your plants — grow expenses under Household are then split by these shares.",
@@ -3119,6 +3138,7 @@ window.__WG_EN = {
 "seit {0} Tagen fällig":"due for {0} days",
 "seit {0} Tagen gemeldet – nachhaken!":"reported {0} days ago – chase it up!",
 "seit 1 Tag abgelaufen":"expired 1 day ago",
+"seit 1 Tag fällig":"due for 1 day",
 "Seit du zuletzt da warst":"Since you were last here",
 "Senden":"Send",
 "Server nicht erreichbar":"Server not reachable",
@@ -3272,9 +3292,9 @@ window.__WG_EN = {
 "Vormonat":"Previous month",
 "Vorrat":"Staples",
 "vorräte fast leer nachkaufen klopapier":"supplies running low restock toilet paper pantry",
-"Wähle unter":"Choose under",
+"Wähle unter":"Go to",
 "Wähle zuerst oben, wer du bist.":"First pick who you are, up top.",
-"wählen. Der alte Code ist gesperrt.":"The old code is blocked.",
+"wählen. Der alte Code ist gesperrt.":"– the old code is blocked.",
 "Wann erinnern?":"When should we remind you?",
 "Wann geerntet?":"Harvested when?",
 "Wann gestartet?":"Started when?",
@@ -3359,7 +3379,7 @@ window.__WG_EN = {
 "WG übernehmen — lokale Daten ersetzen":"Take the flat's data — replace what's local",
 "WG-Ausgaben ·":"Flat expenses ·",
 "WG-Code":"Flat code",
-"WG-Code & Verbindung":"Flat code & sync",
+"WG-Code & Verbindung":"Flat code & connection",
 "WG-Code teilen":"Share flat code",
 "WG-Code wechseln":"Change flat code",
 "WG-Code wurde geändert — neuen Code eingeben":"The flat code has changed — enter the new one",
@@ -3435,6 +3455,7 @@ window.__WG_EN = {
 "zuletzt €":"last time €",
 "Zuletzt erledigt":"Last done",
 "Zuletzt gesichert vor {0} Tagen":"Last backed up {0} days ago",
+"Zuletzt gesichert vor 1 Tag":"Last backed up 1 day ago",
 "Zuletzt gestern":"Last done yesterday",
 "Zuletzt heute":"Last done today",
 "Zuletzt vor {0} Tagen":"Last done {0} days ago",
@@ -3504,8 +3525,9 @@ window.__WG_EN = {
 
 
 
+
 <script type="text/jsx-src" id="jsx-src">
-const { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo, createContext, useContext } = React;   /* wg-v112: useLayoutEffect für useAenderung (Bewegung vor dem ersten Malen anlegen) */
+const { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo, createContext, useContext, useDeferredValue } = React;   /* wg-v112: useLayoutEffect für useAenderung (Bewegung vor dem ersten Malen anlegen) */
 
 /* ── Helpers ── */
 const ls   = (k,fb) => { try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;} };
@@ -3581,6 +3603,8 @@ const parseNum = v => {
   const n = parseFloat(s);
   return isNaN(n) ? 0 : n;
 };
+/* Betrag eingegeben und gültig: > 0 und ohne führendes Minus (parseNum verwirft das Vorzeichen: „-20" wäre sonst still +20) */
+const betragOk = v => parseNum(v) > 0 && !/^\s*[-−–]/.test(String(v ?? ''));
 const fmtK = n => n>=1000?(LANG==='en'?(n/1000).toFixed(1):(n/1000).toFixed(1).replace('.', ','))+'K':fmt(n);
 // Zahl in ein Eingabefeld vorbelegen — deutsches Komma nur auf Deutsch, sonst tippt man gegen das Format an
 const numIn = v => (LANG === 'en' ? String(v) : String(v).replace('.', ','));
@@ -5586,7 +5610,7 @@ function Wiz({ open, onClose, title, color, steps, onFinish, initial, quickOk, q
         {/* Sagt beim Tippen, WAS fehlt — der Schritt-Titel ist die Frage, die noch offen ist.
             `role="status"` liest ein Bildschirmleser von selbst vor, ohne den Fokus wegzunehmen. */}
         {hinweis && !ok && (
-          <div className="wiz-hint" id="wiz-hint" role="status" data-testid="wiz-hint">{TT("Dafür fehlt noch: {0}", S.label)}</div>
+          <div className="wiz-hint" id="wiz-hint" role="status" data-testid="wiz-hint">{(S.fehler&&S.fehler(data))||TT("Dafür fehlt noch: {0}", S.label)}</div>
         )}
         <div className="sheet-acts">
           {step>0&&<button className="btn btn-sec" onClick={()=>{ hoeheMerken(); setDir(-1); setStep(s=>s-1); }}>{TT("Zurück")}</button>}
@@ -6041,7 +6065,7 @@ function SearchSheet({ open, onClose, startBereich = 'alle' }) {
       )}
       {(nq || nurAusgaben) && (
         <div data-testid="search-summe" style={{fontSize:13,fontWeight:700,color:'var(--label2)'}}>
-          {TT("{0} Treffer", treffer.length)}{treffer.some(x => x.k === 'exp') ? TT(" · Ausgaben zusammen €{0}", fmt(summe)) : ''}
+          {treffer.length === 1 ? TT("1 Treffer") : TT("{0} Treffer", treffer.length)}{treffer.some(x => x.k === 'exp') ? TT(" · Ausgaben zusammen €{0}", fmt(summe)) : ''}
         </div>
       )}
       {/* Hinweis passend zum gewählten Bereich (wg-v91) — im Inhaltsverzeichnis half der Ausgaben-Tipp niemandem */}
@@ -6086,13 +6110,13 @@ function NBar({ title, color, status, wide }) {
   return (
     <div className={wide ? 'navbar navbar-wide' : 'navbar'}>
       <span className="navbar-title" style={{color}}>{title}</span>
-      <div style={{display:'flex',alignItems:'center',gap:10}}>
+      <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
         <button type="button" className="nav-search hit" data-testid="search-open" aria-label={TT("Suchen")} onClick={()=>setSuche(true)}>
           <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         </button>
         {pillText && (
           /* Offline-Warteschlange (wg-v85): wartende Änderungen als Zahl in der Pille */
-          <div className="live-pill" data-testid="live-pill" title={pendingN > 0 && !live ? TT("{0} Änderungen warten auf Netz", pendingN) : undefined} style={{color:pillColor,borderColor:`color-mix(in srgb, ${pillColor} 30%, transparent)`,background:live?'rgba(163,230,53,.07)':'transparent'}}>
+          <div className="live-pill" data-testid="live-pill" title={pendingN > 0 && !live ? (pendingN===1 ? TT("1 Änderung wartet auf Netz") : TT("{0} Änderungen warten auf Netz", pendingN)) : undefined} style={{color:pillColor,borderColor:`color-mix(in srgb, ${pillColor} 30%, transparent)`,background:live?'rgba(163,230,53,.07)':'transparent'}}>
             {/* wg-v112: Rand = 30 % der Pillenfarbe (vorher pillColor+'44' → „var(--lime)44" ist ungültig, der Rand fiel auf die volle Farbe zurück). Punkt pulsiert nur bei SYNC… (online + connecting), sonst steht er */}
             <span className={status==='connecting' && online ? 'live-dot puls' : 'live-dot'}/>{pillText}{pendingN > 0 && !live && status !== 'privat' ? ` · ${pendingN}` : ''}
           </div>
@@ -6645,7 +6669,7 @@ function TourBar({ list, tour, setTour, onlyMine, setOnlyMine }) {
   const take = shop => {
     const ids = open.filter(i=>String(i.shop||'').trim()===shop).map(i=>i.id);
     setFn('sl', cur=>cur.map(i=>ids.includes(i.id)?{...i, tour:me}:i));
-    notifyOthers(TT("🧭 {0} geht zu {1}", nameOfU(users, me), shop), TT("{0} Sachen von der Liste", ids.length), "wg-shop", "shop");
+    notifyOthers(TT("🧭 {0} geht zu {1}", nameOfU(users, me), shop), (ids.length===1 ? TT("1 Sache von der Liste") : TT("{0} Sachen von der Liste", ids.length)), "wg-shop", "shop");
     undo(TT("Tour {0} übernommen", shop), ()=>setFn('sl', cur=>cur.map(i=>ids.includes(i.id)?{...i, tour:null}:i)));
   };
   return (
@@ -7529,7 +7553,7 @@ function MaintCard() {
             <span style={{fontSize:18}}>{t.em}</span>
             <div className="cell-content">
               <span className="cell-title">{t.name}</span>
-              <span className="cell-sub" style={d<=0?{color:'var(--amber)',fontWeight:700}:undefined}>{!t.last ? TT("noch nie – jetzt fällig") : d<0 ? TT("seit {0} Tagen fällig", -d) : d===0 ? TT("heute fällig") : TT("nächstes Mal {0}", fmtDate(maintDue(t)))} {TT("· alle")} {t.every} {TT("Mon.")}</span>
+              <span className="cell-sub" style={d<=0?{color:'var(--amber)',fontWeight:700}:undefined}>{!t.last ? TT("noch nie – jetzt fällig") : d<0 ? (d===-1 ? TT("seit 1 Tag fällig") : TT("seit {0} Tagen fällig", -d)) : d===0 ? TT("heute fällig") : TT("nächstes Mal {0}", fmtDate(maintDue(t)))} {TT("· alle")} {t.every} {TT("Mon.")}</span>
             </div>
             <button className="del-btn" aria-label={TT("{0} entfernen", t.name)} onClick={()=>del(t)}><DelX/></button>
           </div>); })}
@@ -8957,7 +8981,7 @@ const parseQuick = txt => {
   let s = ' ' + String(txt||'').replace(/€/g,' ').trim() + ' ';
   const alone = /\s(allein|nur ich|für mich)\s/i.test(s);
   s = s.replace(/\s(allein|nur ich|für mich)(?=\s)/ig, ' ');
-  const m = s.match(/\s(\d+(?:[.,]\d{1,2})?)(?=\s)/);
+  const m = s.match(/\s(\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)(?=\s)/);   /* auch 1.234,56 / 1.200 (Miete) */
   if (!m) return null;
   const price = parseNum(m[1]);
   const name = (s.slice(0, m.index) + ' ' + s.slice(m.index + m[0].length)).replace(/\s(euros?|eur)(?=\s)/ig, ' ').replace(/\s+/g,' ').trim();
@@ -8995,7 +9019,7 @@ function QuickExpense({ onFull }) {
           der Platzhalter braucht 179 px und wurde mitten im Wort abgeschnitten. Mit einer Mindestbreite
           rutscht der Knopf dann selbst in die nächste Zeile; auf „Heute" („Eintragen") bleibt alles wie bisher. */}
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-        <input className="field" maxLength={80} placeholder={TT("⚡ Schnell: „12,50 Pizza“")} aria-label={TT("Ausgabe in einem Satz")} enterKeyHint="done" /* wg-v119 (PWA-7): Enter speichert die Schnell-Ausgabe */ value={txt} onChange={e=>setTxt(e.target.value)} style={{flex:'999 1 190px'}}/>
+        <input className="field" maxLength={80} placeholder={TT("⚡ „12,50 Pizza“")} aria-label={TT("Ausgabe in einem Satz")} enterKeyHint="done" /* wg-v119 (PWA-7): Enter speichert die Schnell-Ausgabe */ value={txt} onChange={e=>setTxt(e.target.value)} style={{flex:'999 1 190px'}}/>
         {/* 🪤 wg-v97, eigener Schaden aus v94: Seit der Knopf auf „Haushalt" in die zweite Zeile rutscht, stand
             der wichtigste Knopf der Seite als halber Knopf links (188 von 358 px). Damals nur den obersten
             Bildschirm angesehen — der Knopf lag darunter. Jetzt wächst er, wenn er allein steht (`1 0 auto`),
@@ -10514,7 +10538,7 @@ function Haushalt({goPutz}) {
      Schon remote gelöscht (`it` fehlt) → nichts tun, sonst stünde `undefined` im Rückgängig. */
   const delL      = (id, el) => { const it=list.find(i=>i.id===id); if(!it) return;
     weg(id, () => { setFn('sl', cur => (cur||[]).filter(i=>i.id!==id)); undo(TT("„{0}\" gelöscht", it.name||'Eintrag'), ()=>{ setFn('sl', cur => cur.some(i=>i.id===id)?cur:[it,...cur]); markiere([id]); }); }, el); };
-  const clearDone = async () => { if(await askConfirm({title:TT("Erledigte leeren"),body:TT("{0} erledigte Einträge aus dem Wagen entfernen?", doneL),okLabel:TT("Leeren"),danger:true})) setFn('sl', cur=>(cur||[]).filter(i=>i && !i.done)); };   /* Updater: nach dem Dialog war `list` alt (wg-v104) */
+  const clearDone = async () => { if(await askConfirm({title:TT("Erledigte leeren"),body:(doneL===1 ? TT("1 erledigten Eintrag aus dem Wagen entfernen?") : TT("{0} erledigte Einträge aus dem Wagen entfernen?", doneL)),okLabel:TT("Leeren"),danger:true})) setFn('sl', cur=>(cur||[]).filter(i=>i && !i.done)); };   /* Updater: nach dem Dialog war `list` alt (wg-v104) */
   const convert   = d => { add(d); delL(convItem.id); };
   // Offene nach Laden-Bereich (Rundgang), erledigte dahinter
   // Touren (wg-v76): „Nur meine Tour" blendet fremde Einträge aus; Sortierung sonst wie gehabt nach Laden-Bereich
@@ -10724,7 +10748,7 @@ function Haushalt({goPutz}) {
         {catChips({data:d,setData:sd}, gi)}
       </>
     ); }},
-    {label: TT("Wie viel?"),ok:d=>parseNum(d.price)>0,render:({data:d,setData:sd})=>{ const gi = fest ? fest==='gi' : d.bereich==='gi'; return (
+    {label: TT("Wie viel?"),ok:d=>betragOk(d.price),fehler:d=>String(d.price||"").trim()?TT("Bitte einen Betrag über 0 eingeben, z. B. 12,50"):null,render:({data:d,setData:sd})=>{ const gi = fest ? fest==='gi' : d.bereich==='gi'; return (
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
         <div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>
         <DateField value={d.date} onChange={v=>sd({...d,date:v})}/>
@@ -11141,7 +11165,7 @@ function Haushalt({goPutz}) {
           </div>
           <div className="zz-r">
           <form className="rise" style={{display:'flex',gap:8,animationDelay:'40ms'}} onSubmit={e=>{e.preventDefault();addL();}}>
-            <input ref={listInput} maxLength={200} className="field" style={{flex:1}} placeholder={TT("Milch, Klopapier, Müllbeutel …")} enterKeyHint="done" /* wg-v119 (PWA-7): Enter legt den Artikel an (form onSubmit) */ value={newName} onChange={e=>setNewName(e.target.value)}/>
+            <input ref={listInput} maxLength={200} className="field" style={{flex:1}} placeholder={TT("Milch, Klopapier …")} enterKeyHint="done" /* wg-v119 (PWA-7): Enter legt den Artikel an (form onSubmit) */ value={newName} onChange={e=>setNewName(e.target.value)}/>
             <button type="submit" className="btn" aria-label={TT("Hinzufügen")} style={{width:54,flexShrink:0,background:'var(--mint)',fontSize:26,lineHeight:1}}>+</button>
           </form>
           {list.length===0
@@ -11200,7 +11224,7 @@ function Haushalt({goPutz}) {
       {/* wg-v116: Schnell-Speichern („ich zahle, 50/50") nicht für Grow-Posten — die teilen sich nach Pflanzen, das Etikett wäre falsch;
           dort führt „Weiter" zu Schritt 3 mit der echten Aufteilung. Kassenzettel, Bearbeiten, Übernehmen: fester Bereich (stepsHs/stepsGi),
           keine Wahl, kein Umzug zwischen hs und gi. */}
-      <Wiz open={wiz} onClose={()=>{ setWiz(false); setWizInit(null); }} title={TT("Ausgabe")} color="var(--mint)" steps={wizInit?.receipt ? stepsHs : steps} onFinish={addFromWiz} initial={wizInit||addInit} quickOk={d=>d.bereich!=='gi'&&d.name?.trim()&&parseNum(d.price)>0&&d.paidBy}/>
+      <Wiz open={wiz} onClose={()=>{ setWiz(false); setWizInit(null); }} title={TT("Ausgabe")} color="var(--mint)" steps={wizInit?.receipt ? stepsHs : steps} onFinish={addFromWiz} initial={wizInit||addInit} quickOk={d=>d.bereich!=='gi'&&d.name?.trim()&&betragOk(d.price)&&d.paidBy}/>
       <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title={TT("Bearbeiten")} color="var(--mint)" steps={editItem?.mod==='gi' ? stepsGi : stepsHs} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,owedBy:editItem.owedBy||null,cat:editItem.cat||null,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>
       <Wiz open={!!convItem} onClose={()=>setConvItem(null)} title={TT("Als Ausgabe übernehmen")} color="var(--mint)" steps={stepsHs} onFinish={convert} initial={convItem?{name:convItem.name,paidBy:me||undefined,date:todayISO()}:null}/>
       <Wiz open={recWiz} onClose={()=>setRecWiz(false)} title={TT("Wiederkehrend (monatlich)")} color="var(--mint)" steps={recSteps} onFinish={addRec} initial={addInit}/>
@@ -12586,7 +12610,7 @@ function Finanzen() {
           {(() => { const last = ls('wg_priv_exported', 0) || 0, days = last ? Math.floor((Date.now()-last)/864e5) : null;
             return ((priv.tx||[]).length + (priv.fix||[]).length) > 0 && (days === null || days > 30) && (
               <div role="status" data-testid="priv-reminder" style={{marginTop:16,padding:'11px 13px',borderRadius:13,background:'rgba(196,181,253,.1)',border:'1px solid rgba(196,181,253,.35)',fontSize:13,color:'var(--label)',lineHeight:1.5}}>
-                {TT("🔐 Dein privater Bereich liegt nur auf diesem Handy und steckt in keinem automatischen Backup.")} {days === null ? TT("Noch nie gesichert") : TT("Zuletzt gesichert vor {0} Tagen", days)} {TT("— „⬇︎ Sichern\" legt eine Datei ab.")}
+                {TT("🔐 Dein privater Bereich liegt nur auf diesem Handy und steckt in keinem automatischen Backup.")} {days === null ? TT("Noch nie gesichert") : (days===1 ? TT("Zuletzt gesichert vor 1 Tag") : TT("Zuletzt gesichert vor {0} Tagen", days))} {TT("— „⬇︎ Sichern\" legt eine Datei ab.")}
               </div>); })()}
           <div style={{display:'flex',gap:9,marginTop:16}}>
             <button className="btn btn-klein" style={{background:'var(--bg3)',color:'var(--label2)',flex:1}} onClick={backup}>{TT("⬇︎ Sichern")}</button>
@@ -12911,7 +12935,7 @@ function Einstellungen() {
   const archiveCount = archiveCandidates.length;
   const doArchive = async () => {
     if (!archiveCount) return;
-    const ok = await askConfirm({ title:TT("Archivieren?"), body:TT("{0} abgerechnete Einträge wandern ins Archiv. Sie bleiben in der Übersicht sichtbar.", archiveCount), okLabel:TT("Archivieren") });
+    const ok = await askConfirm({ title:TT("Archivieren?"), body:(archiveCount===1 ? TT("1 abgerechneter Eintrag wandert ins Archiv. Er bleibt in der Übersicht sichtbar.") : TT("{0} abgerechnete Einträge wandern ins Archiv. Sie bleiben in der Übersicht sichtbar.", archiveCount)), okLabel:TT("Archivieren") });
     if (!ok) return;
     const moved = archiveCandidates;
     const hsIds = new Set(oldHs.map(i=>i.id)), giIds = new Set(oldGi.map(i=>i.id)), stlIds = new Set(oldStl.map(s=>s.id));
@@ -12921,7 +12945,7 @@ function Einstellungen() {
     setFn('hs', cur => (cur||[]).filter(i=>!hsIds.has(i.id)));
     setFn('gi', cur => (cur||[]).filter(i=>!giIds.has(i.id)));
     setFn('stl', cur => (cur||[]).filter(s=>!stlIds.has(s.id)));
-    undo(TT("{0} Einträge archiviert", moved.length), () => {
+    undo((moved.length===1 ? TT("1 Eintrag archiviert") : TT("{0} Einträge archiviert", moved.length)), () => {
       setFn('arc', cur => cur.filter(a => !moved.some(m=>m.id===a.id && m.src===a.src)));
       ['hs','gi','stl'].forEach(k => {
         setFn(k, cur => {
@@ -13255,7 +13279,7 @@ function Einstellungen() {
               <div className="cell-icon" data-ton="sky" aria-hidden="true">🗄️</div>
               <div className="cell-content">
                 <span className="cell-title">{TT("Abgerechnetes archivieren")}</span>
-                <span className="cell-sub">{archiveCount>0 ? TT("{0} Posten älter als 3 Monate", archiveCount) : TT("Nichts zu archivieren")}{/* wg-v118 (EN-3) */}</span>
+                <span className="cell-sub">{archiveCount>0 ? (archiveCount===1 ? TT("1 Posten älter als 3 Monate") : TT("{0} Posten älter als 3 Monate", archiveCount)) : TT("Nichts zu archivieren")}{/* wg-v118 (EN-3) */}</span>
               </div>
               <button className="btn btn-kompakt" onClick={doArchive} disabled={archiveCount===0}
                 style={{background:archiveCount>0?'var(--sky)':'var(--bg3)',color:archiveCount>0?'var(--ink)':'var(--label2)',opacity:archiveCount===0?.5:1}}>
@@ -13367,7 +13391,7 @@ function Einstellungen() {
               return (
               <div key={u.id} className="cell" style={{flexWrap:'wrap'}} data-testid="person-row">
                 <div style={{width:10,height:10,borderRadius:'50%',background:u.color,boxShadow:`0 0 8px ${u.color}`,flexShrink:0}}/>
-                <input className="field" maxLength={100} aria-label={TT("Name der Person")} readOnly={ro} style={{background:'transparent',border:'none',padding:0,fontSize:16,fontWeight:600,flex:1,...lockSt}}
+                <input className="field" maxLength={100} aria-label={TT("Name der Person")} readOnly={ro} style={{background:'transparent',border:'none',padding:'9px 0',minHeight:40,fontSize:16,fontWeight:600,flex:1,...lockSt}}
                   value={u.name} onChange={e=>{ if (!ro) set('users',users.map(x=>x.id===u.id?{...x,name:e.target.value}:x)); }}/>
                 <button className="btn btn-kompakt" onClick={async()=>{ if (me && me!==u.id && !(await askConfirm({ title:TT("Bist du wirklich {0}?", u.name), body:TT("Dieses Handy gehört dann {0}: Putzplan, Zahlungen und das Profil gelten für {1}.", u.name, u.name), okLabel:TT("Ich bin {0}", u.name) }))) return; setMe(u.id); }}
                   style={{background:me===u.id?u.color:'var(--bg3)',color:me===u.id?'#0a120c':'var(--label3)',flexShrink:0}}>
@@ -13514,12 +13538,12 @@ function Einstellungen() {
                   <span className="cell-sub">{TT("von")}</span>
                   <select value={pushPrefs.qs} onChange={e=>setPref({qs:+e.target.value})} aria-label={TT("Ruhezeit ab")}
                     style={{background:'var(--bg3)',color:'var(--label)',border:'none',borderRadius:10,padding:'6px 10px',minHeight:40,fontSize:16 /* wg-v118 (PWA-4): ≥ 16 px gegen iOS-Fokus-Zoom (vorher UA-Standard 13,3 px) */}}>
-                    {Array.from({length:24},(_,h)=>h).map(h=><option key={h} value={h}>{h} {TT("Uhr")}</option>)}
+                    {Array.from({length:24},(_,h)=>h).map(h=><option key={h} value={h}>{LANG==='en' ? `${h}:00` : `${h} ${TT("Uhr")}`}</option>)}
                   </select>
                   <span className="cell-sub">{TT("bis")}</span>
                   <select value={pushPrefs.qe} onChange={e=>setPref({qe:+e.target.value})} aria-label={TT("Ruhezeit bis")}
                     style={{background:'var(--bg3)',color:'var(--label)',border:'none',borderRadius:10,padding:'6px 10px',minHeight:40,fontSize:16 /* wg-v118 (PWA-4) */}}>
-                    {Array.from({length:24},(_,h)=>h).map(h=><option key={h} value={h}>{h} {TT("Uhr")}</option>)}
+                    {Array.from({length:24},(_,h)=>h).map(h=><option key={h} value={h}>{LANG==='en' ? `${h}:00` : `${h} ${TT("Uhr")}`}</option>)}
                   </select>
                 </div>
               </div>
@@ -14177,6 +14201,10 @@ function AppInner() {
     return (saved && (saved==='set' || mods[saved] !== false)) ? saved : (visibleTabs[0]?.id || 'set');
   });
   const [dir,setDir] = useState(1); // Slide-Richtung: +1 neuer Tab rechts, -1 links
+  /* wg-v137 (G5 Teil 2): Tab-Leiste und Marker reagieren sofort (tab), der schwere Inhalt zieht in einem zweiten, unterbrechbaren
+     Durchgang nach (tabShown). Dir wird mitgezogen, sonst bekäme der alte Tab für ein Bild die neue Richtungs-Klasse und die
+     Eingangsbewegung liefe auf ihm neu an. Beim Start sind beide gleich (kein Nachlauf). */
+  const tabShown = useDeferredValue(tab), dirShown = useDeferredValue(dir);
   const idxOf = (id) => TABS.findIndex(t => t.id===id);
   const setTab = (id) => { setDir(idxOf(id) >= idxOf(tab) ? 1 : -1); setTab_(id); ss('wg_tab', id); };
   /* wg-v112: ist der angezeigte Tab neu für diese Sitzung? Wird beim Rendern bestimmt (vor allen Effekten) und je Tab
@@ -14184,7 +14212,7 @@ function AppInner() {
      (Sync, Live-Einträge) hundertmal neu rendert; erst DANN kommt der Tab in GESEHEN. Ein Ref statt useMemo: useMemo darf
      laut React jederzeit zweimal laufen, und beim zweiten Lauf stünde der Tab schon im Set → fälschlich „schon". */
   const gesehenRef = useRef(null);
-  if (!gesehenRef.current || gesehenRef.current.tab !== tab) { gesehenRef.current = { tab, schon: GESEHEN.has(tab) }; GESEHEN.add(tab); }
+  if (!gesehenRef.current || gesehenRef.current.tab !== tabShown) { gesehenRef.current = { tab: tabShown, schon: GESEHEN.has(tabShown) }; GESEHEN.add(tabShown); }
   const tabSchon = gesehenRef.current.schon;
   // Sprung aus der Suche (wg-v85): Ereignis 'wg-tab' mit Ziel-Tab; ist das Modul aus, landet man im Haushalt bzw. unter Mehr
   useEffect(() => {
@@ -14378,18 +14406,18 @@ function AppInner() {
   }, [remotePulse]);
   return (
     <>
-      <main key={tab} tabIndex={-1} ref={frischWeg} data-frisch="" /* wg-v121 (FILM-7 A): frisch eingehängter Tab → keine Zeile fährt ein, s. frischWeg */ className={`tab-view ${dir>=0?'tab-in-r':'tab-in-l'}${tabSchon?' schon':''}`}>
+      <main key={tabShown} tabIndex={-1} ref={frischWeg} data-frisch="" /* wg-v121 (FILM-7 A): frisch eingehängter Tab → keine Zeile fährt ein, s. frischWeg */ className={`tab-view ${dirShown>=0?'tab-in-r':'tab-in-l'}${tabSchon?' schon':''}`}>
         {/* Seitenüberschrift: das Dokument hatte bisher gar keine Überschrift —
             Screenreader konnten nicht sagen, welcher Bereich offen ist. */}
-        <h1 className="sr-only">{(TABS.find(t=>t.id===tab)||{}).label || TT("WG")}</h1>
-        {tab==='heute'&&<Heute goTab={setTab}/>}
-        {tab==='haus'&&<Haushalt goPutz={()=>setTab('putz')}/>}{/* wg-v116: goGrow entfällt — Grow-Geld lebt im Haushalt */}
-        {tab==='grow'&&<Grow/>}
-        {tab==='putz'&&<Putzplan/>}
-        {tab==='fin' &&<Finanzen/>}
-        {tab==='abos'&&<Abos/>}
-        {tab==='stats'&&<Statistik goHaus={()=>setTab('haus')}/>}
-        {tab==='set' &&<Einstellungen/>}
+        <h1 className="sr-only">{(TABS.find(t=>t.id===tabShown)||{}).label || TT("WG")}</h1>
+        {tabShown==='heute'&&<Heute goTab={setTab}/>}
+        {tabShown==='haus'&&<Haushalt goPutz={()=>setTab('putz')}/>}{/* wg-v116: goGrow entfällt — Grow-Geld lebt im Haushalt */}
+        {tabShown==='grow'&&<Grow/>}
+        {tabShown==='putz'&&<Putzplan/>}
+        {tabShown==='fin' &&<Finanzen/>}
+        {tabShown==='abos'&&<Abos/>}
+        {tabShown==='stats'&&<Statistik goHaus={()=>setTab('haus')}/>}
+        {tabShown==='set' &&<Einstellungen/>}
       </main>{/* wg-v122 (A11Y-8): war div.tab-view — genau eine Hauptlandmarke; Klassen unverändert */}
       {toast&&(
         <div className="toast" aria-hidden="true">
