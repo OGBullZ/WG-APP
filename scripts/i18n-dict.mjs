@@ -49,6 +49,16 @@ if (process.argv.includes('--luecken')) {
   process.exit(0);
 }
 
+// tote Schlüssel (wg-v127, S1): Wörterbuch-Einträge, deren deutscher Text im Quelltext nirgends mehr steht. Nur Verdacht — vor dem Löschen
+// prüfen, ob der Text zusammengesetzt wird. Aufruf: node scripts/i18n-dict.mjs --tote
+if (process.argv.includes('--tote')) {
+  const rest = html.replace(BLOCK, '');
+  const tot = Object.keys(dict).filter(k => { const b = k.includes('|') ? k.split('|').slice(1).join('|') : k; return !(rest.includes(JSON.stringify(b).slice(1, -1)) || rest.includes(b)); });
+  console.log(JSON.stringify(tot, null, 1));
+  console.error(`${tot.length} von ${Object.keys(dict).length} Schlüsseln ohne Fundstelle im Quelltext`);
+  process.exit(0);
+}
+
 // deutsche Anführungszeichen („…“) in den ENGLISCHEN Texten auf gerade " bringen
 if (process.argv.includes('--zitate')) {
   let n = 0;

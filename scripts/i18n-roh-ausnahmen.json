@@ -1,0 +1,4 @@
+[
+ { "kind": "call", "ctx": "notifyOthers", "text": "Einkauf", "grund": "Vorgabe-Name eines neuen Postens (d.name||'Einkauf'): Anzeigename, wird als Datum gespeichert und dem Nutzer nie übersetzt angezeigt — gespeicherte Daten bleiben in der Sprache, in der sie entstanden." },
+ { "kind": "call", "ctx": "notifyOthers", "text": "Grow", "grund": "Produktname der Karte, in beiden Sprachen gleich (Vorgabe-Name eines Grow-Postens)." }
+]
