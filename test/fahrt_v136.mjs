@@ -15,12 +15,13 @@
    F2  Abdunkelung nicht heller als vorher (dunkel ≥ .7, hell ≥ .35 Deckkraft) — der Ausgleich für die Unschärfe, nicht ihr Wegfall ohne Ersatz
    F3  Schrittwechsel 1→2, Desktop 1440: mittlerer Bildabstand in den 300 ms der Fahrt (rAF-Zeitstempel) höchstens 1,6 × der Ruhe-Abstand derselben Seite ohne Blatt
        (Verhältnis statt fester ms: unter Last werden beide langsamer). Alt: ~4 × (67 / 17 ms)
-   F4  dasselbe am Handy 390 px mit Pixeldichte 3 (alt knapp: 28 ms je Bild = 1,7 ×; bei Dichte 1 ist die Fläche klein genug und alt grün)
+   F4  dasselbe am Handy 390 px mit Pixeldichte 3 (alt knapp: 28/33/28 ms je Bild = 1,66–2,0 × in 3 Läufen; bei Dichte 1 ist die Fläche klein genug und alt grün).
+       Schwächste Prüfung: am Handy kostet die Unschärfe ohne GPU wenig, der Gewinn liegt vor allem auf breiten Fenstern (F3/F5). Neu liegt bei ~17 ms = 1,0 ×.
    F5  Öffnen des Blatts (sheetUp): Bildabstand während der ersten 300 ms höchstens 1,6 × Ruhe
    F6  Erhaltung: die Höhenfahrt läuft weiter (≥ 3 Bilder mit .hoehe-fahrt) und bleibt nach Bildzeit in der Entwurfsgrenze (|Hub| · π/2 / 300 ms je 16,7 ms) — auch alt grün
    Z   keine Seitenfehler
 
-   WG_CPU=<n> drosselt wie gutachten2_b. Gegenprobe: WG_URL auf eine Kopie des alten Stands (20.11.: F1, F3 54 ms, F4 28 ms, F5 50 ms rot; F2, F6, Z grün — 3 grün, 4 rot). */
+   WG_CPU=<n> drosselt wie gutachten2_b. Gegenprobe: WG_URL auf eine Kopie des alten Stands (20.11., 4 Läufe: F1, F3 54–83 ms, F4 28–33 ms, F5 39–83 ms immer rot; F2, F6, Z grün — 3 grün, 4 rot). */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
 
