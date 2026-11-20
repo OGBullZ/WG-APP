@@ -1198,3 +1198,13 @@ Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen 
 - PR 22 bekam nach dem Merge noch einen Fix aus der Cloud (W5 rechnete einen Stau hoch) — Tests-only, in v130 nachziehen.
 - **Restore-Probe live (B2):** mein Lauf wurde vom Schutz auf dem Rechner blockiert (Geheimnis aus Vercel holen) — nicht umgangen. torbe lief es selbst; dabei vier Fehler im Ablauf: (1) `vercel.ps1` per Execution Policy gesperrt → `vercel.cmd`; (2) Vercel gibt „sensible" Variablen beim `env pull` **leer** aus → Skript fragt den Code verdeckt ab; (3) die Maskierung mit leerem Suchtext setzte `***` zwischen jedes Zeichen; (4) das Werkzeug fragte `/api` auf Firebase Hosting (404) statt Vercel (403 bei falschem Code). Dazu Node-„Assertion failed" bei Fehler-Exit (offene fetch-Verbindungen) → `exitCode` statt `exit()`. **Ergebnis 20.11.: Sicherung (10 h alt, 16 vorhanden) unverändert eingelesen, Listen und Summen = Live (Haushalt 39 Posten).** Startskript jetzt im Repo: `scripts/restore-live.ps1`.
 
+## wg-v130 — Bedienung 2 + schnelleres Gate (20.11., live `621da6d`, Gate grün, Vercel success, `npm run betrieb` grün)
+
+**Was:** PR 23 „Bedienung 2" (Bearbeiten startet beim Betrag, Rückgängig nach dem Ausgabe-Assistenten, Personen vor Geburtstagen; Test `bedienung_b`) · PR 25 (JSX-Cache vorwärmen, Gate-Liste als EINE Quelle `scripts/gate-liste.mjs` für ship, CI und abnahme, CI in 4 Jobs) · PR 22-Nachfix (Rückruf-Bündel nach Stau nicht zum Sprung hochrechnen, Tests).
+
+**Wirkung:** volle Regression lokal 44 → 23 min (3 Arbeiter). **Neue Testdateien jetzt nur noch in `scripts/gate-liste.mjs` eintragen**, nicht mehr in `ship.mjs`.
+
+**Was schiefging:**
+- PR 25 hätte `abnahme.mjs regression` still leer laufen lassen (Liste per Regex aus `ship.mjs`) — vorher gesehen, auf `import('./gate-liste.mjs')` umgestellt. Die Liste im PR stammte vom v127-Stand: sechs neuere Tests (v129/v130) von Hand ergänzt, Mengenvergleich alt ⊆ neu geprüft (110 → 113, nichts verloren).
+- `grow_haus_v116` H4 rot (8 Folgefehler): PR 23 lässt Bearbeiten beim Betrag starten, der Test klickte noch einmal „Weiter" vor dem Preisfeld. Bewusste Änderung → Test nachgezogen.
+
