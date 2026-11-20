@@ -1,0 +1,22 @@
+- navigation "Hauptnavigation":
+  - button "Heute":
+    - img
+    - text: Heute
+  - button "Haushalt":
+    - img
+    - text: Haushalt
+  - button "Growbox":
+    - img
+    - text: Growbox
+  - button "1 Putzaufgabe für dich fällig Putzplan":
+    - img
+    - text: Putzplan
+  - button "Privat":
+    - img
+    - text: Privat
+  - button "Übersicht":
+    - img
+    - text: Übersicht
+  - button "Mehr":
+    - img
+    - text: Mehr

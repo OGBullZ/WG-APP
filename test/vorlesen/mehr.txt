@@ -1,0 +1,160 @@
+- text: Mehr
+- button "Suchen":
+  - img
+- text: STATUS
+- button "Was kann die App? Alle Funktionen auf einen Blick — tippen führt direkt hin"
+- button "WG-Code & Verbindung Code teilen, Sync, Datenbank" [expanded]
+- heading "Sync-Status" [level=2]
+- text: "Live synchronisiert ✓ WG-Code: TEST-LOKAL-V134"
+- heading "WG-Code teilen" [level=2]
+- text: TEST-LOKAL-V134 Diesen Code auf dem anderen Gerät eingeben
+- button "Kopieren"
+- textbox "Anderer WG-Code"
+- button "Beitreten"
+- button "WG-Code wechseln Z. B. wenn jemand ausgezogen ist — der alte Code wird gesperrt"
+- text: "⚠️ Beim Beitreten wählst du: zusammenführen oder überschreiben."
+- heading "Firebase (konfiguriert) Ändern" [level=2]:
+  - text: Firebase (konfiguriert)
+  - button "Ändern"
+- text: Verbunden wgapp-65484 Aktiv
+- button "Ansicht & Kalender Bereiche, Spielelemente, Hell/Dunkel, Kalender-Abo" [expanded]
+- heading "Bereiche anzeigen" [level=2]
+- text: Heute (Startseite)
+- button "Heute (Startseite)" [pressed]: An
+- text: Haushalt
+- button "Haushalt" [pressed]: An
+- text: Growbox
+- button "Growbox" [pressed]: An
+- text: Putzplan
+- button "Putzplan" [pressed]: An
+- text: Privat
+- button "Privat" [pressed]: An
+- text: Abos
+- button "Abos": Aus
+- text: Übersicht
+- button "Übersicht" [pressed]: An
+- text: Mindestens ein Bereich muss aktiv sein.
+- heading "Spielelemente" [level=2]
+- text: Pünktlich-Serie 🔥 zählt Aufgaben, die du nicht überfällig werden lässt
+- button "Spielelemente" [pressed]: An
+- text: Gilt nur für dieses Gerät. Punkte und Fairness zählen immer, du blendest nur die Serie aus.
+- heading "Darstellung" [level=2]
+- button "🌙 Dunkel" [pressed]
+- button "☀️ Hell"
+- button "🌓 Wie System"
+- button "Aa Normal" [pressed]
+- button "Aa Groß"
+- button "Aa Sehr groß"
+- button "🇩🇪 Deutsch" [pressed]
+- button "🇬🇧 English"
+- text: Gilt nur für dieses Gerät.
+- heading "Kalender-Abo" [level=2]
+- text: Müllabfuhr (mit Erinnerung am Vorabend), Abwesenheiten, Ankündigungen und die nächsten Putz-Aufgaben im Handy-Kalender – klappt auch, wenn die App zu ist.
+- button "Kalender-Link erzeugen"
+- text: Wer den Link hat, sieht diese Termine. Nach „WG-Code wechseln“ gilt er nicht mehr.
+- heading "Sprach-Kurzbefehl" [level=2]
+- text: "iPhone (Kurzbefehle-App): „Diktierten Text“ → „URL“ mit der Vorlage unten + Text dahinter → „URLs öffnen“. Namen z. B. „WG Ausgabe“, dann: „Hey Siri, WG Ausgabe“ – „12,50 Pizza“. Android: Vorlage mit dem Text dahinter als Lesezeichen/Verknüpfung öffnen (z. B. mit „HTTP Shortcuts“)."
+- code: http://127.DATUM1:8101/?a=ausgabe&t=
+- button "Vorlage kopieren"
+- text: Die App öffnet sich mit ausgefüllter Schnell-Zeile – ein Tipp auf „Eintragen“ bestätigt.
+- button "Daten & Backup Archiv, Backups, Fehlerprotokoll" [expanded]
+- heading "Archiv" [level=2]
+- text: Abgerechnetes archivieren Nichts zu archivieren
+- button "Archivieren" [disabled]
+- heading "Backup" [level=2]
+- button "Als JSON exportieren Lädt eine Backup-Datei herunter"
+- button "Als CSV exportieren Ausgaben + Abrechnungen für Excel/Sheets"
+- button "Backup importieren Überschreibt aktuelle Daten"
+- button "Automatische Backups Täglich auf dem Server, je N Tage — löschen kann sie in der Zeit niemand ›"
+- button "Wohnung Infos, Wartung, Ausleihe, Inventar, Kaution, Gast-Link, Auszug" [expanded]
+- heading "WG-Infos" [level=2]
+- text: Zählernummern, Paketstation, Reinigungsfirma — einmal notiert, immer auffindbar. WLAN, Notfall-Infos und Vermieter erscheinen hier automatisch, sobald sie eingetragen sind.
+- button "+ Info anpinnen"
+- heading "Wartung · alle paar Monate + Eigene" [level=2]:
+  - text: Wartung · alle paar Monate
+  - button "+ Eigene"
+- button "🚨 Rauchmelder testen"
+- button "🫖 Wasserkocher entkalken"
+- button "☕ Kaffeemaschine entkalken"
+- button "🌬️ Dunstabzug-Filter"
+- 'button "🧺 Waschmaschine: Flusensieb"'
+- button "🚿 Duschkopf entkalken"
+- button "🔥 Heizung entlüften"
+- button "🧊 Kühlschrank abtauen"
+- 'button "🍽️ Spülmaschine: Filter"'
+- button "🪠 Abflüsse reinigen"
+- heading "Ausgeliehen + Eintrag" [level=2]:
+  - text: Ausgeliehen
+  - button "+ Eintrag"
+- text: Bohrmaschine an den Nachbarn, Beamer von Freunden – mit Rückgabe-Erinnerung.
+- heading "Inventar · wem gehört was + Gegenstand" [level=2]:
+  - text: Inventar · wem gehört was
+  - button "+ Gegenstand"
+- text: Möbel und Geräte mit Besitzer eintragen – spart Streit beim Auszug.
+- heading "Vermieter & Mängel + Eintragen" [level=2]:
+  - text: Vermieter & Mängel
+  - button "+ Eintragen"
+- text: Noch kein Vermieter hinterlegt Keine offenen Mängel
+- heading "Notfall-Infos + Eintragen" [level=2]:
+  - text: Notfall-Infos
+  - button "+ Eintragen"
+- text: Wo ist der Sicherungskasten, wo der Absperrhahn? Einmal eintragen – steht dann auch im Gast-Link.
+- heading "Kaution + Eintragen" [level=2]:
+  - text: Kaution
+  - button "+ Eintragen"
+- text: Wer hat wie viel Kaution gezahlt? Beim Auszug wird die Rückzahlung anteilig verrechnet.
+- heading "Gast-Link Angaben" [level=2]:
+  - text: Gast-Link
+  - button "Angaben"
+- text: "Besuch bekommt eine Seite zum Lesen: WLAN, eure gültigen WG-Regeln und die nächsten Müll-Termine – ohne WG-Code, ohne Zugriff auf Geld."
+- button "Link erzeugen"
+- button "Alle Gast-Links ungültig machen"
+- heading "Auszug" [level=2]
+- button "Übergabe-Seite öffnen Zählerstände, offene Mängel, Inventar und offene Beträge – zum Drucken oder als PDF"
+- button "Personen Wer bist du, Namen, Farben, PayPal, Geburtstage" [expanded]
+- heading "Geburtstage" [level=2]
+- text: Noch keine eingetragen — die Benachrichtigung am Morgen erinnert am Tag selbst und N Tage vorher.
+- textbox "Name"
+- textbox "Geburtstag"
+- checkbox "Jahrgang unbekannt (dann ohne Alter)"
+- text: Jahrgang unbekannt (dann ohne Alter)
+- button "+ Geburtstag merken"
+- heading "Personen" [level=2]
+- textbox "Name der Person": Torben
+- button "Das bin ich ✓"
+- text: paypal.me/
+- textbox "PayPal.me-Name von Torben":
+  - /placeholder: dein-name
+  - text: TorbenSteen
+- textbox "Kontoinhaber von Torben":
+  - /placeholder: Kontoinhaber (leer = Torben)
+- textbox "IBAN von Torben":
+  - /placeholder: IBAN, z. B. DE89 3704 0044 …
+- textbox "BIC von Torben":
+  - /placeholder: BIC (optional)
+- textbox "Name der Person": Tom
+- button "Das bin ich"
+- text: 🔒 Nur Tom kann das auf dem eigenen Handy ändern paypal.me/
+- textbox "PayPal.me-Name von Tom":
+  - /placeholder: dein-name
+- textbox "Kontoinhaber von Tom":
+  - /placeholder: Kontoinhaber (leer = Tom)
+- textbox "IBAN von Tom":
+  - /placeholder: IBAN, z. B. DE89 3704 0044 …
+- textbox "BIC von Tom":
+  - /placeholder: BIC (optional)
+- button "🔄 Mitbewohner-Wechsel Jemand zieht aus, jemand Neues ein"
+- button "✨ Mein Profil einrichten Name, Farbe, Bereiche, PayPal/IBAN, Benachrichtigungen – Schritt für Schritt"
+- text: „Das bin ich“ gilt nur für dieses Gerät. PayPal.me-Name und IBAN erscheinen beim Schuldenausgleich zum Antippen bzw. Kopieren – nur für die WG, nie im Gast-Link.
+- button "Benachrichtigungen Pro Art, Ruhezeiten, Geräte, Homescreen" [expanded]
+- heading "Erinnerungen" [level=2]
+- text: "Lokale Erinnerungen Beim Öffnen: fällige Putzaufgaben & Abos"
+- button "🔔 Lokale Erinnerungen": Aus
+- text: Ohne Server keine Hintergrund-Benachrichtigungen — geprüft wird beim Öffnen der App (max. 1×/Tag).
+- heading "Benachrichtigungen" [level=2]
+- text: Benachrichtigungen an die WG Nur das Wichtige — auch bei geschlossener App
+- button "📲 Benachrichtigungen an die WG" [disabled]: Aus
+- text: Benachrichtigungen kommen an auf noch keinem Gerät Bei Tom sind Benachrichtigungen noch aus — dort unter „Mehr“ einschalten. In den Browser-Einstellungen blockiert. Dort erlauben, um Benachrichtigungen zu aktivieren.
+- heading "Zum Homescreen" [level=2]
+- text: 1 Safari öffnen 2 Teilen □↑ 3 "Zum Home-Bildschirm" 4 Startet wie eine native App
+- button "Alle lokalen Daten löschen"
