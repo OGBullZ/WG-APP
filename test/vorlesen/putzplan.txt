@@ -1,0 +1,18 @@
+- text: Putzplan
+- button "Suchen":
+  - img
+- text: STATUS Einsatz · letzte N Tage Torben 0 P. Tom 0 P. Wer den Haken setzt, bekommt die Aufgabe gutgeschrieben. Danach ist abwechselnd der andere dran. Kurz zählt 1, mittel 2, groß 3 Punkte. 🔥 zählt Aufgaben, die du nicht überfällig werden lässt.
+- heading "Aufgaben + Aufgabe anlegen" [level=2]:
+  - text: Aufgaben
+  - button "+ Aufgabe anlegen": + Neu
+- button "Bad putzen erledigt":
+  - img
+- button "Bad putzen bearbeiten": 🚿 Bad putzen Du , danach Tom wöchentlich
+- text: N Tage überfällig
+- button "Küche wischen erledigt":
+  - img
+- button "Küche wischen bearbeiten": 🧽 Küche wischen Tom , danach du wöchentlich
+- text: HEUTE
+- heading "Hinzufügen" [level=2]
+- button "Müllabfuhr"
+- button "Abwesend"
