@@ -9336,7 +9336,7 @@ function Heute({ goTab }) {
   ].filter(Boolean);
   return (
     <div className="screen">
-      <NBar title={TT("Heute")} color="var(--mint)" status={status} wide/>
+      <NBar title={TT("Heute")} color="var(--label)" status={status} wide/>{/* wg-v128 (FARBE-5b): Seitentitel neutral wie der Tab — Mint gehört dem Haushalt */}
       {/* heute-grid: ab 1024 px zwei feste Spalten (wg-v83), darunter zwei gestapelte Gruppen wie bisher.
           wg-v113 (P12): Raster jetzt allgemein (.zwei-zonen + .zz-paar, s. CSS „Zwei Zonen") — die Kopfkarte steht davor, die Spalten im Paar */}
       <div className="scroll"><div className="content heute-grid zwei-zonen">
@@ -13712,7 +13712,9 @@ function Statistik({ goHaus }) {   /* goHaus (wg-v112, P9): „Ausgabe eintragen
       /* wg-v112 (P4): var(--label3) statt Weiß-Alpha .25 — die Farbe ist Schrift UND Balken; hell 1,00:1 (nur der Betrag war zu sehen), dunkel 2,26:1 */
       if (k==='none') return { k, v, em:'➖', label: TT("Ohne Kategorie"), color:'var(--label3)' };
       const [,em,label] = CATS.find(c=>c[0]===k);
-      return { k, v, em, label, color:CAT_COLORS[k] };
+      /* wg-v128 (FARBE-4): ein Ton je Diagramm — alle Haushalt-Kategorien im Modulton Mint statt CAT_COLORS (die lagen auf den Personenfarben:
+         „Haushalt" = Torben-Blau direkt unter „Wer hat bezahlt"). Identität = Emoji + Name, Rang = Länge; Budget ≥ 80 % färbt weiter Amber/Rot (warn). */
+      return { k, v, em, label, color:'var(--mint)' };
     }).filter(b=>b.v>0).sort((a,b)=>b.v-a.v);
   })();
 
@@ -13733,7 +13735,7 @@ function Statistik({ goHaus }) {   /* goHaus (wg-v112, P9): „Ausgabe eintragen
     return Object.entries(sums).map(([k,v]) => {
       if (k==='none') return { k, v, em:'➖', label: TT("Ohne Kategorie"), color:'var(--label3)' };   /* wg-v112 (P4): wie bei catBuckets */
       const [,em,label] = GROW_CATS.find(c=>c[0]===k);
-      return { k, v, em, label, color:GROW_CAT_COLORS[k] };
+      return { k, v, em, label, color:'var(--lime)' };   /* wg-v128 (FARBE-4): Grow-Kategorien alle im Modulton Lime (vorher u. a. Erde = Tom-Amber, Equipment = Torben-Blau) */
     }).filter(b=>b.v>0).sort((a,b)=>b.v-a.v);
   })();
 
@@ -13944,7 +13946,7 @@ function Statistik({ goHaus }) {   /* goHaus (wg-v112, P9): „Ausgabe eintragen
    APP ROOT
 ══════════════════════════ */
 const TABS=[
-  {id:'heute',label:TT("Heute"),   color:'var(--mint)',  icon:ICONS.sun     },
+  {id:'heute',label:TT("Heute"),   color:'var(--label)', icon:ICONS.sun     },   /* wg-v128 (FARBE-5b): neutral — „Heute" mischt alle Module, Mint gehört dem Haushalt (vorher zwei Tabs in Mint) */
   {id:'haus',label:TTk('tab',"Haushalt"),color:'var(--mint)',  icon:ICONS.house   },   /* EN kurz: „Home" */
   {id:'grow',label:TTk('tab',"Growbox"), color:'var(--lime)',  icon:ICONS.leaf    },   /* EN kurz: „Grow" */
   {id:'putz',label:TTk('tab',"Putzplan"),color:'var(--amber)', icon:ICONS.sparkle },   /* EN kurz: „Chores" */
