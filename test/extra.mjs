@@ -4,6 +4,7 @@
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
 import { openTool } from './_heute.mjs';   // leere Werkzeuge auf Heute sind seit wg-v82 Chips
+import { WT } from './_finden.mjs';
 
 const url = process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';   // WG_URL: Gegenprobe gegen eine Kopie (wg-v117)
 const z = n => String(n).padStart(2, '0');
@@ -75,25 +76,25 @@ check('A3 „Pizza 12.50€"', pq[2] === '{"price":12.5,"name":"Pizza","alone":f
 check('A4 „€5 Brot"', pq[3] === '{"price":5,"name":"Brot","alone":false}', pq[3]);
 check('A5 ohne Betrag → null', pq[4] === 'null');
 check('A6 erste Zahl ist der Betrag („3 Kugeln Eis 4,50" → 3)', pq[6] === '{"price":3,"name":"Kugeln Eis 4,50","alone":false}', pq[6]);
-await page.getByLabel('Ausgabe in einem Satz').fill('Lidl 23,40');
+await page.getByLabel(WT.ausgabeSatz).fill('Lidl 23,40');
 check('A7 Vorschau', /Lidl · €23,40 · du zahlst · 50\/50/.test(await page.locator('[data-testid="quick-preview"]').innerText()));
-await page.getByLabel('Ausgabe in einem Satz').press('Enter'); await page.waitForTimeout(500);
+await page.getByLabel(WT.ausgabeSatz).press('Enter'); await page.waitForTimeout(500);
 let d = await data();
 const q = d.hs.find(i => i.name === 'Lidl' && i.price === 23.4);
 check('A8 gespeichert: ich zahle, Kategorie aus dem letzten „Lidl"', !!q && q.paidBy === 'u1' && q.cat === 'food' && !q.owedBy, JSON.stringify(q));
-check('A9 Rückgängig angeboten, Feld leer', await page.getByRole('button', { name: 'Rückgängig' }).count() === 1 && await page.getByLabel('Ausgabe in einem Satz').inputValue() === '');
+check('A9 Rückgängig angeboten, Feld leer', await page.getByRole('button', { name: WT.rueckgaengig }).count() === 1 && await page.getByLabel(WT.ausgabeSatz).inputValue() === '');
 
 // ── B: Preis-Gedächtnis im Ausgaben-Formular ──
-await page.getByRole('button', { name: '+ Ausgabe hinzufügen' }).click(); await page.waitForTimeout(300);
+await page.getByRole('button', { name: WT.ausgabeHinzufuegen }).click(); await page.waitForTimeout(300);
 await page.locator('.sheet input.field').first().fill('Pizza');
-await page.getByRole('button', { name: 'Weiter', exact: true }).click(); await page.waitForTimeout(200);
+await page.getByRole('button', { name: WT.weiter, exact: true }).click(); await page.waitForTimeout(200);
 check('B1 „Wie zuletzt: €10,00"', /Wie zuletzt: €10,00/.test(await page.locator('[data-testid="price-hint"]').innerText()));
 await page.locator('.sheet input[inputmode="decimal"]').fill('13');
 check('B2 „▲ 30 % teurer als zuletzt"', /▲ 30 % teurer/.test(await page.locator('[data-testid="price-jump"]').innerText().catch(() => '')));
 await page.getByRole('button', { name: /Wie zuletzt/ }).click();
 check('B3 Antippen übernimmt 10,00', await page.locator('.sheet input[inputmode="decimal"]').inputValue() === '10,00');
 check('B4 bei gleichem Preis kein Sprung-Hinweis', await page.locator('[data-testid="price-jump"]').count() === 0);
-await page.getByRole('button', { name: 'Abbrechen' }).first().click(); await page.waitForTimeout(300);
+await page.getByRole('button', { name: WT.abbrechen }).first().click(); await page.waitForTimeout(300);
 
 // ── C: Gesamtbudget ──
 // seit wg-v105: ohne Budget eine Kachel — ein Tipp öffnet direkt „Monatsbudget"
@@ -101,10 +102,10 @@ check('C0 ohne Budget: Kachel statt Karte', await page.locator('[data-chip="budg
 // Wiederkehrend ist ein Formular: der Chip öffnet es direkt (kein breiter Knopf mehr, wg-v103)
 await page.locator('[data-chip="wiederkehrend"]').click(); await page.waitForTimeout(400);
 check('C0b Chip „Wiederkehrend" öffnet das Formular direkt', await page.locator('.sheet:visible').count() === 1);
-await page.getByRole('button', { name: 'Abbrechen' }).first().click(); await page.waitForTimeout(300);
+await page.getByRole('button', { name: WT.abbrechen }).first().click(); await page.waitForTimeout(300);
 await page.locator('[data-chip="budget"]').click(); await page.waitForTimeout(300);
 await page.getByRole('textbox', { name: 'Monatsbudget' }).fill('100');   /* wg-v112 (P7): das Blatt heißt jetzt auch „Monatsbudget" (role=dialog + aria-label) — getByLabel träfe Blatt UND Feld */
-await page.locator('.sheet').getByRole('button', { name: 'Speichern' }).click(); await page.waitForTimeout(400);
+await page.locator('.sheet').getByRole('button', { name: WT.speichern }).click(); await page.waitForTimeout(400);
 d = await data();
 check('C1 Budget gespeichert (bud total)', d.bud.some(b => b.id === 'total' && b.limit === 100));
 const monthSum = d.hs.filter(i => String(i.date).slice(0, 7) === T.slice(0, 7)).reduce((s, i) => s + i.price, 0);
@@ -123,7 +124,7 @@ await tabTo('Putzplan');
 await page.getByRole('button', { name: '+ Aufgabe anlegen' }).click(); await page.waitForTimeout(300);
 const pr = await page.locator('[data-testid="chore-presets"]').innerText();
 check('E1 Vorlagen „Tier füttern", „Katzenklo", „Blumen düngen"', /Tier füttern/.test(pr) && /Katzenklo/.test(pr) && /Blumen düngen/.test(pr));
-await page.getByRole('button', { name: 'Abbrechen' }).first().click(); await page.waitForTimeout(300);
+await page.getByRole('button', { name: WT.abbrechen }).first().click(); await page.waitForTimeout(300);
 
 // ── F: Zählerstände + Besuch ──
 await tabTo('Übersicht');
@@ -133,7 +134,7 @@ const addRead = async (v, date) => {
   if (!(await openTool(page, 'zaehler'))) { await page.getByRole('button', { name: '+ Ablesen' }).click(); await page.waitForTimeout(300); }
   await page.getByLabel('Zählerstand').fill(v);
   await page.getByLabel('Ablesedatum').fill(date);
-  await page.locator('.sheet').getByRole('button', { name: 'Speichern' }).click(); await page.waitForTimeout(400);
+  await page.locator('.sheet').getByRole('button', { name: WT.speichern }).click(); await page.waitForTimeout(400);
 };
 await addRead('1000', dayAgo(30));
 check('F1 erste Ablesung: noch keine Hochrechnung', /ab der 2\. Ablesung/.test(await page.locator('[data-testid="meter-row"]').innerText()));
@@ -141,7 +142,7 @@ await addRead('1300,5', T);
 check('F2 Ø 10,02 kWh/Tag · ~3.656 kWh/Jahr', /Ø 10,02 kWh\/Tag · ~3\.656 kWh\/Jahr/.test(await page.locator('[data-testid="meter-row"]').innerText()), await page.locator('[data-testid="meter-row"]').innerText());
 await page.locator('[data-testid="meter-row"]').click(); await page.waitForTimeout(300);
 await page.locator('#m-price').fill('0,35'); await page.locator('#m-ab').fill('80');
-await page.locator('.sheet').getByRole('button', { name: 'Speichern' }).click(); await page.waitForTimeout(400);
+await page.locator('.sheet').getByRole('button', { name: WT.speichern }).click(); await page.waitForTimeout(400);
 // 300,5/30 × 365 × 0,35 − 960 = 319,63
 const rowTxt = (await page.locator('[data-testid="meter-row"]').innerText()).replace(/\n/g, ' | ');
 check('F3 Hochrechnung: ~€319,63 Nachzahlung', /~€319,63 Nachzahlung/.test(rowTxt), rowTxt + ' ' + JSON.stringify((await data()).zs));
@@ -186,7 +187,7 @@ check('I3 Zahlung zum Bestätigen', /Tom hat €5,00 bezahlt – bitte bestätig
 // ohne Nachricht der letzten 12 Std. ist „Kurz Bescheid" eine Kachel; seit wg-v105 öffnet sie ein Blatt mit der Karte
 const msgBlatt = await openTool(page, 'msg');
 check('I4 Ankündigungen, Nachrichten, Reparaturen, Logins als Karten auf Heute', /Eltern/.test(await page.locator('[data-testid="board-card"]').innerText().catch(() => '')) && /Bin gleich da/.test(await page.locator('[data-testid="quick-msgs"]').innerText().catch(() => '')) && await page.locator('[data-testid="repair-card"]').count() === 1);
-if (msgBlatt) { await page.getByRole('button', { name: 'Abbrechen' }).first().click(); await page.waitForTimeout(300); }
+if (msgBlatt) { await page.getByRole('button', { name: WT.abbrechen }).first().click(); await page.waitForTimeout(300); }
 check('I5 Einkauf: 1 offen · bald leer: Kaffee', /1 auf der Einkaufsliste · bald leer: Kaffee/.test(await page.locator('[data-testid="today-shop"]').innerText().catch(() => '')));
 check('I6 Saldo-Zeile', await page.locator('[data-testid="today-bal"]').count() === 1);
 check('I7 Schnell-Eingabe auch hier', await page.locator('[data-testid="quick-expense"]').count() === 1);

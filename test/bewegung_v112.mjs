@@ -328,7 +328,7 @@ try {
     for (const n of ['Haushalt', 'Putzplan']) {
       const r = erst[n], f0 = r.frames[0];
       const lauf = Math.max(...r.frames.filter(x => x.dt <= 40).map(x => x.riseLauf));
-      check(`P2c ${n}, 1. Besuch: rise läuft (≥ 3 Animationen), Karten starten unsichtbar, kein „schon"`, lauf >= 3 && Math.min(...f0.rise) < 0.5 && !schonKl(r.klasse), `laufende rise ${lauf}, kleinste Deckkraft zu Beginn ${Math.min(...f0.rise).toFixed(2)}, Klasse „${r.klasse}"`);
+      check(`P2c ${n}, 1. Besuch: rise läuft (≥ 3 Animationen), Karten starten halb sichtbar (wg-v127 G5: Deckkraft .75 statt 0), kein „schon"`, lauf >= 3 && Math.min(...f0.rise) < 0.9 && Math.min(...f0.rise) > 0.5 && !schonKl(r.klasse), `laufende rise ${lauf}, kleinste Deckkraft zu Beginn ${Math.min(...f0.rise).toFixed(2)}, Klasse „${r.klasse}"`);
     }
     // (d) zweiter Besuch: Ruhe nach ≤ 250 ms
     const ru = NAMEN.map(n => [n, ruhigNach(zweit[n]), nurAusnahmen(zweit[n])]);

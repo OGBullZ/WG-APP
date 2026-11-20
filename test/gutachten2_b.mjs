@@ -29,6 +29,7 @@
    „popstate" (Zurück schließt kein Blatt) → P1a/P1d/P3a rot. */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const url = process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';   /* 127.0.0.1 statt localhost: localhost kostet unter Windows 2 s (IPv6-Versuch) */
 const z = n => String(n).padStart(2, '0');
@@ -117,7 +118,7 @@ const ARTEN = {
   },
   conf: {
     tab: 'set', ausloeser: 'button:has-text("Alle lokalen Daten löschen")',
-    auf: async p => { await p.getByRole('button', { name: 'Alle lokalen Daten löschen' }).click({ timeout: 4000 }); },
+    auf: async p => { await p.getByRole('button', { name: WT.datenLoeschen }).click({ timeout: 4000 }); },
     zu: async p => { await p.locator(IM_BLATT + ' .sheet-acts .btn-sec').click({ timeout: 3000 }); },
   },
 };
@@ -967,7 +968,7 @@ const x3jd = await versuch(async () => {
   const feld = p.locator('input.field[placeholder="Anderer WG-Code"]');
   await feld.scrollIntoViewIfNeeded();
   await feld.fill('SONNENALLEE-7');
-  await p.getByRole('button', { name: 'Beitreten', exact: true }).click({ timeout: 4000 });
+  await p.getByRole('button', { name: WT.beitreten, exact: true }).click({ timeout: 4000 });
   await p.locator('.overlay:not(.zu) [role="dialog"]').waitFor({ timeout: 4000 });
   await p.waitForTimeout(400);
   return p.evaluate(() => { const d = document.querySelector('.overlay:not(.zu) [role="dialog"]'); return { aria: d.getAttribute('aria-label'), titel: d.querySelector('.sheet-title').textContent }; });

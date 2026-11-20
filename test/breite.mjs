@@ -6,6 +6,7 @@
    E „Weniger Bewegung": keine Einblend-Animation, keine Vibration */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const browser = await chromium.launch();
@@ -63,7 +64,7 @@ check('A3 Heute zweispaltig nebeneinander', la.a && la.b && la.b.x >= la.a.x + l
 check('A4 Heute nutzt die Breite (Inhalt ≥ 1000 px)', la.content.w >= 1000, `${la.content.w} px`);
 check('A5 nichts ragt seitlich heraus', la.ueber <= 0, `${la.ueber} px`);
 // C: andere Seite am Desktop
-await A.page.locator('.tabbar .tabitem', { hasText: 'Übersicht' }).click(); await A.page.waitForTimeout(600);
+await A.page.locator('.tabbar .tabitem', { hasText: WT.tabUebersicht }).click(); await A.page.waitForTimeout(600);
 const lc = await layout(A.page);
 // wg-v113 (P12): Vertragswechsel — vorher „einspaltig, höchstens 760 px"; jetzt nutzen alle Seiten die Breite wie Heute (test/desktop_v113.mjs)
 check('C1 Übersicht am Desktop zweispaltig wie Heute (Inhalt ≥ 1000 px, Spalten nebeneinander)', lc.content.w >= 1000 && lc.l && lc.rr && lc.rr.x >= lc.l.x + lc.l.w - 1 && Math.abs(lc.l.y - lc.rr.y) < 4, `${lc.content.w} px, ${JSON.stringify({ l: lc.l, r: lc.rr })}`);
@@ -91,7 +92,7 @@ await D.page.waitForTimeout(1100);
 check('D3 Aufleuchten endet wieder', await D.page.locator('[data-testid="quick-expense"].ok-flash').count() === 0);
 const newsAnim = await D.page.locator('[data-testid="news-item"]').first().evaluate(e => getComputedStyle(e).animationName);
 check('D4 Verlauf-Eintrag blendet ein', newsAnim === 'rise', newsAnim);
-await D.page.locator('.tabbar .tabitem', { hasText: 'Haushalt' }).click(); await D.page.waitForTimeout(500);
+await D.page.locator('.tabbar .tabitem', { hasText: WT.tabHaushalt }).click(); await D.page.waitForTimeout(500);
 await D.page.locator('.seg-btn', { hasText: 'Einkaufsliste' }).click(); await D.page.waitForTimeout(500);
 const vorher = (await D.page.evaluate(() => window.__vib)).length;
 await D.page.locator('.cell', { hasText: 'Milch' }).locator('button').first().click(); await D.page.waitForTimeout(300);

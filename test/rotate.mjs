@@ -7,6 +7,7 @@
    Die DB-Regel „nach dem Umzug keine Writes mehr" prüft ein Lauf gegen die echte DB (CLAUDE.md). */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const OLD = 'BLAU-MOND-ABC234';
@@ -61,7 +62,7 @@ async function device({ me, dev, seedTree, localData, rotateStatus = 200 }) {
   return { page, calls, ctx };
 }
 const tree = page => page.evaluate(() => window.__wg.tree);
-const openMehr = async page => { await page.locator('.tabbar .tabitem', { hasText: 'Mehr' }).click(); await page.waitForTimeout(300); await page.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click())); await page.waitForTimeout(400); };
+const openMehr = async page => { await page.locator('.tabbar .tabitem', { hasText: WT.tabMehr }).click(); await page.waitForTimeout(300); await page.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click())); await page.waitForTimeout(400); };
 
 // ── A) Wechsel klappt ──
 {
@@ -85,8 +86,8 @@ const openMehr = async page => { await page.locator('.tabbar .tabitem', { hasTex
   check('A7 vorher gesichert (Snapshot mit altem Code)', iBackup >= 0 && calls[iBackup].body.code === OLD && calls[iBackup].body.action === 'snapshot');
   check('A8 Server erfährt {old, new}', iRotate > iBackup && calls[iRotate].body.old === OLD && calls[iRotate].body.new === NEW, JSON.stringify(calls[iRotate]?.body));
   // Code-Sheet schließen, dann schreibt eine neue Ausgabe unter den NEUEN Code
-  await page.getByRole('button', { name: 'Fertig', exact: true }).click();
-  await page.locator('.tabbar .tabitem', { hasText: 'Haushalt' }).click(); await page.waitForTimeout(300);
+  await page.getByRole('button', { name: WT.fertig, exact: true }).click();
+  await page.locator('.tabbar .tabitem', { hasText: WT.tabHaushalt }).click(); await page.waitForTimeout(300);
   await page.locator('.btn', { hasText: 'Ausgabe hinzufügen' }).first().click(); await page.waitForTimeout(300);
   await page.locator('.sheet .field').first().fill('NachWechsel');
   await page.locator('.sheet-acts .btn', { hasText: 'Weiter' }).click(); await page.waitForTimeout(250);
@@ -134,7 +135,7 @@ const openMehr = async page => { await page.locator('.tabbar .tabitem', { hasTex
   // Beitritt mit dem neuen Code → zusammenführen
   await page.locator('.moved-banner').getByRole('button').click(); await page.waitForTimeout(400);
   await page.locator('input[placeholder="Anderer WG-Code"]').fill(NEW);   // wg-v97: Platzhalter gekürzt (passte bei 360 px nicht)
-  await page.getByRole('button', { name: 'Beitreten' }).click(); await page.waitForTimeout(300);
+  await page.getByRole('button', { name: WT.beitreten }).click(); await page.waitForTimeout(300);
   await page.getByRole('button', { name: /Zusammenführen/ }).click(); await page.waitForTimeout(500);
   await page.evaluate(() => window.__wg.fire()); await page.waitForTimeout(1500);
   const t3 = await tree(page);

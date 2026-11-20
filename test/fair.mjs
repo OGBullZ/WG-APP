@@ -3,6 +3,7 @@
    D) Aufgabe abgeben/übernehmen  E) Belegung & Ruhezeiten (inkl. Überschneidung) */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const z = n => String(n).padStart(2, '0');
@@ -57,7 +58,7 @@ check('B1 Wächter: Summe über 50 € und ältester Posten 40 Tage alt', /Zeit 
 await A.page.locator('[data-testid="debt-watch"]').getByRole('button', { name: 'Grenzen ändern' }).click(); await A.page.waitForTimeout(300);
 await A.sheet.getByLabel('Grenze in Euro').fill('200');
 await A.sheet.locator('#dw-days').fill('90');
-await A.sheet.getByRole('button', { name: 'Speichern' }).click(); await A.page.waitForTimeout(500);
+await A.sheet.getByRole('button', { name: WT.speichern }).click(); await A.page.waitForTimeout(500);
 check('B2 Grenzen gespeichert', (await A.data()).cf.some(x => x.id === 'limit' && x.max === 200 && x.days === 90));
 check('B3 unter den neuen Grenzen ist der Hinweis weg', await A.page.locator('[data-testid="debt-watch"]').count() === 0);
 check('B4 keine Seitenfehler', A.errs.length === 0, A.errs.join(' | '));
@@ -104,21 +105,21 @@ await D2.ctx.close();
 // ── E: Belegung & Ruhezeiten ──
 const E = await open({ users: USERS, bk: map([{ id: 'b1', kind: 'wash', date: T, from: '10:00', to: '12:00', by: 'u2' }]) }, { tab: 'heute' });
 check('E1 fremder Eintrag sichtbar, ohne Löschknopf', /Waschmaschine · 10:00–12:00/.test(await E.page.locator('[data-testid="book-row"]').innerText()) && await E.page.locator('[data-testid="book-row"] .del-btn').count() === 0);
-await E.page.locator('[data-testid="book-card"]').getByRole('button', { name: '+ Eintragen' }).click(); await E.page.waitForTimeout(300);
+await E.page.locator('[data-testid="book-card"]').getByRole('button', { name: WT.eintragen }).click(); await E.page.waitForTimeout(300);
 await E.sheet.getByRole('button', { name: '🧺 Waschmaschine' }).click();
-await E.sheet.getByLabel('Von').fill('11:00');
-await E.sheet.getByLabel('Bis').fill('13:00');
-await E.sheet.getByRole('button', { name: 'Speichern' }).click(); await E.page.waitForTimeout(400);
+await E.sheet.getByLabel(WT.von).fill('11:00');
+await E.sheet.getByLabel(WT.bis).fill('13:00');
+await E.sheet.getByRole('button', { name: WT.speichern }).click(); await E.page.waitForTimeout(400);
 check('E2 Überschneidung wird abgelehnt', /schon jemand eingetragen/.test(await E.sheet.locator('[data-testid="book-msg"]').innerText().catch(() => '')) && !(await E.data()).bk.some(b => b.from === '11:00'));
-await E.sheet.getByLabel('Von').fill('13:00');
-await E.sheet.getByLabel('Bis').fill('12:00');
-await E.sheet.getByRole('button', { name: 'Speichern' }).click(); await E.page.waitForTimeout(300);
+await E.sheet.getByLabel(WT.von).fill('13:00');
+await E.sheet.getByLabel(WT.bis).fill('12:00');
+await E.sheet.getByRole('button', { name: WT.speichern }).click(); await E.page.waitForTimeout(300);
 check('E3 Ende vor Start wird abgelehnt', /Ende muss nach dem Start/.test(await E.sheet.locator('[data-testid="book-msg"]').innerText().catch(() => '')));
 await E.sheet.getByRole('button', { name: '🤫 Ruhe bitte' }).click();
-await E.sheet.getByLabel('Von').fill('20:00');
-await E.sheet.getByLabel('Bis').fill('22:00');
+await E.sheet.getByLabel(WT.von).fill('20:00');
+await E.sheet.getByLabel(WT.bis).fill('22:00');
 await E.sheet.getByLabel('Notiz').fill('Prüfung lernen');
-await E.sheet.getByRole('button', { name: 'Speichern' }).click(); await E.page.waitForTimeout(500);
+await E.sheet.getByRole('button', { name: WT.speichern }).click(); await E.page.waitForTimeout(500);
 const eb = (await E.data()).bk.find(b => b.kind === 'ruhe');
 check('E4 Ruhezeit gespeichert (anderer Bereich → keine Überschneidung)', !!eb && eb.from === '20:00' && eb.to === '22:00' && eb.note === 'Prüfung lernen' && eb.by === 'u1', JSON.stringify(eb));
 check('E5 Push mit Zeitfenster', E.pushes.some(p => /Ruhe bitte: heute 20:00–22:00/.test(p.title)), JSON.stringify(E.pushes.map(p => p.title)));

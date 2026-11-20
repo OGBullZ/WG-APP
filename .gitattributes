@@ -1,0 +1,2 @@
+# wg-v128: Vergleichsdateien des Vorlese-Protokolls immer mit LF auschecken (Windows-autocrlf machte sonst CRLF daraus, der Vergleich schlug an jeder Zeile an)
+test/vorlesen/*.txt text eol=lf

@@ -5,6 +5,7 @@
    (Haushalt-Karte, Tab-Punkt, Putzplan-Stand, Vorlagen), Sync, Push-Text und Rückgängig. Firebase per Stub. */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const url = process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';   // WG_URL: Gegenprobe gegen eine Kopie (wg-v114)
 const z = n => String(n).padStart(2, '0');
@@ -117,11 +118,11 @@ check('B1 Haushalt-Karte sichtbar', await quick.count() === 1);
 const quickText = await quick.innerText().catch(() => '');
 check('B2 … nur Bad (meins, fällig) — nicht Müll (Toms), nicht Küche (heute erledigt)',
   /Bad putzen/.test(quickText) && !/Müll/.test(quickText) && !/Küche/.test(quickText), quickText.replace(/\n/g, ' | '));
-const dotPutz = () => page.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).locator('.tab-dot').count();
+const dotPutz = () => page.locator('.tabbar .tabitem', { hasText: WT.tabPutzplan }).locator('.tab-dot').count();
 check('B3 Tab-Punkt am Putzplan', await dotPutz() === 1);
 
 // ── C: Putzplan — Stand je Aufgabe ──
-await page.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).click(); await page.waitForTimeout(600);
+await page.locator('.tabbar .tabitem', { hasText: WT.tabPutzplan }).click(); await page.waitForTimeout(600);
 const row = name => page.locator('[data-testid="chore-row"]', { hasText: name });
 // wg-v101: Die Zeile sagt nur noch „Tom · alle 2 Tage" — der Stand („5 : 2") steht im title der Zeile.
 // Geprüft bleibt dasselbe: wer dran ist, und dass der alte Eintrag nicht mitzählt.
@@ -144,7 +145,7 @@ check('C6 ohne Tonne/Abwesenheit: zwei Kacheln, keine sichtbaren Karten', JSON.s
 await page.locator('[data-chip="pickup"]').click(); await page.waitForTimeout(300);
 check('C7 Kachel antippen → Abholtermin-Blatt direkt offen, leere Karte nicht im Feed', await page.locator('.sheet:visible', { hasText: 'Abholtermin' }).count() === 1
   && !(await page.locator('[data-testid="pickup-card"]').first().isVisible()));
-await page.locator('.sheet:visible').getByRole('button', { name: 'Abbrechen' }).first().click(); await page.waitForTimeout(300);
+await page.locator('.sheet:visible').getByRole('button', { name: WT.abbrechen }).first().click(); await page.waitForTimeout(300);
 check('C7b Abbrechen: Blatt zu, Kachel bleibt', await page.locator('.sheet:visible').count() === 0 && await page.locator('[data-chip="pickup"]').count() === 1);
 // Löschen im Bearbeiten-Fenster (das × je Zeile ist weg) — mit Rückgängig
 const vorher = await page.locator('[data-testid="chore-row"]').count();
@@ -153,7 +154,7 @@ await page.locator('[data-testid="chore-row"]', { hasText: 'Bad' }).locator('[da
 await page.locator('[data-testid="wiz-del"]').click(); await page.waitForTimeout(400);
 check('C9 „Aufgabe löschen" im Bearbeiten-Fenster entfernt die Aufgabe', await page.locator('[data-testid="chore-row"]').count() === vorher - 1
   && await page.locator('[data-testid="chore-row"]', { hasText: 'Bad' }).count() === 0);
-await page.getByRole('button', { name: 'Rückgängig' }).click(); await page.waitForTimeout(400);
+await page.getByRole('button', { name: WT.rueckgaengig }).click(); await page.waitForTimeout(400);
 check('C10 Rückgängig holt sie zurück', await page.locator('[data-testid="chore-row"]', { hasText: 'Bad' }).count() === 1);
 check('C5 Verlauf: 1–4 Zeilen, relative Angabe, kein volles Datum', logZeilen.length >= 1 && logZeilen.length <= 4
   && logZeilen.every(z => /heute|gestern|vor \d+ Tagen/.test(z) && !/\d{1,2}\.\d{1,2}\.\d{4}/.test(z)), JSON.stringify(logZeilen));
@@ -177,7 +178,7 @@ const remotePl = JSON.stringify(await page.evaluate(() => window.__wg.remote.pl 
 check('D6 Eintrag beim Server angekommen', remotePl.includes(pl1[0].id) && /u1/.test(remotePl));
 
 // ── E: Rückgängig stellt alles wieder her ──
-await page.getByRole('button', { name: 'Rückgängig' }).click(); await page.waitForTimeout(700);
+await page.getByRole('button', { name: WT.rueckgaengig }).click(); await page.waitForTimeout(700);
 const m2 = await task('m'), pl2 = (await local()).pl;
 check('E1 Rückgängig: Eintrag weg', !pl2.some(l => l.id === pl1[0].id));
 check('E2 Rückgängig: Fälligkeit + Einteilung wie vorher', m2.lastDone === dayAgo(5) && m2.assignee === 'u2', JSON.stringify(m2));
@@ -185,7 +186,7 @@ await page.waitForTimeout(300);
 check('E3 Rückgängig auch beim Server', !JSON.stringify(await page.evaluate(() => window.__wg.remote.pl || {})).includes(pl1[0].id));
 
 // ── F: Torben macht seine eigene Aufgabe (Bad 0:0 → 1:0) → Tom ist dran, Karte + Tab-Punkt verschwinden ──
-await page.locator('.tabbar .tabitem', { hasText: 'Heute' }).click(); await page.waitForTimeout(600);
+await page.locator('.tabbar .tabitem', { hasText: WT.tabHeute }).click(); await page.waitForTimeout(600);
 await quick.locator('.done-btn').first().click(); await page.waitForTimeout(900);
 const b1 = await task('b');
 check('F1 Bad über die Haushalt-Karte erledigt → Tom ist dran', b1.assignee === 'u2' && b1.lastDone === dayAgo(0), JSON.stringify(b1));
@@ -193,7 +194,7 @@ check('F2 Karte verschwindet (nichts mehr fällig für mich)', await quick.count
 check('F3 Tab-Punkt verschwindet', await dotPutz() === 0);
 const p2 = pushes.filter(p => p.type === 'done').pop();
 check('F4 Push nennt Tom als Nächsten', !!p2 && /Tom, du bist dran/.test(p2.body), p2?.body);
-await page.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).click(); await page.waitForTimeout(600);
+await page.locator('.tabbar .tabitem', { hasText: WT.tabPutzplan }).click(); await page.waitForTimeout(600);
 check('F5 Einsatz zählt Punkte: Bad = 3 → Torben 7 P.', /Torben 7 P\./.test(await heroText()), await heroText());
 
 // ── G: Vorlage antippen → sofort speichern ──
@@ -208,14 +209,14 @@ check('G3 Zeile zeigt „alle 2 Wochen"', /alle 2 Wochen/.test(await row('Altpap
 
 // ── H: Bearbeiten übernimmt den Aufwand ──
 await row('Küche').locator('.cell-content').click(); await page.waitForTimeout(400);
-await page.getByRole('button', { name: 'Weiter' }).click(); await page.waitForTimeout(200);
-await page.getByRole('button', { name: 'Weiter' }).click(); await page.waitForTimeout(200);
+await page.getByRole('button', { name: WT.weiter }).click(); await page.waitForTimeout(200);
+await page.getByRole('button', { name: WT.weiter }).click(); await page.waitForTimeout(200);
 await page.locator('.sheet .cat-btn', { hasText: 'Groß' }).click();
 await page.getByRole('button', { name: /Änderung speichern/ }).click(); await page.waitForTimeout(500);
 check('H1 Küche jetzt 3 Punkte, Rest unverändert', JSON.stringify(await task('k')).includes('"pts":3') && (await task('k')).interval === 7);
 
 // ── I: Übersicht zeigt Punkte ──
-await page.locator('.tabbar .tabitem', { hasText: 'Übersicht' }).click(); await page.waitForTimeout(600);
+await page.locator('.tabbar .tabitem', { hasText: WT.tabUebersicht }).click(); await page.waitForTimeout(600);
 check('I1 Übersicht: „Putzplan · Punkte"', await page.getByText('Putzplan · Punkte · 6 Monate').count() === 1);
 
 const errs = [];
@@ -287,7 +288,7 @@ await pg.locator('.tabbar').waitFor({ timeout: 30000 });
 await pg.evaluate(() => window.__wg.fire()); await pg.waitForTimeout(1500);
 const hdr = await pg.locator('[data-testid="chore-quick"] .section-hdr').innerText();
 check('L1 Haushalt-Karte zeigt eigene Serie 🔥 2', /🔥\s*2/.test(hdr), hdr);
-await pg.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).click(); await pg.waitForTimeout(600);
+await pg.locator('.tabbar .tabitem', { hasText: WT.tabPutzplan }).click(); await pg.waitForTimeout(600);
 // wg-v102: Duell entfernt — keine Duell-Karte, keine Krone, die Kopfkarte zeigt nur noch den Fairness-Balken
 const kopf = (await pg.locator('.hero').first().innerText()).replace(/\n/g, ' ');
 check('L2 kein Wochen-Duell, keine 👑 im Putzplan', await pg.locator('[data-testid="chore-duel"]').count() === 0 && !/👑|Duell/.test(await pg.locator('.content').innerText()), kopf);
@@ -295,7 +296,7 @@ check('L3 Kopfkarte = Einsatz-Balken', /Einsatz/i.test(kopf) && /P\./.test(kopf)
 
 // pünktlich abhaken → Serie 3, Rückmeldung + Push nennen sie
 await pg.locator('[data-testid="chore-row"]', { hasText: 'Staubsaugen' }).locator('.done-btn').click(); await pg.waitForTimeout(900);
-const undoTxt = await pg.getByRole('button', { name: 'Rückgängig' }).locator('xpath=..').innerText();
+const undoTxt = await pg.getByRole('button', { name: WT.rueckgaengig }).locator('xpath=..').innerText();
 check('L6 Rückmeldung „🔥 3"', /🔥 3/.test(undoTxt), undoTxt.replace(/\n/g, ' '));
 const pp = push2.filter(p => p.type === 'done').pop();
 check('L7 Push nennt „🔥 3 pünktlich in Folge"', !!pp && /🔥 3 pünktlich in Folge/.test(pp.body), pp && pp.body);
@@ -307,7 +308,7 @@ await pg.locator('[data-testid="chore-row"]', { hasText: 'Altglas' }).locator('.
 const ent2 = JSON.parse(await pg.evaluate(() => localStorage.getItem('wg_data'))).pl[0];
 check('L10 Retten: late 0 für mich, miss = Tom', ent2.userId === 'u1' && ent2.late === 0 && ent2.miss === 'u2', JSON.stringify(ent2));
 // Serie sichtbar über die Rückmeldung (die Duell-Karte, die sie vorher zeigte, ist weg)
-const undoTxt2 = await pg.getByRole('button', { name: 'Rückgängig' }).locator('xpath=..').innerText();
+const undoTxt2 = await pg.getByRole('button', { name: WT.rueckgaengig }).locator('xpath=..').innerText();
 check('L11 Retten zählt in meine Serie: Rückmeldung „🔥 4"', /🔥 4/.test(undoTxt2), undoTxt2.replace(/\n/g, ' '));
 await ctx2.close();
 
@@ -340,24 +341,24 @@ check('M1 Schalter unter Mehr, Standard „An"', await tgl.innerText() === 'An')
 await tgl.click(); await pm.waitForTimeout(300);
 const st = await pm.evaluate(() => ({ mods: JSON.parse(localStorage.getItem('wg_modules')), pp: JSON.parse(localStorage.getItem('wg_push_prefs') || '{}') }));
 check('M2 aus → gespeichert (Gerät + Push-Einstellung game)', await tgl.innerText() === 'Aus' && st.mods.game === false && st.pp.game === false, JSON.stringify(st));
-await pm.locator('.tabbar .tabitem', { hasText: 'Heute' }).click(); await pm.waitForTimeout(500);
+await pm.locator('.tabbar .tabitem', { hasText: WT.tabHeute }).click(); await pm.waitForTimeout(500);
 const hdr3 = await pm.locator('[data-testid="chore-quick"] .section-hdr').innerText();
 check('M3 Haushalt-Karte bleibt, aber ohne 🔥', /DU BIST DRAN/i.test(hdr3) && !/🔥/.test(hdr3), hdr3);
-await pm.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).click(); await pm.waitForTimeout(500);
+await pm.locator('.tabbar .tabitem', { hasText: WT.tabPutzplan }).click(); await pm.waitForTimeout(500);
 check('M4 kein Wochen-Duell, Einsatz + Stand bleiben', await pm.locator('[data-testid="chore-duel"]').count() === 0
   && /Einsatz/i.test(await pm.locator('.hero').first().innerText()) && !/👑/.test(await pm.locator('.hero').first().innerText()));
 await pm.locator('[data-testid="chore-row"]', { hasText: 'Staubsaugen' }).locator('.done-btn').click(); await pm.waitForTimeout(800);
-const undo3 = await pm.getByRole('button', { name: 'Rückgängig' }).locator('xpath=..').innerText();
+const undo3 = await pm.getByRole('button', { name: WT.rueckgaengig }).locator('xpath=..').innerText();
 const pp3 = push3.filter(p => p.type === 'done').pop();
 check('M5 Abhaken ohne 🔥 in Rückmeldung und Push', !/🔥/.test(undo3) && !!pp3 && !/🔥/.test(pp3.body), `${undo3} | ${pp3 && pp3.body}`);
 const ent3 = JSON.parse(await pm.evaluate(() => localStorage.getItem('wg_data'))).pl[0];
 check('M6 Serien-Daten werden trotzdem geschrieben (late)', ent3.late === 0, JSON.stringify(ent3));
-await pm.locator('.tabbar .tabitem', { hasText: 'Mehr' }).click(); await pm.waitForTimeout(400);
+await pm.locator('.tabbar .tabitem', { hasText: WT.tabMehr }).click(); await pm.waitForTimeout(400);
 await tgl.click(); await pm.waitForTimeout(300);
-await pm.locator('.tabbar .tabitem', { hasText: 'Putzplan' }).click(); await pm.waitForTimeout(500);
+await pm.locator('.tabbar .tabitem', { hasText: WT.tabPutzplan }).click(); await pm.waitForTimeout(500);
 // wieder an → die Serie zählt auch den Haken, der im ausgeschalteten Zustand fiel (Staubsaugen = 3), Retten macht 4
 await pm.locator('[data-testid="chore-row"]', { hasText: 'Altglas' }).locator('.done-btn').click(); await pm.waitForTimeout(800);
-const undo7 = await pm.getByRole('button', { name: 'Rückgängig' }).locator('xpath=..').innerText();
+const undo7 = await pm.getByRole('button', { name: WT.rueckgaengig }).locator('xpath=..').innerText();
 check('M7 wieder an → Serie zählt den Haken von eben mit (🔥 4)', /🔥 4/.test(undo7), undo7.replace(/\n/g, ' '));
 await ctx3.close();
 

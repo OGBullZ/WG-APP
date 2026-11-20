@@ -9,6 +9,7 @@
    F  Kühlschrank > 8 Einträge → „+ N weitere" statt still abgeschnitten */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const z = n => String(n).padStart(2, '0');
@@ -82,7 +83,7 @@ if (await zeile.count()) {
 }
 
 // ── A: Abrechnen bei offenem Dialog ──
-const angekommen = page.getByRole('button', { name: 'Angekommen ✓' });
+const angekommen = page.getByRole('button', { name: WT.angekommen });
 check('A0 Zahlungsmeldung zum Bestätigen da (Vorbedingung)', await angekommen.count() === 1);
 if (await angekommen.count() === 1) {
   await angekommen.click(); await page.waitForTimeout(300);
@@ -116,13 +117,13 @@ if (await leeren.count()) {
 await page.locator('[data-testid="haus-seg"] [data-seg="aus"]').click(); await page.waitForTimeout(500);
 
 // ── C: Sparziel doppelt gekauft ──
-const gekauft = page.locator('[data-testid="savings-row"]', { hasText: 'Staubsauger' }).getByRole('button', { name: 'Gekauft' });
+const gekauft = page.locator('[data-testid="savings-row"]', { hasText: 'Staubsauger' }).getByRole('button', { name: WT.gekauft });
 check('C0 Sparziel mit „Gekauft" da (Vorbedingung)', await gekauft.count() === 1);
 if (await gekauft.count() === 1) {
   await gekauft.click(); await page.waitForTimeout(300);
   await fremd(r => { r.sg.g1.bought = new Date().toISOString().slice(0, 10); r.sg.g1.price = 99; });
   await page.waitForTimeout(400);
-  await page.getByRole('button', { name: 'Als Ausgabe eintragen' }).click(); await page.waitForTimeout(800);
+  await page.getByRole('button', { name: WT.alsAusgabeEintragen }).click(); await page.waitForTimeout(800);
   const doppelt = Object.values((await remote()).hs || {}).filter(i => i && i.sg === 'g1');
   check('C1 nichts doppelt gebucht (das andere Handy hat schon gekauft)', doppelt.length === 0, JSON.stringify(doppelt.map(i => i.name)));
   const toast = await page.locator('.undo-toast').innerText().catch(() => '');
@@ -130,20 +131,20 @@ if (await gekauft.count() === 1) {
 }
 
 // ── F: Kühlschrank mit 10 Einträgen (auf Heute) ──
-await page.locator('.tabbar .tabitem', { hasText: 'Heute' }).click(); await page.waitForTimeout(700);
+await page.locator('.tabbar .tabitem', { hasText: WT.tabHeute }).click(); await page.waitForTimeout(700);
 const fr = page.locator('[data-testid="fridge-row"]');
 check('F1 erst 8 Zeilen + „+ 2 weitere"', await fr.count() === 8 && /\+ 2 weitere/.test(await page.locator('[data-testid="fridge-mehr"]').innerText().catch(() => '')), String(await fr.count()));
 if (await page.locator('[data-testid="fridge-mehr"]').count()) { await page.locator('[data-testid="fridge-mehr"]').click(); await page.waitForTimeout(300); }
 check('F2 nach dem Tipp alle 10 sichtbar', await fr.count() === 10, String(await fr.count()));
 
 // ── E: Beitreten mit kaputtem / unbekanntem Code ──
-await page.locator('.tabbar .tabitem', { hasText: 'Mehr' }).click(); await page.waitForTimeout(500);
+await page.locator('.tabbar .tabitem', { hasText: WT.tabMehr }).click(); await page.waitForTimeout(500);
 await page.evaluate(() => document.querySelectorAll('.fold-hdr[aria-expanded="false"]').forEach(b => b.click())); await page.waitForTimeout(400);
 const feld = page.locator('input[placeholder="Anderer WG-Code"]');
 check('E0 Code-Feld da (Vorbedingung)', await feld.count() === 1);
 if (await feld.count() === 1) {
   // kurze Zeitlimits + catch: in der alten Fassung bricht der kaputte Code die Seite — das soll ROT melden, nicht abstürzen
-  const versuche = async code => { await feld.fill(code, { timeout: 5000 }).catch(() => {}); await page.getByRole('button', { name: 'Beitreten' }).click({ timeout: 5000 }).catch(() => {}); };
+  const versuche = async code => { await feld.fill(code, { timeout: 5000 }).catch(() => {}); await page.getByRole('button', { name: WT.beitreten }).click({ timeout: 5000 }).catch(() => {}); };
   const meldung = () => page.locator('[data-testid="join-msg"]').innerText({ timeout: 3000 }).catch(() => '');
   await versuche('ABC.DEF#12'); await page.waitForTimeout(400);
   check('E1 kaputter Code (. #) → Hinweis', /kein gültiger WG-Code/.test(await meldung()));

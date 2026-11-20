@@ -7,6 +7,7 @@
 import { chromium } from 'playwright';
 import { createRequire } from 'module';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const require = createRequire(import.meta.url);
 const pass = [], fail = [];
@@ -118,8 +119,8 @@ const saldo0 = await saldo();
 // echter Weg: Sparziel „Gekauft" für 100 € — Torben verwaltet, Tom hat 40 € eingezahlt
 const sv = page.locator('[data-testid="savings-card"]');
 await sv.scrollIntoViewIfNeeded();
-await sv.getByRole('button', { name: 'Gekauft', exact: true }).click(); await page.waitForTimeout(300);
-await page.locator('.sheet:visible').getByRole('button', { name: 'Als Ausgabe eintragen' }).click(); await page.waitForTimeout(600);
+await sv.getByRole('button', { name: WT.gekauft, exact: true }).click(); await page.waitForTimeout(300);
+await page.locator('.sheet:visible').getByRole('button', { name: WT.alsAusgabeEintragen }).click(); await page.waitForTimeout(600);
 const d = await data();
 const kauf = d.hs.find(i => i.name === '🐷 Staubsauger'), einz = d.hs.find(i => /Einzahlung Tom/.test(i.name));
 check('U1 Kauf als Ausgabe (ub:false), Einzahlung als Umbuchung (ub:true) verbucht', !!kauf && kauf.ub === false && !!einz && einz.ub === true, JSON.stringify({ kauf, einz }));
@@ -146,7 +147,7 @@ check('U4 Zeile zeigt „↔ Umbuchung" statt „Torben zahlt alles" (auch beim 
 const tb = (await page.locator('[data-testid="total-budget"]').innerText().catch(() => '')).replace(/\s+/g, ' ');
 check('U5 Monatsbudget: €120,00 / €500,00', tb.includes('€120,00 / €500,00'), tb.slice(0, 80));
 // Übersicht: Monatssumme und Jahresrückblick
-await page.locator('.tabbar .tabitem', { hasText: 'Übersicht' }).click(); await page.waitForTimeout(800);
+await page.locator('.tabbar .tabitem', { hasText: WT.tabUebersicht }).click(); await page.waitForTimeout(800);
 const st = (await page.locator('.screen').innerText()).replace(/\s+/g, ' ');
 check('U6 Übersicht: WG-Ausgaben des Monats €120,00', /WG-AUSGABEN[^€]*€\s?120,00/i.test(st), st.slice(0, 160));
 check('U7 keine Umbuchung unter „Größte Posten" o. ä.', !/Kaution zurück|Einzahlung Tom/.test(st));
@@ -155,7 +156,7 @@ await page.locator('[data-testid="report-card"]').getByRole('button', { name: /B
 if (new Date().getDate() <= 5) { await page.getByRole('button', { name: 'Folgemonat' }).click(); await page.waitForTimeout(300); }
 const rep = (await page.locator('[data-testid="report-sheet"]').innerText()).replace(/\s+/g, ' ');
 check('U10 Monatsbericht: Gesamt €120,00 · 2 Posten, keine Umbuchung darin', /Gesamt: €120,00 · 2 Posten/.test(rep) && !/Kaution zurück|Einzahlung Tom/.test(rep), rep.slice(0, 160));
-await page.getByRole('button', { name: 'Schließen' }).first().click(); await page.waitForTimeout(200);
+await page.getByRole('button', { name: WT.schliessen }).first().click(); await page.waitForTimeout(200);
 check('Z1 kein Write mit undefined', await page.evaluate(() => window.__wg.undefWuerfe || 0) === 0);
 check('Z2 keine Seitenfehler', errs.length === 0, errs.slice(0, 2).join(' | '));
 await ctx.close();

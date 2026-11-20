@@ -4,6 +4,7 @@
    Die Uhrzeit wird gestellt (Date überschrieben), sonst prüfte der Lauf immer nur die gerade aktuelle Tageszeit. */
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
+import { WT } from './_finden.mjs';
 
 const browser = await chromium.launch();
 const pass = [], fail = [];
@@ -156,7 +157,7 @@ for (const [name, seite] of [['dunkel', C], ['hell', hell]]) {
 }
 
 // E5: Gruppen unter „Mehr" — vorher 31 Karten mit EINER Flächenvariante, unterschieden nur durch ein Emoji im Text.
-await C.page.locator('.tabbar .tabitem', { hasText: 'Mehr' }).first().click();
+await C.page.locator('.tabbar .tabitem', { hasText: WT.tabMehr }).first().click();
 await C.page.waitForTimeout(700);
 const gruppen = await C.page.evaluate(() => {
   const k = [...document.querySelectorAll('.screen [data-fold] .fold-icon, .screen [data-fold].fold-icon, .screen button[data-fold] .fold-icon')];
@@ -166,7 +167,7 @@ const gruppen = await C.page.evaluate(() => {
 check('E5 jede Gruppe unter „Mehr" hat ein Farbfeld, und die Töne sind verschieden',
   gruppen.felder >= 6 && gruppen.verschiedeneToene >= 6, JSON.stringify(gruppen));
 // Auch im Hellmodus müssen es EIGENE Töne sein — geerbte helle wären auf Weiß wieder unsichtbar
-await hell.page.locator('.tabbar .tabitem', { hasText: 'Mehr' }).first().click();
+await hell.page.locator('.tabbar .tabitem', { hasText: WT.tabMehr }).first().click();
 await hell.page.waitForTimeout(700);
 const akzHell = await hell.page.evaluate(() => {
   const el = document.querySelector('.screen [data-fold="home"]');
@@ -179,7 +180,7 @@ const akzDunkel = await C.page.evaluate(() => {
 check('E6 … und der Hellmodus hat eigene Akzentwerte', !!akzHell && akzHell !== akzDunkel, `hell ${akzHell} · dunkel ${akzDunkel}`);
 
 // E7: Platzhalter der Schnell-Eingabe passte auf „Haushalt" nicht ins Feld (179 px gebraucht, 128 da).
-await C.page.locator('.tabbar .tabitem', { hasText: 'Haushalt' }).first().click();
+await C.page.locator('.tabbar .tabitem', { hasText: WT.tabHaushalt }).first().click();
 await C.page.waitForTimeout(700);
 const ueberlauf = await C.page.evaluate(() => {
   const raus = [];
