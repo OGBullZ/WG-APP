@@ -17,7 +17,8 @@ const namen = [...TABS.map(t => t.toLowerCase().replace('ü', 'ue')), 'tabbar'];
 check('V0 Protokoll liefert alle 7 Tabs + Tab-Leiste', namen.every(k => typeof e[k] === 'string' && e[k].length > 100), Object.keys(e).join());
 for (const k of namen) {
   const f = path.join(VERGL, k + '.txt');
-  const alt = fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : null;
+  /* wg-v128: CRLF → LF — git (core.autocrlf) checkt die Vergleichsdateien unter Windows mit CRLF aus, das Protokoll hat LF; ohne Normierung war jede Zeile „anders" */
+  const alt = fs.existsSync(f) ? fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n') : null;
   let extra = '';
   if (alt !== null && alt !== e[k]) {
     const a = alt.split('\n'), b = e[k].split('\n'); const i = a.findIndex((l, j) => l !== b[j]);

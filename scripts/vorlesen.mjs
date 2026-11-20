@@ -90,7 +90,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     let bad = 0;
     for (const [k, v] of Object.entries(e)) {
       const f = path.join(VERGL, k + '.txt');
-      const alt = fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : null;
+      const alt = fs.existsSync(f) ? fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n') : null;   /* wg-v128: CRLF aus dem Windows-Checkout normieren */
       if (alt !== v) { bad++; console.log('ABWEICHUNG ' + k); }
     }
     console.log(bad ? `${bad} Abweichung(en) — bewusst? dann --schreiben` : 'Vorlese-Protokoll unverändert');
