@@ -1,0 +1,23 @@
+{
+  "gelaufen": "2026-11-20T16:28:33.148Z",
+  "ok": true,
+  "sicherung": "2026-11-20",
+  "alterStd": 10,
+  "kennzahlen": {
+    "anzahl": {
+      "ak": 5,
+      "gi": 8,
+      "hs": 39,
+      "pl": 10,
+      "pt": 1,
+      "stl": 5
+    },
+    "summe": {
+      "hs": 310.36,
+      "gi": 339.01
+    },
+    "juengstes": "2026-10-31",
+    "personen": 2
+  },
+  "unterschiede": []
+}
