@@ -1,0 +1,34 @@
+- text: Heute
+- button "Suchen":
+  - img
+- text: STATUS GRUSS, Torben WOCHENTAG, DATUM
+- heading "Du bist dran Putzplan ›" [level=2]:
+  - text: Du bist dran
+  - button "Putzplan ›"
+- button "Bad putzen erledigt":
+  - img
+- text: 🚿 Bad putzen N Tage überfällig
+- button "Bad putzen auf morgen": Morgen
+- button "Kann nicht – Bad putzen": Kann nicht
+- button "2 auf der Einkaufsliste ›"
+- button "Du schuldest Tom €11,50 ›"
+- text: Benachrichtigungen sind blockiert In den Handy-Einstellungen erlauben – sonst fehlen Müll, Putzplan und Zahlungen.
+- textbox "Ausgabe in einem Satz":
+  - /placeholder: "⚡ Schnell: „12,50 Pizza“"
+- button "Eintragen"
+- heading "Kühlschrank + Eintrag" [level=2]:
+  - text: Kühlschrank
+  - button "+ Eintrag"
+- text: Joghurt · deins bis DATUM
+- button "Joghurt ist aufgebraucht": Aufgebraucht ✓
+- heading "Hinzufügen" [level=2]
+- button "Status"
+- button "Maschine"
+- button "Essensplan"
+- button "Ankündigung"
+- button "Kurz Bescheid"
+- button "Belegung"
+- button "WG-Regeln"
+- button "Umfrage"
+- button "Kaputt"
+- button "Login teilen"
