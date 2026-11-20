@@ -1722,5 +1722,18 @@
  "Zutaten für {0} auf die Liste": "Add ingredients for {0} to the list",
  "Zutaten, mit Komma getrennt": "Ingredients, separated by commas",
  "Zyklus · Tag": "Cycle · day",
- "Zyklus beendet": "Cycle finished"
+ "Zyklus beendet": "Cycle finished",
+ "{0} wurden auch auf einem anderen Gerät geändert. Deine Version gilt.": "{0} were also changed on another device. Your version applies.",
+ "{0} wurde auf einem anderen Gerät geändert, während du es gelöscht hast. Es bleibt gelöscht.": "{0} was changed on another device while you deleted it. It stays deleted.",
+ "{0} wurde auf einem anderen Gerät gelöscht. Deine Änderung hat es zurückgeholt.": "{0} was deleted on another device. Your change brought it back.",
+ "{0} wurde auch auf einem anderen Gerät geändert. Deine Version gilt.": "{0} was also changed on another device. Your version applies.",
+ "🔀 Gleichzeitig geändert: {0}": "🔀 Changed at the same time: {0}",
+ "{0} hat es gelöscht, die andere Änderung ist weg": "{0} deleted it, the other change is gone",
+ "{0} hat es zurückgeholt, es war gelöscht": "{0} brought it back, it had been deleted",
+ "Die Version von {0} gilt": "{0}'s version applies",
+ "Andere Version": "Other version",
+ "Andere Version übernommen": "Other version restored",
+ "Ein Eintrag": "An entry",
+ "{0} Einträge": "{0} entries",
+ "Pflanzen-Anteile": "Plant shares"
 }

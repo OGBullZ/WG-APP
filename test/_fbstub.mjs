@@ -4,10 +4,13 @@
      on/off — Live-Listener je Pfad
      update — multi-path relativ zum Ref, optional zurückgehalten (holdWrites/releaseWrites)
      set/remove/child/root
+     .info/connected — wg-v137: trennen()/verbinden() wie ein Funkloch. Getrennt: Writes warten in der Warteschlange (wie das
+       SDK) und Server-Änderungen kommen nicht an; verbinden() meldet true, stellt die Warteschlange zu und schickt den Server-Stand.
+       Ohne Aufruf meldet der Stub immer true (alte Tests unverändert).
    window.__wg.tree = die ganze „Datenbank"; window.__wg.remote = Kurzweg auf wg/<erster Code> (wie bisher).
    window.__wgSeed (optional, per addInitScript) = Startinhalt dieser WG. */
 export const STUB = `
-window.__wg = { updates: [], onceAt: 0, listeners: [], holdWrites: false, held: [], code: null,
+window.__wg = { updates: [], onceAt: 0, listeners: [], holdWrites: false, held: [], code: null, verbunden: true, infoL: [],
   // __wgTreeSeed = ganzer Startbaum (mehrere WGs, z. B. alter + neuer Code) — für Code-Wechsel-Tests
   tree: window.__wgTreeSeed ? JSON.parse(JSON.stringify(window.__wgTreeSeed)) : { wg: {} },
   seed: window.__wgSeed || { users:[{id:'u1',name:'Torben',color:'#38bdf8'},{id:'u2',name:'Tom',color:'#fbbf24'}],
@@ -48,6 +51,9 @@ window.__wg = { updates: [], onceAt: 0, listeners: [], holdWrites: false, held: 
   W.pushRemote = function(){ notify(); };
   // Alle zurückgehaltenen Writes zustellen und bestätigen
   W.releaseWrites = function(){ var h = W.held; W.held = []; h.forEach(function(x){ apply(x.op); x.res(); }); setTimeout(notify, 20); return h.length; };
+  function info(v){ W.infoL.slice().forEach(function(cb){ cb({ val: function(){ return v; } }); }); }
+  W.trennen = function(){ W.verbunden = false; W.holdWrites = true; info(false); };
+  W.verbinden = function(){ W.verbunden = true; info(true); W.holdWrites = false; return W.releaseWrites(); };
   function Ref(path){
     path = parts(path).join('/');
     if (/^wg\\/[^/]+$/.test(path) && !W.code) {             // erste WG = die „eigene" → Startinhalt einsetzen
@@ -63,8 +69,11 @@ window.__wg = { updates: [], onceAt: 0, listeners: [], holdWrites: false, held: 
       return { then: function(){ return { catch: function(){} }; } };
     };
     // Live-Listener wie die echte RTDB: feuert beim Registrieren mit dem AKTUELLEN Stand, dann bei Änderungen
-    this.on = function(_ev, cb){ W.listeners.push({ path: path, cb: cb }); setTimeout(function(){ cb(snapAt(path)); }, 40); };
-    this.off = function(){ W.listeners = W.listeners.filter(function(l){ return l.path !== path; }); };
+    this.on = function(_ev, cb){
+      if (path === '.info/connected') { W.infoL.push(cb); setTimeout(function(){ cb({ val: function(){ return W.verbunden; } }); }, 10); return; }
+      W.listeners.push({ path: path, cb: cb }); setTimeout(function(){ cb(snapAt(path)); }, 40);
+    };
+    this.off = function(){ if (path === '.info/connected') { W.infoL = []; return; } W.listeners = W.listeners.filter(function(l){ return l.path !== path; }); };
     this.child = function(c){ return new Ref(path + '/' + c); };
     // wie das echte SDK (vendor/firebase-database-compat, „contains undefined"): ein undefined irgendwo im Wert wirft
     // SYNCHRON. Bis 02.10.2026 schluckte der Stub das — ein Write mit „last: undefined" legte in echt den Sync lahm,
