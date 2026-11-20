@@ -292,12 +292,15 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
 .navbar-title {
   font-family:var(--disp); font-size:15px; font-weight:700;
   letter-spacing:.06em; text-transform:uppercase; flex:1;
+  /* A1 (320 px + Sehr groß, EN): langer Titel (EN „Household" bei 320 px + Sehr groß) kürzt sich mit …, statt die LIVE-Pille über den Rand zu schieben */
+  min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
+:root[data-eng-xs] .navbar-title { font-size:12.5px; letter-spacing:.01em; }   /* schmal: erst enger setzen, dann erst kürzen */
 .live-pill {
   display:flex; align-items:center; gap:6px;
   font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.18em;
   padding:5px 10px 5px 8px; border-radius:999px;
-  border:1px solid; opacity:.95;
+  border:1px solid; opacity:.95; flex-shrink:0; white-space:nowrap;
 }
 /* wg-v112: der Punkt steht still (LIVE/LOKAL/OFFLINE/FEHLER/CODE ALT) und pulsiert NUR, solange „SYNC…" läuft (Klasse .puls):
    ein Dauerpuls im Normalzustand ist Unruhe ohne Aussage, und der alte box-shadow-Puls war ein Dauer-Repaint. Jetzt nur opacity. */
@@ -1937,7 +1940,7 @@ window.__WG_EN = {
 "⚠️ Letzte automatische Sicherung vor {0} Tagen — der tägliche Server-Job läuft offenbar nicht. „Automatische Backups → Jetzt sichern\" hilft sofort; bitte Bescheid geben.":"⚠️ The last automatic backup was {0} days ago — the daily server job doesn't seem to be running. \"Automatic backups → Back up now\" fixes it right away; please let us know.",
 "⚠️ Steht unverschlüsselt in eurer WG-Datenbank — wer den WG-Code hat, liest mit. Echte Zugangsdaten gehören unter „Logins teilen“.":"⚠️ Stored unencrypted in your flat's database — anyone with the flat code can read it. Real credentials belong under \"Share logins\".",
 "⚡ Änderung speichern":"⚡ Save changes",
-"⚡ Schnell: „12,50 Pizza“":"⚡ Quick: \"12.50 pizza\"",
+"⚡ „12,50 Pizza“":"⚡ \"12.50 pizza\"",
 "⚡ Sofort speichern · ich fange an":"⚡ Save now · I'll start",
 "⚡ Sofort speichern · ich zahle, 50/50":"⚡ Save instantly · I pay, 50/50",
 "⚡ Strom":"⚡ Electricity",
@@ -2871,7 +2874,7 @@ window.__WG_EN = {
 "Miete gesamt":"Rent in total",
 "Miete gesamt (warm)":"Rent in total (incl. bills)",
 "Miete, Strom, Handy …":"Rent, electricity, phone …",
-"Milch, Klopapier, Müllbeutel …":"Milk, loo roll, bin bags …",
+"Milch, Klopapier …":"Milk, loo roll …",
 "Milchreis":"Rice pudding",
 "Mindestens ein Bereich muss aktiv sein.":"At least one area has to stay on.",
 "Mit + trägst du eure Pflanzen ein — danach teilen sich Grow-Ausgaben im Haushalt nach diesen Anteilen.":"Tap + to add your plants — grow expenses under Household are then split by these shares.",
@@ -5955,7 +5958,7 @@ function NBar({ title, color, status, wide }) {
   return (
     <div className={wide ? 'navbar navbar-wide' : 'navbar'}>
       <span className="navbar-title" style={{color}}>{title}</span>
-      <div style={{display:'flex',alignItems:'center',gap:10}}>
+      <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
         <button type="button" className="nav-search hit" data-testid="search-open" aria-label={TT("Suchen")} onClick={()=>setSuche(true)}>
           <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         </button>
@@ -8864,7 +8867,7 @@ function QuickExpense({ onFull }) {
           der Platzhalter braucht 179 px und wurde mitten im Wort abgeschnitten. Mit einer Mindestbreite
           rutscht der Knopf dann selbst in die nächste Zeile; auf „Heute" („Eintragen") bleibt alles wie bisher. */}
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-        <input className="field" maxLength={80} placeholder={TT("⚡ Schnell: „12,50 Pizza“")} aria-label={TT("Ausgabe in einem Satz")} enterKeyHint="done" /* wg-v119 (PWA-7): Enter speichert die Schnell-Ausgabe */ value={txt} onChange={e=>setTxt(e.target.value)} style={{flex:'999 1 190px'}}/>
+        <input className="field" maxLength={80} placeholder={TT("⚡ „12,50 Pizza“")} aria-label={TT("Ausgabe in einem Satz")} enterKeyHint="done" /* wg-v119 (PWA-7): Enter speichert die Schnell-Ausgabe */ value={txt} onChange={e=>setTxt(e.target.value)} style={{flex:'999 1 190px'}}/>
         {/* 🪤 wg-v97, eigener Schaden aus v94: Seit der Knopf auf „Haushalt" in die zweite Zeile rutscht, stand
             der wichtigste Knopf der Seite als halber Knopf links (188 von 358 px). Damals nur den obersten
             Bildschirm angesehen — der Knopf lag darunter. Jetzt wächst er, wenn er allein steht (`1 0 auto`),
@@ -11010,7 +11013,7 @@ function Haushalt({goPutz}) {
           </div>
           <div className="zz-r">
           <form className="rise" style={{display:'flex',gap:8,animationDelay:'40ms'}} onSubmit={e=>{e.preventDefault();addL();}}>
-            <input ref={listInput} maxLength={200} className="field" style={{flex:1}} placeholder={TT("Milch, Klopapier, Müllbeutel …")} enterKeyHint="done" /* wg-v119 (PWA-7): Enter legt den Artikel an (form onSubmit) */ value={newName} onChange={e=>setNewName(e.target.value)}/>
+            <input ref={listInput} maxLength={200} className="field" style={{flex:1}} placeholder={TT("Milch, Klopapier …")} enterKeyHint="done" /* wg-v119 (PWA-7): Enter legt den Artikel an (form onSubmit) */ value={newName} onChange={e=>setNewName(e.target.value)}/>
             <button type="submit" className="btn" aria-label={TT("Hinzufügen")} style={{width:54,flexShrink:0,background:'var(--mint)',fontSize:26,lineHeight:1}}>+</button>
           </form>
           {list.length===0
@@ -13236,7 +13239,7 @@ function Einstellungen() {
               return (
               <div key={u.id} className="cell" style={{flexWrap:'wrap'}} data-testid="person-row">
                 <div style={{width:10,height:10,borderRadius:'50%',background:u.color,boxShadow:`0 0 8px ${u.color}`,flexShrink:0}}/>
-                <input className="field" maxLength={100} aria-label={TT("Name der Person")} readOnly={ro} style={{background:'transparent',border:'none',padding:0,fontSize:16,fontWeight:600,flex:1,...lockSt}}
+                <input className="field" maxLength={100} aria-label={TT("Name der Person")} readOnly={ro} style={{background:'transparent',border:'none',padding:'9px 0',minHeight:40,fontSize:16,fontWeight:600,flex:1,...lockSt}}
                   value={u.name} onChange={e=>{ if (!ro) set('users',users.map(x=>x.id===u.id?{...x,name:e.target.value}:x)); }}/>
                 <button className="btn btn-kompakt" onClick={async()=>{ if (me && me!==u.id && !(await askConfirm({ title:TT("Bist du wirklich {0}?", u.name), body:TT("Dieses Handy gehört dann {0}: Putzplan, Zahlungen und das Profil gelten für {1}.", u.name, u.name), okLabel:TT("Ich bin {0}", u.name) }))) return; setMe(u.id); }}
                   style={{background:me===u.id?u.color:'var(--bg3)',color:me===u.id?'#0a120c':'var(--label3)',flexShrink:0}}>
