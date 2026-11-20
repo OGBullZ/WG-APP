@@ -169,7 +169,7 @@
 [data-theme="light"] .sheet { background:rgba(252,253,252,.98); }
 [data-theme="light"] .toast, [data-theme="light"] .undo-toast { background:rgba(255,255,255,.96); box-shadow:0 8px 24px rgba(0,0,0,.12); }
 [data-theme="light"] .field { background:#fff; border-color:rgba(0,0,0,.14); }
-[data-theme="light"] .overlay::before { background:rgba(0,0,0,.35); }   /* wg-v118 (FILM-4): Abdunkelung liegt auf dem Pseudoelement (vorher auf .overlay) */
+[data-theme="light"] .overlay::before { background:rgba(0,0,0,.42); }   /* wg-v136 (G7): .35 → .42, Ausgleich für die weggefallene Unschärfe */   /* wg-v118 (FILM-4): Abdunkelung liegt auf dem Pseudoelement (vorher auf .overlay) */
 [data-theme="light"] .moved-banner { background:#fff1f2; }
 [data-theme="light"] .upd-banner { background:#ecfdf5; }
 [data-theme="light"] .btn-sec { background:#e6ece8; color:var(--label); }
@@ -882,10 +882,14 @@ button.cell { color:var(--label); }
    Jetzt ist das Blatt von Bild 1 an deckend und fährt nur noch per Transform (sheetUp/sheetDown); ein Pseudoelement mit z-index:-1
    bleibt im Stapel von .overlay (position:fixed + z-index → eigener Stapelkontext) hinter dem Blatt. Klicks auf die Abdunkelung treffen
    weiter .overlay selbst (Pseudoelemente sind keine Ziele) → onClick={onClose} unverändert. */
-.overlay::before { content:''; position:absolute; inset:0; z-index:-1; background:rgba(0,0,0,.7); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+/* wg-v136 (G7): KEINE Unschärfe mehr hinter dem Blatt. Gemessen (Chromium ohne GPU wie in der CI, Desktop 1440, Schrittwechsel 1→2): mit backdrop-filter
+   kam während der Höhenfahrt nur alle 50–67 ms ein Bild (15–20 Bilder/s), ohne alle 17 ms (60/s) — schon ohne CPU-Bremse. Der Hauptthread war es nicht
+   (~40 ms Arbeit in 600 ms): der Compositor rechnet eine Unschärfe über das ganze Fenster in JEDEM Bild neu, in dem sich darüber etwas bewegt (Öffnen,
+   Schrittwechsel, Schließen). Ausgleich: etwas stärker abdunkeln (.7 → .76, hell .35 → .42) — die Seite dahinter bleibt ruhig, ohne Rechenlast. */
+.overlay::before { content:''; position:absolute; inset:0; z-index:-1; background:rgba(0,0,0,.76);
   animation:ovIn var(--dur-kurz) ease-out; }
 /* Einrichtung (.onb): bleibt wie vor wg-v118 — die Karte blendet mit der Fläche ein, Hintergrund (.82) steht schon in der Regel weiter oben */
-.overlay.onb { animation:ovIn var(--dur-kurz) ease-out; backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
+.overlay.onb { animation:ovIn var(--dur-kurz) ease-out; }   /* wg-v136 (G7): Unschärfe weg wie bei .overlay::before; die Fläche deckt hier ohnehin zu 82 % */
 .overlay.onb::before { content:none; }
 /* wg-v112 (P7): SCHLIESSEN mit Bewegung. Der Hook useZu hält das Blatt nur für die Anzeige 180 ms länger im DOM und setzt .zu;
    Daten/onClose liefen schon vorher. pointer-events:none, damit der Tipp auf die Seite dahinter durchgeht und ein zweiter Tipp auf
