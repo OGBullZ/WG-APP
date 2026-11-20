@@ -37,6 +37,7 @@ jobs:
             test/privat.mjs \
             test/sync.mjs \
             test/sync_robust.mjs \
+            test/ueberschneidung_v137.mjs \
             test/fehlersuche_v104.mjs \
             test/kacheln.mjs \
             test/putz_fest.mjs \
