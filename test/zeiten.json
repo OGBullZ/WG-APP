@@ -1,0 +1,426 @@
+{
+ "test/gate_shard.mjs": {
+  "s": 0.8,
+  "ok": true
+ },
+ "test/datum.mjs": {
+  "s": 1.2,
+  "ok": true
+ },
+ "test/zahlen.mjs": {
+  "s": 0.7,
+  "ok": true
+ },
+ "test/testserver.mjs": {
+  "s": 3.3,
+  "ok": true
+ },
+ "test/persist.mjs": {
+  "s": 6.7,
+  "ok": true
+ },
+ "test/split.mjs": {
+  "s": 10.9,
+  "ok": true
+ },
+ "test/paybtn.mjs": {
+  "s": 7.8,
+  "ok": true
+ },
+ "test/archive.mjs": {
+  "s": 8.2,
+  "ok": true
+ },
+ "test/cron_grow.mjs": {
+  "s": 0.7,
+  "ok": true
+ },
+ "test/cron_duel.mjs": {
+  "s": 0.6,
+  "ok": true
+ },
+ "test/gate_parallel.mjs": {
+  "s": 20.8,
+  "ok": true
+ },
+ "test/grow.mjs": {
+  "s": 21.3,
+  "ok": false
+ },
+ "test/privat.mjs": {
+  "s": 24,
+  "ok": true
+ },
+ "test/privquota.mjs": {
+  "s": 17.2,
+  "ok": true
+ },
+ "test/sync_robust.mjs": {
+  "s": 7.3,
+  "ok": true
+ },
+ "test/sync.mjs": {
+  "s": 35.9,
+  "ok": true
+ },
+ "test/kacheln.mjs": {
+  "s": 20.5,
+  "ok": true
+ },
+ "test/fehlersuche_v104.mjs": {
+  "s": 25.2,
+  "ok": true
+ },
+ "test/putz_fest.mjs": {
+  "s": 22.7,
+  "ok": true
+ },
+ "test/startflow.mjs": {
+  "s": 2.3,
+  "ok": true
+ },
+ "test/backup_api.mjs": {
+  "s": 0.6,
+  "ok": true
+ },
+ "test/umbuchung.mjs": {
+  "s": 14.6,
+  "ok": true
+ },
+ "test/errlog.mjs": {
+  "s": 11.9,
+  "ok": true
+ },
+ "test/selfhost.mjs": {
+  "s": 23.5,
+  "ok": true
+ },
+ "test/notify_api.mjs": {
+  "s": 0.6,
+  "ok": true
+ },
+ "test/rotate.mjs": {
+  "s": 19.4,
+  "ok": true
+ },
+ "test/logins.mjs": {
+  "s": 28.1,
+  "ok": true
+ },
+ "test/bkwatch.mjs": {
+  "s": 8.5,
+  "ok": true
+ },
+ "test/cron_alltag.mjs": {
+  "s": 0.7,
+  "ok": true
+ },
+ "test/update.mjs": {
+  "s": 15.3,
+  "ok": true
+ },
+ "test/putz.mjs": {
+  "s": 27.4,
+  "ok": true
+ },
+ "test/extra.mjs": {
+  "s": 20.1,
+  "ok": true
+ },
+ "test/alltag.mjs": {
+  "s": 37.7,
+  "ok": true
+ },
+ "test/upgrade_dist.mjs": {
+  "s": 26.6,
+  "ok": true
+ },
+ "test/plus.mjs": {
+  "s": 46,
+  "ok": true
+ },
+ "test/onboarding.mjs": {
+  "s": 29.1,
+  "ok": true
+ },
+ "test/mehr.mjs": {
+  "s": 50,
+  "ok": true
+ },
+ "test/gross.mjs": {
+  "s": 13,
+  "ok": true
+ },
+ "test/fair.mjs": {
+  "s": 14.8,
+  "ok": true
+ },
+ "test/laden.mjs": {
+  "s": 18.7,
+  "ok": true
+ },
+ "test/miete.mjs": {
+  "s": 42.5,
+  "ok": true
+ },
+ "test/push_diaet.mjs": {
+  "s": 4.1,
+  "ok": true
+ },
+ "test/english.mjs": {
+  "s": 23.2,
+  "ok": true
+ },
+ "test/neu.mjs": {
+  "s": 12.6,
+  "ok": true
+ },
+ "test/heute.mjs": {
+  "s": 9.5,
+  "ok": true
+ },
+ "test/breite.mjs": {
+  "s": 14.1,
+  "ok": true
+ },
+ "test/a11y.mjs": {
+  "s": 25.6,
+  "ok": true
+ },
+ "test/komfort.mjs": {
+  "s": 20.2,
+  "ok": true
+ },
+ "test/geld.mjs": {
+  "s": 21.5,
+  "ok": true
+ },
+ "test/push_versand.mjs": {
+  "s": 0.7,
+  "ok": true
+ },
+ "test/ruhezeit.mjs": {
+  "s": 3.6,
+  "ok": true
+ },
+ "test/verzahnung.mjs": {
+  "s": 20.4,
+  "ok": true
+ },
+ "test/ux.mjs": {
+  "s": 166.1,
+  "ok": true
+ },
+ "test/namen.mjs": {
+  "s": 15.3,
+  "ok": true
+ },
+ "test/optik.mjs": {
+  "s": 12.7,
+  "ok": true
+ },
+ "test/orte.mjs": {
+  "s": 25.9,
+  "ok": true
+ },
+ "test/optik_v110.mjs": {
+  "s": 20.3,
+  "ok": true
+ },
+ "test/organisation.mjs": {
+  "s": 86,
+  "ok": true
+ },
+ "test/hell_v112.mjs": {
+  "s": 48.7,
+  "ok": true
+ },
+ "test/optik_v111.mjs": {
+  "s": 74.7,
+  "ok": true
+ },
+ "test/bewegung_v112.mjs": {
+  "s": 68.6,
+  "ok": false
+ },
+ "test/putzfeier_v112.mjs": {
+  "s": 19.4,
+  "ok": true
+ },
+ "test/druck_v112.mjs": {
+  "s": 67.5,
+  "ok": true
+ },
+ "test/blatt_v112.mjs": {
+  "s": 38,
+  "ok": true
+ },
+ "test/leer_v112.mjs": {
+  "s": 55.3,
+  "ok": true
+ },
+ "test/listen_v112.mjs": {
+  "s": 66.2,
+  "ok": true
+ },
+ "test/ausgleich_v113.mjs": {
+  "s": 66,
+  "ok": true
+ },
+ "test/hier_v112.mjs": {
+  "s": 88.3,
+  "ok": true
+ },
+ "test/fuer_andere.mjs": {
+  "s": 23.4,
+  "ok": true
+ },
+ "test/start_v113.mjs": {
+  "s": 70.4,
+  "ok": true
+ },
+ "test/abgang.mjs": {
+  "s": 22.3,
+  "ok": true
+ },
+ "test/formular.mjs": {
+  "s": 22,
+  "ok": true
+ },
+ "test/putz_push_v114.mjs": {
+  "s": 0.6,
+  "ok": true
+ },
+ "test/desktop_v113.mjs": {
+  "s": 93.1,
+  "ok": true
+ },
+ "test/feinschliff.mjs": {
+  "s": 32.7,
+  "ok": false
+ },
+ "test/grow_haus_v116.mjs": {
+  "s": 27,
+  "ok": true
+ },
+ "test/sprung.mjs": {
+  "s": 114.6,
+  "ok": true
+ },
+ "test/optik_v117.mjs": {
+  "s": 128.4,
+  "ok": true
+ },
+ "test/gutachten2_a.mjs": {
+  "s": 142.3,
+  "ok": true
+ },
+ "test/gutachten2_d1.mjs": {
+  "s": 29.4,
+  "ok": true
+ },
+ "test/gutachten2_c.mjs": {
+  "s": 89.3,
+  "ok": true
+ },
+ "test/gutachten2_d3.mjs": {
+  "s": 25.5,
+  "ok": true
+ },
+ "test/gutachten2_d4.mjs": {
+  "s": 0.5,
+  "ok": true
+ },
+ "test/gutachten2_c3.mjs": {
+  "s": 102.7,
+  "ok": false
+ },
+ "test/gutachten2_d2.mjs": {
+  "s": 44.5,
+  "ok": true
+ },
+ "test/gutachten2_b.mjs": {
+  "s": 211.6,
+  "ok": false
+ },
+ "test/g3_betraege_v124.mjs": {
+  "s": 18.3,
+  "ok": true
+ },
+ "test/g4_quer_v124.mjs": {
+  "s": 19.1,
+  "ok": true
+ },
+ "test/g2_schmal_v124.mjs": {
+  "s": 35.1,
+  "ok": false
+ },
+ "test/a2_fokus_v124.mjs": {
+  "s": 22.9,
+  "ok": true
+ },
+ "test/warnkarte_v125.mjs": {
+  "s": 11.7,
+  "ok": true
+ },
+ "test/g8_folge_v125.mjs": {
+  "s": 26.2,
+  "ok": false
+ },
+ "test/schrift_v125.mjs": {
+  "s": 25.4,
+  "ok": true
+ },
+ "test/putz_schmal_v126.mjs": {
+  "s": 30.1,
+  "ok": true
+ },
+ "test/knoepfe_v125.mjs": {
+  "s": 37.8,
+  "ok": true
+ },
+ "test/farbe_v127.mjs": {
+  "s": 23.3,
+  "ok": true
+ },
+ "test/farbe_v128.mjs": {
+  "s": 9.8,
+  "ok": true
+ },
+ "test/symbolfeld_v126.mjs": {
+  "s": 32.7,
+  "ok": true
+ },
+ "test/regeln_v133.mjs": {
+  "s": 0.7,
+  "ok": true
+ },
+ "test/i18n_roh_v127.mjs": {
+  "s": 11.9,
+  "ok": true
+ },
+ "test/restore_probe_v135.mjs": {
+  "s": 8.1,
+  "ok": true
+ },
+ "test/sprache_v127.mjs": {
+  "s": 22,
+  "ok": true
+ },
+ "test/vorlesen_v134.mjs": {
+  "s": 17.4,
+  "ok": true
+ },
+ "test/bildaufbau_v127.mjs": {
+  "s": 9.7,
+  "ok": true
+ },
+ "test/axe_v132.mjs": {
+  "s": 41.9,
+  "ok": true
+ },
+ "test/csp_hash.mjs": {
+  "s": 38.3,
+  "ok": true
+ }
+}
