@@ -1936,7 +1936,7 @@ window.__WG_EN = {
 "⚠️ Letzte automatische Sicherung vor {0} Tagen — der tägliche Server-Job läuft offenbar nicht. „Automatische Backups → Jetzt sichern\" hilft sofort; bitte Bescheid geben.":"⚠️ The last automatic backup was {0} days ago — the daily server job doesn't seem to be running. \"Automatic backups → Back up now\" fixes it right away; please let us know.",
 "⚠️ Steht unverschlüsselt in eurer WG-Datenbank — wer den WG-Code hat, liest mit. Echte Zugangsdaten gehören unter „Logins teilen“.":"⚠️ Stored unencrypted in your flat's database — anyone with the flat code can read it. Real credentials belong under \"Share logins\".",
 "⚡ Änderung speichern":"⚡ Save changes",
-"⚡ Schnell: „12,50 Pizza“":"⚡ Quick: \"12.50 pizza\"",
+"⚡ „12,50 Pizza“":"⚡ \"12.50 pizza\"",
 "⚡ Sofort speichern · ich fange an":"⚡ Save now · I'll start",
 "⚡ Sofort speichern · ich zahle, 50/50":"⚡ Save instantly · I pay, 50/50",
 "⚡ Strom":"⚡ Electricity",
@@ -2870,7 +2870,7 @@ window.__WG_EN = {
 "Miete gesamt":"Rent in total",
 "Miete gesamt (warm)":"Rent in total (incl. bills)",
 "Miete, Strom, Handy …":"Rent, electricity, phone …",
-"Milch, Klopapier, Müllbeutel …":"Milk, loo roll, bin bags …",
+"Milch, Klopapier …":"Milk, loo roll …",
 "Milchreis":"Rice pudding",
 "Mindestens ein Bereich muss aktiv sein.":"At least one area has to stay on.",
 "Mit + trägst du eure Pflanzen ein — danach teilen sich Grow-Ausgaben im Haushalt nach diesen Anteilen.":"Tap + to add your plants — grow expenses under Household are then split by these shares.",
@@ -8863,7 +8863,7 @@ function QuickExpense({ onFull }) {
           der Platzhalter braucht 179 px und wurde mitten im Wort abgeschnitten. Mit einer Mindestbreite
           rutscht der Knopf dann selbst in die nächste Zeile; auf „Heute" („Eintragen") bleibt alles wie bisher. */}
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-        <input className="field" maxLength={80} placeholder={TT("⚡ Schnell: „12,50 Pizza“")} aria-label={TT("Ausgabe in einem Satz")} enterKeyHint="done" /* wg-v119 (PWA-7): Enter speichert die Schnell-Ausgabe */ value={txt} onChange={e=>setTxt(e.target.value)} style={{flex:'999 1 190px'}}/>
+        <input className="field" maxLength={80} placeholder={TT("⚡ „12,50 Pizza“")} aria-label={TT("Ausgabe in einem Satz")} enterKeyHint="done" /* wg-v119 (PWA-7): Enter speichert die Schnell-Ausgabe */ value={txt} onChange={e=>setTxt(e.target.value)} style={{flex:'999 1 190px'}}/>
         {/* 🪤 wg-v97, eigener Schaden aus v94: Seit der Knopf auf „Haushalt" in die zweite Zeile rutscht, stand
             der wichtigste Knopf der Seite als halber Knopf links (188 von 358 px). Damals nur den obersten
             Bildschirm angesehen — der Knopf lag darunter. Jetzt wächst er, wenn er allein steht (`1 0 auto`),
@@ -11009,7 +11009,7 @@ function Haushalt({goPutz}) {
           </div>
           <div className="zz-r">
           <form className="rise" style={{display:'flex',gap:8,animationDelay:'40ms'}} onSubmit={e=>{e.preventDefault();addL();}}>
-            <input ref={listInput} maxLength={200} className="field" style={{flex:1}} placeholder={TT("Milch, Klopapier, Müllbeutel …")} enterKeyHint="done" /* wg-v119 (PWA-7): Enter legt den Artikel an (form onSubmit) */ value={newName} onChange={e=>setNewName(e.target.value)}/>
+            <input ref={listInput} maxLength={200} className="field" style={{flex:1}} placeholder={TT("Milch, Klopapier …")} enterKeyHint="done" /* wg-v119 (PWA-7): Enter legt den Artikel an (form onSubmit) */ value={newName} onChange={e=>setNewName(e.target.value)}/>
             <button type="submit" className="btn" aria-label={TT("Hinzufügen")} style={{width:54,flexShrink:0,background:'var(--mint)',fontSize:26,lineHeight:1}}>+</button>
           </form>
           {list.length===0
