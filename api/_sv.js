@@ -21,6 +21,13 @@ const cronErlaubt = (req) => {
   const b = Buffer.from(`Bearer ${geheim}`);
   return a.length === b.length && require('crypto').timingSafeEqual(a, b) ? 'ok' : 'nein';
 };
+// Zeitkonstanter Textvergleich (Codes, Tokens). `!==` bricht beim ersten Unterschied ab — messbar bei vielen Versuchen.
+// Ungleiche Längen → false (die Länge selbst ist bei WG-Codes/Tokens kein Geheimnis).
+const sameStr = (a, b) => {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const x = Buffer.from(a), y = Buffer.from(b);
+  return x.length === y.length && require('crypto').timingSafeEqual(x, y);
+};
 const hasKey = () => typeof process.env.BACKUP_KEY === 'string' && process.env.BACKUP_KEY.length >= 40;
 const svUrl = (p) => `${DB_BASE}/sv/${encodeURIComponent(process.env.BACKUP_KEY || '')}${p}.json`;
 // Snapshot-Schlüssel: nur Ziffern, T und Bindestrich (RTDB-Pfad-sicher, sortierbar)
@@ -117,4 +124,4 @@ async function rateLimit(code, max = 30, windowMs = 10 * 60e3) {
   return true;
 }
 
-module.exports = { hasKey, cronErlaubt, currentCode, setCode, stripForBackup, writeSnapshot, listSnapshots, readSnapshot, pruneSnapshots, berlinParts, rateLimit, CODE_FORMAT, SNAP_KEY, KEEP_DAYS };
+module.exports = { hasKey, sameStr, cronErlaubt, currentCode, setCode, stripForBackup, writeSnapshot, listSnapshots, readSnapshot, pruneSnapshots, berlinParts, rateLimit, CODE_FORMAT, SNAP_KEY, KEEP_DAYS };

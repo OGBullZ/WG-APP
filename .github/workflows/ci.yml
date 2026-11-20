@@ -91,6 +91,7 @@ jobs:
             test/formular.mjs \
             test/feinschliff.mjs \
             test/sprung.mjs \
+            test/sicherheit_api.mjs \
             test/csp_hash.mjs \
             test/datum.mjs \
             test/zahlen.mjs \

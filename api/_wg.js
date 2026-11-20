@@ -298,7 +298,12 @@ function meterReminder(wg) {
 
 // ── Kalender-Abo (RFC 5545) ──
 // Text maskieren (Backslash, Semikolon, Komma, Zeilenumbruch)
-const icsText = (t) => String(t || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+// Steuerzeichen (auch ein einzelnes \r, das manche Kalender als Zeilenende lesen) werden zu Leerzeichen bzw. \n: Texte aus der
+// DB dürfen keine eigenen ICS-Zeilen einschleusen (URL:/ATTACH:/VALARM im Abo-Kalender aller Geräte).
+const icsText = (t) => String(t || '').replace(/\r\n|\r|\n/g, '\n').replace(/[\u0000-\u0009\u000b-\u001f\u007f\u0085\u2028\u2029]/g, ' ')
+  .replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+const icsUid = (u) => String(u).replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 80);
+const ICS_DATUM = /^\d{4}-\d{2}-\d{2}$/;
 // Zeilen nach 75 Oktetts falten (Folgezeilen beginnen mit einem Leerzeichen, zählen also 74 + 1)
 function icsFold(line) {
   const out = []; let cur = '';
@@ -311,7 +316,9 @@ function icsFold(line) {
 const icsDate = (iso) => String(iso).replace(/-/g, '');
 // Ganztägiger Termin; alarmMin = Minuten vor Tagesbeginn (300 = 19 Uhr am Vorabend)
 function icsEvent(uid, fromIso, toIsoExcl, summary, stamp, alarmMin) {
-  const l = ['BEGIN:VEVENT', `UID:${uid}@wgapp`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${icsDate(fromIso)}`,
+  // Kaputtes/manipuliertes Datum (kein YYYY-MM-DD): Termin weglassen statt „NaN" oder fremde Zeilen auszugeben
+  if (!ICS_DATUM.test(String(fromIso)) || !ICS_DATUM.test(String(toIsoExcl))) return [];
+  const l = ['BEGIN:VEVENT', `UID:${icsUid(uid)}@wgapp`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${icsDate(fromIso)}`,
     `DTEND;VALUE=DATE:${icsDate(toIsoExcl)}`, `SUMMARY:${icsText(summary)}`, 'TRANSP:TRANSPARENT'];
   if (alarmMin) l.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${icsText(summary)}`, `TRIGGER:-PT${alarmMin}M`, 'END:VALARM');
   l.push('END:VEVENT');
