@@ -3496,7 +3496,7 @@ window.__WG_EN = {
 
 
 <script type="text/jsx-src" id="jsx-src">
-const { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo, createContext, useContext } = React;   /* wg-v112: useLayoutEffect für useAenderung (Bewegung vor dem ersten Malen anlegen) */
+const { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo, createContext, useContext, useDeferredValue } = React;   /* wg-v112: useLayoutEffect für useAenderung (Bewegung vor dem ersten Malen anlegen) */
 
 /* ── Helpers ── */
 const ls   = (k,fb) => { try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;} };
@@ -14046,6 +14046,10 @@ function AppInner() {
     return (saved && (saved==='set' || mods[saved] !== false)) ? saved : (visibleTabs[0]?.id || 'set');
   });
   const [dir,setDir] = useState(1); // Slide-Richtung: +1 neuer Tab rechts, -1 links
+  /* wg-v137 (G5 Teil 2): Tab-Leiste und Marker reagieren sofort (tab), der schwere Inhalt zieht in einem zweiten, unterbrechbaren
+     Durchgang nach (tabShown). Dir wird mitgezogen, sonst bekäme der alte Tab für ein Bild die neue Richtungs-Klasse und die
+     Eingangsbewegung liefe auf ihm neu an. Beim Start sind beide gleich (kein Nachlauf). */
+  const tabShown = useDeferredValue(tab), dirShown = useDeferredValue(dir);
   const idxOf = (id) => TABS.findIndex(t => t.id===id);
   const setTab = (id) => { setDir(idxOf(id) >= idxOf(tab) ? 1 : -1); setTab_(id); ss('wg_tab', id); };
   /* wg-v112: ist der angezeigte Tab neu für diese Sitzung? Wird beim Rendern bestimmt (vor allen Effekten) und je Tab
@@ -14053,7 +14057,7 @@ function AppInner() {
      (Sync, Live-Einträge) hundertmal neu rendert; erst DANN kommt der Tab in GESEHEN. Ein Ref statt useMemo: useMemo darf
      laut React jederzeit zweimal laufen, und beim zweiten Lauf stünde der Tab schon im Set → fälschlich „schon". */
   const gesehenRef = useRef(null);
-  if (!gesehenRef.current || gesehenRef.current.tab !== tab) { gesehenRef.current = { tab, schon: GESEHEN.has(tab) }; GESEHEN.add(tab); }
+  if (!gesehenRef.current || gesehenRef.current.tab !== tabShown) { gesehenRef.current = { tab: tabShown, schon: GESEHEN.has(tabShown) }; GESEHEN.add(tabShown); }
   const tabSchon = gesehenRef.current.schon;
   // Sprung aus der Suche (wg-v85): Ereignis 'wg-tab' mit Ziel-Tab; ist das Modul aus, landet man im Haushalt bzw. unter Mehr
   useEffect(() => {
@@ -14247,18 +14251,18 @@ function AppInner() {
   }, [remotePulse]);
   return (
     <>
-      <main key={tab} tabIndex={-1} ref={frischWeg} data-frisch="" /* wg-v121 (FILM-7 A): frisch eingehängter Tab → keine Zeile fährt ein, s. frischWeg */ className={`tab-view ${dir>=0?'tab-in-r':'tab-in-l'}${tabSchon?' schon':''}`}>
+      <main key={tabShown} tabIndex={-1} ref={frischWeg} data-frisch="" /* wg-v121 (FILM-7 A): frisch eingehängter Tab → keine Zeile fährt ein, s. frischWeg */ className={`tab-view ${dirShown>=0?'tab-in-r':'tab-in-l'}${tabSchon?' schon':''}`}>
         {/* Seitenüberschrift: das Dokument hatte bisher gar keine Überschrift —
             Screenreader konnten nicht sagen, welcher Bereich offen ist. */}
-        <h1 className="sr-only">{(TABS.find(t=>t.id===tab)||{}).label || TT("WG")}</h1>
-        {tab==='heute'&&<Heute goTab={setTab}/>}
-        {tab==='haus'&&<Haushalt goPutz={()=>setTab('putz')}/>}{/* wg-v116: goGrow entfällt — Grow-Geld lebt im Haushalt */}
-        {tab==='grow'&&<Grow/>}
-        {tab==='putz'&&<Putzplan/>}
-        {tab==='fin' &&<Finanzen/>}
-        {tab==='abos'&&<Abos/>}
-        {tab==='stats'&&<Statistik goHaus={()=>setTab('haus')}/>}
-        {tab==='set' &&<Einstellungen/>}
+        <h1 className="sr-only">{(TABS.find(t=>t.id===tabShown)||{}).label || TT("WG")}</h1>
+        {tabShown==='heute'&&<Heute goTab={setTab}/>}
+        {tabShown==='haus'&&<Haushalt goPutz={()=>setTab('putz')}/>}{/* wg-v116: goGrow entfällt — Grow-Geld lebt im Haushalt */}
+        {tabShown==='grow'&&<Grow/>}
+        {tabShown==='putz'&&<Putzplan/>}
+        {tabShown==='fin' &&<Finanzen/>}
+        {tabShown==='abos'&&<Abos/>}
+        {tabShown==='stats'&&<Statistik goHaus={()=>setTab('haus')}/>}
+        {tabShown==='set' &&<Einstellungen/>}
       </main>{/* wg-v122 (A11Y-8): war div.tab-view — genau eine Hauptlandmarke; Klassen unverändert */}
       {toast&&(
         <div className="toast" aria-hidden="true">
