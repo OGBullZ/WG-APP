@@ -491,7 +491,7 @@ Beim Abschluss eines Pakets hier abhaken (Datum, Version, Commit). Was sich als 
 | G9 Folgefund v125 | ✅ Einsatz-Karte bricht um statt zu ragen, „Zuletzt erledigt"-Zeile: Name bricht, Datum bleibt drin (`putz_schmal_v126` 88, Gegenprobe 16 rot) | wg-v126 `7437a01` | 19.11. |
 | G5 Erster Bildaufbau | ◐ Teil 1: `rise` startet bei Deckkraft .75 statt 0 (Tab .6 × Karte .75 = .45 wirksam, nie leer), `bildaufbau_v127` (Gegenprobe rot), `bewegung_v112` P2c angepasst · Teil 2 (`useDeferredValue`) offen | PR (Cloud-Sitzung) | 20.11. |
 | G6 Lange Listen | gemessen, NICHT gebaut: `content-visibility` ab der 16. Zeile ließ die Seite springen (80 Posten, Höhe 8216 → 8248 px, bis 83 px Sprung beim Scrollen) und brachte keinen Aufbau-Gewinn (126 vs 123 ms, 4× CPU 341–409 vs 352–395 ms) | Messung Cloud-Sitzung | 20.11. |
-| G7 Langsame Geräte (FILM-5, F8l) | offen — nachstellbar mit `WG_CPU=4` | | |
+| G7 Langsame Geräte (FILM-5, F8l) | ◐ **Fund 1 (FILM-5) gebaut:** Ursache war der `backdrop-filter` hinter dem Blatt, nicht der Hauptthread. Ohne GPU, 1440 px: Öffnen 47–58 → 17 ms, Schrittwechsel 61–78 → 17 ms je Bild (CPU 4×/6×); Handy 390 Dichte 3: 28–33 → 17 ms in der Fahrt. Leisten-Unschärfe beim Scrollen kostet nichts (17 ms auch bei 6×), bleibt. `test/fahrt_v136.mjs` (Gegenprobe 4 rot). · **offen Fund 2:** `gutachten2_c3` F8l („Du bist dran“-Abschied), anderer Mechanismus | PR 13 (wg-v136) | 20.11. |
 | S1 Aufräumen Sprache | offen | | |
 | S2 Prüfnetz | Status prüfen | | |
 | S3 Server-Push Englisch | offen | | |
