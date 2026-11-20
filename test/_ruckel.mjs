@@ -6,9 +6,22 @@
    unter die Grenze (wie vorher die 16,7/max(dt,16,7)-Abwertung). Reines Rechnen, kein Browser: node test/_ruckel_selbst.mjs prüft die Grundsätze. */
 export const SCHRITT = 1000 / 60;
 
+/* Rückruf-Bündel (CI W5, 20.11.: nach einem 143-ms-Stau kamen zwei Rückrufe 5 ms nacheinander, 39 px Weg → hochgerechnet 45 px je Rasterbild, roh 39):
+   ein Schirm zeigt höchstens ein Bild je Rasterschritt. Liegt der nächste Punkt weniger als 0,6 Schritt (10 ms) danach, zählt nur der spätere (der gezeigte Stand).
+   Auf einer glatten Bahn ändert das nichts (der Punkt liegt auf ihr), ein Bündel nach einem Stau wird nicht mehr zum Sprung aufgebläht. Rückwärtige Zeitstempel raus. */
+export function bereinige(punkte, schritt = SCHRITT) {
+  const p = [];
+  for (const x of punkte) {
+    const l = p[p.length - 1];
+    if (l && x[0] <= l[0]) continue;
+    if (l && x[0] - l[0] < 0.6 * schritt) p.pop();
+    p.push([x[0], x[1]]);
+  }
+  return p;
+}
 /* punkte: [[t_ms, wert], …] aufsteigend in t → Werte auf dem Raster t0, t0+SCHRITT, … (lineare Interpolation) */
 export function raster(punkte, schritt = SCHRITT) {
-  const p = punkte.filter((x, i, a) => i === 0 || x[0] > a[i - 1][0]);   // doppelte/rückwärtige Zeitstempel raus
+  const p = bereinige(punkte, schritt);
   if (p.length < 2) return p.map(x => x[1]);
   const aus = []; let j = 0;
   for (let t = p[0][0]; t <= p[p.length - 1][0] + 1e-9; t += schritt) {
@@ -27,7 +40,7 @@ export const maxAbs = a => Math.max(0, ...a.map(Math.abs));
              der Verzögerung → ein Wechsel, den kein Auge sieht (der Weg je Zeit ist stetig). Ein echter Satz in einem normalen Bild bleibt ein Wechsel. */
 export const GRENZE_DT = 25;
 export function kennzahl(punkte) {
-  const p = punkte.filter((x, i, a) => i === 0 || x[0] > a[i - 1][0]);
+  const p = bereinige(punkte);
   const v = diff(raster(p)); let wechsel = 0;
   for (let i = 2; i < p.length; i++) {
     const d1 = p[i - 1][0] - p[i - 2][0], d2 = p[i][0] - p[i - 1][0];
