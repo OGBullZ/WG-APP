@@ -146,7 +146,7 @@ const EN = {
   rueckblick: {
     titel: 'Monthly review',
     body: (monat, gesamt, hs, gi, delta) => `📊 ${monat}: ${gesamt} spent (Household ${hs}, Grow box ${gi})${delta}`,
-    gleich: ' · ≈ same as the month before',
+    gleich: ' · ≈ same as last month',
     mehr: (x, monat) => ` · ▲ ${x} more than in ${monat}`,
     weniger: (x, monat) => ` · ▼ ${x} less than in ${monat}`,
   },
@@ -158,8 +158,8 @@ const EN = {
   grow: {
     titel: 'Grow box', sammelVor: '🌱 Grow box: ',
     nochNichts: '💧 No watering has been logged in the current cycle yet',
-    faellig: (since) => `💧 Watering is due — last ${since === 1 ? 'yesterday' : `${since} days ago`}`,
-    ueberfaellig: (over, since) => `💧 Watering is ${over} ${pl(over, 'day', 'days')} overdue — last ${since} days ago`,
+    faellig: (since) => `💧 Watering is due — last watered ${since === 1 ? 'yesterday' : `${since} days ago`}`,
+    ueberfaellig: (over, since) => `💧 Watering is ${over} ${pl(over, 'day', 'days')} overdue — last watered ${since} days ago`,
     phaseNext: (label, len, next) => `${label} has been running for ${len} days — time for ${next}?`,
     phaseErnte: (label, len) => `🍂 ${label} has been running for ${len} days — time to harvest?`,
   },
@@ -181,8 +181,8 @@ const EN = {
   wartung: { titel: 'Maintenance', body: (namen) => `🔧 Due: ${namen.join(', ')}` },
   ausleihe: {
     titel: 'Lending',
-    zurueckholen: (was, person) => `get ${was} back from ${person}`,
-    zurueckgeben: (was, person) => `give ${was} back to ${person}`,
+    zurueckholen: (was, person) => `${was} — get it back from ${person}`,
+    zurueckgeben: (was, person) => `${was} — return it to ${person}`,
     body: (teile) => `🤝 ${teile.join(' · ')}`,
   },
   geburtstag: {
@@ -193,7 +193,7 @@ const EN = {
   miete: {
     titel: (monat, wann) => `Rent${monat} ${wann}`,
     wann: { pre: 'due in 2 days', due: 'due today', spaet: (n) => `${n} ${n === 1 ? 'day' : 'days'} overdue` },
-    an: (name) => ` to ${name}`, wg: 'the household',
+    an: (name) => ` to ${name}`, wg: 'the flat',
     monat: (name) => ` (${name})`,
     rest: (betrag, an, namen) => `${betrag}${an} · open: ${namen.join(', ')}`,
     sammel: (monat, wann, rest) => `🏠 Rent${monat} ${wann}: ${rest}`,
