@@ -6381,8 +6381,8 @@ function LandlordCard() {
   const mail = () => `mailto:${encodeURIComponent(cf.email||'')}?subject=${encodeURIComponent('Mängelanzeige' + (wg?.name ? ` – ${wg.name}` : ''))}&body=${encodeURIComponent(letter())}`;
   return (
     <div data-testid="landlord-card">
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span><Kopf>{TT("📮 Vermieter & Mängel")}</Kopf></span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("📮 Vermieter & Mängel")}</Kopf></span>
         <button className="hit" onClick={()=>setF({ name:cf.name||'', email:cf.email||'', addr:cf.addr||'' })} style={{...hdrBtn,color:'var(--sky)'}}>{cf.name?TT("Ändern"):TT("+ Eintragen")}</button>
       </div>
       <div className="group">
@@ -6394,8 +6394,8 @@ function LandlordCard() {
         {openRep.length>0 && <button className="cell hit" data-testid="ll-open" onClick={()=>setSheet(true)} style={{width:'100%',background:'none',fontFamily:'inherit',color:'var(--sky)',fontWeight:700,fontSize:14,cursor:'pointer'}}>{TT("Mängelanzeige erzeugen …")}</button>}
       </div>
 
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:14}}>
-        <span><Kopf>{TT("🆘 Notfall-Infos")}</Kopf></span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:14}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("🆘 Notfall-Infos")}</Kopf></span>
         <button className="hit" onClick={()=>setN({ strom:nf.strom||'', wasser:nf.wasser||'', heizung:nf.heizung||'', hausmeister:nf.hausmeister||'', notiz:nf.notiz||'' })} style={{...hdrBtn,color:'var(--red)'}}>{nf.strom||nf.wasser?TT("Ändern"):TT("+ Eintragen")}</button>
       </div>
       <div className="group">
@@ -6732,8 +6732,8 @@ function BookCard({ oeffnen } = {}) {
   const del = b => { setFn('bk', cur=>cur.filter(x=>x.id!==b.id)); undo(TT("Eintrag entfernt"), ()=>setFn('bk', cur=>[b, ...cur])); };
   return (
     <div className="rise" data-testid="book-card">
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span><Kopf>{TT("🗓️ Belegung & Ruhezeiten")}</Kopf></span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("🗓️ Belegung & Ruhezeiten")}</Kopf></span>
         {me && <button className="hit" ref={oeffnenKnopf} onClick={()=>{ setMsg(''); setF({ kind:'bad', date:todayISO(), from:'07:00', to:'07:30', note:'' }); }} style={{...hdrBtn,color:'var(--sky)'}}>{TT("+ Eintragen")}</button>}
       </div>
       {list.length>0 && <div className="group">
@@ -6821,8 +6821,8 @@ function RentCard({ oeffnen } = {}) {
   };
   return (
     <div className="rise" data-testid="rent-card">
-      <div className="section-hdr" role="heading" aria-level="2" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span><Kopf>{TT("🏠 Miete")}</Kopf></span>
+      <div className="section-hdr" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span role="heading" aria-level="2"><Kopf>{TT("🏠 Miete")}</Kopf></span>
         <button className="hit" ref={oeffnenKnopf} onClick={() => setF({ total: cfg ? numIn(cfg.total) : '', day: String(cfg?.day || 3), mode: cfg?.mode || 'extern', holder: cfg?.holder || me,
           s: Object.fromEntries(users.map(u => [u.id, cfg && cfg['s_' + u.id] != null ? numIn(cfg['s_' + u.id]) : ''])) })} style={{ ...hdrBtn, color: 'var(--sky)' }}>{cfg ? TT("Ändern") : TT("+ Einrichten")}</button>
       </div>
@@ -7337,8 +7337,8 @@ function PollCard({ oeffnen } = {}) {
   const del = p => { setFn('vo', cur=>cur.filter(x=>x.id!==p.id)); undo(TT("Umfrage entfernt"), ()=>setFn('vo', cur=>[p, ...cur])); };
   return (
     <div className="rise" data-testid="poll-card">
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span><Kopf>{TT("🗳️ Abstimmen")}</Kopf></span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("🗳️ Abstimmen")}</Kopf></span>
         {me && <button className="hit" ref={oeffnenKnopf} onClick={()=>setF({ q:'', opts:['',''], until:shiftISO(todayISO(),3), anon:false })} style={{...hdrBtn,color:'var(--mint)'}}>{TT("+ Umfrage")}</button>}
       </div>
       {polls.length>0 && <div className="group">
@@ -7387,8 +7387,8 @@ function LoanCard() {
   const back = it => { setFn('lh', cur=>cur.filter(x=>x.id!==it.id)); undo(TT("↩️ {0} zurück", it.what), ()=>setFn('lh', cur=>[it, ...cur])); };
   return (
     <div data-testid="loan-card">
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span><Kopf>{TT("🤝 Ausgeliehen")}</Kopf></span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("🤝 Ausgeliehen")}</Kopf></span>
         <button className="hit" onClick={()=>setF({ what:'', person:'', dir:'out', due:shiftISO(todayISO(),14) })} style={{...hdrBtn,color:'var(--mint)'}}>{TT("+ Eintrag")}</button>
       </div>
       <div className="group">
@@ -7438,8 +7438,8 @@ function MaintCard() {
   const del = t => { setFn('wa', cur=>cur.filter(x=>x.id!==t.id)); undo(TT("„{0}\" entfernt", t.name), ()=>setFn('wa', cur=>[...cur, t])); };
   return (
     <div data-testid="maint-card">
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span><Kopf>{TT("🔧 Wartung · alle paar Monate")}</Kopf></span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("🔧 Wartung · alle paar Monate")}</Kopf></span>
         <button className="hit" onClick={()=>setF({ name:'', every:'6' })} style={{...hdrBtn,color:'var(--amber)'}}>{TT("+ Eigene")}</button>
       </div>
       <div className="group">
@@ -7612,8 +7612,8 @@ function DepositCard() {
   };
   return (
     <div data-testid="deposit-card">
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span><Kopf>{TT("🔑 Kaution")}</Kopf></span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("🔑 Kaution")}</Kopf></span>
         <button className="hit" onClick={edit} style={{...hdrBtn,color:'var(--mint)'}}>{k?TT("Ändern"):TT("+ Eintragen")}</button>
       </div>
       <div className="group">
@@ -7666,8 +7666,8 @@ function BasketCard() {
   };
   return (
     <div className="rise" data-testid="basket-card">
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span><Kopf>{TT("🧺 Wochen-Korb")}</Kopf></span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("🧺 Wochen-Korb")}</Kopf></span>
         <button className="hit" onClick={()=>setEdit(e=>!e)} style={{...hdrBtn,color:'var(--mint)'}}>{edit?TT("Fertig"):TT("Bearbeiten")}</button>
       </div>
       <div className="group" style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:10}}>
@@ -7764,8 +7764,8 @@ function GuestCard() {
   const copy = async () => setMsg(await copyTxt(url) ? TT("Kopiert ✓ – per Messenger an den Besuch schicken.") : TT("Kopieren ging nicht – bitte markieren."));
   return (
     <div data-testid="guest-card">
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span><Kopf>{TT("🛎️ Gast-Link")}</Kopf></span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("🛎️ Gast-Link")}</Kopf></span>
         <button className="hit" onClick={()=>setF({ wifi:info.wifi||'', pw:info.pw||'', note:info.note||'' })} style={{...hdrBtn,color:'var(--sky)'}}>{TT("Angaben")}</button>
       </div>
       <div className="group" style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:8,fontSize:13,color:'var(--label2)'}}>
@@ -7865,8 +7865,8 @@ function SavingsCard({ oeffnen } = {}) {
   };
   return (
     <div className="rise" data-testid="savings-card">
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span><Kopf>{TT("🐷 Gemeinsam sparen")}</Kopf></span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("🐷 Gemeinsam sparen")}</Kopf></span>
         <button className="hit" ref={oeffnenKnopf} onClick={()=>setAdd({ name:'', target:'' })} style={{...hdrBtn,color:'var(--mint)'}}>{TT("+ Ziel")}</button>
       </div>
       {goals.length>0 && (
@@ -7954,8 +7954,8 @@ function CostsCard({ oeffnen } = {}) {
   const preview = f && parseNum(f.amount)>0 ? (sh=>users.map(u=>`${u.name} €${fmt(sh[u.id])}`).join(' · '))(nkShares(parseNum(f.amount))) : '';
   return (
     <div className="rise" data-testid="costs-card" style={{animationDelay:'114ms'}}>
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span><Kopf>{TT("🧾 Nebenkostenabrechnung")}</Kopf></span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("🧾 Nebenkostenabrechnung")}</Kopf></span>
         <button className="hit" ref={oeffnenKnopf} onClick={()=>setF({ kind:'nk', year:String(new Date().getFullYear()-1), amount:'', credit:false, who:me||a.id, share:50 })} style={{...hdrBtn,color:'var(--sky)'}}>{TT("+ Nebenkosten")}</button>
       </div>
       <div className="group">
@@ -8017,8 +8017,8 @@ function MealCard({ oeffnen } = {}) {
   const del = e => { setFn('ep', cur=>cur.filter(x=>x.id!==e.id)); undo(TT("Gericht entfernt"), ()=>setFn('ep', cur=>[e, ...cur])); };
   return (
     <div className="rise" data-testid="meal-card">
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span><Kopf>{TT("🍝 Essensplan · 7 Tage")}</Kopf></span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("🍝 Essensplan · 7 Tage")}</Kopf></span>
         <button className="hit" ref={oeffnenKnopf} onClick={open} style={{...hdrBtn,color:'var(--amber)'}}>{TT("+ Gericht")}</button>
       </div>
       <div className="group">
@@ -8070,8 +8070,8 @@ function FridgeCard({ oeffnen } = {}) {
   const gone = (it, el) => weg(it.id, () => { setFn('kf', cur=>cur.filter(x=>x.id!==it.id)); undo(TT("🧊 {0} entfernt", it.name), ()=>{ setFn('kf', cur=>cur.some(x=>x.id===it.id)?cur:[it, ...cur]); markiere([it.id]); }); }, el);
   return (
     <div className="rise" data-testid="fridge-card">
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span><Kopf>{TT("🧊 Kühlschrank")}</Kopf></span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("🧊 Kühlschrank")}</Kopf></span>
         <button className="hit" ref={oeffnenKnopf} onClick={()=>setF({ name:'', exp:shiftISO(todayISO(),3), owner:null })} style={{...hdrBtn,color:'var(--sky)'}}>{TT("+ Eintrag")}</button>
       </div>
       {items.length>0 && (
@@ -8134,8 +8134,8 @@ function InventoryCard() {
   const del = it => { setFn('inv', cur=>cur.filter(x=>x.id!==it.id)); undo(TT("„{0}\" entfernt", it.name), ()=>setFn('inv', cur=>[it, ...cur])); };
   return (
     <div data-testid="inventory-card">
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span><Kopf>{TT("🛋️ Inventar · wem gehört was")}</Kopf></span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("🛋️ Inventar · wem gehört was")}</Kopf></span>
         <button className="hit" onClick={()=>setF({ name:'', owner:'wg', bought:'', price:'', warranty:'' })} style={{...hdrBtn,color:'var(--mint)'}}>{TT("+ Gegenstand")}</button>
       </div>
       <div className="group">
@@ -9007,8 +9007,8 @@ function MeterCard({ oeffnen } = {}) {
   };
   return (
     <div className="rise" data-testid="meter-card" style={{animationDelay:'113ms'}}>
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span><Kopf>{TT("📟 Zählerstände")}</Kopf></span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("📟 Zählerstände")}</Kopf></span>
         <button className="hit" ref={oeffnenKnopf} onClick={()=>setAdd({ kind:kinds[0]||'strom', value:'', date:todayISO() })} style={{...hdrBtn,color:'var(--sky)'}}>{TT("+ Ablesen")}</button>
       </div>
       <div className="group">
@@ -9113,8 +9113,8 @@ function NewsCard() {
   const gelesen = () => { const t = Date.now(); ss(SEEN_KEY, t); setReadAt(t); setAppBadgeSafe(0); };
   return (
     <div className="rise" data-testid="news-card">
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span><Kopf>{TT("🕘 Seit du zuletzt da warst")}</Kopf></span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("🕘 Seit du zuletzt da warst")}</Kopf></span>
         <button type="button" className="hit" data-testid="news-read" onClick={gelesen} style={{background:'none',border:'none',color:'var(--mint)',fontFamily:'inherit',fontSize:13,fontWeight:800,cursor:'pointer',letterSpacing:0,textTransform:'none'}}>{TT("✓ Gelesen")}</button>
       </div>
       <div className="group">
@@ -9547,8 +9547,8 @@ function StockCard() {
   const soon = all.filter(it=>!onList(it.name) && (stockLeft(it) ?? 99) <= 2);
   return (
     <div className="rise" data-testid="stock-card" style={{animationDelay:'30ms'}}>
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span><Kopf>{TT("🛒 Antippen = auf die Liste")}</Kopf></span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("🛒 Antippen = auf die Liste")}</Kopf></span>
         <button className="hit" onClick={()=>setEdit(e=>!e)} style={{...hdrBtn,color:'var(--mint)'}}>{edit?TT("Fertig"):TT("Bearbeiten")}</button>
       </div>
       <div className="group" style={{padding:12}}>
@@ -9612,8 +9612,8 @@ function PickupCard({ oeffnen } = {}) {
   const del = p => { const { d, ...orig } = p; setFn('mk', cur=>cur.filter(x=>x.id!==p.id)); undo(TT("{0} entfernt", PICK_KINDS[p.kind]?.[1]||'Abholung'), ()=>setFn('mk', cur=>[...cur.filter(x=>x.id!==p.id), orig])); };
   return (
     <div className="rise" data-testid="pickup-card" style={{animationDelay:'60ms'}}>
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span><Kopf>{TT("🚛 Müllabfuhr")}</Kopf></span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("🚛 Müllabfuhr")}</Kopf></span>
         <button className="hit" ref={oeffnenKnopf} onClick={()=>{ setF({ kind:Object.keys(PICK_KINDS).find(k=>!next.some(p=>p.kind===k))||'rest', start:today, every:2 }); setOpen(true); }} style={{...hdrBtn,color:'var(--amber)'}}>{TT("+ Tonne")}</button>
       </div>
       <div className="group">
@@ -9689,8 +9689,8 @@ function AwayCard({ compact, oeffnen } = {}) {
   if (compact) return <div className="group rise" data-testid="away-banner">{rows}</div>;
   return (
     <div className="rise" data-testid="away-card" style={{animationDelay:'70ms'}}>
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span><Kopf>{TT("✈️ Abwesend")}</Kopf></span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("✈️ Abwesend")}</Kopf></span>
         {me && <button className="hit" ref={oeffnenKnopf} onClick={()=>{ setF({ from:today, to:shiftISO(today,3), note:'' }); setOpen(true); }} style={{...hdrBtn,color:'var(--amber)'}}>{TT("Ich bin weg")}</button>}
       </div>
       {rows.length ? <div className="group">{rows}</div> : <div className="section-ftr" style={{marginTop:0}}>{TT("Wer weg ist, wird nicht eingeteilt.")}</div>}
@@ -9979,8 +9979,8 @@ function YearReview({ all, pl, pt, users }) {
         </button>
       )}
       <div hidden={!auf} data-tool-leer={auf ? undefined : 'jahr'}>
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span><Kopf>{TT("📅 Jahresrückblick")}</Kopf></span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("📅 Jahresrückblick")}</Kopf></span>
         <span style={{display:'flex',gap:6}}>
           {[cy-1, cy].map(v=><button key={v} className="hit" onClick={()=>setY(v)} style={{...hdrBtn,color:y===v?'var(--sky)':'var(--label2)',fontWeight:y===v?800:600}}>{v}</button>)}
         </span>
@@ -10922,8 +10922,8 @@ function Haushalt({goPutz}) {
           {recs.length>0&&(
             <div className="rise" style={{animationDelay:'90ms'}}>
               {/* „+ Neu" im Kopf ersetzt den breiten Knopf darunter (wg-v103) */}
-              <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                <span><Kopf>{TT("🔁 Wiederkehrend · monatlich")}</Kopf></span>
+              <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <span role="heading" aria-level="2"><Kopf>{TT("🔁 Wiederkehrend · monatlich")}</Kopf></span>
                 <button type="button" className="hit" data-testid="rec-neu" aria-label={TT("🔁 Wiederkehrenden Posten einrichten")} onClick={()=>setRecWiz(true)} style={{...hdrBtn,color:'var(--mint)'}}>{TT("+ Neu")}</button>
               </div>
               <div className="group">
@@ -10951,8 +10951,8 @@ function Haushalt({goPutz}) {
               {offenAlle.length>0&&(
               <div className="rise" style={{animationDelay:'120ms'}}>
                 {/* wg-v119 (REST-2): „✓ Alles abrechnen" als Kopf-Aktion rechts (Gläubiger); beim Schuldner steht stattdessen der Hinweis links unten (abrechnen.hinweis) */}
-                <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}>
-                  <span>{TT("Einzelposten")}</span>
+                <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}>
+                  <span role="heading" aria-level="2">{TT("Einzelposten")}</span>
                   {abrechnen && !abrechnen.hinweis && abrechnen.el}
                 </div>
                 <div className="group">
@@ -11067,8 +11067,8 @@ function Haushalt({goPutz}) {
             ?<Leer ico="🛒" text={TT("Liste ist leer — was fehlt?")} testid="liste-leer"/> /* wg-v112 (P9): ohne Knopf — das Eingabefeld mit „+" steht direkt darüber */
             :(
               <div className="rise" style={{animationDelay:'80ms'}}>
-                <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                  <span>{openL} {TT("offen")}{doneL>0?TT(" · {0} im Wagen", doneL):''}</span>
+                <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <span role="heading" aria-level="2">{openL} {TT("offen")}{doneL>0?TT(" · {0} im Wagen", doneL):''}</span>
                   {doneL>0&&<button style={{background:'none',border:'none',color:'var(--mint)',fontSize:12,fontWeight:700,fontFamily:'Hanken Grotesk'}} onClick={clearDone}>{TT("Erledigte leeren")}</button>}
                 </div>
                 {openL===0&&list.length>0&&<div className="sl-alldone empty" style={{padding:'20px 0'}}><div className="empty-ico">🎉</div><span style={{fontSize:14,color:'var(--label2)'}}>{TT("Alles erledigt")}</span></div>}
@@ -11367,8 +11367,8 @@ function Grow() {
         {/* Zyklus + Gießen: die tägliche Interaktion, deshalb direkt unter dem Hero */}
         {cy ? (
           <div className="rise" style={{animationDelay:'40ms'}}>
-            <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <span>{ci.ph[1]} {TT("Zyklus · Tag")} {ci.dayTot}</span>
+            <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span role="heading" aria-level="2">{ci.ph[1]} {TT("Zyklus · Tag")} {ci.dayTot}</span>
               {/* Padding + gegenläufiger Margin: 44px Tap-Ziel, optisch bleibt es eine Kopfzeilen-Aktion */}
               <button style={{background:'none',border:'none',padding:'13px 6px',margin:'-13px -6px -7px',minHeight:44,font:'inherit',fontSize:11,letterSpacing:'.2em',color:'var(--lime)',fontFamily:'var(--mono)',textTransform:'uppercase'}}
                 onClick={endCycle}>{TT("Beenden")}</button>
@@ -11443,8 +11443,8 @@ function Grow() {
 
         {/* Ernte-Log: Gramm je Ernte (wg-v116: ohne Zyklus-Kosten und €/g — Geld nur im Haushalt) */}
         <div className="rise" style={{animationDelay:'160ms'}}>
-          <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-            <span><Kopf>{TT("🌾 Ernten")}</Kopf>{harv.length>0?` · ${harv.length}`:''}</span>
+          <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <span role="heading" aria-level="2"><Kopf>{TT("🌾 Ernten")}</Kopf>{harv.length>0?` · ${harv.length}`:''}</span>
             {/* wg-v112 (P10): „+ Ernte" als Kopf-Aktion (Muster wie „+ Neu"/„+ Tonne"/„+ Eintrag"; .hit macht die Fläche ≥ 40 px hoch) statt
                 Vollbreit-Knopf unter der Liste. Der aria-label behält den vollen Namen „Ernte erfassen" für Bildschirmleser und Tests. */}
             <span style={{display:'flex',alignItems:'center',gap:12}}>
@@ -11828,8 +11828,8 @@ function ChoreQuick({ goPutz, leer, onDran }) {   /* leer (wg-v112, P9): was an 
   return (
     <div className={abschied ? 'rise abschied' : 'rise'} data-testid="chore-quick" ref={wurzel} style={{animationDelay:'20ms'}}>
       {onDran && <DranMelder an={onDran}/>}
-      <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <span><Kopf>{TT("🧹 Du bist dran")}</Kopf>{myStreak>0?<span style={{color:'var(--amber)',marginLeft:6}} title={TT("pünktlich in Folge")}>🔥 {myStreak}</span>:null}</span>
+      <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span role="heading" aria-level="2"><Kopf>{TT("🧹 Du bist dran")}</Kopf>{myStreak>0?<span style={{color:'var(--amber)',marginLeft:6}} title={TT("pünktlich in Folge")}>🔥 {myStreak}</span>:null}</span>
         <button className="hit" onClick={goPutz} style={{background:'none',border:'none',color:'var(--amber)',fontWeight:700,fontSize:12,fontFamily:'inherit',cursor:'pointer',padding:0,textTransform:'none',letterSpacing:0}}>{TT("Putzplan ›")}</button>
       </div>
       {/* wg-v112 (P10): Rand neutral (der normale .group-Rand) statt Amber .28 — Amber ist in der App die Farbe der WARNUNG (Push-Hinweis,
@@ -12102,8 +12102,8 @@ function Putzplan() {
         {tasks.length>0&&(
           <div className="rise" style={{animationDelay:'60ms'}}>
             {/* „+ Neu" klein im Kopf statt des großen Knopfs über der Liste. Der zugängliche Name bleibt „+ Aufgabe anlegen". */}
-            <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <span>{TT("Aufgaben")}</span>
+            <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span role="heading" aria-level="2">{TT("Aufgaben")}</span>
               <button type="button" className="hit" data-testid="putz-neu" aria-label={TT("+ Aufgabe anlegen")} onClick={()=>setWiz(true)} style={{...hdrBtn,color:'var(--amber)'}}>{TT("+ Neu")}</button>
             </div>
             <div className="group" ref={listeRef}>{/* wg-v112 (P5): listeRef = Rahmen für das FLIP-Messen */}
@@ -13061,8 +13061,8 @@ function Einstellungen() {
 
         {/* Firebase Setup */}
         <div className="rise" style={{animationDelay:'80ms'}}>
-          <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-            <span>{TT("Firebase")} {fbCfg?TT("(konfiguriert)"):'einrichten'}</span>
+          <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <span role="heading" aria-level="2">{TT("Firebase")} {fbCfg?TT("(konfiguriert)"):'einrichten'}</span>
             {fbCfg&&<button style={{background:'none',border:'none',padding:'7px 4px',color:'var(--mint)',fontSize:13,fontWeight:600,fontFamily:'Hanken Grotesk'}} onClick={()=>setShowSetup(!showSetup)}>{showSetup?TT("Schließen"):TT("Ändern")}</button>}
           </div>
 
@@ -13244,8 +13244,8 @@ function Einstellungen() {
         {/* Fehlerprotokoll — nur sichtbar, wenn es Einträge gibt (Einträge aller Geräte, max. 30) */}
         {(D.err||[]).length>0 && (
           <div className="rise" style={{animationDelay:'180ms'}}>
-            <div className="section-hdr" role="heading" aria-level="2" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <span><Kopf>{TT("🐞 Fehlerprotokoll ·")} {(D.err||[]).length}</Kopf></span>
+            <div className="section-hdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span role="heading" aria-level="2"><Kopf>{TT("🐞 Fehlerprotokoll ·")} {(D.err||[]).length}</Kopf></span>
               <button style={{background:'none',border:'none',padding:'7px 4px',color:'var(--mint)',fontSize:13,fontWeight:700,fontFamily:'inherit'}} onClick={()=>set('err',[])}>{TT("Protokoll leeren")}</button>
             </div>
             <div className="group">
