@@ -688,6 +688,7 @@
  "da": "here",
  "Da ist etwas schiefgelaufen": "Something went wrong",
  "Dafür fehlt noch: {0}": "Still needed: {0}",
+ "Bitte einen Betrag über 0 eingeben, z. B. 12,50": "Please enter an amount above 0, e.g. 12.50",
  "Damit die App vollständig funktioniert, füge sie erst zum Home-Bildschirm hinzu: in Safari unten auf": "For the app to work fully, add it to your home screen first: in Safari tap",
  "Damit jeder sieht, wer was auf die Liste setzt. Später änderbar unter Mehr → Personen.": "So everyone sees who put what on the list. You can change it later under More → People.",
  "Danach wird der Login von diesem Gerät gelöscht.": "The login is then deleted from this device.",

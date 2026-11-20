@@ -1332,6 +1332,10 @@ button.cell:not(.group):active:not(:disabled) { box-shadow:inset 0 0 0 999px var
    Steht VOR dem 1024-Block, damit dessen display:grid/flex gewinnt; Heutes .heute-col (echte Spalten seit wg-v83, weiter unten) gewinnt
    hier absichtlich — Heute bleibt am Handy, wie es war. */
 .zz-paar, .zz-l, .zz-r { display:contents; }
+/* Bedienung (Handy-Durchlauf 20.11.): Reiter „Einkaufsliste" — im Laden will man die LISTE sehen, nicht erst 8 Vorrats-Kacheln + Wochen-Korb überscrollen
+   (gemessen 390 px: Liste begann bei ~1,6 Bildschirmen). Unter 1024 px rutschen Vorrat + Wochen-Korb hinter die Liste (order, die Hüllen sind display:contents);
+   ab 1024 px bleibt es wie es war (links Werkzeuge, rechts Liste). */
+@media (max-width:1023px) { [data-testid="stock-card"], [data-testid="basket-card"] { order:2; } }
 
 /* ── Breite Bildschirme ab 1024 px (wg-v83, Optik „Desktop & Tablet nutzen die Breite") ──
    Vorher eine 640-px-Spalte: auf 1366 px blieben 53 % leer, die Tab-Leiste lag unten wie am Handy.
@@ -1734,6 +1738,7 @@ window.__WG_EN = {
 " · {0}× im Zyklus":" · {0}× per cycle",
 " · 🔥 {0} pünktlich in Folge":" · 🔥 {0} on time in a row",
 " · abgerechnet":" · settled",
+" · alles da ✓":" · all here ✓",
 " · an {0}":" · to {0}",
 " · Ausgaben zusammen €{0}":" · expenses total €{0}",
 " · bald leer: {0}":" · running low: {0}",
@@ -1741,6 +1746,7 @@ window.__WG_EN = {
 " · fehlt: {0}":" · missing: {0}",
 " · heute zurück":" · due back today",
 " · ohne Namen":" · no name",
+" · Preis + Abschlag antippen":" · tap price + discount",
 " · wird {0}":" · turning {0}",
 " · wird im Putzplan nicht eingeteilt":" · left out of the cleaning plan",
 " · zurück €{0}":" · back €{0}",
@@ -2090,7 +2096,9 @@ window.__WG_EN = {
 "🔥 Heizung":"🔥 Heating",
 "🔥 zählt Aufgaben, die du nicht überfällig werden lässt":"🔥 counts tasks you don't let become overdue",
 "🔧 {0} erledigt":"🔧 {0} done",
+"🔧 Als gemeldet markiert":"🔧 Marked as reported",
 "🔧 Eintrag gelöscht":"🔧 Entry deleted",
+"🔧 Erledigt":"🔧 Done",
 "🔧 Kaputt & Vermieter":"🔧 Broken & landlord",
 "🔧 Kaputt: {0}":"🔧 Broken: {0}",
 "🔧 Wartung · alle paar Monate":"🔧 Maintenance · every few months",
@@ -2193,6 +2201,7 @@ window.__WG_EN = {
 "alle":"every",
 "Alle":"All",
 "Alle … Monate":"Every … months",
+"Alle {0} Regeln":"All {0} rules",
 "alle {0} Tage":"every {0} days",
 "Alle {0} Wochen":"Every {0} weeks",
 "alle ~{0} Tage · zuletzt vor {1}":"every ~{0} days · last bought {1} ago",
@@ -2310,6 +2319,7 @@ window.__WG_EN = {
 "Backup & Archiv":"Backup & archive",
 "Backup einspielen":"Restore backup",
 "Backup importieren":"Import backup",
+"Backup-Warnung":"Backup warning",
 "Backups gerade nicht erreichbar ({0}).":"Backups can't be reached right now ({0}).",
 "Bad":"Bathroom",
 "bad küche reservieren ruhe party besuch blocken":"bathroom kitchen book reserve quiet party slot",
@@ -2371,6 +2381,7 @@ window.__WG_EN = {
 "Bis einschließlich":"Up to and including",
 "Bist du wirklich {0}?":"Are you really {0}?",
 "Bitte ausräumen":"Please empty it",
+"Bitte einen Betrag über 0 eingeben, z. B. 12,50":"Please enter an amount above 0, e.g. 12.50",
 "Bitte in der App bestätigen":"Please confirm in the app",
 "Bitte mitbringen":"Please bring",
 "bleibt":"stays",
@@ -2694,6 +2705,7 @@ window.__WG_EN = {
 "Hier einfügen":"Paste here",
 "Hinterlege deinen PayPal.me-Namen, damit dir die WG offene Beträge per Klick schicken kann.":"Add your PayPal.me name so the flat can send you what they owe in one tap.",
 "Hinweis":"Note",
+"Hinweis entfernen":"Dismiss note",
 "Hinweis für Gäste":"Note for guests",
 "Hinweis, z. B. Handtücher im Schrank links":"Note, e.g. towels in the left cupboard",
 "Hinzufügen":"Add",
@@ -2997,6 +3009,7 @@ window.__WG_EN = {
 "Ofengemüse":"Roast vegetables",
 "offen":"open",
 "offen – überfällig":"open – overdue",
+"offen bis {0}":"open until {0}",
 "Offen sind €{0} (eure Grenze: €{1}).":"€{0} is open (your limit: €{1}).",
 "Offen sind inzwischen €":"Open by now: €",
 "Offen: {0}":"Still open: {0}",
@@ -3308,14 +3321,6 @@ window.__WG_EN = {
 "Weitere Werkzeuge ({0})":"More tools ({0})",
 "Welche Tonne?":"Which bin?",
 "wem gehört möbel geräte garantie":"who owns furniture appliances warranty inventory",
-"Hinweis entfernen":"Dismiss note",
-" · alles da ✓":" · all here ✓",
-"offen bis {0}":"open until {0}",
-"Alle {0} Regeln":"All {0} rules",
-" · Preis + Abschlag antippen":" · tap price + discount",
-"🔧 Als gemeldet markiert":"🔧 Marked as reported",
-"🔧 Erledigt":"🔧 Done",
-"Backup-Warnung":"Backup warning",
 "Weniger":"Less",
 "Wenn jemand dir etwas schuldet, zeigt die App deine Daten zum Antippen bzw. Kopieren. Alles optional.":"When someone owes you, the app shows your details to tap or copy. All optional.",
 "Wer bist du auf diesem Gerät?":"Who are you on this device?",
@@ -3575,6 +3580,8 @@ const parseNum = v => {
   const n = parseFloat(s);
   return isNaN(n) ? 0 : n;
 };
+/* Betrag eingegeben und gültig: > 0 und ohne führendes Minus (parseNum verwirft das Vorzeichen: „-20" wäre sonst still +20) */
+const betragOk = v => parseNum(v) > 0 && !/^\s*[-−–]/.test(String(v ?? ''));
 const fmtK = n => n>=1000?(LANG==='en'?(n/1000).toFixed(1):(n/1000).toFixed(1).replace('.', ','))+'K':fmt(n);
 // Zahl in ein Eingabefeld vorbelegen — deutsches Komma nur auf Deutsch, sonst tippt man gegen das Format an
 const numIn = v => (LANG === 'en' ? String(v) : String(v).replace('.', ','));
@@ -5458,7 +5465,7 @@ function Wiz({ open, onClose, title, color, steps, onFinish, initial, quickOk, q
         {/* Sagt beim Tippen, WAS fehlt — der Schritt-Titel ist die Frage, die noch offen ist.
             `role="status"` liest ein Bildschirmleser von selbst vor, ohne den Fokus wegzunehmen. */}
         {hinweis && !ok && (
-          <div className="wiz-hint" id="wiz-hint" role="status" data-testid="wiz-hint">{TT("Dafür fehlt noch: {0}", S.label)}</div>
+          <div className="wiz-hint" id="wiz-hint" role="status" data-testid="wiz-hint">{(S.fehler&&S.fehler(data))||TT("Dafür fehlt noch: {0}", S.label)}</div>
         )}
         <div className="sheet-acts">
           {step>0&&<button className="btn btn-sec" onClick={()=>{ hoeheMerken(); setDir(-1); setStep(s=>s-1); }}>{TT("Zurück")}</button>}
@@ -8829,7 +8836,7 @@ const parseQuick = txt => {
   let s = ' ' + String(txt||'').replace(/€/g,' ').trim() + ' ';
   const alone = /\s(allein|nur ich|für mich)\s/i.test(s);
   s = s.replace(/\s(allein|nur ich|für mich)(?=\s)/ig, ' ');
-  const m = s.match(/\s(\d+(?:[.,]\d{1,2})?)(?=\s)/);
+  const m = s.match(/\s(\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)(?=\s)/);   /* auch 1.234,56 / 1.200 (Miete) */
   if (!m) return null;
   const price = parseNum(m[1]);
   const name = (s.slice(0, m.index) + ' ' + s.slice(m.index + m[0].length)).replace(/\s(euros?|eur)(?=\s)/ig, ' ').replace(/\s+/g,' ').trim();
@@ -10596,7 +10603,7 @@ function Haushalt({goPutz}) {
         {catChips({data:d,setData:sd}, gi)}
       </>
     ); }},
-    {label: TT("Wie viel?"),ok:d=>parseNum(d.price)>0,render:({data:d,setData:sd})=>{ const gi = fest ? fest==='gi' : d.bereich==='gi'; return (
+    {label: TT("Wie viel?"),ok:d=>betragOk(d.price),fehler:d=>String(d.price||"").trim()?TT("Bitte einen Betrag über 0 eingeben, z. B. 12,50"):null,render:({data:d,setData:sd})=>{ const gi = fest ? fest==='gi' : d.bereich==='gi'; return (
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
         <div className="f-euro"><input autoFocus type="text" inputMode="decimal" className="field" placeholder="0,00" value={d.price||''} onChange={e=>sd({...d,price:e.target.value})}/></div>
         <DateField value={d.date} onChange={v=>sd({...d,date:v})}/>
@@ -11072,7 +11079,7 @@ function Haushalt({goPutz}) {
       {/* wg-v116: Schnell-Speichern („ich zahle, 50/50") nicht für Grow-Posten — die teilen sich nach Pflanzen, das Etikett wäre falsch;
           dort führt „Weiter" zu Schritt 3 mit der echten Aufteilung. Kassenzettel, Bearbeiten, Übernehmen: fester Bereich (stepsHs/stepsGi),
           keine Wahl, kein Umzug zwischen hs und gi. */}
-      <Wiz open={wiz} onClose={()=>{ setWiz(false); setWizInit(null); }} title={TT("Ausgabe")} color="var(--mint)" steps={wizInit?.receipt ? stepsHs : steps} onFinish={addFromWiz} initial={wizInit||addInit} quickOk={d=>d.bereich!=='gi'&&d.name?.trim()&&parseNum(d.price)>0&&d.paidBy}/>
+      <Wiz open={wiz} onClose={()=>{ setWiz(false); setWizInit(null); }} title={TT("Ausgabe")} color="var(--mint)" steps={wizInit?.receipt ? stepsHs : steps} onFinish={addFromWiz} initial={wizInit||addInit} quickOk={d=>d.bereich!=='gi'&&d.name?.trim()&&betragOk(d.price)&&d.paidBy}/>
       <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title={TT("Bearbeiten")} color="var(--mint)" steps={editItem?.mod==='gi' ? stepsGi : stepsHs} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,owedBy:editItem.owedBy||null,cat:editItem.cat||null,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>
       <Wiz open={!!convItem} onClose={()=>setConvItem(null)} title={TT("Als Ausgabe übernehmen")} color="var(--mint)" steps={stepsHs} onFinish={convert} initial={convItem?{name:convItem.name,paidBy:me||undefined,date:todayISO()}:null}/>
       <Wiz open={recWiz} onClose={()=>setRecWiz(false)} title={TT("Wiederkehrend (monatlich)")} color="var(--mint)" steps={recSteps} onFinish={addRec} initial={addInit}/>
