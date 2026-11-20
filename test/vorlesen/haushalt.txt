@@ -4,9 +4,7 @@
 - text: STATUS
 - button "💶 Ausgaben" [pressed]
 - button "🛒 Einkaufsliste (2)"
-- text: Deine Bilanz
-- img
-- text: € 11,50 ich schulde Haushalt 86% €37,50 Growbox 14% €6,00 Torben Tom €11,50 Per Klick zahlen geht, sobald Tom unter Mehr → Personen PayPal oder IBAN hinterlegt hat.
+- text: Deine Bilanz € 11,50 ich schulde Haushalt 86% €37,50 Growbox 14% €6,00 Torben Tom €11,50 Per Klick zahlen geht, sobald Tom unter Mehr → Personen PayPal oder IBAN hinterlegt hat.
 - button "✓ Ich habe €11,50 bezahlt"
 - text: "Erst „Ich habe bezahlt“ tippen. Tom rechnet ab, sobald das Geld da ist. Unterm Strich verrechnet: Haushalt −€17,50 · Growbox +€6,00 (aus Sicht von Torben)"
 - textbox "Ausgabe in einem Satz":

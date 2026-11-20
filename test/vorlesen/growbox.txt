@@ -1,9 +1,7 @@
 - text: Growbox
 - button "Suchen":
   - img
-- text: STATUS Anteile nach Pflanzen
-- img
-- text: 2 Pflanzen Torben 50%
+- text: STATUS Anteile nach Pflanzen 2 Pflanzen Torben 50%
 - button "Eine Pflanze weniger für Torben": −
 - text: "1"
 - button "Eine Pflanze mehr für Torben": +
@@ -16,7 +14,6 @@
 - button "🌱 Zyklus starten"
 - text: 🌱 Grow-Ausgaben trägst du im Haushalt ein
 - button "Zum Haushalt ›"
-- heading "Ernten Ernte erfassen" [level=2]:
-  - text: Ernten
-  - button "Ernte erfassen": + Ernte
+- heading "Ernten" [level=2]
+- button "Ernte erfassen": + Ernte
 - text: Noch keine Ernte — „+ Ernte“ trägt die erste ein

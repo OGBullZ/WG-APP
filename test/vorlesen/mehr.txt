@@ -13,9 +13,8 @@
 - button "Beitreten"
 - button "WG-Code wechseln Z. B. wenn jemand ausgezogen ist — der alte Code wird gesperrt"
 - text: "⚠️ Beim Beitreten wählst du: zusammenführen oder überschreiben."
-- heading "Firebase (konfiguriert) Ändern" [level=2]:
-  - text: Firebase (konfiguriert)
-  - button "Ändern"
+- heading "Firebase (konfiguriert)" [level=2]
+- button "Ändern"
 - text: Verbunden wgapp-65484 Aktiv
 - button "Ansicht & Kalender Bereiche, Spielelemente, Hell/Dunkel, Kalender-Abo" [expanded]
 - heading "Bereiche anzeigen" [level=2]
@@ -70,9 +69,8 @@
 - heading "WG-Infos" [level=2]
 - text: Zählernummern, Paketstation, Reinigungsfirma — einmal notiert, immer auffindbar. WLAN, Notfall-Infos und Vermieter erscheinen hier automatisch, sobald sie eingetragen sind.
 - button "+ Info anpinnen"
-- heading "Wartung · alle paar Monate + Eigene" [level=2]:
-  - text: Wartung · alle paar Monate
-  - button "+ Eigene"
+- heading "Wartung · alle paar Monate" [level=2]
+- button "+ Eigene"
 - button "🚨 Rauchmelder testen"
 - button "🫖 Wasserkocher entkalken"
 - button "☕ Kaffeemaschine entkalken"
@@ -83,29 +81,23 @@
 - button "🧊 Kühlschrank abtauen"
 - 'button "🍽️ Spülmaschine: Filter"'
 - button "🪠 Abflüsse reinigen"
-- heading "Ausgeliehen + Eintrag" [level=2]:
-  - text: Ausgeliehen
-  - button "+ Eintrag"
+- heading "Ausgeliehen" [level=2]
+- button "+ Eintrag"
 - text: Bohrmaschine an den Nachbarn, Beamer von Freunden – mit Rückgabe-Erinnerung.
-- heading "Inventar · wem gehört was + Gegenstand" [level=2]:
-  - text: Inventar · wem gehört was
-  - button "+ Gegenstand"
+- heading "Inventar · wem gehört was" [level=2]
+- button "+ Gegenstand"
 - text: Möbel und Geräte mit Besitzer eintragen – spart Streit beim Auszug.
-- heading "Vermieter & Mängel + Eintragen" [level=2]:
-  - text: Vermieter & Mängel
-  - button "+ Eintragen"
+- heading "Vermieter & Mängel" [level=2]
+- button "+ Eintragen"
 - text: Noch kein Vermieter hinterlegt Keine offenen Mängel
-- heading "Notfall-Infos + Eintragen" [level=2]:
-  - text: Notfall-Infos
-  - button "+ Eintragen"
+- heading "Notfall-Infos" [level=2]
+- button "+ Eintragen"
 - text: Wo ist der Sicherungskasten, wo der Absperrhahn? Einmal eintragen – steht dann auch im Gast-Link.
-- heading "Kaution + Eintragen" [level=2]:
-  - text: Kaution
-  - button "+ Eintragen"
+- heading "Kaution" [level=2]
+- button "+ Eintragen"
 - text: Wer hat wie viel Kaution gezahlt? Beim Auszug wird die Rückzahlung anteilig verrechnet.
-- heading "Gast-Link Angaben" [level=2]:
-  - text: Gast-Link
-  - button "Angaben"
+- heading "Gast-Link" [level=2]
+- button "Angaben"
 - text: "Besuch bekommt eine Seite zum Lesen: WLAN, eure gültigen WG-Regeln und die nächsten Müll-Termine – ohne WG-Code, ohne Zugriff auf Geld."
 - button "Link erzeugen"
 - button "Alle Gast-Links ungültig machen"
