@@ -129,8 +129,8 @@ check('25b Sammel-Push: 2 fällig, Tom weg → Torben, verschobene Aufgabe fehlt
 check('25c „Morgen": nicht fällig bis zum Datum, danach normal', W.taskDueIn({ interval: 1, lastDone: '2026-09-01', snooze: '2026-09-18' }, {}, '2026-09-16') === 2 && W.taskDueIn({ interval: 1, lastDone: '2026-09-01', snooze: '2026-09-16' }, {}, '2026-09-16') < 0);
 check('25c2 ohne zugeordnete Person keine leere Klammer', W.putzDigest({ users, pt: { a: { id: 'a', name: 'Bad', interval: 7, assignee: 'weg', lastDone: '2026-09-01' }, b: { id: 'b', name: 'Müll', interval: 7, assignee: 'weg', lastDone: '2026-09-09' } } }, '2026-09-16').body === '🧽 Bad (8 Tage überfällig) · 🧽 Müll');
 check('25d nichts fällig → keine Sammel-Push', W.putzDigest({ users, pt: { a: { id: 'a', name: 'X', interval: 7, lastDone: '2026-09-15' } } }, '2026-09-16') === null);
-check('26 Morgen-Job nutzt taskDueIn + Sammel-Push, Reparaturen, Jahr am 1.1.', /taskDueIn\(t, wg, todayIso\)/.test(cron) && /putzDigest\(wg, todayIso, fuer\)/.test(cron) && /repairReminders\(wg, todayIso\)/.test(cron) && /m === 1 && d === 1 \? yearReview\(wg, y - 1\)/.test(cron));
-check('26b Gesamtbudget zählt alle Posten, Zähler-Erinnerung am 1.', /b\.id === 'total' \|\| i\.cat === b\.id/.test(cron) && /d === 1 \? meterReminder\(wg\)/.test(cron));
+check('26 Morgen-Job nutzt taskDueIn + Sammel-Push, Reparaturen, Jahr am 1.1.', /taskDueIn\(t, wg, todayIso\)/.test(cron) && /putzDigest\(wg, todayIso, fuer, L\)/.test(cron) && /repairReminders\(wg, todayIso, L\)/.test(cron) && /m === 1 && d === 1 \? yearReview\(wg, y - 1, L\)/.test(cron));
+check('26b Gesamtbudget zählt alle Posten, Zähler-Erinnerung am 1.', /b\.id === 'total' \|\| i\.cat === b\.id/.test(cron) && /d === 1 \? meterReminder\(wg, L\)/.test(cron));
 check('27 Abend-Job in vercel.json', vj.crons.some(c => c.path === '/api/evening'));
 
 // ── PLUS (wg-v68): Kühlschrank-Erinnerung + Monats-Check-in ──
@@ -145,7 +145,7 @@ check('28 Kühlschrank: heute + morgen, sortiert, mit Besitzer', kf?.body === '�
 check('29 nichts fällig → keine Push', W.fridgeReminders({ users, kf: { d: kfWg.kf.d } }, '2026-09-17') === null && W.fridgeReminders({ users }, '2026-09-17') === null);
 // wg-v100: Monats-Check-in entfernt — es darf auch keine Push „Wie läuft's in der WG?" am 1. mehr geben
 check('30 Check-in-Aufruf entfernt (keine Funktion, kein Aufruf im Cron)', W.checkinReminder === undefined && !/checkinReminder/.test(cron));
-check('31 Morgen-Job: Kühlschrank täglich', /fridgeReminders\(wg, todayIso\)/.test(cron));
+check('31 Morgen-Job: Kühlschrank täglich', /fridgeReminders\(wg, todayIso, L\)/.test(cron));
 
 // ── MEHR (wg-v70): Wartung, Ausleihe, Gast-Seite ──
 check('32 Monate addieren kappt am Monatsende', W.addMonthsIso('2026-01-31', 1) === '2026-02-28' && W.addMonthsIso('2026-11-15', 3) === '2027-02-15');
@@ -222,9 +222,9 @@ check('56 Gast-Seite: Notfall-Infos ja, Vermieter-Daten nein', gvNf.emergency.jo
   && !JSON.stringify(gvNf).includes('meier@example.com'), JSON.stringify(gvNf.emergency));
 check('57 Gast-Seite rendert den Notfall-Block', guestMod.page({ ...gvNf }).includes('Im Notfall') && guestMod.page({ ...gvNf, emergency: [] }).includes('Im Notfall') === false);
 
-check('55 Morgen-Job: Miete verdrahtet', /rentReminders\(wg, todayIso\)/.test(cron));
+check('55 Morgen-Job: Miete verdrahtet', /rentReminders\(wg, todayIso, L\)/.test(cron));
 
-check('49 Morgen-Job: Wartung + Ausleihe', /maintReminders\(wg, todayIso\)/.test(cron) && /loanReminders\(wg, todayIso\)/.test(cron));
+check('49 Morgen-Job: Wartung + Ausleihe', /maintReminders\(wg, todayIso, L\)/.test(cron) && /loanReminders\(wg, todayIso, L\)/.test(cron));
 
 // ── Geburtstage (wg-v89): die Karte versprach seit v88 eine Erinnerung, der Server kannte `gb` gar nicht ──
 check('G1 29.02. im Schaltjahr bleibt 29.02.', W.gebDatum('02-29', 2028) === '2028-02-29');
@@ -239,8 +239,14 @@ check('G7 an einem Tag ohne Anlass: nichts', W.birthdayReminders(gbWg, '2026-09-
 // Jahreswechsel: am 29.12. liegt der 01.01. drei Tage voraus — aber im Folgejahr
 check('G8 Vorwarnung über den Jahreswechsel', /Neujahr hat in 3 Tagen/.test((W.birthdayReminders({ gb: { n: { id: 'n', name: 'Neujahr', tag: '01-01' } } }, '2026-12-29') || {}).body || ''));
 check('G9 29.02.-Kind wird im Nicht-Schaltjahr am 28.02. erinnert', /Hüpf hat heute/.test((W.birthdayReminders({ gb: { h: { id: 'h', name: 'Hüpf', tag: '02-29' } } }, '2027-02-28') || {}).body || ''));
-check('G10 Geburtstag steht in der Morgen-Nachricht ganz oben', /'Geburtstag', 'Miete'/.test(readFileSync(new URL('../api/_wg.js', import.meta.url), 'utf8')));
-check('G11 Morgen-Job: Geburtstage verdrahtet', /birthdayReminders\(wg, todayIso\)/.test(cron));
+/* wg-v127: die Reihenfolge steht jetzt in api/_texte.js (je Sprache) — statt den Quelltext zu lesen, wird die Sammel-Push gebaut:
+   Geburtstag muss vor der Miete stehen, auf Deutsch UND Englisch */
+const gebVorMiete = (de, en) => [[de[0], de[1]], [en[0], en[1]]].every(([g, m], i) => {
+  const b = W.bundleMessages([{ title: m, body: 'MIETE' }, { title: g, body: 'GEB' }], { tag: 'x', L: i ? 'en' : 'de' });
+  return b.body.startsWith('GEB');
+});
+check('G10 Geburtstag steht in der Morgen-Nachricht ganz oben', gebVorMiete(['Geburtstag', 'Miete heute fällig'], ['Birthday', 'Rent due today']));
+check('G11 Morgen-Job: Geburtstage verdrahtet', /birthdayReminders\(wg, todayIso, L\)/.test(cron));
 
 console.log(pass.map(p => '  OK  ' + p).join('\n'));
 if (fail.length) console.log(fail.map(f => '  FAIL ' + f).join('\n'));

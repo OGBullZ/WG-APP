@@ -108,7 +108,7 @@ check('A3 Tonne ohne gekoppelte Aufgabe → alle („Tonne raus!")', (r.an.torbe
 // ── Q: Quelltext ──
 // Neu-Registrieren nach VAPID-Tausch schreibt den Eintrag per set() komplett neu — ohne uid wäre die Zuordnung weg
 const html = readFileSync(new URL('../wgapp.html', import.meta.url), 'utf8');
-const neu = html.split(/\r?\n/).find(z => /child\('push\/' \+ deviceId\)\.set\(/.test(z)) || '';
+const neu = html.split(/\r?\n/).find(z => /pushSchreiben\(\{ endpoint/.test(z))   /* wg-v127: Schreiben läuft über pushSchreiben (lang) */ || '';
 check('Q1 Neu-Registrieren schreibt uid mit', /uid:/.test(neu), neu.trim().slice(0, 140));
 
 console.log(pass.map(p => '  ✓ ' + p).join('\n'));

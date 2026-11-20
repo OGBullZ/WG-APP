@@ -14,6 +14,7 @@
 
 const { loadSubs, sendToSubs, DB_BASE } = require('./_push');
 const { hasKey, cronErlaubt, currentCode, writeSnapshot, listSnapshots, pruneSnapshots, berlinParts } = require('./_sv');
+const { T, sprache } = require('./_texte');   /* wg-v127 (S3): alle Push-Texte je Sprache */
 const { fmtGeld, taskDueIn,subsJePerson, repairReminders,yearReview, meterReminder, putzDigest, fridgeReminders, maintReminders, loanReminders, rentReminders, birthdayReminders, isoOf, morningPlan, istUmbuchung } = require('./_wg');
 
 function berlinTodayParts() {
@@ -63,8 +64,8 @@ function daysUntilCharge(s, todayMid) {
 }
 
 /* wg-v122 (TEXT-5): Geld in Push-Texten = „€12,99", der Formatierer kommt aus _wg.js (ein Ort); das €-Zeichen steht schon davor */
-function fmtPrice(n) {
-  return fmtGeld(n);
+function fmtPrice(n, L = 'de') {
+  return fmtGeld(n, L);
 }
 
 function toArray(v) {
@@ -75,10 +76,12 @@ function toArray(v) {
 
 // Grow-Zyklus (wg/<code>/gz). Spiegelt GROW_PHASES aus wgapp.html — beide zusammen ändern.
 const GROW_PHASES = {
-  keim:  { label: 'Keimung',   len: 10, water: true,  next: 'Vegetativ' },
-  veg:   { label: 'Vegetativ', len: 28, water: true,  next: 'Blüte' },
-  blu:   { label: 'Blüte',     len: 63, water: true,  next: 'Trocknung' },
-  trock: { label: 'Trocknung', len: 10, water: false, next: null },
+  /* wg-v127: `nk` = Schlüssel der Folgephase — label/next stehen deutsch hier (Tests/Kompatibilität), die Anzeige je Sprache holt
+     T(L).phasen[Schlüssel] aus _texte.js */
+  keim:  { label: 'Keimung',   len: 10, water: true,  next: 'Vegetativ', nk: 'veg' },
+  veg:   { label: 'Vegetativ', len: 28, water: true,  next: 'Blüte', nk: 'blu' },
+  blu:   { label: 'Blüte',     len: 63, water: true,  next: 'Trocknung', nk: 'trock' },
+  trock: { label: 'Trocknung', len: 10, water: false, next: null, nk: null },
 };
 
 // Offener Zyklus = der ohne `end`; bei mehreren gewinnt der zuletzt gestartete (wie openCycle() in der App).
@@ -92,10 +95,12 @@ function openCycle(wg) {
 //  - Phase durch: genau am Tag NACH der typischen Dauer, deshalb ohne Marker in der DB.
 //    Fällt der Cron ausgerechnet an dem Tag aus, entfällt der Push — die App zeigt den
 //    Hinweis dauerhaft am Fortschrittsbalken, es geht also nichts verloren.
-function growCycleMessages(wg, todayMid) {
+function growCycleMessages(wg, todayMid, L = 'de') {
   const cy = openCycle(wg);
   if (!cy || !cy.start) return [];
   const ph = GROW_PHASES[cy.phase] || GROW_PHASES.keim;
+  const phKey = GROW_PHASES[cy.phase] ? cy.phase : 'keim';
+  const X = T(L).grow, namen = T(L).phasen;
   const out = [];
 
   if (ph.water) {
@@ -106,24 +111,21 @@ function growCycleMessages(wg, todayMid) {
       // Ohne einen einzigen Gieß-Eintrag ist die Tages-Differenz zum Zyklus-Start als
       // „X Tage überfällig" irreführend — dann nur sagen, dass nichts erfasst ist.
       const body = !cy.lastW
-        ? '💧 Im laufenden Zyklus ist noch kein Gießen eingetragen'
+        ? X.nochNichts
         : over === 0
-          ? `💧 Gießen ist fällig — zuletzt ${since === 1 ? 'gestern' : `vor ${since} Tagen`}`
-          : `💧 Gießen ist ${over} Tag${over === 1 ? '' : 'e'} überfällig — zuletzt vor ${since} Tagen`;
-      out.push({ title: 'Growbox', body, sammel: `🌱 Growbox: ${body}`, tag: `water-${cy.id}` });   /* wg-v122: Einzel-Push ohne Titel-Wiederholung, sammel mit Vorsatz */
+          ? X.faellig(since)
+          : X.ueberfaellig(over, since);
+      out.push({ title: X.titel, body, sammel: `${X.sammelVor}${body}`, tag: `water-${cy.id}` });   /* wg-v122: Einzel-Push ohne Titel-Wiederholung, sammel mit Vorsatz */
     }
   }
 
   const dayPh = daysSince(cy.pAt || cy.start, todayMid) + 1;
   if (dayPh === ph.len + 1) {
+    const next = ph.nk ? namen[ph.nk] : null;
     out.push({
-      title: 'Growbox',
-      body: ph.next
-        ? `${ph.label} läuft seit ${ph.len} Tagen — Zeit für ${ph.next}?`
-        : `🍂 ${ph.label} läuft seit ${ph.len} Tagen — Zeit zu ernten?`,
-      sammel: ph.next   /* wg-v122: gebündelt fällt der Titel weg → „Growbox" nur in der Sammel-Fassung */
-        ? `🌱 Growbox: ${ph.label} läuft seit ${ph.len} Tagen — Zeit für ${ph.next}?`
-        : `🌱 Growbox: 🍂 ${ph.label} läuft seit ${ph.len} Tagen — Zeit zu ernten?`,
+      title: X.titel,
+      body: next ? X.phaseNext(namen[phKey], ph.len, next) : X.phaseErnte(namen[phKey], ph.len),
+      sammel: `${X.sammelVor}${next ? X.phaseNext(namen[phKey], ph.len, next) : X.phaseErnte(namen[phKey], ph.len)}`,   /* wg-v122: gebündelt fällt der Titel weg → „Growbox" nur in der Sammel-Fassung */
       tag: `phase-${cy.id}-${cy.phase}`,
     });
   }
@@ -135,8 +137,8 @@ function growCycleMessages(wg, todayMid) {
 function pad2(n) { return String(n).padStart(2, '0'); }
 function monthKeyOf(y, m) { return `${y}-${pad2(m)}`; }
 function prevMonth(y, m) { return m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 }; }
-function monthName(y, m) {
-  return new Intl.DateTimeFormat('de-DE', { month: 'long' }).format(new Date(y, m - 1, 1));
+function monthName(y, m, L = 'de') {
+  return T(L).monate[m - 1];
 }
 // Summe aller Ausgaben eines Monats (Datum 'YYYY-MM-…', auch rec-Posten mit 'YYYY-MM-01') — ohne Umbuchungen (wg-v107)
 function sumByMonth(items, key) {
@@ -195,129 +197,136 @@ module.exports = async (req, res) => {
     return until === 0 || until === 1;
   });
 
-  const messages = [];
-  // Eine Sammel-Push statt je Aufgabe eine (wg-v66) — Namen berücksichtigen Abwesenheiten (_wg.putzDigest).
-  // wg-v114: der Putz-Teil kommt erst beim Versand dazu, je Person (unten) — nicht mehr in `messages` für alle.
+  /* wg-v127 (S3): die Morgen-Nachrichten je Sprache bauen — `L` = 'de' | 'en'. Deutsch wird immer gebaut (Zähler in der Antwort, „gibt es etwas zu
+     senden?"); Englisch nur, wenn ein Gerät mit `lang: 'en'` im Abo steht (unten). Die Daten-Rechnung ist in beiden Sprachen dieselbe. */
+  const baue = (L) => {
+    const X = T(L);
+    const messages = [];
+    // Eine Sammel-Push statt je Aufgabe eine (wg-v66) — Namen berücksichtigen Abwesenheiten (_wg.putzDigest).
+    // wg-v114: der Putz-Teil kommt erst beim Versand dazu, je Person (unten) — nicht mehr in `messages` für alle.
+    for (const s of soonAbos) {
+      const until = daysUntilCharge(s, todayMid);
+      messages.push({
+        title: X.abo.titel,
+        body: X.abo.body(s.name, until, fmtPrice(s.price, L)),
+        tag: `abo-${s.id}`,
+      });
+    }
+
+    const hs = toArray(wg.hs);
+    const gi = toArray(wg.gi);
+    const { y, m, d } = berlinTodayParts();
+
+    // Monatsletzter: offene Posten anmahnen, damit die Abrechnung nicht liegen bleibt
+    let settleReminder = 0;
+    if (d === new Date(y, m, 0).getDate()) {
+      const openHs = sumOpen(hs);
+      const openGi = sumOpen(gi);
+      const open = openHs + openGi;
+      // Nur offene Umbuchungen (z. B. Kaution zurück) ohne Ausgaben: trotzdem erinnern — abgerechnet werden muss es ja
+      const nurUmbuchungen = open <= 0.005 && hs.some((i) => !i.settled && istUmbuchung(i));
+      if (open > 0.005 || nurUmbuchungen) {
+        const parts = [];
+        if (openHs > 0.005) parts.push(X.abrechnung.haushalt(fmtPrice(openHs, L)));
+        if (openGi > 0.005) parts.push(X.abrechnung.growbox(fmtPrice(openGi, L)));
+        messages.push({
+          title: X.abrechnung.titel,
+          body: nurUmbuchungen ? X.abrechnung.nurUmbuchungen
+            : X.abrechnung.body(fmtPrice(open, L), parts),
+          tag: `settle-${monthKeyOf(y, m)}`,
+        });
+        settleReminder = 1;
+      }
+    }
+
+    // 1. des Monats: Digest über den Vormonat. Vormonats-Posten liegen immer noch
+    // in hs/gi (Archiv verschiebt erst nach 3 vollen Monaten) — arc nicht nötig.
+    let digest = 0;
+    if (d === 1) {
+      const pm = prevMonth(y, m);
+      const ppm = prevMonth(pm.y, pm.m);
+      const kPrev = monthKeyOf(pm.y, pm.m);
+      const hsPrev = sumByMonth(hs, kPrev);
+      const giPrev = sumByMonth(gi, kPrev);
+      const tPrev = hsPrev + giPrev;
+      const tBefore = sumByMonth(hs, monthKeyOf(ppm.y, ppm.m)) + sumByMonth(gi, monthKeyOf(ppm.y, ppm.m));
+      if (tPrev > 0.005) {
+        const delta = tPrev - tBefore;
+        const deltaTxt = tBefore <= 0.005 ? ''
+          : Math.abs(delta) < 0.005 ? X.rueckblick.gleich
+          : delta > 0 ? X.rueckblick.mehr(fmtPrice(delta, L), monthName(ppm.y, ppm.m, L))
+          : X.rueckblick.weniger(fmtPrice(-delta, L), monthName(ppm.y, ppm.m, L));
+        messages.push({
+          title: X.rueckblick.titel,
+          body: X.rueckblick.body(monthName(pm.y, pm.m, L), fmtPrice(tPrev, L), fmtPrice(hsPrev, L), fmtPrice(giPrev, L), deltaTxt),
+          tag: `digest-${kPrev}`,
+        });
+        digest = 1;
+      }
+    }
+
+    // Kategorie-Budgets: 80/100 %-Warnung, einmal pro Monat+Kategorie+Stufe (Marker budSent).
+    // Nur echte hs-Kategorie-Treffer zählen (Posten ohne cat laufen in kein Budget).
+    const CAT_LABELS = X.budgetKat;
+    let budWarns = 0;
+    const budMarks = [];   // Budget-Stufen dieses Laufs; „gesendet" markiert erst, wenn die Push wirklich rausging
+    const buds = toArray(wg.bud).filter((b) => b && b.id && Number(b.limit) > 0);
+    if (buds.length) {
+      const ymKey = monthKeyOf(y, m);
+      const sentMarks = wg.budSent || {};
+      for (const b of buds) {
+        const spent = hs.filter((i) => String(i.date || '').startsWith(ymKey) && (b.id === 'total' || i.cat === b.id) && !istUmbuchung(i))   // total = alle Ausgaben (ohne Umbuchungen, wg-v107)
+          .reduce((s, i) => s + (Number(i.price) || 0), 0);
+        const limit = Number(b.limit);
+        const level = spent >= limit ? 100 : spent >= limit * 0.8 ? 80 : 0;
+        if (!level) continue;
+        const markId = `${ymKey}-${b.id}-${level}`;
+        if (sentMarks[markId]) continue;
+        const label = CAT_LABELS[b.id] || b.id;
+        messages.push({
+          title: X.budget.titel,
+          body: level === 100
+            ? X.budget.ueber(label, fmtPrice(spent, L), fmtPrice(limit, L))
+            : X.budget.warn(label, Math.round((spent / limit) * 100), fmtPrice(spent, L), fmtPrice(limit, L)),
+          tag: `bud-${markId}`,
+        });
+        budMarks.push(markId);   // Marker erst NACH erfolgreichem Versand (unten) — wg-v104
+        budWarns++;
+      }
+    }
+
+    // Reparaturen: nach 14, 21, 28 … Tagen „gemeldet" nachhaken
+    const repairMsgs = repairReminders(wg, todayIso, L);
+    messages.push(...repairMsgs);
+    // 1. Januar: Jahresrückblick aufs Vorjahr
+    const yearMsg = m === 1 && d === 1 ? yearReview(wg, y - 1, L) : null;
+    if (yearMsg) messages.push(yearMsg);
+    // 1. des Monats: Zähler ablesen (nur wenn schon einmal abgelesen wurde)
+    const meterMsg = d === 1 ? meterReminder(wg, L) : null;
+    if (meterMsg) messages.push(meterMsg);
+    // Kühlschrank (täglich); der Check-in-Aufruf am 1. ist mit dem Check-in in wg-v100 entfallen
+    const fridgeMsg = fridgeReminders(wg, todayIso, L);
+    if (fridgeMsg) messages.push(fridgeMsg);
+    // Wartung + Ausleihe (wg-v70): Fälligkeitstag, danach montags
+    const maintMsg = maintReminders(wg, todayIso, L), loanMsg = loanReminders(wg, todayIso, L);
+    if (maintMsg) messages.push(maintMsg);
+    if (loanMsg) messages.push(loanMsg);
+    // Miete (wg-v73): 2 Tage vorher, am Stichtag, danach montags
+    const rentMsg = rentReminders(wg, todayIso, L);
+    if (rentMsg) messages.push(rentMsg);
+    // Geburtstage (wg-v89): am Tag und 3 Tage vorher. Die Karte in der App versprach das schon seit v88 —
+    // erinnert hat bis hierhin aber nichts.
+    const gebMsg = birthdayReminders(wg, todayIso, L);
+    if (gebMsg) messages.push(gebMsg);
+
+    // Growbox: Gießen fällig + Phase rechnerisch durch
+    const growMsgs = growCycleMessages(wg, todayMid, L);
+    messages.push(...growMsgs);
+
+    return { messages, settleReminder, digest, budWarns, budMarks, repairMsgs, yearMsg, meterMsg, fridgeMsg, maintMsg, loanMsg, rentMsg, gebMsg, growMsgs };
+  };
   const putzAlle = putzDigest(wg, todayIso);   // nur für „gibt es heute überhaupt etwas zu senden?"
-  for (const s of soonAbos) {
-    const until = daysUntilCharge(s, todayMid);
-    const when = until === 0 ? 'heute' : 'morgen';
-    messages.push({
-      title: 'Abo',
-      body: `💳 ${s.name} bucht ${when} ${fmtPrice(s.price)} ab`,
-      tag: `abo-${s.id}`,
-    });
-  }
-
-  const hs = toArray(wg.hs);
-  const gi = toArray(wg.gi);
-  const { y, m, d } = berlinTodayParts();
-
-  // Monatsletzter: offene Posten anmahnen, damit die Abrechnung nicht liegen bleibt
-  let settleReminder = 0;
-  if (d === new Date(y, m, 0).getDate()) {
-    const openHs = sumOpen(hs);
-    const openGi = sumOpen(gi);
-    const open = openHs + openGi;
-    // Nur offene Umbuchungen (z. B. Kaution zurück) ohne Ausgaben: trotzdem erinnern — abgerechnet werden muss es ja
-    const nurUmbuchungen = open <= 0.005 && hs.some((i) => !i.settled && istUmbuchung(i));
-    if (open > 0.005 || nurUmbuchungen) {
-      const parts = [];
-      if (openHs > 0.005) parts.push(`Haushalt ${fmtPrice(openHs)}`);
-      if (openGi > 0.005) parts.push(`Growbox ${fmtPrice(openGi)}`);
-      messages.push({
-        title: 'Abrechnung',
-        body: nurUmbuchungen ? '💶 Monatsende: offene Umbuchungen — Zeit abzurechnen'
-          : `💶 Monatsende: ${fmtPrice(open)} offen (${parts.join(' + ')}) — Zeit abzurechnen`,
-        tag: `settle-${monthKeyOf(y, m)}`,
-      });
-      settleReminder = 1;
-    }
-  }
-
-  // 1. des Monats: Digest über den Vormonat. Vormonats-Posten liegen immer noch
-  // in hs/gi (Archiv verschiebt erst nach 3 vollen Monaten) — arc nicht nötig.
-  let digest = 0;
-  if (d === 1) {
-    const pm = prevMonth(y, m);
-    const ppm = prevMonth(pm.y, pm.m);
-    const kPrev = monthKeyOf(pm.y, pm.m);
-    const hsPrev = sumByMonth(hs, kPrev);
-    const giPrev = sumByMonth(gi, kPrev);
-    const tPrev = hsPrev + giPrev;
-    const tBefore = sumByMonth(hs, monthKeyOf(ppm.y, ppm.m)) + sumByMonth(gi, monthKeyOf(ppm.y, ppm.m));
-    if (tPrev > 0.005) {
-      const delta = tPrev - tBefore;
-      const deltaTxt = tBefore <= 0.005 ? ''
-        : Math.abs(delta) < 0.005 ? ' · ≈ wie im Vormonat'
-        : delta > 0 ? ` · ▲ ${fmtPrice(delta)} mehr als im ${monthName(ppm.y, ppm.m)}`
-        : ` · ▼ ${fmtPrice(-delta)} weniger als im ${monthName(ppm.y, ppm.m)}`;
-      messages.push({
-        title: 'Monats-Rückblick',
-        body: `📊 ${monthName(pm.y, pm.m)}: ${fmtPrice(tPrev)} ausgegeben (Haushalt ${fmtPrice(hsPrev)}, Growbox ${fmtPrice(giPrev)})${deltaTxt}`,
-        tag: `digest-${kPrev}`,
-      });
-      digest = 1;
-    }
-  }
-
-  // Kategorie-Budgets: 80/100 %-Warnung, einmal pro Monat+Kategorie+Stufe (Marker budSent).
-  // Nur echte hs-Kategorie-Treffer zählen (Posten ohne cat laufen in kein Budget).
-  const CAT_LABELS = { total: 'Haushalt gesamt', food: 'Lebensmittel', home: 'Haushaltswaren', fun: 'Freizeit', fix: 'Fixkosten', other: 'Sonstiges' };
-  let budWarns = 0;
-  const budMarks = [];   // Budget-Stufen dieses Laufs; „gesendet" markiert erst, wenn die Push wirklich rausging
-  const buds = toArray(wg.bud).filter((b) => b && b.id && Number(b.limit) > 0);
-  if (buds.length) {
-    const ymKey = monthKeyOf(y, m);
-    const sentMarks = wg.budSent || {};
-    for (const b of buds) {
-      const spent = hs.filter((i) => String(i.date || '').startsWith(ymKey) && (b.id === 'total' || i.cat === b.id) && !istUmbuchung(i))   // total = alle Ausgaben (ohne Umbuchungen, wg-v107)
-        .reduce((s, i) => s + (Number(i.price) || 0), 0);
-      const limit = Number(b.limit);
-      const level = spent >= limit ? 100 : spent >= limit * 0.8 ? 80 : 0;
-      if (!level) continue;
-      const markId = `${ymKey}-${b.id}-${level}`;
-      if (sentMarks[markId]) continue;
-      const label = CAT_LABELS[b.id] || b.id;
-      messages.push({
-        title: 'Budget',
-        body: level === 100
-          ? `🚨 Budget ${label} überschritten: ${fmtPrice(spent)} von ${fmtPrice(limit)}`
-          : `⚠️ Budget ${label} bei ${Math.round((spent / limit) * 100)} %: ${fmtPrice(spent)} von ${fmtPrice(limit)}`,
-        tag: `bud-${markId}`,
-      });
-      budMarks.push(markId);   // Marker erst NACH erfolgreichem Versand (unten) — wg-v104
-      budWarns++;
-    }
-  }
-
-  // Reparaturen: nach 14, 21, 28 … Tagen „gemeldet" nachhaken
-  const repairMsgs = repairReminders(wg, todayIso);
-  messages.push(...repairMsgs);
-  // 1. Januar: Jahresrückblick aufs Vorjahr
-  const yearMsg = m === 1 && d === 1 ? yearReview(wg, y - 1) : null;
-  if (yearMsg) messages.push(yearMsg);
-  // 1. des Monats: Zähler ablesen (nur wenn schon einmal abgelesen wurde)
-  const meterMsg = d === 1 ? meterReminder(wg) : null;
-  if (meterMsg) messages.push(meterMsg);
-  // Kühlschrank (täglich); der Check-in-Aufruf am 1. ist mit dem Check-in in wg-v100 entfallen
-  const fridgeMsg = fridgeReminders(wg, todayIso);
-  if (fridgeMsg) messages.push(fridgeMsg);
-  // Wartung + Ausleihe (wg-v70): Fälligkeitstag, danach montags
-  const maintMsg = maintReminders(wg, todayIso), loanMsg = loanReminders(wg, todayIso);
-  if (maintMsg) messages.push(maintMsg);
-  if (loanMsg) messages.push(loanMsg);
-  // Miete (wg-v73): 2 Tage vorher, am Stichtag, danach montags
-  const rentMsg = rentReminders(wg, todayIso);
-  if (rentMsg) messages.push(rentMsg);
-  // Geburtstage (wg-v89): am Tag und 3 Tage vorher. Die Karte in der App versprach das schon seit v88 —
-  // erinnert hat bis hierhin aber nichts.
-  const gebMsg = birthdayReminders(wg, todayIso);
-  if (gebMsg) messages.push(gebMsg);
-
-  // Growbox: Gießen fällig + Phase rechnerisch durch
-  const growMsgs = growCycleMessages(wg, todayMid);
-  messages.push(...growMsgs);
+  const { messages, settleReminder, digest, budWarns, budMarks, repairMsgs, yearMsg, meterMsg, fridgeMsg, maintMsg, loanMsg, rentMsg, gebMsg, growMsgs } = baue('de');
 
   // (Montag: Ergebnis des Wochen-Duells — mit dem Duell in wg-v102 entfernt)
 
@@ -325,18 +334,28 @@ module.exports = async (req, res) => {
   // (Standard aus). Vorher ging jede Meldung einzeln raus — an einem Monatsersten bis zu ~10 Pushes.
   let sent = 0;
   const plan = morningPlan(messages, todayIso);
+  /* wg-v127 (S3): Geräte nach Sprache trennen — jedes Gerät bekommt die Push in der Sprache, die es im Abo hinterlegt hat (`lang`, von der App
+     geschrieben; Altabos ohne Feld = Deutsch). Die Nachrichten je Sprache werden nur gebaut, wenn es dort ein Gerät gibt. */
+  const bauten = { de: { messages } };
+  const fuerSprache = (L) => bauten[L] || (bauten[L] = baue(L));
+  const nachSprache = (geraete) => { const g = new Map(); for (const s of geraete) { const l = sprache(s); if (!g.has(l)) g.set(l, []); g.get(l).push(s); } return [...g]; };
   if (putzAlle || plan.remind || plan.digest) {
     const subs = await loadSubs(code);
     let remindSent = 0;
     // wg-v114 (torbe: „ich will kein push wenn Tom dran ist"): Morgen-Push je Person — gleiche Sammel-Push, aber der
     // Putz-Teil nur mit den eigenen Aufgaben. Wer heute nichts dran hat und sonst nichts ansteht, bekommt keine.
     for (const [fuer, geraete] of subsJePerson(subs, users)) {
-      const putzMsg = putzDigest(wg, todayIso, fuer);
-      const remind = morningPlan([...(putzMsg ? [putzMsg] : []), ...messages], todayIso).remind;
-      if (remind) remindSent += (await sendToSubs(geraete, remind, { type: 'remind' })).sent;
+      for (const [L, geraeteL] of nachSprache(geraete)) {
+        const putzMsg = putzDigest(wg, todayIso, fuer, L);
+        const remind = morningPlan([...(putzMsg ? [putzMsg] : []), ...fuerSprache(L).messages], todayIso, L).remind;
+        if (remind) remindSent += (await sendToSubs(geraeteL, remind, { type: 'remind' })).sent;
+      }
     }
     sent += remindSent;
-    if (plan.digest) sent += (await sendToSubs(subs, plan.digest, { type: 'digest' })).sent;
+    if (plan.digest) for (const [L, subsL] of nachSprache(subs)) {
+      const digestL = morningPlan(fuerSprache(L).messages, todayIso, L).digest;
+      if (digestL) sent += (await sendToSubs(subsL, digestL, { type: 'digest' })).sent;
+    }
     // Budget-Marker erst jetzt (wg-v104): vorher vor dem Versand geschrieben — scheiterte danach loadSubs/Versand, war die
     // 80/100-%-Warnung für den ganzen Monat verloren. Kein Gerät erreicht → morgen neuer Versuch.
     if (remindSent > 0) for (const markId of budMarks) {
