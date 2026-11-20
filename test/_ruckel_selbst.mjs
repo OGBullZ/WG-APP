@@ -21,4 +21,6 @@ let schlecht5 = 0, m5 = 0; for (let i = 0; i < 300; i++) { const p = spur(() => 
 check('glatt + ausgelassene Bilder (15 % mit 60–70 ms): nie rot', schlecht5 === 0, `max Wechsel ${m5.toFixed(1)}`);
 // 6) Satz HINTER einem ausgelassenen Bild (40 px in 66 ms = 10 px/Rasterbild + Fahrt) bleibt über das Tempo sichtbar: 70 px in 66 ms → Tempo > 24
 const k6 = kennzahl([[0, 0], [16.7, 0], [33.4, 0], [100, 110], [116.7, 110]]); check('110-px-Satz hinter einem 66-ms-Bild: rot über das Tempo', k6.tempo > 24, `Tempo ${k6.tempo.toFixed(1)}`);
+// 7) CI-Fund W5: 143-ms-Stau, danach zwei Rückrufe 5 ms nacheinander (Weg 39 px) — ein Auge sieht dort kein Bild mit 45 px
+const k7 = kennzahl([[0, 0], [17, 2], [34, 4], [177, 43], [182, 62], [199, 66], [216, 68]]); check('Stau 143 ms + Rückruf-Bündel 5 ms: Tempo ≤ 24', k7.tempo <= 24, `Tempo ${k7.tempo.toFixed(1)}`);
 process.exit(rot ? 1 : 0);
