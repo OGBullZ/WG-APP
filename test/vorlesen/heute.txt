@@ -2,9 +2,8 @@
 - button "Suchen":
   - img
 - text: STATUS GRUSS, Torben WOCHENTAG, DATUM
-- heading "Du bist dran Putzplan ›" [level=2]:
-  - text: Du bist dran
-  - button "Putzplan ›"
+- heading "Du bist dran" [level=2]
+- button "Putzplan ›"
 - button "Bad putzen erledigt":
   - img
 - text: 🚿 Bad putzen N Tage überfällig
@@ -16,9 +15,8 @@
 - textbox "Ausgabe in einem Satz":
   - /placeholder: "⚡ Schnell: „12,50 Pizza“"
 - button "Eintragen"
-- heading "Kühlschrank + Eintrag" [level=2]:
-  - text: Kühlschrank
-  - button "+ Eintrag"
+- heading "Kühlschrank" [level=2]
+- button "+ Eintrag"
 - text: Joghurt · deins bis DATUM
 - button "Joghurt ist aufgebraucht": Aufgebraucht ✓
 - heading "Hinzufügen" [level=2]
