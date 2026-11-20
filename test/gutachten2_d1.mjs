@@ -172,7 +172,7 @@ const imBlatt = page => page.evaluate(() => [...document.querySelectorAll('[role
   if (process.env.WG_BILDER) await P.screenshot({ path: 'test/shots/d1-fokus-390.png' });   /* Bild nur auf Wunsch (test/shots ist gitignored) */
   await P.keyboard.press('Enter'); await P.waitForTimeout(600);
   const blatt = await imBlatt(P);
-  check('b Enter auf dem Posten öffnet das Bearbeiten-Blatt (Feld „Rewe")', blatt.some(b => b.felder.includes('Rewe')), JSON.stringify(blatt));
+  check('b Enter auf dem Posten öffnet das Bearbeiten-Blatt (seit Bedienung 20.11. gleich beim Betrag: Feld „5")', blatt.some(b => b.label === 'Bearbeiten' && b.felder.includes('5')), JSON.stringify(blatt));
   await P.locator('.cancel-btn:visible').first().click().catch(() => {}); await P.waitForTimeout(500);
 
   /* c: Enter auf einem Knopf IM Posten (Rückfrage-Knopf) darf das Bearbeiten-Blatt NICHT öffnen */
