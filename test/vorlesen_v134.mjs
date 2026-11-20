@@ -11,6 +11,7 @@ const pass = [], fail = [];
 const check = (n, c, extra = '') => (c ? pass : fail).push(n + (extra !== '' ? ` — ${extra}` : ''));
 
 check('N1 Normierung: Uhrzeit, Tageszahl, Gruß, Datum, Status', normiere('LIVE 20 Guten Abend, Torben Freitag, 20. November um 21:05 · vor 5 Minuten · 3 Tage') === 'STATUS Guten Abend, Torben WOCHENTAG, DATUM um HH:MM · vor ZEIT · N Tage'.replace('Guten Abend', 'GRUSS'));
+check('N2 Normierung: Host/Port des Testservers steht nicht im Protokoll (8099 = 8101, 127.0.0.1 bleibt heil)', normiere('code: http://127.0.0.1:8101/?a=x') === normiere('code: http://127.0.0.1:8099/?a=x') && normiere('code: http://127.0.0.1:8101/?a=x') === 'code: http://HOST/?a=x');
 
 const e = await protokoll();
 const namen = [...TABS.map(t => t.toLowerCase().replace('ü', 'ue')), 'tabbar'];

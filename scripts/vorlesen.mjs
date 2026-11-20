@@ -32,6 +32,7 @@ const slug = t => t.toLowerCase().replace('ü', 'ue');
 
 /* unstete Teile normieren: Uhrzeiten, relative Tage, Jahreszahlen, Tageszeit-Gruß, Wochentage/Datum */
 export const normiere = s => s
+  .replace(/\bhttps?:\/\/[^\s/?#]+/g, 'http://HOST')   // Host/Port (Test-Server 8099/8101…) gehört nicht ins Protokoll; zuerst, sonst zerlegt die Datums-Regex „127.0.0.1“
   .replace(/\b(?:LIVE|SYNC\S*|OFFLINE)\b( \d{1,2}\b)?/g, 'STATUS')   // Verbindungsstatus (LIVE/SYNC…) + große Tageszahl der Kopfkarte
   .replace(/\b\d{1,2}:\d{2}\b/g, 'HH:MM')
   .replace(/\b20\d{2}\b/g, 'JJJJ')
