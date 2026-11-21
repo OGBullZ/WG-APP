@@ -1216,3 +1216,13 @@ Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen 
 
 **Was schiefging:** Mein erster Push wurde vom Schutz auf dem Rechner blockiert — die Freigabe kam nur über den Koordinator, nicht direkt von torbe; nicht umgangen, torbe gab am 21.11. direkt frei („ok weiter"). Live-Smoke des Ship meldete wieder „zeigt v130" (CDN ~1 min hinterher), Nachprüfung zeigte v131.
 
+## wg-v132 — Benachrichtigungen in der Gerätesprache (S3) (21.11., live `3241d97`, API `49add1c`, DB-Regeln mit `--rules`, Vercel success, `npm run betrieb` grün)
+
+**Was (Cloud-PR 3):** Push-Texte des Servers zentral in `api/_texte.js` (de/en), jedes Abo trägt `lang` (DB-Regel: nur `de`|`en`), `cron`/`evening` gruppieren die Geräte je Sprache; fehlt `lang` (alte Abos) → Deutsch. Test `push_en_v127` 20.
+
+**Reihenfolge:** Vercel zuerst (der Server versteht `lang`, alte Abos laufen auf Deutsch weiter), dann Hosting + Regeln in einem `ship.mjs --rules` — die neue App schreibt `lang` erst, wenn die Regel es erlaubt.
+
+**Was schiefging:** Regression einmal rot nur durch `gutachten2_c3` F8d unter Last (6,4 statt ≤ 6 px), allein 35/35. Live-Smoke wieder zu früh (CDN).
+
+**Offen:** echter Test-Push auf Englisch → torbe (Gerät auf Englisch stellen, Benachrichtigungen neu einschalten, damit das Abo `lang: en` bekommt).
+

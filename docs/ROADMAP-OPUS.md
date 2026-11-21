@@ -494,7 +494,7 @@ Beim Abschluss eines Pakets hier abhaken (Datum, Version, Commit). Was sich als 
 | G7 Langsame Geräte (FILM-5, F8l) | ✅ Ursache war die Weichzeichnung hinter dem Blatt (`backdrop-filter`, ganzes Fenster je Bild neu), nicht der Hauptthread: weg, Abdunkelung etwas stärker; Desktop 54 → 17 ms je Bild (`fahrt_v136`, Gegenprobe 4 rot). Ruckel-Messung auf festes 60-Hz-Raster (`_ruckel.mjs`, Cloud-PR 22) · Hintergrund hinter Blättern jetzt scharf — Geschmacksfrage, zurückdrehbar (`.overlay::before`) | wg-v129 `d262817` | 20.11. |
 | S1 Aufräumen Sprache | ✅ tote Schlüssel weg (`i18n-dict.mjs --tote`), Sprachlecks behoben (`sprache_v127`; Cloud-PR 2) | wg-v128 `d8c4a6e` | 20.11. |
 | S2 Prüfnetz | ✅ `scripts/i18n-roh.mjs` (Babel-AST) + Ausnahmeliste, Gate-Test `i18n_roh_v127` | wg-v128 `d8c4a6e` | 20.11. |
-| S3 Server-Push Englisch | offen | | |
+| S3 Server-Push Englisch | ✅ Texte in `api/_texte.js`, `lang` je Abo (Regel de\|en), Versand je Sprache (`push_en_v127` 20; Cloud-PR 3) · echter Test-Push auf Englisch offen (torbe) | wg-v132 `3241d97` | 21.11. |
 | A1 Regelprüfung | ✅ axe-core 4.10.2 über alle Tabs/Dialoge/Onboarding/PIN, Selbsttest S0; 30 Abschnittsköpfe: `role="heading"` auf den Titel statt Container (Cloud-PR 6; PR 5 war doppelt) | wg-v128 `d8c4a6e` | 20.11. |
 | A2 Fokus Randseiten | ✅ `VollbildFalle` Onboarding + 4 Druckansichten, `fokusRueck()` nie BODY (Gegenprobe 20 rot) | wg-v124 | 19.11. |
 | A3 Vorlese-Protokoll | ✅ `scripts/vorlesen.mjs` + `test/vorlesen/*.txt`, Gate-Test `vorlesen_v134` (CRLF + Testport normiert) | wg-v128 `d8c4a6e` | 20.11. |
