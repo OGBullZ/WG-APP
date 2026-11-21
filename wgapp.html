@@ -4586,6 +4586,11 @@ function DataProvider({ children }) {
   /* Eigene Push-Registrierung fehlt unter diesem Code (neuer Code nach Wechsel/Beitritt, oder vom Server als tot
      entfernt)? Still neu eintragen — sonst bekäme dieses Gerät nach einem Code-Wechsel nie wieder Pushes.
      Nur wenn der Browser noch eine Subscription hat: wer Push ausgeschaltet hat, hat sie gekündigt (unsubscribe). */
+  /* wg-v127 (S3): Push-Registrierung schreiben — der Server schickt die Push in der Sprache des Geräts. set() ersetzt den Eintrag komplett,
+     `lang` muss also jedes Mal mit. Kennt die Datenbank das Feld noch nicht (Regeln noch alt), lehnt sie den ganzen Eintrag ab →
+     dann ohne `lang` erneut, damit eine Anmeldung nie an der Sprache scheitert (lang: LANG) */
+  const pushSchreiben = (eintrag) => dbRef.current.child('push/' + deviceId).set({ ...eintrag, lang: LANG })
+    .catch(() => dbRef.current.child('push/' + deviceId).set(eintrag));
   const healPush = (remoteObj) => {
     try {
       if (!PUSH_API || !('Notification' in window) || Notification.permission !== 'granted' || !('serviceWorker' in navigator)) return;
@@ -4601,14 +4606,19 @@ function DataProvider({ children }) {
         if (!sameKey) {
           try { await sub.unsubscribe(); } catch {}
           sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: want });
-        } else if (remoteObj && remoteObj.push && remoteObj.push[deviceId]) { ss('wg_push_key', VAPID_PUBLIC_KEY); return; }   // alles aktuell
+        } else if (remoteObj && remoteObj.push && remoteObj.push[deviceId]) {
+          ss('wg_push_key', VAPID_PUBLIC_KEY);
+          /* wg-v127 (S3): Altabo ohne Sprache oder Sprachwechsel seit der Anmeldung → nur `lang` nachziehen (update, kein set: Einstellungen bleiben) */
+          if (remoteObj.push[deviceId].lang !== LANG) dbRef.current.child('push/' + deviceId).update({ lang: LANG }).catch(() => {});
+          return;   // alles aktuell
+        }
         ss('wg_push_key', VAPID_PUBLIC_KEY);
         const j = sub.toJSON() || {};
         const prefs = pushPrefsNow();
         const name = (dataRef.current.users || []).find(u => u.id === ls('wg_me', null))?.name || 'Gerät';
         // wg-v114: `uid` mitschreiben — set() ersetzt den ganzen Eintrag, ohne uid wüsste der Server danach nicht mehr,
         // wessen Gerät das ist (Putz-Push je Person, api/_wg.subsJePerson)
-        await dbRef.current.child('push/' + deviceId).set({ endpoint: j.endpoint, p256dh: (j.keys && j.keys.p256dh) || null, auth: (j.keys && j.keys.auth) || null, name, uid: ls('wg_me', null) || null, t: Date.now(), ...prefs });
+        await pushSchreiben({ endpoint: j.endpoint, p256dh: (j.keys && j.keys.p256dh) || null, auth: (j.keys && j.keys.auth) || null, name, uid: ls('wg_me', null) || null, t: Date.now(), ...prefs });
       }).catch(() => {});
     } catch {}
   };
@@ -4762,7 +4772,7 @@ function DataProvider({ children }) {
   // Subscription unter wg/<code>/push/<deviceId> ablegen bzw. entfernen (nutzt die aktive DB-Instanz).
   const pushSave   = useCallback((sub) => {
     if (!dbRef.current) return Promise.reject(new Error('offline'));
-    return dbRef.current.child('push/' + deviceId).set(sub);
+    return pushSchreiben(sub);
   }, [deviceId]);
   const pushRemove = useCallback(() => {
     if (!dbRef.current) return Promise.resolve();
@@ -7170,7 +7180,7 @@ function PushNudge({ goTab }) {
   }, []);
   useEffect(()=>{ if (status==='synced' && listPushDevices) listPushDevices().then(setDevs).catch(()=>{}); }, [status]);
   // Alte Anmeldungen (vor wg-v71) nachträglich der Person zuordnen
-  useEffect(()=>{ if (mine==='on' && me && pushPrefsUpdate) pushPrefsUpdate({ uid:me }).catch(()=>{}); }, [mine, me]);
+  useEffect(()=>{ if (mine==='on' && me && pushPrefsUpdate) pushPrefsUpdate({ uid:me, lang:LANG }).catch(()=>{}); }, [mine, me]);
   const hasPush = u => (devs||[]).some(d=>d.uid ? d.uid===u.id : d.name===u.name);
   /* wg-v113 (P13): am Einrichtungstag schweigt der Hinweis ganz. Der Assistent hat Push gerade abgefragt (Schritt „Nichts mehr verpassen",
      „Später" war eine bewusste Antwort) — direkt danach stand trotzdem „Benachrichtigungen sind blockiert" UND „Max bekommt keine

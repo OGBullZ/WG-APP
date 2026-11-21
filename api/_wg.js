@@ -10,21 +10,12 @@ const parseIso = (s) => { const [y, m, d] = String(s).split('-').map(Number); re
 const shiftIso = (iso, n) => { const d = parseIso(iso); d.setDate(d.getDate() + n); return isoOf(d); };
 const daysBetween = (a, b) => Math.round((parseIso(b) - parseIso(a)) / 864e5);
 const toArray = (v) => (Array.isArray(v) ? v : v && typeof v === 'object' ? Object.values(v) : []).filter(Boolean);
-// wg-v124 (G3): ab 10.000 € mit Tausenderpunkt wie die App („119.937,50"), darunter unverändert („12,99"). Von Hand gruppiert statt
-// toLocaleString — unabhängig von der ICU-Ausstattung der Laufzeit; Schwelle am gerundeten Wert (toFixed), wie fmt in wgapp.html.
-const fmtEur = (n) => {
-  const s = Number(n || 0).toFixed(2);
-  const [ganz, cent] = s.split('.');
-  const neg = ganz.startsWith('-');
-  const ziffern = neg ? ganz.slice(1) : ganz;
-  const gruppiert = ziffern.length > 4 ? ziffern.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : ziffern;   // 4 Ziffern (< 10.000) bleiben ohne Punkt
-  return `${neg ? '-' : ''}${gruppiert},${cent}`;
-};
-// wg-v122 (TEXT-5): der EINE Geld-Formatierer für alle Push-Texte → „€12,99" (wie die App); cron.js nutzt ihn mit
-const fmtGeld = (n) => `€${fmtEur(n)}`;
+// wg-v127 (S3): Geld-Formatierung und alle Push-Texte stehen in _texte.js (je Sprache eine Tabelle); L = 'de' | 'en', Standard Deutsch.
+// wg-v124 (G3)/wg-v122 (TEXT-5): „€12,99", ab 10.000 mit Tausenderpunkt — der EINE Formatierer für alle Push-Texte (englisch „€12.99")
+const { T, geld } = require('./_texte');
+const fmtGeld = (n, L = 'de') => `€${geld(n, L)}`;
 
-const PICK_KINDS = { rest: ['⚫', 'Restmüll'], bio: ['🟤', 'Biomüll'], papier: ['🔵', 'Papier'], gelb: ['🟡', 'Gelber Sack'], glas: ['🟢', 'Glas'] };
-const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+const PICK_KINDS = T('de').muell;   // Deutsch bleibt für Gast-Seite/Kalender (nicht Push); Push nimmt T(L).muell
 
 // Nächste Abholung am oder nach fromIso (Rhythmus: start + k · every Wochen)
 function pickupNext(p, fromIso) {
@@ -89,10 +80,11 @@ const addMonthsIso = (iso, n) => { const [y, m, d] = String(iso).split('-').map(
 const maintDueIso = (t, todayIso) => (t.last ? addMonthsIso(t.last, t.every || 12) : todayIso);
 const isMonday = (iso) => parseIso(iso).getDay() === 1;
 // Morgens: Wartung — am Fälligkeitstag, danach (und bei „noch nie gemacht") nur montags, damit es nicht täglich nervt
-function maintReminders(wg, todayIso) {
+function maintReminders(wg, todayIso, L = 'de') {
   const due = toArray(wg.wa).filter((t) => t.name && (t.last ? (maintDueIso(t, todayIso) === todayIso || (maintDueIso(t, todayIso) < todayIso && isMonday(todayIso))) : isMonday(todayIso)));
   if (!due.length) return null;
-  return { title: 'Wartung', body: `🔧 Fällig: ${due.slice(0, 5).map((t) => t.name).join(', ')}`, tag: `wa-${todayIso}` };
+  const x = T(L).wartung;
+  return { title: x.titel, body: x.body(due.slice(0, 5).map((t) => t.name)), tag: `wa-${todayIso}` };
 }
 // Morgens: Ausleihe — Rückgabetag, danach montags
 /* Geburtstag „MM-TT" als Datum im Jahr `jahr` (wg-v89). Der 29.02. landet in Nicht-Schaltjahren auf dem 28.02.
@@ -105,7 +97,7 @@ function gebDatum(tag, jahr) {
   return `${jahr}-${m[1]}-${String(Math.min(+m[2], letzter)).padStart(2, '0')}`;
 }
 // Geburtstage (wg-v89): am Tag selbst und 3 Tage vorher (Zeit für ein Geschenk) — in die Morgen-Nachricht
-function birthdayReminders(wg, todayIso) {
+function birthdayReminders(wg, todayIso, L = 'de') {
   const jahr = +todayIso.slice(0, 4), in3 = shiftIso(todayIso, 3);
   const treffer = toArray(wg.gb).filter((g) => g && g.name && g.tag).map((g) => {
     // Jahreswechsel: am 29.12. liegt „in 3 Tagen" schon im Folgejahr
@@ -113,14 +105,16 @@ function birthdayReminders(wg, todayIso) {
     return d ? { g, heute: d === todayIso } : null;
   }).filter(Boolean);
   if (!treffer.length) return null;
-  const txt = ({ g, heute }) => heute ? `🎉 ${g.name} hat heute Geburtstag` : `🎁 ${g.name} hat in 3 Tagen Geburtstag`;
-  return { title: 'Geburtstag', body: treffer.map(txt).join(' · '), tag: `gb-${todayIso}` };
+  const x = T(L).geburtstag;
+  const txt = ({ g, heute }) => heute ? x.heute(g.name) : x.in3(g.name);
+  return { title: x.titel, body: treffer.map(txt).join(' · '), tag: `gb-${todayIso}` };
 }
-function loanReminders(wg, todayIso) {
+function loanReminders(wg, todayIso, L = 'de') {
   const due = toArray(wg.lh).filter((l) => l.what && l.due && (l.due === todayIso || (l.due < todayIso && isMonday(todayIso))));
   if (!due.length) return null;
-  const txt = (l) => (l.dir === 'out' ? `${l.what} von ${l.person} zurückholen` : `${l.what} an ${l.person} zurückgeben`);
-  return { title: 'Ausleihe', body: `🤝 ${due.slice(0, 3).map(txt).join(' · ')}`, tag: `lh-${todayIso}` };
+  const x = T(L).ausleihe;
+  const txt = (l) => (l.dir === 'out' ? x.zurueckholen(l.what, l.person) : x.zurueckgeben(l.what, l.person));
+  return { title: x.titel, body: x.body(due.slice(0, 3).map(txt)), tag: `lh-${todayIso}` };
 }
 // Gast-Seite: nur, was Besuch sehen darf — WLAN, Hinweis, gültige Regeln (alle zugestimmt), nächste Müll-Termine
 function guestView(wg, todayIso) {
@@ -148,8 +142,7 @@ function rentDueIso(cfg, ym) {
 // jeder Erinnerung. Der Vormonat zählt nur, wenn dort schon jemand gezahlt hat — sonst mahnte eine WG, die die Miete gerade
 // erst eingerichtet hat, für einen Monat, den sie nie verfolgt hat. Gleiche Regel wie mieteFuerMich() in wgapp.html.
 const ymShiftIso = (ym, n) => { const [y, m] = ym.split('-').map(Number); const d = new Date(y, m - 1 + n, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
-const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-function rentReminders(wg, todayIso) {
+function rentReminders(wg, todayIso, L = 'de') {
   const cfg = wg.mi && wg.mi.cfg;
   const users = toArray(wg.users);
   if (!cfg || !Number(cfg.total) || users.length < 1) return null;
@@ -167,43 +160,46 @@ function rentReminders(wg, todayIso) {
   }
   const k = kandidaten.find((x) => offen(x.ym).length);
   if (!k) return null;
-  const when = k.art === 'pre' ? 'in 2 Tagen fällig' : k.art === 'due' ? 'heute fällig' : `seit ${-k.diff} ${-k.diff === 1 ? 'Tag' : 'Tagen'} überfällig`;
-  const to = cfg.mode === 'holder' ? ` an ${(users.find((u) => u.id === cfg.holder) || {}).name || 'die WG'}` : '';
-  const monat = k.ym !== cur ? ` (${MONATE[+k.ym.slice(5) - 1]})` : '';   // anderer Monat als der laufende → dazusagen
+  const x = T(L).miete;
+  const when = k.art === 'pre' ? x.wann.pre : k.art === 'due' ? x.wann.due : x.wann.spaet(-k.diff);
+  const to = cfg.mode === 'holder' ? x.an((users.find((u) => u.id === cfg.holder) || {}).name || x.wg) : '';
+  const monat = k.ym !== cur ? x.monat(T(L).monate[+k.ym.slice(5) - 1]) : '';   // anderer Monat als der laufende → dazusagen
   /* wg-v122: body bleibt kurz (der Titel nennt „Miete" schon); `sammel` = lange Fassung mit „Miete" + Fälligkeit für die Sammel-Push,
      wo der Titel wegfällt (sonst hieße es nur „🏠 €650 an Tom") */
-  const rest = `${fmtGeld(cfg.total)}${to} · offen: ${offen(k.ym).map((u) => u.name).join(', ')}`;
-  return { title: `Miete${monat} ${when}`, body: `🏠 ${rest}`, sammel: `🏠 Miete${monat} ${when}: ${rest}`, tag: `mi-${k.ym}-${k.art}` };
+  const rest = x.rest(fmtGeld(cfg.total, L), to, offen(k.ym).map((u) => u.name));
+  return { title: x.titel(monat, when), body: `🏠 ${rest}`, sammel: x.sammel(monat, when, rest), tag: `mi-${k.ym}-${k.art}` };
 }
 
 // Morgens: was im Kühlschrank heute/morgen abläuft (eine Push)
-function fridgeReminders(wg, todayIso) {
+function fridgeReminders(wg, todayIso, L = 'de') {
   const users = toArray(wg.users), tomorrow = shiftIso(todayIso, 1);
   const soon = toArray(wg.kf).filter((k) => k.exp && k.exp >= todayIso && k.exp <= tomorrow).sort((a, b) => String(a.exp).localeCompare(String(b.exp)));
   if (!soon.length) return null;
   const who = (id) => { const u = users.find((x) => x.id === id); return u ? ` (${u.name})` : ''; };
-  return { title: 'Kühlschrank', body: `🧊 Läuft bald ab: ${soon.slice(0, 5).map((k) => `${k.name}${who(k.owner)} ${k.exp === todayIso ? 'heute' : 'morgen'}`).join(', ')}`, tag: `kf-${todayIso}` };
+  const x = T(L).kuehl;
+  return { title: x.titel, body: x.body(soon.slice(0, 5).map((k) => x.teil(k.name, who(k.owner), k.exp === todayIso))), tag: `kf-${todayIso}` };
 }
 // (Check-in-Aufruf am 1. des Monats: mit dem Monats-Check-in in wg-v100 entfernt)
 
 // Morgens: EINE Putz-Push für alles Fällige statt je Aufgabe eine (weniger Rauschen → Push bleibt an)
 // `fuer` (wg-v114): nur die Aufgaben dieser Person — siehe fuerPerson
-function putzDigest(wg, todayIso, fuer) {
+function putzDigest(wg, todayIso, fuer, L = 'de') {
   const due = toArray(wg.pt).map((t) => ({ t, d: taskDueIn(t, wg, todayIso) }))
     .filter((x) => x.d <= 0 && fuerPerson(taskWho(x.t, wg, todayIso), fuer)).sort((a, b) => a.d - b.d);
   if (!due.length) return null;
+  const x = T(L).putz;
   const parts = due.slice(0, 5).map(({ t, d }) => {
     const who = taskWho(t, wg, todayIso);
-    const info = [who && who.name, d < 0 && `${-d} ${-d === 1 ? 'Tag' : 'Tage'} überfällig`].filter(Boolean).join(', ');
+    const info = [who && who.name, d < 0 && x.ueberfaellig(-d)].filter(Boolean).join(', ');
     return `${t.em || '🧽'} ${t.name}${info ? ` (${info})` : ''}`;
   });
-  const more = due.length > 5 ? ` · +${due.length - 5} weitere` : '';
-  return { title: `Putzplan · ${due.length} fällig`, body: parts.join(' · ') + more, tag: `putz-${todayIso}` };
+  const more = due.length > 5 ? x.mehr(due.length - 5) : '';
+  return { title: x.titel(due.length), body: parts.join(' · ') + more, tag: `putz-${todayIso}` };
 }
 
 // Abend: morgen ist Abholung → Push je Tonne (mit dem, der rausbringt)
 // `fuer` (wg-v114): Tonnen, die eine andere Person rausbringt, fallen weg; Tonne ohne gekoppelte Aufgabe bleibt für alle
-function pickupTomorrow(wg, todayIso, fuer) {
+function pickupTomorrow(wg, todayIso, fuer, L = 'de') {
   const tomorrow = shiftIso(todayIso, 1);
   return toArray(wg.mk).filter((p) => pickupNext(p, tomorrow) === tomorrow)
     .filter((p) => !toArray(wg.pt).some((x) => x.pk === p.kind && x.lastDone === todayIso))   // schon rausgebracht
@@ -213,22 +209,22 @@ function pickupTomorrow(wg, todayIso, fuer) {
     })
     .filter(({ who }) => fuerPerson(who, fuer))
     .map(({ p, who }) => {
-      const [em, label] = PICK_KINDS[p.kind] || ['🗑️', p.kind];
-      return { title: 'Müllabfuhr', body: `🚛 Morgen früh: ${em} ${label}${who ? ` — ${who.name} bringt raus` : ' — Tonne raus!'}`, tag: `pick-${p.kind}-${tomorrow}` };
+      const [em, label] = T(L).muell[p.kind] || ['🗑️', p.kind];
+      return { title: T(L).tonne.titel, body: T(L).tonne.body(em, label, who && who.name), tag: `pick-${p.kind}-${tomorrow}` };
     });
 }
 
 // Sonntagabend: offene Aufgaben, was diese Woche kommt, Haushalt-Saldo
-function weekSummary(wg, todayIso) {
+function weekSummary(wg, todayIso, L = 'de') {
   const users = toArray(wg.users);
   const tasks = toArray(wg.pt);
   const open = tasks.filter((t) => taskDueIn(t, wg, todayIso) <= 0);
-  const wd = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+  const x = T(L).woche, wd = T(L).wochentage;
   const soon = tasks.map((t) => ({ t, d: taskDueIn(t, wg, todayIso) })).filter((x) => x.d >= 1 && x.d <= 7)
     .sort((a, b) => a.d - b.d).slice(0, 4).map((x) => `${x.t.name} ${wd[parseIso(shiftIso(todayIso, x.d)).getDay()]}`);
   const picks = toArray(wg.mk).map((p) => ({ p, d: pickupNext(p, shiftIso(todayIso, 1)) }))
     .filter((x) => x.d && daysBetween(todayIso, x.d) <= 7).sort((a, b) => a.d.localeCompare(b.d))
-    .map((x) => `${(PICK_KINDS[x.p.kind] || ['🗑️'])[0]} ${wd[parseIso(x.d).getDay()]}`);
+    .map((x) => `${(T(L).muell[x.p.kind] || ['🗑️'])[0]} ${wd[parseIso(x.d).getDay()]}`);
   // Haushalt-Saldo wie in der App: offene Posten, owedBy = trägt alles, sonst 50/50
   let saldo = '';
   if (users.length === 2) {
@@ -237,29 +233,29 @@ function weekSummary(wg, todayIso) {
       - (i.owedBy ? (i.owedBy === u.id ? Number(i.price) || 0 : 0) : (Number(i.price) || 0) / 2), 0));
     if (Math.abs(net[0]) > 0.01) {
       const [deb, cred] = net[0] < 0 ? [users[0], users[1]] : [users[1], users[0]];
-      saldo = `Haushalt: ${deb.name} → ${cred.name} ${fmtGeld(Math.abs(net[0]))}`;
+      saldo = x.saldo(deb.name, cred.name, fmtGeld(Math.abs(net[0]), L));
     }
   }
   const parts = [];
-  parts.push(open.length ? `${open.length} offen (${open.slice(0, 3).map((t) => t.name).join(', ')})` : 'alles erledigt ✨');
-  if (soon.length) parts.push(`diese Woche: ${soon.join(', ')}`);
-  if (picks.length) parts.push(`Abholung: ${picks.join(', ')}`);
+  parts.push(open.length ? x.offen(open.length, open.slice(0, 3).map((t) => t.name)) : x.erledigt);
+  if (soon.length) parts.push(x.dieseWoche(soon));
+  if (picks.length) parts.push(x.abholung(picks));
   if (saldo) parts.push(saldo);
-  return { title: 'Wochenüberblick', body: `🗓️ ${parts.join(' · ')}`, tag: `week-${todayIso}` };
+  return { title: x.titel, body: x.body(parts), tag: `week-${todayIso}` };
 }
 
 // Alle Abend-Nachrichten (Sonntag zusätzlich der Überblick) — reine Funktion für Tests
-function eveningMessages(wg, todayIso, fuer) {
-  const out = pickupTomorrow(wg, todayIso, fuer);
-  if (parseIso(todayIso).getDay() === 0 && toArray(wg.users).length) out.push(weekSummary(wg, todayIso));
+function eveningMessages(wg, todayIso, fuer, L = 'de') {
+  const out = pickupTomorrow(wg, todayIso, fuer, L);
+  if (parseIso(todayIso).getDay() === 0 && toArray(wg.users).length) out.push(weekSummary(wg, todayIso, L));
   return out;
 }
 
 // Morgens: gemeldete Reparaturen nach 14, 21, 28 … Tagen anmahnen
-function repairReminders(wg, todayIso) {
+function repairReminders(wg, todayIso, L = 'de') {
   return toArray(wg.rp).filter((r) => r.status === 'gemeldet' && r.md).map((r) => ({ r, d: daysBetween(r.md, todayIso) }))
     .filter((x) => x.d >= 14 && (x.d - 14) % 7 === 0)
-    .map(({ r, d }) => ({ title: 'Reparatur', body: `🔧 „${r.text}“ ist seit ${d} Tagen gemeldet — beim Vermieter nachhaken`, tag: `rp-${r.id}-${d}` }));
+    .map(({ r, d }) => ({ title: T(L).reparatur.titel, body: T(L).reparatur.body(r.text, d), tag: `rp-${r.id}-${d}` }));
 }
 
 // Umbuchung (wg-v107): Geld, das nur zwischen Personen wandert (Sparziel-Einzahlung/-Rückgabe, Kaution zurück,
@@ -269,7 +265,7 @@ const istUmbuchung = (i) => !!i && (i.ub === true || (i.ub !== false && ((!!i.sg
   || (typeof i.name === 'string' && (i.name.startsWith('🔑 Kaution zurück') || (!!i.nk && i.name.includes('Guthaben-Anteil')))))));   // ub:false = ausdrücklich Ausgabe (Sparziel-Kauf)
 
 // 1. Januar: Rückblick aufs Vorjahr (Ausgaben inkl. Archiv, teuerster Monat, Putz-Punkte) — ohne Umbuchungen
-function yearReview(wg, year) {
+function yearReview(wg, year, L = 'de') {
   const ys = String(year);
   const arc = toArray(wg.arc).filter((a) => a.src === 'hs' || a.src === 'gi');
   const items = [...toArray(wg.hs), ...toArray(wg.gi), ...arc].filter((i) => String(i.date || '').startsWith(ys) && !istUmbuchung(i));
@@ -280,20 +276,21 @@ function yearReview(wg, year) {
   const total = months.reduce((a, b) => a + b, 0);
   const top = months.indexOf(Math.max(...months));
   const byId = {}; toArray(wg.pt).forEach((t) => { if (t.id) byId[t.id] = t; });
-  const pts = toArray(wg.users).map((u) => `${u.name} ${pl.filter((l) => l.userId === u.id).reduce((s, l) => s + ptsOf(l, byId), 0)} P.`);
-  const parts = [`${fmtGeld(total)} ausgegeben`];
-  if (months[top] > 0) parts.push(`teuerster Monat: ${MONTHS[top]} (${fmtGeld(months[top])})`);
-  if (pl.length) parts.push(`Putz: ${pts.join(' · ')}`);
-  return { title: `Jahresrückblick ${ys}`, body: `🎆 ${ys}: ${parts.join(' · ')}`, tag: `year-${ys}` };
+  const x = T(L).jahr;
+  const pts = toArray(wg.users).map((u) => x.punkte(u.name, pl.filter((l) => l.userId === u.id).reduce((s, l) => s + ptsOf(l, byId), 0)));
+  const parts = [x.ausgegeben(fmtGeld(total, L))];
+  if (months[top] > 0) parts.push(x.teuerster(T(L).monate[top], fmtGeld(months[top], L)));
+  if (pl.length) parts.push(x.putz(pts));
+  return { title: x.titel(ys), body: x.body(ys, parts), tag: `year-${ys}` };
 }
 
 
 // 1. des Monats: Zähler ablesen — nur, wenn schon einmal abgelesen wurde
-function meterReminder(wg) {
+function meterReminder(wg, L = 'de') {
   const kinds = [...new Set(toArray(wg.zs).filter((z) => !z.cfg && z.kind).map((z) => z.kind))];
   if (!kinds.length) return null;
-  const L = { strom: '⚡ Strom', wasser: '💧 Wasser', gas: '🔥 Gas' };
-  return { title: 'Zählerstände', body: `📟 Monatsanfang: ${kinds.map((k) => L[k] || k).join(', ')} ablesen und in der App eintragen`, tag: 'meter-month' };
+  const x = T(L).zaehlerMsg, namen = T(L).zaehler;
+  return { title: x.titel, body: x.body(kinds.map((k) => namen[k] || k)), tag: 'meter-month' };
 }
 
 // ── Kalender-Abo (RFC 5545) ──
@@ -365,45 +362,50 @@ function buildIcs(wg, todayIso, now = new Date()) {
    Jetzt: was eine Handlung braucht, landet in EINER Morgen-Push; reine Rückblicke/Überblicke sind
    Typ `digest` (Standard aus, in der App einschaltbar). */
 
-// Reine Info ohne Handlung — kommt nur als Push, wer „Rückblicke" eingeschaltet hat
-const DIGEST_TITLES = /^(Monats-Rückblick|Jahresrückblick|Wochenüberblick)/;
-// Reihenfolge in der Sammel-Push: was heute wirklich drängt zuerst
-const MORNING_ORDER = ['Geburtstag', 'Miete', 'Putzplan', 'Abrechnung', 'Kühlschrank', 'Growbox', 'Budget', 'Ausleihe', 'Reparatur', 'Wartung', 'Zählerstände', 'Abo'];
-const rankOf = (m) => { const i = MORNING_ORDER.findIndex((p) => String(m.title || '').startsWith(p)); return i < 0 ? MORNING_ORDER.length : i; };
+// Reine Info ohne Handlung — kommt nur als Push, wer „Rückblicke" eingeschaltet hat.
+// wg-v127: Titel-Anfänge je Sprache aus _texte.js (beide Sprachen zusammen, damit Sortierung/Erkennung nie von L abhängt)
+const alleTitel = (art) => ['de', 'en'].flatMap((l) => (Array.isArray(T(l).titel[art]) ? T(l).titel[art] : [T(l).titel[art]]));
+const istRueckblick = (m) => alleTitel('rueckblick').some((p) => String(m.title || '').startsWith(p));
+// Reihenfolge in der Sammel-Push: was heute wirklich drängt zuerst (Index = Rang, Deutsch und Englisch gleichrangig)
+const rankOf = (m) => {
+  const i = T('de').titel.reihenfolge.findIndex((p, k) => String(m.title || '').startsWith(p) || String(m.title || '').startsWith(T('en').titel.reihenfolge[k]));
+  return i < 0 ? T('de').titel.reihenfolge.length : i;
+};
 
 // Viele Meldungen → eine. Bei genau einer bleibt sie unverändert (eigener Titel liest sich besser).
-function bundleMessages(msgs, { tag, title, max = 4, limit = 240 } = {}) {
+function bundleMessages(msgs, { tag, title, max = 4, limit = 240, L = 'de' } = {}) {
   const list = (msgs || []).filter(Boolean).slice().sort((a, b) => rankOf(a) - rankOf(b));
   if (list.length <= 1) return list[0] || null;
   /* wg-v122: nicht mitten im Wort kappen — so viele GANZE Meldungen (höchstens max), wie samt Rest-Hinweis in `limit` passen;
      die erste bleibt immer ganz stehen, auch wenn sie allein länger ist. */
   const bodies = list.map((m) => m.sammel || m.body);   /* wg-v122: sammel = Text mit Vorsatz, weil der Einzel-Titel hier wegfällt */
-  const build = (k) => bodies.slice(0, k).join(' · ') + (list.length > k ? ` · +${list.length - k} weitere in der App` : '');
+  const build = (k) => bodies.slice(0, k).join(' · ') + (list.length > k ? T(L).sammel.weitere(list.length - k) : '');
   let k = Math.min(max, list.length);
   while (k > 1 && build(k).length > limit) k--;
-  return { title: title || `☀️ Heute: ${list.length} Erinnerungen`, body: build(k), tag };
+  return { title: title || T(L).sammel.titel(list.length), body: build(k), tag };
 }
 
 // Morgen: Handlungs-Meldungen gebündelt (Typ remind), Rückblicke getrennt (Typ digest)
-function morningPlan(msgs, todayIso) {
+function morningPlan(msgs, todayIso, L = 'de') {
   const all = (msgs || []).filter(Boolean);
-  const digest = all.filter((m) => DIGEST_TITLES.test(m.title || ''));
-  const act = all.filter((m) => !DIGEST_TITLES.test(m.title || ''));
+  const digest = all.filter(istRueckblick);
+  const act = all.filter((m) => !istRueckblick(m));
   return {
-    remind: bundleMessages(act, { tag: `morning-${todayIso}` }),
-    digest: bundleMessages(digest, { tag: `digest-${todayIso}`, title: '📊 Rückblick' }),
+    remind: bundleMessages(act, { tag: `morning-${todayIso}`, L }),
+    digest: bundleMessages(digest, { tag: `digest-${todayIso}`, title: T(L).sammel.rueckblickTitel, L }),
   };
 }
 
 // Abend: alle Tonnen von morgen in EINE Push (Typ putz); Wochenüberblick ist Typ digest
-function eveningPlan(msgs, todayIso) {
+function eveningPlan(msgs, todayIso, L = 'de') {
   const all = (msgs || []).filter(Boolean);
-  const bins = all.filter((m) => m.title === 'Müllabfuhr');
-  const digest = all.filter((m) => DIGEST_TITLES.test(m.title || ''));
+  const bins = all.filter((m) => alleTitel('tonne').includes(m.title));
+  const digest = all.filter(istRueckblick);
   return {
-    putz: bundleMessages(bins, { tag: `pick-${todayIso}`, title: '🚛 Morgen Müllabfuhr', max: 4 }),
-    digest: bundleMessages(digest, { tag: `week-${todayIso}`, title: '🗓️ Wochenüberblick' }),
+    putz: bundleMessages(bins, { tag: `pick-${todayIso}`, title: T(L).tonne.sammelTitel, max: 4, L }),
+    digest: bundleMessages(digest, { tag: `week-${todayIso}`, title: T(L).woche.sammelTitel, L }),
   };
 }
 
 module.exports = { fmtGeld, toArray, isoOf, parseIso, shiftIso, pickupNext, pickupDueIn, isAway, taskDueIn, taskWho, subsJePerson,istUmbuchung, pickupTomorrow, weekSummary, eveningMessages, repairReminders, yearReview, meterReminder, putzDigest, fridgeReminders, maintReminders, loanReminders, gebDatum, birthdayReminders, guestView, addMonthsIso, rentReminders, rentDueIso, buildIcs, icsText, icsFold, PICK_KINDS, bundleMessages, morningPlan, eveningPlan };
+
