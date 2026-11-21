@@ -20,7 +20,8 @@ const check = (n, c, extra = '') => (c ? pass : fail).push(n + (extra !== '' ? `
 const map = arr => Object.fromEntries(arr.map((x, i) => [x.id, { seq: 100 - i, ...x }]));
 
 /* Messwerte VOR der Änderung (Stand 53d2beb / wg-v124, 390 px, normale Schrift, de) */
-const VORHER = { segH: 48, blattH: 406 };
+/* wg-v133: Blatthöhe je Plattform — Linux (CI) rendert Schritt 1 um 1 px niedriger (405), Windows 406; „unverändert" bleibt die Prüfung */
+const VORHER = { segH: 48, blattH: process.platform === 'linux' ? 405 : 406 };
 
 const U = [{ id: 'u1', name: 'Maximilian-Alexander', color: '#38bdf8' }, { id: 'u2', name: 'Zoë', color: '#fbbf24' }, { id: 'u3', name: 'Tom', color: '#f472b6' }];
 const NAMEN = ['Großeinkauf Drogerie', 'Kaution Nachzahlung', 'Küchenzeile', 'Strom Abschlag', 'Internet Router', 'Sofa Ecklösung', 'Waschmaschine', 'Pizza Abend'];
