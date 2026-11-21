@@ -7,8 +7,15 @@
 import { spawn, spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { testServer } from './testserver.mjs';
+import { gateListe, gateShard } from './gate-liste.mjs';
+import fs from 'fs';
 
 const LAUT = process.env.WG_LAUT === '1';
+
+/* Vorgewärmter JSX-Cache (test/_warm.mjs): spart pro Browser-Kontext ≈ 6 s Babel-Übersetzung. Diese Dateien prüfen den KALTEN Start
+   (Babel im Browser, leerer Cache, Update-Pfad) und laufen deshalb ohne Vorwärmen. Neue Kaltstart-Prüfung → hier eintragen. */
+export const KALT = ['test/jsxcache.mjs', 'test/selfhost.mjs', 'test/ux.mjs', 'test/upgrade_dist.mjs', 'test/update.mjs', 'test/_perf.mjs'];
+export const startArgs = datei => process.env.WG_KALT === '1' || KALT.includes(datei.replace(/\\/g, '/')) ? [datei] : ['--import', './test/_warm.mjs', datei];
 const MAX_AUSZUG = 40;
 
 // Summenzeile der Testdatei finden — die Formate sind historisch gewachsen („12 grün, 0 rot", „6 ok, 0 fehlgeschlagen", …)
@@ -31,10 +38,10 @@ function auszugBauen(zeilen, datei) {
    Leise → mitschneiden; stdout+stderr zusammen auswerten, Exitcode entscheidet über Grün/Rot. */
 export function leiseLaufen(datei) {
   if (LAUT) {
-    const r = spawnSync(process.execPath, [datei], { stdio: 'inherit', env: process.env });
+    const r = spawnSync(process.execPath, startArgs(datei), { stdio: 'inherit', env: process.env });
     return { ok: r.status === 0, zeile: `exit ${r.status}`, auszug: '' };
   }
-  const r = spawnSync(process.execPath, [datei], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: process.env });
+  const r = spawnSync(process.execPath, startArgs(datei), { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: process.env });
   const zeilen = `${r.stdout || ''}\n${r.stderr || ''}`.split(/\r?\n/);
   const ok = r.status === 0;
   return { ok, zeile: summe(zeilen).trim().slice(0, 160), auszug: ok ? '' : auszugBauen(zeilen, datei) + (r.error ? `\n      (Start fehlgeschlagen: ${r.error.message})` : '') };
@@ -45,14 +52,14 @@ export function leiseLaufen(datei) {
 export function leiseLaufenAsync(datei) {
   return new Promise(fertig => {
     if (LAUT) {
-      const p = spawn(process.execPath, [datei], { stdio: 'inherit', env: process.env });
+      const p = spawn(process.execPath, startArgs(datei), { stdio: 'inherit', env: process.env });
       p.on('error', e => fertig({ ok: false, zeile: `Start fehlgeschlagen: ${e.message}`, auszug: '' }));
       p.on('close', status => fertig({ ok: status === 0, zeile: `exit ${status}`, auszug: '' }));
       return;
     }
     const teile = [];
     let startFehler = null;
-    const p = spawn(process.execPath, [datei], { stdio: ['ignore', 'pipe', 'pipe'], env: process.env });
+    const p = spawn(process.execPath, startArgs(datei), { stdio: ['ignore', 'pipe', 'pipe'], env: process.env });
     p.stdout.on('data', c => teile.push(c));
     p.stderr.on('data', c => teile.push(c));
     p.on('error', e => { startFehler = e; });
@@ -156,7 +163,16 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   let arbeiter = 1;
   const ai = args.indexOf('--arbeiter');
   if (ai >= 0) { arbeiter = Math.max(1, Number(args[ai + 1]) || 1); args.splice(ai, 2); }
-  const dateien = args;
+  // --gate = ganze Gate-Liste (scripts/gate-liste.mjs); --shard I/N = nur Job I von N (CI), Gewichte aus test/zeiten.json
+  let dateien = args;
+  const gi = args.indexOf('--gate'); if (gi >= 0) { args.splice(gi, 1); dateien = [...gateListe]; }
+  const si = args.indexOf('--shard');
+  if (si >= 0) {
+    const [i, n] = String(args[si + 1]).split('/').map(Number); args.splice(si, 2);
+    let gew = {}; try { gew = JSON.parse(fs.readFileSync(new URL('../test/zeiten.json', import.meta.url), 'utf8')); } catch {}
+    dateien = gateShard(dateien.length ? dateien : [...gateListe], i, n, gew);
+    console.log(`Shard ${i}/${n}: ${dateien.length} Dateien`);
+  }
   if (!dateien.length) { console.error('Nutzung: node scripts/leise.mjs [--arbeiter N] test/a.mjs [test/b.mjs …]'); process.exit(2); }
   const ts = testServer() /* Port aus WG_PORT, Standard 8099 */;
   let g;

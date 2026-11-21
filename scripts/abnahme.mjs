@@ -107,9 +107,11 @@ try {
     ende = await gegenprobe(args[0], args[1]);
   } else if (modus === 'regression') {
     const arbeiter = arbeiterLesen(args);
-    // W3: Gate-Liste aus ship.mjs (eine Quelle) lesen; CSP-Hashes vorher schreiben wie ship es tut
-    const liste = [...new Set(fs.readFileSync(path.join(REPO, 'scripts', 'ship.mjs'), 'utf8').match(/'test\/\w+\.mjs'/g) || [])].map(s => s.slice(1, -1));
-    if (!liste.length) throw new Error('Keine Gate-Dateien in scripts/ship.mjs gefunden');
+    // wg-v130: Gate-Liste aus scripts/gate-liste.mjs (seit PR 25 die eine Quelle für ship, CI und abnahme) — vorher per Regex aus ship.mjs gelesen,
+    // das hätte nach der Auslagerung nur noch null Dateien gefunden. CSP-Hashes vorher schreiben wie ship es tut
+    const { gateListe } = await import('./gate-liste.mjs');
+    const liste = [...new Set(gateListe)];
+    if (!liste.length) throw new Error('Keine Gate-Dateien in scripts/gate-liste.mjs gefunden');
     const c = spawnSync(process.execPath, ['scripts/csp-hashes.mjs', '--write'], { cwd: REPO, encoding: 'utf8' });
     log(`== CSP-Hashes: Exit ${c.status}`);
     log(`== REGRESSION ${liste.length} Dateien`);

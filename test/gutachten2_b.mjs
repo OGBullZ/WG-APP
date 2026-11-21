@@ -30,6 +30,7 @@
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
 import { WT } from './_finden.mjs';
+import { raster, diff, maxAbs } from './_ruckel.mjs';
 
 const url = process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';   /* 127.0.0.1 statt localhost: localhost kostet unter Windows 2 s (IPv6-Versuch) */
 const z = n => String(n).padStart(2, '0');
@@ -623,11 +624,12 @@ const FOLGE_STOP = () => {
 /* Auswertung: größter Sprung zwischen zwei aufeinanderfolgenden Bildern, auf ein 60-Hz-Bild umgerechnet (Δ · 16,7 / max(dt, 16,7)) — ein langsames Bild der Testmaschine
    (26 ms statt 16,7) gilt nicht als Sprung, ein 159-px-Satz in EINEM Bild bleibt einer (≫ 24 selbst bei dt = 60 ms). Die Rohwerte stehen als `roh` daneben. */
 const folgeAus = r => {
-  const fr = r.fr; let top = 0, h = 0, topRoh = 0, hRoh = 0, maxDt = 0, fahrt = 0;
+  /* W5b (20.11.): der Sprung wird auf einem festen 60-Hz-Raster gemessen (test/_ruckel.mjs: Spur interpolieren, dann Weg je Rasterbild) statt zwischen rohen Bildern
+     mit der 16,7/max(dt,16,7)-Abwertung — dieselbe Wirkung (langsame Bilder zählen nicht als Sprung), aber ohne dass ein einzelner Zeitstempel das Ergebnis kippt. */
+  const fr = r.fr; let topRoh = 0, hRoh = 0, maxDt = 0, fahrt = 0;
+  const top = maxAbs(diff(raster(fr.map(x => [x[0], x[1]])))), h = maxAbs(diff(raster(fr.map(x => [x[0], x[2]]))));
   for (let i = 1; i < fr.length; i++) {
-    const dt = fr[i][0] - fr[i - 1][0], f = 16.7 / Math.max(dt, 16.7);   /* nur langsame Bilder werden abgewertet, schnelle nie aufgewertet (rAF-Takt schwankt: 9 ms neben 25 ms) */
-    maxDt = Math.max(maxDt, dt);
-    top = Math.max(top, Math.abs(fr[i][1] - fr[i - 1][1]) * f); h = Math.max(h, Math.abs(fr[i][2] - fr[i - 1][2]) * f);
+    maxDt = Math.max(maxDt, fr[i][0] - fr[i - 1][0]);
     topRoh = Math.max(topRoh, Math.abs(fr[i][1] - fr[i - 1][1])); hRoh = Math.max(hRoh, Math.abs(fr[i][2] - fr[i - 1][2]));
   }
   for (const x of fr) fahrt += x[4];
