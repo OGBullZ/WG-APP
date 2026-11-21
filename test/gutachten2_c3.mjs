@@ -34,7 +34,7 @@
      F8h  Desktop 1280 px: Block darunter in derselben Spalte ohne Sprung (erster Block der Spalte: Rand 0 statt 12 px, wird gemessen)
      F8i  Hell-Modus: wie F8a
      F8j  „Aa Groß" (html zoom): Endposition stimmt (die Maße kommen aus getComputedStyle, nicht aus festen px)
-     F8k  ZWEI eigene fällige Aufgaben, die zweite 150 ms nach der ersten angetippt (erster Schatten steht noch): Block darunter wie F8a (Tempo ≤ 24, Wechsel ≤ 6, Endposition)
+     F8k  ZWEI eigene fällige Aufgaben, die zweite 150 ms nach der ersten angetippt (erster Schatten steht noch): Block darunter wie F8a (Tempo ≤ 24, Wechsel ≤ 10, Endposition)
      F8l  dasselbe, zweiter Tipp nach 450 ms (erster Schatten ist schon im Abgang)
      F8m  EINE Aufgabe bei 320 px und „Sehr groß" (zoom 1,25): Tempo ≤ 24, Wechsel ≤ 6, Endposition stimmt (Toleranz wie F8j)
    Z      keine Seitenfehler (alle Kontexte)
@@ -433,7 +433,10 @@ const kenn = r => {
 /* „Heute": gemessen wird today-rows. Erwartete Verschiebung = −(Rand + Block − Leer-Zeile) — Block und Rand stehen VOR dem Tipp fest */
 const heuteOffnen = (seed, opt = {}) => open(seed, { tab: 'heute', ...opt });
 /* Tempo ≤ 24 px je Bild: Heute ~145 px, Haushalt ~178 px (Block + Rand + gap) in 230 ms = 10,5 / 12,9 px je Bild im Mittel, Spitze des Easings ≈ 1,65× → 17 / 21 px */
-const stetig = (k, soll) => k.wechsel <= 6 && k.tempo <= 24 && k.bewegt >= 6 && Math.abs(k.verschoben - soll) <= 1.5;
+/* maxW = Grenze für den Tempowechsel. Standard 6 px. F8k/F8l (zwei Aufgaben) bekommen 10 px: dort nimmt die App mitten im Abschied den ersten Schatten aus dem DOM, und der
+   CI-Runner (Linux, unregelmäßige Bilder) misst bei unverändertem Stand 6,9 px (Lauf 44539157455) bzw. 9,6 px (Lauf 44518751764). Ein echter Sprung bleibt weit darüber:
+   ≈ 24 px in einem Bild (HEAD vor den Gutachter-Fixes), dort ist F8k rot (Gegenprobe wgapp_gp_c3b.html). */
+const stetig = (k, soll, maxW = 6) => k.wechsel <= maxW && k.tempo <= 24 && k.bewegt >= 6 && Math.abs(k.verschoben - soll) <= 1.5;
 
 for (const theme of ['dark', 'light']) {
   const H = await heuteOffnen(SEED_EINE, { theme });
@@ -527,7 +530,7 @@ for (const [zweit, id] of [[150, 'F8k'], [450, 'F8l']]) {
   const r = await versuch(() => lauf(Zw.page, { ref: '[data-testid="today-rows"]', ms: zweit + 1300, zweit }));
   if (!ok(r)) { check(`${id} FILM-8 zwei Aufgaben, zweiter Tipp nach ${zweit} ms: Lauf`, false, String(r)); continue; }
   const k = kenn(r), soll = -(r.m0 + r.h0 - (r.hL ?? NaN));
-  check(`${id} FILM-8 zwei eigene Aufgaben, zweiter Tipp ${zweit} ms nach dem ersten: der Block darunter rückt stetig nach (Tempowechsel je Bild ≤ 6 px, Tempo ≤ 24 px, ≥ 6 Bilder Bewegung, Endposition = Rand + Block − Leer-Zeile)`, stetig(k, soll) && r.ende.leer === 1 && !r.ende.cq,
+  check(`${id} FILM-8 zwei eigene Aufgaben, zweiter Tipp ${zweit} ms nach dem ersten: der Block darunter rückt stetig nach (Tempowechsel je Bild ≤ 10 px, Tempo ≤ 24 px, ≥ 6 Bilder Bewegung, Endposition = Rand + Block − Leer-Zeile)`, stetig(k, soll, 10) && r.ende.leer === 1 && !r.ende.cq,
     JSON.stringify({ ...k, soll: runde(soll), h0: runde(r.h0), m0: r.m0, hL: r.hL, leer: r.ende.leer, cq: r.ende.cq }));
 }
 {
