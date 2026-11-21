@@ -1208,3 +1208,11 @@ Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen 
 - PR 25 hätte `abnahme.mjs regression` still leer laufen lassen (Liste per Regex aus `ship.mjs`) — vorher gesehen, auf `import('./gate-liste.mjs')` umgestellt. Die Liste im PR stammte vom v127-Stand: sechs neuere Tests (v129/v130) von Hand ergänzt, Mengenvergleich alt ⊆ neu geprüft (110 → 113, nichts verloren).
 - `grow_haus_v116` H4 rot (8 Folgefehler): PR 23 lässt Bearbeiten beim Betrag starten, der Test klickte noch einmal „Weiter" vor dem Preisfeld. Bewusste Änderung → Test nachgezogen.
 
+## wg-v131 — Sicherheit (21.11., live `186142a`, API `ac28457`, Gate grün, Vercel success, `npm run betrieb` grün)
+
+**Was (Cloud-PR 15, Befund in `docs/BEFUND-SICHERHEIT.md`):** WG-Code für die Sicherungen im POST-Body statt in der URL (URLs landen in Zugriffsprotokollen); der alte GET-Weg bleibt für noch nicht neu geladene Geräte · ICS-Abo: Steuerzeichen/einzelne `\r` neutralisiert, UID gesäubert, kaputte Daten ausgelassen (keine eingeschleusten `URL:`/`VALARM`-Zeilen im Kalender aller Geräte) · Code-/Token-Vergleiche zeitkonstant (`sameStr`) · `/api/notify` legt für unbekannte Codes keinen Zähler mehr an (vorher anonymer Datenmüll unter `sv/…/rl`). Test `sicherheit_api` 22.
+
+**Reihenfolge:** erst `main` pushen → Vercel-Deploy abwarten → live geprüft (POST falscher Code 403, alter GET 403, Preflight 204, notify mit fremdem Code ohne Zähler) → dann `ship.mjs` fürs Hosting. Rückfallplan war ein Revert-Commit.
+
+**Was schiefging:** Mein erster Push wurde vom Schutz auf dem Rechner blockiert — die Freigabe kam nur über den Koordinator, nicht direkt von torbe; nicht umgangen, torbe gab am 21.11. direkt frei („ok weiter"). Live-Smoke des Ship meldete wieder „zeigt v130" (CDN ~1 min hinterher), Nachprüfung zeigte v131.
+
