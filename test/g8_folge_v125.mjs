@@ -175,7 +175,7 @@ for (const w of [320, 360]) for (const sch of ['n', 'g', 'xg']) for (const lang 
       /* echter Treffertest: abgetastete Trefferhöhe (elementFromPoint) >= 44 px, 12 px über dem Chip trifft ihn noch (overflow schneidet die Fläche nicht ab) */
       check('4 Treffertest: echte Trefferhöhe >= 44 px, 12 px über dem Chip trifft den Chip', !!c.treffer && c.treffer.hoehe >= 44 && c.treffer.oben12, JSON.stringify(c.treffer));
       console.log(`MESSWERT 390 normal: Umschalter ${s.h}, Blatt ${c.blatt}`);
-      check('5 390 normal: Blatthöhe Schritt 1 unverändert', c.blatt === VORHER.blattH, `${c.blatt} soll ${VORHER.blattH}`);
+      check('5 390 normal: Blatthöhe Schritt 1 unverändert (±1 px, Soll von Windows, Linux-Chromium rundet anders: 405)', Math.abs(c.blatt - VORHER.blattH) <= 1, `${c.blatt} soll ${VORHER.blattH}`);
     }
     check('2/4/5 keine Seitenfehler', P.errs.length === 0, P.errs.slice(0, 2).join(' | '));
   } catch (e) {

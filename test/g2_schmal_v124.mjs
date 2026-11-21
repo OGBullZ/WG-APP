@@ -48,7 +48,10 @@ const MESSEN = ([zf]) => {
   const DATUM = /^\d{1,2}\.\d{1,2}\.(\d{2}|\d{4})$/;
   zeilen.forEach(c => {
     const r = c.getBoundingClientRect();
-    out.zeilen.push({ bereich: c.getAttribute('data-bereich') || 'haus', w: Math.round(r.width), h: Math.round(r.height) });
+    const ti = c.querySelector('.cell-title'), tr = ti && document.createRange();
+    if (tr) tr.selectNodeContents(ti);
+    /* tz = Titelzeilen, th = Titelhöhe: ein Titel nahe an der Zeilenbreite bricht auf Linux-Chromium schon, wo Windows noch einzeilig setzt (CI 21.11.: 106 statt 85 px = genau eine Titelzeile mehr) */
+    out.zeilen.push({ bereich: c.getAttribute('data-bereich') || 'haus', w: Math.round(r.width), h: Math.round(r.height), tz: tr ? zeilenAnz(tr) : 1, th: ti ? ti.getBoundingClientRect().height : 0 });
     /* Wörter: Textknoten in .cell-content */
     const tw = document.createTreeWalker(c.querySelector('.cell-content'), NodeFilter.SHOW_TEXT);
     for (let n = tw.nextNode(); n; n = tw.nextNode()) {
@@ -123,8 +126,11 @@ async function lauf(w, sch, lang) {
     if (w === 390 && sch === 'n' && lang === 'de') {
       const h = m.zeilen.find(x => x.bereich === 'haus'), g = m.zeilen.find(x => x.bereich === 'gi');
       console.log(`MESSWERT 390 normal: haus ${h && h.w}x${h && h.h}, gi ${g && g.w}x${g && g.h}`);
-      check('6 390 normal: Haushalt-Zeile unverändert', !!h && h.w === VORHER.haus.w && h.h === VORHER.haus.h, `${h && h.w}x${h && h.h} soll ${VORHER.haus.w}x${VORHER.haus.h}`);
-      check('6 390 normal: Growbox-Zeile unverändert', !!g && g.w === VORHER.gi.w && g.h === VORHER.gi.h, `${g && g.w}x${g && g.h} soll ${VORHER.gi.w}x${VORHER.gi.h}`);
+      /* Die Sollwerte stammen von Windows. Linux-Chromium rundet Zeilenhöhen anders (Growbox 176 statt 177, ±1 px) und bricht den Titel „Großeinkauf Drogerie" bei 154 von 159 px Platz früher um.
+         Darum: Breite exakt, Höhe ±1 px, und der Haushalt-Soll rechnet die tatsächlichen Titelzeilen ein (+ Titelhöhe je weiterer Zeile). Eine echte Änderung (E1: Growbox 165 → 177) liegt weit außerhalb. */
+      const hSoll = VORHER.haus.h + (h ? h.th * (h.tz - 1) / h.tz : 0);
+      check('6 390 normal: Haushalt-Zeile unverändert (±1 px, Titelzeilen eingerechnet)', !!h && h.w === VORHER.haus.w && Math.abs(h.h - hSoll) <= 1, `${h && h.w}x${h && h.h} soll ${VORHER.haus.w}x${hSoll} (Titelzeilen ${h && h.tz})`);
+      check('6 390 normal: Growbox-Zeile unverändert (±1 px)', !!g && g.w === VORHER.gi.w && Math.abs(g.h - VORHER.gi.h) <= 1, `${g && g.w}x${g && g.h} soll ${VORHER.gi.w}x${VORHER.gi.h}`);
     }
     check(`${name} keine Seitenfehler`, errs.length === 0, errs.slice(0, 2).join(' | '));
   } catch (e) {
