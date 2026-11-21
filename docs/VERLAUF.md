@@ -1226,3 +1226,9 @@ Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen 
 
 **Offen:** echter Test-Push auf Englisch → torbe (Gerät auf Englisch stellen, Benachrichtigungen neu einschalten, damit das Abo `lang: en` bekommt).
 
+## CI unter Linux grün (21.11., `ba92b2c`, nur Tests)
+
+**Was:** Die CI war seit v131 nur noch an zwei Festwerten rot: `g8_folge_v125` Blatthöhe 405 statt 406, `g2_schmal_v124` Haushalt-Zeile 106 statt 85 (eine Zeile mehr) und Growbox 176 statt 177. Ursache: Die Vorher-Werte waren unter Windows gemessen; Linux rendert dieselbe Schriftdatei 1 px anders und bricht die erste Haushalt-Zeile früher um. **Lösung:** Sollwerte je Plattform (`process.platform`), die Prüfung bleibt „unverändert gegenüber vorher". Verworfen: pauschale ±-Toleranz (hätte den 21-px-Umbruch nicht gedeckt bzw. echte Änderungen verschluckt).
+
+**PR 26** (F8k/F8l pauschal 10 px) geschlossen: überholt durch PR 22 (60-Hz-Raster, F8k begründet 8 px, mit Gegenprobe). PR 27 (dasselbe Linux-Thema mit Toleranz) ebenfalls geschlossen. **Offen:** `gutachten2_c3` F8d wackelt lokal unter paralleler Last (6,1–6,4 px bei Grenze 6), allein grün — bei weiterem Auftreten gezielt mit Gegenprobe nachziehen.
+
