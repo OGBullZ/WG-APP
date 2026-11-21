@@ -51,7 +51,8 @@ const MESSEN = ([zf]) => {
     const ti = c.querySelector('.cell-title'), tr = ti && document.createRange();
     if (tr) tr.selectNodeContents(ti);
     /* tz = Titelzeilen, th = Titelhöhe: ein Titel nahe an der Zeilenbreite bricht auf Linux-Chromium schon, wo Windows noch einzeilig setzt (CI 21.11.: 106 statt 85 px = genau eine Titelzeile mehr) */
-    out.zeilen.push({ bereich: c.getAttribute('data-bereich') || 'haus', w: Math.round(r.width), h: Math.round(r.height), tz: tr ? zeilenAnz(tr) : 1, th: ti ? ti.getBoundingClientRect().height : 0 });
+    out.zeilen.push({ bereich: c.getAttribute('data-bereich') || 'haus', w: Math.round(r.width), h: Math.round(r.height), tz: tr ? zeilenAnz(tr) : 1, th: ti ? ti.getBoundingClientRect().height : 0,
+      diag: tr ? { rects: [...tr.getClientRects()].map(q => [Math.round(q.top), Math.round(q.height), Math.round(q.width)]), disp: getComputedStyle(ti).display, lh: getComputedStyle(ti).lineHeight, tw: Math.round(ti.getBoundingClientRect().width), txt: ti.textContent.slice(0, 30) } : null });
     /* Wörter: Textknoten in .cell-content */
     const tw = document.createTreeWalker(c.querySelector('.cell-content'), NodeFilter.SHOW_TEXT);
     for (let n = tw.nextNode(); n; n = tw.nextNode()) {
@@ -129,7 +130,7 @@ async function lauf(w, sch, lang) {
       /* Die Sollwerte stammen von Windows. Linux-Chromium rundet Zeilenhöhen anders (Growbox 176 statt 177, ±1 px) und bricht den Titel „Großeinkauf Drogerie" bei 154 von 159 px Platz früher um.
          Darum: Breite exakt, Höhe ±1 px, und der Haushalt-Soll rechnet die tatsächlichen Titelzeilen ein (+ Titelhöhe je weiterer Zeile). Eine echte Änderung (E1: Growbox 165 → 177) liegt weit außerhalb. */
       const hSoll = VORHER.haus.h + (h ? h.th * (h.tz - 1) / h.tz : 0);
-      check('6 390 normal: Haushalt-Zeile unverändert (±1 px, Titelzeilen eingerechnet)', !!h && h.w === VORHER.haus.w && Math.abs(h.h - hSoll) <= 1, `${h && h.w}x${h && h.h} soll ${VORHER.haus.w}x${hSoll} (Titelzeilen ${h && h.tz})`);
+      check('6 390 normal: Haushalt-Zeile unverändert (±1 px, Titelzeilen eingerechnet)', !!h && h.w === VORHER.haus.w && Math.abs(h.h - hSoll) <= 1, `${h && h.w}x${h && h.h} soll ${VORHER.haus.w}x${hSoll} (Titelzeilen ${h && h.tz}, Titelhöhe ${h && h.th}) DIAG ${JSON.stringify(m.zeilen.filter(x => x.bereich === 'haus').map(x => [x.h, x.tz, x.th, x.diag]))}`);
       check('6 390 normal: Growbox-Zeile unverändert (±1 px)', !!g && g.w === VORHER.gi.w && Math.abs(g.h - VORHER.gi.h) <= 1, `${g && g.w}x${g && g.h} soll ${VORHER.gi.w}x${VORHER.gi.h}`);
     }
     check(`${name} keine Seitenfehler`, errs.length === 0, errs.slice(0, 2).join(' | '));
