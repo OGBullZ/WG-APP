@@ -11765,9 +11765,17 @@ function ChoreQuick({ goPutz, leer, onDran }) {   /* leer (wg-v112, P9): was an 
        ohne Wert (Element fehlt) bleibt der Rückfall 96 px aus dem CSS */
     const h = Math.round(el?.closest?.('.cell')?.getBoundingClientRect().height || 0);
     done(t, farbe => setSchatten(s => [...s, { key, t, idx, farbe, h, t0 }]));
+    /* wg-v133 (G7 Fund 2): weg erst, wenn das Zuklappen (CSS schattenAb) WIRKLICH fertig ist. Auf langsamen Geräten startet die CSS-Animation
+       ~50 ms später als der Zeitgeber; der feste 630-ms-Tausch nahm den Schatten dann mitten im Zuklappen weg — die letzten ~11 px sprangen
+       in einem Bild (gemessen CPU 4×, Test gutachten2_c3 F8l). Nachfrist höchstens 400 ms, damit ein hängendes Bild nie einen Schatten stehen lässt. */
+    const weg = () => { uhren.current.delete(uhr); gefeiert.current.delete(key); setSchatten(s => s.filter(x => x.key !== key)); };
     const uhr = setTimeout(() => {
-      uhren.current.delete(uhr); gefeiert.current.delete(key);
-      setSchatten(s => s.filter(x => x.key !== key));
+      const el = wurzel.current?.querySelector(`[data-schatten="${key}"]`);
+      const laufend = el?.getAnimations ? el.getAnimations().filter(a => a.playState === 'running') : [];
+      if (!laufend.length) { weg(); return; }
+      const frist = setTimeout(weg, 400);
+      uhren.current.add(frist);
+      Promise.all(laufend.map(a => a.finished)).then(() => { clearTimeout(frist); uhren.current.delete(frist); weg(); }, () => { clearTimeout(frist); uhren.current.delete(frist); weg(); });
     }, SCHATTEN_MS);
     uhren.current.add(uhr);
   };
