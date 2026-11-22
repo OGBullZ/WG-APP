@@ -1232,3 +1232,11 @@ Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen 
 
 **PR 26** (F8k/F8l pauschal 10 px) geschlossen: überholt durch PR 22 (60-Hz-Raster, F8k begründet 8 px, mit Gegenprobe). PR 27 (dasselbe Linux-Thema mit Toleranz) ebenfalls geschlossen. **Offen:** `gutachten2_c3` F8d wackelt lokal unter paralleler Last (6,1–6,4 px bei Grenze 6), allein grün — bei weiterem Auftreten gezielt mit Gegenprobe nachziehen.
 
+
+## wg-v133 — G7 Fund 2: Abhaken im Putzplan ohne Ruck auf langsamen Geräten (22.11., live `d13d6fc`, Gate grün, Vercel success)
+
+**Befund:** `gutachten2_c3` F8l (zwei eigene Aufgaben, zweiter Tipp nach 450 ms) war nach den v129-Fixes unter CPU 4× weiter rot: Tempowechsel 10,8 px je Bild. Spur Bild für Bild (neu: `WG_SPUR=1`): ungebremst endet das Zuklappen der ersten Aufgabe weich (−117,5 → −122), gebremst mit **einem 10,8-px-Satz direkt in den Stillstand** — die CSS-Animation `schattenAb` startete wegen eines langen Bildes ~50 ms später, der feste 630-ms-Zeitgeber nahm den Schatten trotzdem pünktlich weg.
+
+**Fix:** Nach 630 ms prüft der Zeitgeber, ob die Animation des Schattens noch läuft (`getAnimations()`), und entfernt ihn erst nach ihrem `finished` (höchstens 400 ms Nachfrist, damit ein hängendes Bild nie einen Schatten stehen lässt). Verworfen: Zeitgeber länger stellen (verschiebt nur die Grenze, verzögert den Tausch auch auf schnellen Geräten).
+
+**Belege:** CPU 4× vorher F8l rot (10,8 px) = Gegenprobe, nachher 35/35, Zuklappen −111 → −117,6 → −121,1 → −122. Volle Regression 115/115.
