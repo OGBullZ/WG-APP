@@ -6,6 +6,14 @@
 export async function openTool(page, k) {
   const chip = page.locator(`[data-chip="${k}"]`);
   if (!(await chip.count())) return false;
+  await kachelwandAuf(page);   // wg-v134: die Kachel kann hinter „Weitere Werkzeuge" stehen
   await chip.first().click(); await page.waitForTimeout(300);
   return true;
+}
+
+/* wg-v134 (Kachelwand): Auf Heute stehen nur die 4 meistgenutzten Kacheln, der Rest hinter „Weitere Werkzeuge (N)".
+   Klappt auf, falls die Zeile sichtbar und noch zu ist (Haushalt/Putzplan haben keine Zeile; ist sie schon offen, passiert nichts). */
+export async function kachelwandAuf(page) {
+  const mehr = page.locator('[data-testid="wz-mehr"]').first();
+  if (await mehr.count() && await mehr.isVisible() && (await mehr.getAttribute('aria-expanded')) === 'false') { await mehr.click(); await page.waitForTimeout(600); }
 }

@@ -9,6 +9,7 @@
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
 import { WT } from './_finden.mjs';
+import { kachelwandAuf } from './_heute.mjs';   /* wg-v134 (Kachelwand) */
 
 const url = (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const z = n => String(n).padStart(2, '0');
@@ -133,6 +134,7 @@ check('Z2 keine Seitenfehler', errs.length === 0, errs.slice(0, 2).join(' | '));
   await p.locator('.tabbar').waitFor({ timeout: 30000 });
   await p.evaluate(() => window.__wg.fire());
   await p.waitForTimeout(1300);
+  await kachelwandAuf(p);   /* wg-v134: ohne Person steht keine „Erste Schritte"-Karte → Normalfall, nur 4 Kacheln sichtbar; „Umfrage"/„Kühlschrank" stehen dahinter */
   await p.locator('.wz-kachel[data-chip="poll"]').click(); await p.waitForTimeout(500);
   check('H1 ohne Person: Tipp auf „Umfrage" öffnet kein Blatt …', await p.locator('.overlay:not(.zu) .sheet').count() === 0);
   check('H2 … sondern sagt, was fehlt („Wähle zuerst oben, wer du bist.")', await p.getByText('Wähle zuerst oben, wer du bist.').count() >= 1);

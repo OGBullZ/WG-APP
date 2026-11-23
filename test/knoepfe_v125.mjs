@@ -47,7 +47,7 @@ const browser = await chromium.launch();
 const SONDE = ({ erlaubt, nurBlatt }) => {
   const px = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : 0; };
   const sichtbar = el => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el); return r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) > 0.05; };
-  const CHIP = '.seg-btn, .phase-chip, .chip-scroll > button, .stepper button, .fold-hdr, .done-btn, .del-btn, .chk-btn, .hit, .hit-v, .frage-btn, button.cell, .cat-btn, .chip, .wz-kachel, .pin-key, .group, [data-testid^="zoom-"], [data-testid^="lang-"], [data-testid^="theme-"], [data-testid="maint-preset"]';   /* Kacheln, PIN-Tasten, Zeilen-Knöpfe (.group), Einstellungs-/Vorlagen-Chips (chipSt) */
+  const CHIP = '.seg-btn, .phase-chip, .chip-scroll > button, .stepper button, .fold-hdr, .done-btn, .del-btn, .chk-btn, .hit, .hit-v, .frage-btn, button.cell, .cat-btn, .chip, .wz-kachel, .wz-mehr, .pin-key, .group, [data-testid^="zoom-"], [data-testid^="lang-"], [data-testid^="theme-"], [data-testid="maint-preset"]';   /* Kacheln, PIN-Tasten, Zeilen-Knöpfe (.group), Einstellungs-/Vorlagen-Chips (chipSt) */
   const aus = { tabbar: 0, symbol: 0, chip: 0, textknopf: 0 };
   const knoepfe = [], verstoesse = [];
   /* offenes Blatt verdeckt den Bildschirm dahinter → dann NUR das Blatt messen (sonst „daneben" durch Verdeckung) */
