@@ -1835,6 +1835,7 @@ window.__WG_EN = {
 "{0} bleibt dran, der andere ist weg ({1})":"{0} keeps the turn, the other one is away ({1})",
 "{0} bleibt dran, die anderen sind weg ({1})":"{0} keeps the turn, the others are away ({1})",
 "{0} einplanen":"plan {0}",
+"{0} Einträge":"{0} entries",
 "{0} Einträge archiviert":"{0} entries archived",
 "{0} entfernen":"remove {0}",
 "{0} entfernt":"{0} removed",
@@ -1845,7 +1846,9 @@ window.__WG_EN = {
 "{0} hat €{1} bezahlt":"{0} paid €{1}",
 "{0} hat €{1} bezahlt – bitte bestätigen":"{0} paid €{1} – please confirm",
 "{0} hat es auf die Einkaufsliste gesetzt":"{0} put it on the shopping list",
+"{0} hat es gelöscht, die andere Änderung ist weg":"{0} deleted it, the other change is gone",
 "{0} hat es notiert":"{0} noted it",
+"{0} hat es zurückgeholt, es war gelöscht":"{0} brought it back, it had been deleted",
 "{0} hat gezahlt":"{0} has paid",
 "{0} hat heute Geburtstag":"It's {0}'s birthday today",
 "{0} hat ihn um {1} geöffnet":"{0} opened it at {1}",
@@ -1883,6 +1886,10 @@ window.__WG_EN = {
 "{0} von {1} zurückholen":"get {0} back from {1}",
 "{0} weg bis {1}":"{0} away until {1}",
 "{0} wieder öffnen":"reopen {0}",
+"{0} wurde auch auf einem anderen Gerät geändert. Deine Version gilt.":"{0} was also changed on another device. Your version applies.",
+"{0} wurde auf einem anderen Gerät geändert, während du es gelöscht hast. Es bleibt gelöscht.":"{0} was changed on another device while you deleted it. It stays deleted.",
+"{0} wurde auf einem anderen Gerät gelöscht. Deine Änderung hat es zurückgeholt.":"{0} was deleted on another device. Your change brought it back.",
+"{0} wurden auch auf einem anderen Gerät geändert. Deine Version gilt.":"{0} were also changed on another device. Your version applies.",
 "{0} zahlt alles":"{0} pays everything",
 "{0} zahlte":"{0} paid",
 "{0} zieht aus":"{0} is moving out",
@@ -2064,6 +2071,7 @@ window.__WG_EN = {
 "📦 Paket für dich angenommen":"📦 Took in a parcel for you",
 "📮 Vermieter & Mängel":"📮 Landlord & defects",
 "📲 Benachrichtigungen an die WG":"📲 Notifications to the flat",
+"🔀 Gleichzeitig geändert: {0}":"🔀 Changed at the same time: {0}",
 "🔁 „{0}“ läuft jetzt automatisch ab {1}":"🔁 \"{0}\" now runs automatically from {1}",
 "🔁 Abwechselnd":"🔁 Take turns",
 "🔁 Automatisch eintragen":"🔁 Add automatically",
@@ -2252,6 +2260,8 @@ window.__WG_EN = {
 "an":"to",
 "An":"On",
 "An wen?":"To whom?",
+"Andere Version":"Other version",
+"Andere Version übernommen":"Other version restored",
 "anderer Laden":"another shop",
 "Anderer Laden":"Another shop",
 "Anderer WG-Code":"Another flat code",
@@ -2456,6 +2466,7 @@ window.__WG_EN = {
 "Die IBAN stimmt nicht – bitte prüfen oder leer lassen.":"The IBAN is not valid – please check it or leave it empty.",
 "Die Info selbst":"The note itself",
 "Die Meldung „fertig\" kommt, sobald eines eurer Handys die App offen hat oder sie wieder öffnet.":"The \"finished\" message arrives as soon as one of your phones has the app open or opens it again.",
+"Die Version von {0} gilt":"{0}'s version applies",
 "Die WG bekommt einen neuen Code. Wer den alten Code kennt (z. B. ein Ex-Mitbewohner oder ein altes Handy), kommt danach nicht mehr an eure Daten. Dein Mitbewohner muss den neuen Code einmal eingeben. Vorher wird automatisch gesichert.":"The flat gets a new code. Anyone who knows the old one (an ex-flatmate, an old phone) can no longer reach your data. Your flatmate has to enter the new code once. A backup is made first.",
 "Dienst":"Service",
 "Dienst — Netflix, Apple TV …":"Service — Netflix, Apple TV …",
@@ -2507,6 +2518,7 @@ window.__WG_EN = {
 "Eigene Nachricht …":"Custom message …",
 "Eigenen Vorrat hinzufügen":"Add your own staple",
 "Eigenes, z. B. Zahnpasta":"Something else, e.g. toothpaste",
+"Ein Eintrag":"An entry",
 "Ein Tag, an dem abgebucht wird – danach jeden Monat bzw. jedes Jahr am selben Tag.":"A day it is charged – after that on the same day every month or year.",
 "Ein Tipp auf den Link – und sie sind in eurer WG. Nur an Mitbewohner schicken: der Link ist der Zugang.":"One tap on the link and they're in your flat. Only send it to flatmates: the link is the way in.",
 "Eine Benachrichtigung am Morgen mit allem für heute":"One morning notification with everything for today",
@@ -3053,6 +3065,7 @@ window.__WG_EN = {
 "Pflanzen":"Plants",
 "Pflanzen gießen":"Water the plants",
 "pflanzen gießen ernte zelt":"plants watering harvest tent grow",
+"Pflanzen-Anteile":"Plant shares",
 "Pflanzen, Gießen, Ernten · Kosten im Haushalt":"Plants, watering, harvests · costs under Household",
 "Phase auf {0} setzen":"Set phase to {0}",
 "Phase: {0}":"Phase: {0}",
@@ -4074,6 +4087,32 @@ const canonSer = v => JSON.stringify(v, (key, val) =>
     ? Object.keys(val).sort().reduce((o,k)=>{ if(val[k]!==null&&val[k]!==undefined) o[k]=val[k]; return o; },{})
     : val
 );
+/* wg-v137: ÜBERSCHNEIDUNG erkennen. Zwei Geräte ändern denselben Eintrag: bisher galt still „die eigene, noch nicht angekommene
+   Änderung gewinnt" (Erst-Read-Replay, Firebase-Warteschlange) — auch ein Offline-Löschen gegen eine Fremd-Änderung. Die Regel
+   bleibt; neu ist, dass die App es sagt und die andere Fassung anbietet.
+   Je Eintrag: b = letzter bekannter Server-Stand (Serialisierung; undefined = gab es nicht), l = lokal, r = Server jetzt
+   (undefined = gelöscht). Überschneidung nur, wenn BEIDE Seiten von b abweichen und nicht dasselbe wollen. Kanonisch verglichen
+   (canonSer), sonst zählten Schlüssel-Reihenfolge und weggelassene null-Felder als Änderung. */
+const KONFLIKT_AUS = new Set(['ak', 'err']);   // Verlauf + Fehlerprotokoll: nur Anhängen und Kürzen, nie eine Bedienung
+const kanon = v => v === undefined ? undefined : canonSer(typeof v === 'string' ? JSON.parse(v) : v);
+const ueberschneidung = (b, l, r) => {
+  const B = kanon(b), L = kanon(l), R = kanon(r);
+  if (L === B || R === B || L === R) return null;
+  return L === undefined ? 'geloescht' : R === undefined ? 'zurueck' : 'geaendert';
+};
+const konfliktName = it => {
+  const n = String((it && typeof it === 'object' && (it.name || it.text || it.t || it.dish || it.what || it.svc || it.q)) || '').trim();
+  return n.length > 30 ? n.slice(0, 29) + '…' : n;
+};
+const ueberschneidungen = (k, base, lokalMap, remoteMap) => {
+  if (KONFLIKT_AUS.has(k)) return [];
+  const b = base || {}, l = lokalMap || {}, r = remoteMap || {}, out = [];
+  new Set([...Object.keys(b), ...Object.keys(l), ...Object.keys(r)]).forEach(id => {
+    const art = ueberschneidung(b[id], l[id], r[id]);
+    if (art) out.push({ k, id, art, fremd: r[id], name: konfliktName(r[id] || l[id]) });
+  });
+  return out;
+};
 
 /* ════════════════════════════
    DATA CONTEXT + FIREBASE SYNC
@@ -4226,6 +4265,15 @@ function DataProvider({ children }) {
   const lastPushed = useRef({});        // list Key -> {id: serialized} = letzter bekannter Server-Stand (Diff-Basis)
   const flushTimer = useRef(null);
   const rotatingRef = useRef(false);    // während „WG-Code wechseln": der EIGENE Umzugs-Marker ist kein „Code geändert"
+  /* wg-v137: Verbindung laut Firebase (.info/connected). null = unbekannt (Stub, nie gemeldet) → nie zurückhalten.
+     false = getrennt: Änderungen bleiben in `dirty` statt in Firebases Warteschlange. Grund: was dort wartet, legt das SDK über
+     jeden Server-Stand — eine Fremd-Änderung am selben Eintrag war nach dem Wiederverbinden unsichtbar und wurde still
+     überschrieben. 'warten' = wieder verbunden, der Server-Stand ist noch nicht da (Listener-Ereignis oder 3 s), erst dann senden. */
+  const verbunden = useRef(null);
+  const nachholTimer = useRef(null);
+  const gemeldet = useRef(new Set());   // gemeldete Überschneidungen (Key|id|Fremd-Stand) — der Listener feuert, solange der Key offen ist
+  const konfliktZeit = useRef(0);       // letzter Überschneidungs-Hinweis → „✓ Alles angekommen" verdrängt ihn nicht
+  const meldeRef = useRef(() => {});    // aktuelle melde()-Fassung für den langlebigen Listener (me/Namen ändern sich)
   useEffect(() => { dataRef.current = D; }, [D]);
   // knownIds initial seeden — beim ersten Laden/Initial-Sync darf NICHTS flashen.
   useEffect(() => { LIST_KEYS.forEach(k => (dataRef.current[k]||[]).forEach(it => it && it.id!=null && knownIds.current.add(it.id))); }, []);
@@ -4291,6 +4339,7 @@ function DataProvider({ children }) {
   };
   const flush = useCallback(() => {
     if (!dbRef.current || dirty.current.size === 0) return;
+    if (verbunden.current === false || verbunden.current === 'warten') return;   // wg-v137: getrennt/Server-Stand ausstehend → bleibt in dirty (wg_pending sichert es)
     const updates = {};
     const flushedKeys = [...dirty.current];
     const prevPushed = {};   // Diff-Basis für Rollback, falls der Server den Write ablehnt
@@ -4411,6 +4460,20 @@ function DataProvider({ children }) {
       const db = firebase.database(app);
       const ref = db.ref(`wg/${wgCode}`);
       dbRef.current = ref;
+      /* wg-v137: Verbindungsstand mitlesen (s. `verbunden`). Nur der Übergang getrennt → verbunden startet das Nachholen;
+         ein Stub oder SDK ohne .info liefert null → bleibt unbekannt, es wird nie zurückgehalten. */
+      verbunden.current = null; clearTimeout(nachholTimer.current);
+      const infoRef = db.ref('.info/connected');
+      const onInfo = sn => {
+        if (dbRef.current !== ref) return;
+        const c = sn && typeof sn.val === 'function' ? sn.val() : null;
+        if (c === false) { verbunden.current = false; clearTimeout(nachholTimer.current); return; }
+        if (c !== true || verbunden.current !== false) return;
+        verbunden.current = 'warten';
+        clearTimeout(nachholTimer.current);
+        nachholTimer.current = setTimeout(() => { if (verbunden.current === 'warten') { verbunden.current = true; flush(); } }, 3000);
+      };
+      try { infoRef.on('value', onInfo); } catch {}
 
       const dedupe = (a=[], b=[]) => {
         const seen = new Set();
@@ -4456,6 +4519,7 @@ function DataProvider({ children }) {
             const conf = ls('wg_confirmed', {}) || {};
             const merged = { ...INIT, ...actual };
             const replay = [];
+            const konflikte = [];   // wg-v137: eigene Offline-Änderung trifft Fremd-Änderung desselben Eintrags
             pending.forEach(k => {
               if (!KEYS.includes(k)) return;
               const localVal = dataRef.current[k];
@@ -4463,6 +4527,7 @@ function DataProvider({ children }) {
                 const base = conf[k] || {};
                 const localMap = arrToMap(localVal || []);
                 const remoteMap = arrToMap(merged[k] || []);
+                if (k in conf) konflikte.push(...ueberschneidungen(k, base, localMap, remoteMap));   // VOR dem Auflegen: remoteMap = Server-Stand; ohne Basis keine Aussage
                 let changed = false;
                 for (const id in localMap) {              // offline neu/geändert → lokal gewinnt
                   if (base[id] !== JSON.stringify(localMap[id])) { remoteMap[id] = localMap[id]; changed = true; }
@@ -4473,7 +4538,10 @@ function DataProvider({ children }) {
                 if (changed) { merged[k] = listToArr(remoteMap); replay.push(k); }
               } else {
                 const ser = JSON.stringify(localVal ?? null);
-                if (ser !== conf[k] && ser !== JSON.stringify(merged[k] ?? null)) { merged[k] = localVal; replay.push(k); }
+                if (ser !== conf[k] && ser !== JSON.stringify(merged[k] ?? null)) {
+                  if (k in conf && !KONFLIKT_AUS.has(k) && ueberschneidung(conf[k], localVal ?? null, merged[k] ?? null)) konflikte.push({ k, id: null, art: 'geaendert', fremd: merged[k] ?? null, name: '' });
+                  merged[k] = localVal; replay.push(k);
+                }
               }
             });
             KEYS.forEach(k => {
@@ -4491,6 +4559,7 @@ function DataProvider({ children }) {
             ss('wg_confirmed', confNew);
             if (replay.length) { replay.forEach(k => dirty.current.add(k)); persistPending(); setTimeout(flush, 800); }
             else { ss('wg_pending', []); setPendingN(0); }
+            if (konflikte.length) meldeRef.current(konflikte);
             if (needsMigration) pushAll(merged);                // DB einmalig vom Alt-Array auf Map-Format heben
           }
         } else {
@@ -4511,6 +4580,7 @@ function DataProvider({ children }) {
           const { _wid, ...remote2 } = v;
           const adopt = {};
           let foreign = false;
+          const konflikteLive = [];
           KEYS.forEach(k => {
             // Nicht überschreiben, solange an dem Key eine eigene Änderung offen ist: `dirty`
             // = noch nicht rausgeschickt, `inflight` = unterwegs und unbestätigt. Ohne die
@@ -4518,7 +4588,28 @@ function DataProvider({ children }) {
             // ein — ein gerade gelöschter Posten stand damit wieder da (Zombie, s. test/sync.mjs).
             // Verworfen wird dabei nichts: Firebase merged item-granular, das Event nach der
             // Bestätigung liefert Fremd-Änderung UND eigene Änderung zusammen.
-            if (dirty.current.has(k) || inflight.current.has(k)) return;
+            if (dirty.current.has(k) || inflight.current.has(k)) {
+              /* wg-v137: Der Server-Stand dieses Keys ist hier (noch) ungetrübt, solange die Änderung nicht an Firebase übergeben ist
+                 (`dirty`): beim Wiederverbinden oder im 400-ms-Fenster vor dem Senden. Weicht ein Eintrag auf BEIDEN Seiten vom zuletzt
+                 bekannten Server-Stand ab, überschreibt der gleich folgende Flush eine Fremd-Änderung → melden. Basis = lastPushed
+                 (enthält auch Gesendetes, das Firebase noch zurückhält — dessen Pfade zeigt das SDK mit dem eigenen Wert). */
+              if (dirty.current.has(k) && !KONFLIKT_AUS.has(k)) {
+                if (isListKey(k)) {
+                  if (k in lastPushed.current) {
+                    let kl = ueberschneidungen(k, lastPushed.current[k], arrToMap(dataRef.current[k] || []), arrToMap(listToArr(remote2[k])));
+                    // zugleich unterwegs: Gesendetes, aber Unbestätigtes auslassen — dort ist der Server-Stand unbekannt
+                    if (inflight.current.has(k)) { const cf = (ls('wg_confirmed', {}) || {})[k] || {}, lp = lastPushed.current[k]; kl = kl.filter(c => kanon(lp[c.id]) === kanon(cf[c.id])); }
+                    konflikteLive.push(...kl);
+                  }
+                }
+                else {
+                  const rs = JSON.stringify(remote2[k] ?? null), conf0 = (ls('wg_confirmed', {}) || {})[k];
+                  if (conf0 !== undefined && !(pushed.current[k] && pushed.current[k].has(rs)) && ueberschneidung(conf0, dataRef.current[k] ?? null, remote2[k] ?? null))
+                    konflikteLive.push({ k, id: null, art: 'geaendert', fremd: remote2[k] ?? null, name: '' });
+                }
+              }
+              return;
+            }
             if (!(k in remote2)) {
               // Liste remote ganz geleert (wg-v104): Die RTDB löscht einen Key, sobald sein LETZTER Eintrag weg ist —
               // im Snapshot fehlt er dann. Bis v103 hieß „fehlt" hier „nichts zu tun": das andere Gerät zeigte die alten
@@ -4572,12 +4663,15 @@ function DataProvider({ children }) {
             if (newFlash.length) setFlashIds(prev => { const n = new Set(prev); newFlash.forEach(id => n.add(id)); return n; });
             if (!firstEvent) setRemotePulse(p => p + 1);
           }
+          if (konflikteLive.length) meldeRef.current(konflikteLive);
+          // wg-v137: nach dem Wiederverbinden ist mit diesem Ereignis der Server-Stand da → jetzt erst die zurückgehaltenen Änderungen senden
+          if (verbunden.current === 'warten') { clearTimeout(nachholTimer.current); verbunden.current = true; flush(); }
           setStatus('synced');
           firstEvent = false;
         }, () => setStatus('error'));
       }, () => setStatus('error'));
 
-      return () => { ref.off(); dbRef.current = null; clearTimeout(flushTimer.current); };
+      return () => { ref.off(); try { infoRef.off('value', onInfo); } catch {} dbRef.current = null; clearTimeout(flushTimer.current); clearTimeout(nachholTimer.current); };
     } catch(e) { setStatus('error'); }
   }, [fbCfg, wgCode, pushAll]);
 
@@ -4814,11 +4908,52 @@ function DataProvider({ children }) {
     return akId;
   }, [wgCode, deviceId, me, setFn]);
 
+  /* wg-v137: Überschneidung melden — dezent im Rückgängig-Balken (8 s, pausiert bei Berührung) mit „Andere Version", dazu EIN
+     Eintrag im geteilten Verlauf `ak`: die anderen sehen unter „Seit du zuletzt da warst", dass ihre Änderung überschrieben ist.
+     Bewusst ohne Push (Push-Diät) und ohne Sperre: die Regel „eigene Änderung gewinnt" bleibt, die andere Fassung ist einen Tipp entfernt. */
+  meldeRef.current = (liste) => {
+    const neu = (liste || []).filter(c => { const sig = c.k + '|' + c.id + '|' + kanon(c.fremd); if (gemeldet.current.has(sig)) return false; gemeldet.current.add(sig); return true; });
+    if (!neu.length) return;
+    konfliktZeit.current = Date.now();
+    const meName = nameOfU(dataRef.current.users || [], me);
+    const nm = c => c.name || (c.k === 'users' ? TT("Mitbewohner") : c.k === 'gp' ? TT("Pflanzen-Anteile") : '');
+    const eins = neu.length === 1 ? neu[0] : null;
+    const wer = eins ? (nm(eins) ? (LANG === 'en' ? `“${nm(eins)}”` : `„${nm(eins)}“`) : TT("Ein Eintrag")) : TT("{0} Einträge", neu.length);
+    const msg = !eins ? TT("{0} wurden auch auf einem anderen Gerät geändert. Deine Version gilt.", wer)
+      : eins.art === 'geloescht' ? TT("{0} wurde auf einem anderen Gerät geändert, während du es gelöscht hast. Es bleibt gelöscht.", wer)
+      : eins.art === 'zurueck' ? TT("{0} wurde auf einem anderen Gerät gelöscht. Deine Änderung hat es zurückgeholt.", wer)
+      : TT("{0} wurde auch auf einem anderen Gerät geändert. Deine Version gilt.", wer);
+    let akId = null;
+    try {
+      const item = { id: uid(), ts: Date.now(), by: me || '', t: TT("🔀 Gleichzeitig geändert: {0}", wer).slice(0, 200), k: 'sync',
+        b: (eins && eins.art === 'geloescht' ? TT("{0} hat es gelöscht, die andere Änderung ist weg", meName)
+          : eins && eins.art === 'zurueck' ? TT("{0} hat es zurückgeholt, es war gelöscht", meName)
+          : TT("Die Version von {0} gilt", meName)).slice(0, 300) };
+      akId = item.id;
+      const grenze = Date.now() - AK_TAGE * 864e5;
+      setFn('ak', cur => [item, ...(cur || []).filter(x => x && x.ts > grenze)].slice(0, AK_MAX));
+    } catch {}
+    const andere = () => {
+      const jeKey = {};
+      neu.forEach(c => { (jeKey[c.k] = jeKey[c.k] || []).push(c); });
+      Object.keys(jeKey).forEach(k => {
+        const cs = jeKey[k];
+        if (!isListKey(k)) { set(k, cs[0].fremd); return; }
+        const ids = new Set(cs.map(c => String(c.id)));
+        setFn(k, cur => [...(cur || []).filter(it => !(it && ids.has(String(it.id)))), ...cs.filter(c => c.fremd !== undefined).map(c => c.fremd)]);
+      });
+      if (akId) setFn('ak', cur => (cur || []).filter(x => x && x.id !== akId));   // der Verlaufs-Eintrag stimmt nicht mehr
+      undo(TT("Andere Version übernommen"), null);
+    };
+    undo(msg, null, { label: TT("Andere Version"), fn: andere });
+  };
+
   // „✓ Alles angekommen" (wg-v85) — nur wenn wirklich offline etwas gewartet hat; jede normale Schreibung ist kurz
   // auch „wartend", das soll keine Meldung auslösen
   const offlineGewartet = useRef(false);
   useEffect(() => {
     if (pendingN > 0 && !online) offlineGewartet.current = true;
+    if (pendingN === 0 && online && status === 'synced' && offlineGewartet.current && Date.now() - konfliktZeit.current < 9000) { offlineGewartet.current = false; return; }   /* wg-v137: der Überschneidungs-Hinweis sagt mehr, er bleibt stehen */
     if (pendingN === 0 && online && status === 'synced' && offlineGewartet.current) { offlineGewartet.current = false; undo(TT("✓ Alles angekommen"), null); }   /* wg-v112 (P6): null statt () => {} — der Balken zeigte einen „Rückgängig"-Knopf, der nichts tat */
   }, [pendingN, online, status]);
 
