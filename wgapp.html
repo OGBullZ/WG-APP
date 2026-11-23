@@ -854,6 +854,10 @@ button.cell { color:var(--label); }
 .wz-mehr:active { transform:scale(.98); }
 .wz-mehr-pfeil { font-size:11px; transition:transform var(--dur-mittel) var(--ease-raus); }
 .wz-mehr[aria-expanded="true"] .wz-mehr-pfeil { transform:rotate(180deg); }
+/* wg-v134 (Kachelwand): geteiltes Heute-Gitter — Zeile 8 px unter den ersten 4 Kacheln; der Rest hat im Innenkasten 8 px Abstand zur Zeile
+   (Innenkasten, damit der zugeklappte Block wirklich 0 px hoch ist) */
+.wz-mehr-zeile { margin-top:8px; }
+.wz-rest .wz-falt-pad { padding-top:8px; }
 /* wg-v113 (P13): Karte „Erste Schritte" (Heute, neue WG) — Kopf mit Zähler + ×, schmaler Fortschrittsbalken (Spur = --spur, Füllung nur per
    transform: scaleX, kein Breiten-Animieren), darunter drei Zeilen mit Haken. Der Haken füllt sich in --dur-kurz (Deckkraft/Skalierung). */
 .es-kopf { display:flex; align-items:flex-start; gap:8px; padding:14px 6px 0 16px; }
@@ -10214,32 +10218,65 @@ function useWerkzeuge(liste) {
 function WerkzeugGitter({ wz, extra = [], testid, faltbar }) {
   const [tick, setTick] = useState({});      // k → wie oft angetippt (öffnet das eigene Blatt)
   const [auf, setAuf] = useState(false);     // wg-v113 (P13): Zeile „Weitere Werkzeuge" aufgeklappt (nur mit faltbar)
-  const leer = [...wz.leer, ...extra], imBlatt = wz.blattW;
+  /* wg-v134 (Kachelwand): Nutzungszähler je Gerät (localStorage wg_wz_nutzung {k: Anzahl}), nur im Heute-Gitter (faltbar !== undefined).
+     Die Sortierung nimmt einen Schnappschuss beim ERSTEN Rendern — sonst wanderten die Kacheln mitten in der Bedienung unter dem Finger.
+     Neu geordnet wird erst nach dem nächsten Laden. */
+  const nutzung = useRef(null);
+  if (nutzung.current === null) {
+    try { nutzung.current = JSON.parse(localStorage.getItem('wg_wz_nutzung') || '{}') || {}; }
+    catch (e) { nutzung.current = {}; }   /* wg-v134: kaputter/gesperrter Speicher → keine Rangfolge, Standardreihenfolge; es geht nur um die Sortierung */
+  }
+  const mitFalt = faltbar !== undefined;
+  const roh = [...wz.leer, ...extra], imBlatt = wz.blattW;
+  /* wg-v134: faltbar === false → nach Zähler absteigend; Array.sort ist stabil, Gleichstand behält die bisherige Reihenfolge */
+  const leer = mitFalt && !faltbar ? [...roh].sort((a, b) => (nutzung.current[b.k] || 0) - (nutzung.current[a.k] || 0)) : roh;
   if (!leer.length && !imBlatt) return null;
-  const tippen = w => w.aktion ? w.aktion() : w.blatt ? wz.setBlatt(w.k) : setTick(t => ({ ...t, [w.k]: (t[w.k] || 0) + 1 }));
+  const zaehlen = k => {
+    if (!mitFalt) return;
+    try { const n = JSON.parse(localStorage.getItem('wg_wz_nutzung') || '{}') || {}; n[k] = (n[k] || 0) + 1; localStorage.setItem('wg_wz_nutzung', JSON.stringify(n)); }
+    catch (e) { /* wg-v134: Zähler nicht schreibbar (Privatmodus, voll) → egal, er steuert nur die Reihenfolge der Kacheln */ }
+  };
+  const tippen = w => { zaehlen(w.k); return w.aktion ? w.aktion() : w.blatt ? wz.setBlatt(w.k) : setTick(t => ({ ...t, [w.k]: (t[w.k] || 0) + 1 })); };
   /* wg-v113 (P13): faltbar (Heute) = Bool statt undefined. true → das Gitter klappt hinter „Weitere Werkzeuge (N) ▾" (CSS .wz-falt),
      solange „Erste Schritte" steht; false → Gitter normal offen, die Zeile klappt weg. Ohne die Prop (Haushalt, Putzplan, Übersicht)
      bleibt der Aufbau wie vorher — kein zusätzlicher Kasten, der Fokusringe kappen könnte.
      🪤 Die Kacheln BLEIBEN im DOM (nur Höhe 0 + visibility): versteckte Karten dahinter haben Nebenwirkungen — LoginShare räumt alte
      Freigaben weg, WashCard öffnet ?a=waesche, der Such-Sprung (AppInner) tippt die Kachel per click() an. Ein Aushängen des Gitters
      (bedingtes Rendern) hätte genau diese unsichtbar eingehängten Karten (data-tool-leer, unten) mit abgeräumt. */
-  const mitFalt = faltbar !== undefined, offen = !mitFalt || !faltbar || auf;
+  /* wg-v134: Kachelwand — faltbar === false und mehr als 5 Kacheln: die ersten 4 stehen immer, der Rest wandert hinter die Zeile
+     „Weitere Werkzeuge (N)" (N = Anzahl der versteckten). Bis 5 Kacheln: alle offen, keine Zeile (eine Zeile für 1 Kachel spart nichts). */
+  const geteilt = mitFalt && !faltbar && leer.length > 5;
+  const offen = !mitFalt || (faltbar ? auf : (!geteilt || auf));
+  const kachel = w => (
+    <button key={w.k} type="button" className="wz-kachel" data-chip={w.k} onClick={() => tippen(w)}>
+      <span className="wz-ico" aria-hidden="true">{w.em}</span>
+      <span className="wz-l">{w.l}</span>
+    </button>
+  );
   const gitter = (
     <>
       {leer.length > 0 && <div className="section-hdr" role="heading" aria-level="2">{TT("Hinzufügen")}</div>}
       <div className="wz-gitter" id={mitFalt ? 'wz-gitter-' + testid : undefined}>
-        {leer.map(w => (
-          <button key={w.k} type="button" className="wz-kachel" data-chip={w.k} onClick={() => tippen(w)}>
-            <span className="wz-ico" aria-hidden="true">{w.em}</span>
-            <span className="wz-l">{w.l}</span>
-          </button>
-        ))}
+        {(geteilt ? leer.slice(0, 4) : leer).map(kachel)}
       </div>
     </>
   );
   return (
     <div className="rise abschnitt" /* wg-v117 (HIER-2): .abschnitt = „beginnt mit einem Kopf" (Abschnitts-Rand 12 px, s. CSS „Abschnitts-Rhythmus"); der Kopf „Hinzufügen" sitzt hier je nach Falt-Zustand tiefer im Baum, :has() fände ihn nicht */ data-testid={testid}>
-      {mitFalt ? (
+      {geteilt ? (
+        /* wg-v134: erste 4 Kacheln + Zeile + eingeklappter Rest (.wz-falt, Kacheln bleiben im DOM — s. 🪤 oben). Der Rest-Kasten hat eine eigene id für aria-controls */
+        <>
+          {gitter}
+          <div className="wz-falt auf wz-mehr-zeile"><div className="wz-falt-in">
+            <button type="button" className="wz-mehr" data-testid="wz-mehr" aria-expanded={auf} aria-controls={'wz-rest-' + testid} onClick={() => setAuf(a => !a)}>
+              <span>{TT("Weitere Werkzeuge ({0})", leer.length - 4)}</span><span className="wz-mehr-pfeil" aria-hidden="true">▼</span>
+            </button>
+          </div></div>
+          <div className={`wz-falt wz-rest${auf ? ' auf' : ''}`}><div className="wz-falt-in"><div className="wz-falt-pad">
+            <div className="wz-gitter" id={'wz-rest-' + testid} data-testid="wz-rest">{leer.slice(4).map(kachel)}</div>
+          </div></div></div>
+        </>
+      ) : mitFalt ? (
         <>
           <div className={`wz-falt${faltbar && leer.length ? ' auf' : ''}`}><div className="wz-falt-in">
             <button type="button" className="wz-mehr" data-testid="wz-mehr" aria-expanded={offen} aria-controls={'wz-gitter-' + testid} onClick={() => setAuf(a => !a)}>

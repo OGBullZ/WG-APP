@@ -22,6 +22,7 @@
 import { chromium } from 'playwright';
 import { STUB } from './_fbstub.mjs';
 import { WT } from './_finden.mjs';
+import { kachelwandAuf } from './_heute.mjs';   /* wg-v134 (Kachelwand) */
 
 const URL_ = process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
 const pass = [], fail = [];
@@ -189,14 +190,14 @@ await blk('A Ausgabe', async () => {
 await blk('A Inhalt/Module', async () => {
   const V = await open({ seed: { users: USERS, hs: { h1: { id: 'h1', seq: 1, name: 'Rewe', price: 12, paidBy: 'u1', date: T, settled: false } } } });
   check('A14 bestehende WG (Ausgabe da, Putzplan leer, kein Merker) bekommt die Karte nicht', await karte(V.page).count() === 0);
-  check('A14b dort ist „Weitere Werkzeuge" nicht zu sehen, die Kacheln schon (wie bisher)', await sichtbar(V.page, '[data-testid="wz-mehr"]') === 0 && await sichtbar(V.page, '[data-testid="tool-chips"] .wz-kachel') >= 8);
+  check('A14b dort stehen die 4 meistgenutzten Kacheln, der Rest hinter „Weitere Werkzeuge" (wg-v134: Kachelwand; vorher alle offen, keine Zeile)', await sichtbar(V.page, '[data-testid="wz-mehr"]') === 1 && await sichtbar(V.page, '[data-testid="tool-chips"] .wz-kachel') === 4);
   check('A14c kein Merker geschrieben (wg_firststeps_on bleibt leer)', await ls(V.page, 'wg_firststeps_on') === null);
   await V.ctx.close();
   const M = await open({ modules: { haus: false } });
   check('A15 Haushalt aus → nur „Putzplan anlegen" (kein Sprung ins Leere), „0 von 1"', await M.page.locator('.es-zeile').count() === 1 && await M.page.locator('[data-testid="fs-pt"]').count() === 1 && /0 von 1 erledigt/.test(await zahl(M.page) || ''), await zahl(M.page) || '—');
   await M.ctx.close();
   const N = await open({ modules: { haus: false, putz: false } });
-  check('A16 Haushalt UND Putzplan aus → keine Karte, „Weitere Werkzeuge" nicht zu sehen, Kacheln offen', await karte(N.page).count() === 0 && await sichtbar(N.page, '[data-testid="wz-mehr"]') === 0 && await sichtbar(N.page, '[data-testid="tool-chips"] .wz-kachel') >= 8);
+  check('A16 Haushalt UND Putzplan aus → keine Karte, 4 Kacheln + „Weitere Werkzeuge", aufgeklappt ≥ 8 Kacheln (wg-v134: Kachelwand)', await karte(N.page).count() === 0 && await sichtbar(N.page, '[data-testid="wz-mehr"]') === 1 && await sichtbar(N.page, '[data-testid="tool-chips"] .wz-kachel') === 4 && (await kachelwandAuf(N.page), await sichtbar(N.page, '[data-testid="tool-chips"] .wz-kachel')) >= 8);
   await N.ctx.close();
   const R = await open({ reduce: true });
   await R.page.locator('[data-testid="wz-mehr"]').click(); await R.page.waitForTimeout(150);
@@ -213,9 +214,9 @@ await blk('B', async () => {
   await page.evaluate(() => { const b = document.querySelector('[data-testid="fs-close"]'); b.click(); b.click(); });   // zweimal in einem Bild: idempotent
   await page.waitForTimeout(600);
   check('B2 × → Karte weg (aus dem Baum), Merker wg_firststeps_off gesetzt', await karte(page).count() === 0 && await ls(page, 'wg_firststeps_off') === 'true');
-  check('B3 Gitter klappt auf (Kacheln sichtbar), „Weitere Werkzeuge" weg', await sichtbar(page, '[data-testid="tool-chips"] .wz-kachel') === 11 && await sichtbar(page, '[data-testid="wz-mehr"]') === 0);
+  check('B3 Gitter wechselt in den Normalfall: 4 Kacheln + „Weitere Werkzeuge", aufgeklappt alle 11 (wg-v134: Kachelwand)', await sichtbar(page, '[data-testid="tool-chips"] .wz-kachel') === 4 && await sichtbar(page, '[data-testid="wz-mehr"]') === 1 && (await kachelwandAuf(page), await sichtbar(page, '[data-testid="tool-chips"] .wz-kachel')) === 11);
   await neustart(B);
-  check('B4 nach Neuladen bleibt sie weg, Gitter offen', await karte(page).count() === 0 && await sichtbar(page, '[data-testid="tool-chips"] .wz-kachel') === 11);
+  check('B4 nach Neuladen bleibt sie weg, Normalfall-Gitter (4 sichtbar, aufgeklappt 11; wg-v134: Kachelwand)', await karte(page).count() === 0 && await sichtbar(page, '[data-testid="tool-chips"] .wz-kachel') === 4 && (await kachelwandAuf(page), await sichtbar(page, '[data-testid="tool-chips"] .wz-kachel')) === 11);
   check('B5 keine Seitenfehler', B.errs.length === 0, B.errs.join(' | '));
   await B.ctx.close();
 });
@@ -238,7 +239,7 @@ await blk('C', async () => {
   await page.waitForTimeout(700);
   check('C3 Putzplan dazu → Karte klappt zu (nach 120 ms noch teilweise da, danach aus dem Baum)', mitten > 0 && mitten < vorher + 4 && await karte(page).count() === 0, `${vorher} px → nach 120 ms ${mitten} px`);
   check('C4 Merker „aus" sofort geschrieben (Daten zuerst, nur die Anzeige klappt)', await ls(page, 'wg_firststeps_off') === 'true');
-  check('C5 Gitter offen, „Weitere Werkzeuge" weg', await sichtbar(page, '[data-testid="tool-chips"] .wz-kachel') >= 8 && await sichtbar(page, '[data-testid="wz-mehr"]') === 0);
+  check('C5 Normalfall-Gitter: 4 Kacheln + „Weitere Werkzeuge", aufgeklappt ≥ 8 (wg-v134: Kachelwand)', await sichtbar(page, '[data-testid="tool-chips"] .wz-kachel') === 4 && await sichtbar(page, '[data-testid="wz-mehr"]') === 1 && (await kachelwandAuf(page), await sichtbar(page, '[data-testid="tool-chips"] .wz-kachel')) >= 8);
   await neustart(C);
   check('C6 nach Neustart nie wieder', await karte(page).count() === 0);
   check('C7 keine Seitenfehler', C.errs.length === 0, C.errs.join(' | '));
@@ -336,6 +337,7 @@ for (const [w, lang] of [[320, 'de'], [360, 'de'], [375, 'de'], [390, 'de'], [36
   const schlecht = [], zeilen = []; let woerter = 0; const spalten = new Set(); let ungleich = 0;
   for (const [name, idx] of TABS) {
     await page.locator('.tabbar .tabitem').nth(idx).click(); await page.waitForTimeout(550);
+    await kachelwandAuf(page);   /* wg-v134 (Kachelwand): Heute zeigt nur 4 Kacheln — für die Wortmessung alle aufklappen */
     const m = await wortMessung(page);
     woerter += m.out.length; m.spalten.forEach(s => spalten.add(s));
     if (m.breiten.length && Math.max(...m.breiten) - Math.min(...m.breiten) > 1.5) ungleich++;
