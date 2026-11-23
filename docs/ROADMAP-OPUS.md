@@ -503,5 +503,5 @@ Beim Abschluss eines Pakets hier abhaken (Datum, Version, Commit). Was sich als 
 | B3 Regeln gegenlesen | ✅ Befund + statischer Regeltest `regeln_v133`, keine Regeländerung | wg-v128 `d8c4a6e` | 20.11. |
 | B4 Abhängigkeiten | ✅ `docs/ABHAENGIGKEITEN.md`, `engines.node` 22.x | wg-v128 `d8c4a6e` | 20.11. |
 | B5 Betriebsprüfung | offen | | |
-| T1 Vorlage Aufteilen | offen | | |
+| T1 Vorlage Aufteilen | ✅ Vorlage `docs/ENTSCHEIDUNG-AUFTEILEN.md`, torbe wählte **A** (eine Datei, gegliedert): `scripts/abschnitt.mjs` + Test `abschnitt`; B (Dateien + Build) bewusst nicht | ohne Release | 23.11. |
 | H1–H3 | nur auf Wunsch | | |
