@@ -420,6 +420,15 @@ main:focus { outline:none; }
 /* Haken und × sind nur 26 px breit — seitlich mehr zugeben (Nachmessung ergab 34 px mit -4) */
 /* Spezifischer als „.cell > button::after", sonst gewinnt dort -4 px (per Nachmessung gefunden: blieb bei 34 px) */
 .del-btn::after, .chk-btn::after, .cell > .del-btn::after, .cell > .chk-btn::after { content:''; position:absolute; inset:-8px -7px; }
+/* wg-v134 (Bedienung #10, gemessen per elementFromPoint in der Einkaufszeile): wirksam waren Kreis 38×40, × 40×50, Laden-Chip 64×38 —
+   Ziel ≥ 44×44 ohne sichtbare Änderung. Kreis 26 + 2×9 = 44; × (26×34 sichtbar) + 5/9 = 44×44; Chip (22 hoch) + 2×11 = 44.
+   Überlappen sich Flächen (Chip ↔ ×), gewinnt das spätere Element im DOM (das ×) — gewollt, Löschen hat Rückgängig. */
+.chk-btn::after, .cell > .chk-btn::after { inset:-10px; }   /* -9 ergab gemessen nur 42×42 (Rundung + Rand), -10 → 44×44 */
+.del-btn::after, .cell > .del-btn::after { inset:-5px -9px; }
+.cell > button.due-chip::after { inset:-11px -4px; }
+/* wg-v134 (Bedienung B3): Namensfeld unter Mehr → Personen als Eingabe erkennbar (Inline-Stil setzt border:none, daher !important nur für die Unterlinie) */
+.field.name-feld { border-bottom:1.5px dashed var(--label4) !important; border-radius:0; }
+.field.name-feld:focus { border-bottom:1.5px solid var(--mint) !important; }
 /* Zellen, die selbst Knöpfe sind (Code wechseln, Backups): Textfarbe erben statt Browser-Schwarz */
 button.cell { color:var(--label); }
 .hit::after { content:''; position:absolute; inset:-12px -4px; }
@@ -13277,7 +13286,9 @@ function Einstellungen() {
               return (
               <div key={u.id} className="cell" style={{flexWrap:'wrap'}} data-testid="person-row">
                 <div style={{width:10,height:10,borderRadius:'50%',background:u.color,boxShadow:`0 0 8px ${u.color}`,flexShrink:0}}/>
-                <input className="field" maxLength={100} aria-label={TT("Name der Person")} readOnly={ro} style={{background:'transparent',border:'none',padding:'9px 0',minHeight:40,fontSize:16,fontWeight:600,flex:1,...lockSt}}
+                {/* wg-v134 (Bedienung B3): eigenes Profil = .name-feld (gestrichelte Unterlinie, beim Fokus durchgezogen) — vorher sah das Feld aus wie Text
+                    und niemand fand, dass man den Namen hier ändern kann; fremde Profile (ro) bleiben ohne Linie */}
+                <input className={`field${ro ? '' : ' name-feld'}`} maxLength={100} aria-label={TT("Name der Person")} readOnly={ro} style={{background:'transparent',border:'none',padding:'9px 0',minHeight:40,fontSize:16,fontWeight:600,flex:1,...lockSt}}
                   value={u.name} onChange={e=>{ if (!ro) set('users',users.map(x=>x.id===u.id?{...x,name:e.target.value}:x)); }}/>
                 <button className="btn btn-kompakt" onClick={async()=>{ if (me && me!==u.id && !(await askConfirm({ title:TT("Bist du wirklich {0}?", u.name), body:TT("Dieses Handy gehört dann {0}: Putzplan, Zahlungen und das Profil gelten für {1}.", u.name, u.name), okLabel:TT("Ich bin {0}", u.name) }))) return; setMe(u.id); }}
                   style={{background:me===u.id?u.color:'var(--bg3)',color:me===u.id?'#0a120c':'var(--label3)',flexShrink:0}}>
