@@ -2,7 +2,7 @@
    nichts geht ins Netz zurück), vergleicht Kennzahlen: Anzahl Einträge je Liste, Summe Haushalt/Growbox, jüngstes Datum, Personen.
    Rein LESEND gegenüber der Produktion (nur GET auf /api/backup; optional GET auf die RTDB mit --live). Es wird nie etwas zurückgeschrieben.
    Gebrauch:  WG_CODE=WORT-WORT-XXXXXX node scripts/restore-probe.mjs [--live] [--tag 2026-11-19]
-   Umgebung:  WG_CODE (Pflicht, aus der Umgebung — nicht aus einer Datei im Repo) · PROBE_BASE (Standard https://wgapp-65484.web.app)
+   Umgebung:  WG_CODE (Pflicht, aus der Umgebung — nicht aus einer Datei im Repo) · PROBE_BASE (Standard https://wg-app-bull-z.vercel.app — dort liegt /api)
               WG_URL / WG_BASIS (lokale App; `npm run serve` auf 8099) · PROBE_LOG (Protokolldatei, Standard scratchpad/restore-probe-letzt.json)
    Hinweis: Die Sicherungen sind NICHT verschlüsselt (Klartext-JSON unter dem geheimen Pfad sv/<BACKUP_KEY>/bk, Zugriff per WG-Code über
    /api/backup). `BACKUP_KEY` braucht dieser Weg nicht — nur der Server kennt ihn. Quartalsweise wiederholen; das Datum liest `npm run betrieb`.
@@ -32,7 +32,7 @@ export function kennzahlen(d) {
 }
 const gleich = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
-export async function probe({ code, base = 'https://wgapp-65484.web.app', app, tag, live = false, log = () => {} }) {
+export async function probe({ code, base = 'https://wg-app-bull-z.vercel.app' /* wg-v130: /api liegt auf Vercel (web.app lieferte 404) */, app, tag, live = false, log = () => {} }) {
   const gets = [];
   const get = async u => { gets.push(u); const r = await fetch(u); if (!r.ok) throw new Error(`${r.status} ${u.replace(code, '<code>')}`); return r.json(); };
   const lst = await get(`${base}/api/backup?code=${encodeURIComponent(code)}`);
@@ -93,7 +93,12 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const a = process.argv.slice(2);
   const app = process.env.WG_URL || (process.env.WG_BASIS || 'http://127.0.0.1:8099') + '/wgapp.html';
   const tag = a.includes('--tag') ? a[a.indexOf('--tag') + 1] : undefined;
-  const r = await probe({ code, base: process.env.PROBE_BASE || undefined, app, tag, live: a.includes('--live'), log: console.log });
+  /* wg-v130: Fehler als Meldung + exitCode statt Wurf — ein ungefangener Fehler mit offenen fetch-Verbindungen brach unter Windows
+     mit „Assertion failed … UV_HANDLE_CLOSING" ab (gesehen 20.11. beim 403) */
+  let r;
+  try { r = await probe({ code, base: process.env.PROBE_BASE || undefined, app, tag, live: a.includes('--live'), log: console.log }); }
+  catch (e) { console.error('✗ ' + String(e.message || e)); process.exitCode = 2; }
+  if (!r) { /* Fehler schon gemeldet */ } else {
   console.log('Listen (Sicherung → App):', Object.entries(r.soll.anzahl).map(([k, n]) => `${k} ${n}→${r.ist.anzahl[k] || 0}`).join(' · '));
   console.log(`Summe Haushalt €${r.soll.summe.hs} → €${r.ist.summe.hs} · Growbox €${r.soll.summe.gi} → €${r.ist.summe.gi} · jüngstes Datum ${r.soll.juengstes} → ${r.ist.juengstes} · Personen ${r.soll.personen} → ${r.ist.personen}`);
   if (r.vsLive) console.log('Live (nur gelesen):', r.vsLive.fehler ? r.vsLive.fehler : `Posten Haushalt ${r.vsLive.anzahl.hs || 0} (Sicherung ${r.soll.anzahl.hs || 0}), Summe €${r.vsLive.summe.hs}`);
@@ -101,5 +106,6 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const logDatei = process.env.PROBE_LOG || path.join(hier, '..', 'scratchpad', 'restore-probe-letzt.json');
   fs.mkdirSync(path.dirname(logDatei), { recursive: true });
   fs.writeFileSync(logDatei, JSON.stringify({ gelaufen: new Date().toISOString(), ok: r.ok, sicherung: r.day, alterStd: r.alterStd, kennzahlen: r.soll, unterschiede: r.unterschiede }, null, 2));
-  process.exit(r.ok ? 0 : 1);
+  process.exitCode = r.ok ? 0 : 1;   /* wg-v130: exitCode statt exit() — Node schließt offene Verbindungen selbst (Windows-Assertion) */
+  }
 }

@@ -3526,6 +3526,8 @@ window.__WG_EN = {
 
 
 
+
+
 <script type="text/jsx-src" id="jsx-src">
 const { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo, createContext, useContext, useDeferredValue } = React;   /* wg-v112: useLayoutEffect für useAenderung (Bewegung vor dem ersten Malen anlegen) */
 
@@ -4679,6 +4681,11 @@ function DataProvider({ children }) {
   /* Eigene Push-Registrierung fehlt unter diesem Code (neuer Code nach Wechsel/Beitritt, oder vom Server als tot
      entfernt)? Still neu eintragen — sonst bekäme dieses Gerät nach einem Code-Wechsel nie wieder Pushes.
      Nur wenn der Browser noch eine Subscription hat: wer Push ausgeschaltet hat, hat sie gekündigt (unsubscribe). */
+  /* wg-v127 (S3): Push-Registrierung schreiben — der Server schickt die Push in der Sprache des Geräts. set() ersetzt den Eintrag komplett,
+     `lang` muss also jedes Mal mit. Kennt die Datenbank das Feld noch nicht (Regeln noch alt), lehnt sie den ganzen Eintrag ab →
+     dann ohne `lang` erneut, damit eine Anmeldung nie an der Sprache scheitert (lang: LANG) */
+  const pushSchreiben = (eintrag) => dbRef.current.child('push/' + deviceId).set({ ...eintrag, lang: LANG })
+    .catch(() => dbRef.current.child('push/' + deviceId).set(eintrag));
   const healPush = (remoteObj) => {
     try {
       if (!PUSH_API || !('Notification' in window) || Notification.permission !== 'granted' || !('serviceWorker' in navigator)) return;
@@ -4694,14 +4701,19 @@ function DataProvider({ children }) {
         if (!sameKey) {
           try { await sub.unsubscribe(); } catch {}
           sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: want });
-        } else if (remoteObj && remoteObj.push && remoteObj.push[deviceId]) { ss('wg_push_key', VAPID_PUBLIC_KEY); return; }   // alles aktuell
+        } else if (remoteObj && remoteObj.push && remoteObj.push[deviceId]) {
+          ss('wg_push_key', VAPID_PUBLIC_KEY);
+          /* wg-v127 (S3): Altabo ohne Sprache oder Sprachwechsel seit der Anmeldung → nur `lang` nachziehen (update, kein set: Einstellungen bleiben) */
+          if (remoteObj.push[deviceId].lang !== LANG) dbRef.current.child('push/' + deviceId).update({ lang: LANG }).catch(() => {});
+          return;   // alles aktuell
+        }
         ss('wg_push_key', VAPID_PUBLIC_KEY);
         const j = sub.toJSON() || {};
         const prefs = pushPrefsNow();
         const name = (dataRef.current.users || []).find(u => u.id === ls('wg_me', null))?.name || 'Gerät';
         // wg-v114: `uid` mitschreiben — set() ersetzt den ganzen Eintrag, ohne uid wüsste der Server danach nicht mehr,
         // wessen Gerät das ist (Putz-Push je Person, api/_wg.subsJePerson)
-        await dbRef.current.child('push/' + deviceId).set({ endpoint: j.endpoint, p256dh: (j.keys && j.keys.p256dh) || null, auth: (j.keys && j.keys.auth) || null, name, uid: ls('wg_me', null) || null, t: Date.now(), ...prefs });
+        await pushSchreiben({ endpoint: j.endpoint, p256dh: (j.keys && j.keys.p256dh) || null, auth: (j.keys && j.keys.auth) || null, name, uid: ls('wg_me', null) || null, t: Date.now(), ...prefs });
       }).catch(() => {});
     } catch {}
   };
@@ -4855,7 +4867,7 @@ function DataProvider({ children }) {
   // Subscription unter wg/<code>/push/<deviceId> ablegen bzw. entfernen (nutzt die aktive DB-Instanz).
   const pushSave   = useCallback((sub) => {
     if (!dbRef.current) return Promise.reject(new Error('offline'));
-    return dbRef.current.child('push/' + deviceId).set(sub);
+    return pushSchreiben(sub);
   }, [deviceId]);
   const pushRemove = useCallback(() => {
     if (!dbRef.current) return Promise.resolve();
@@ -5509,14 +5521,14 @@ function WizSum({ name, price }) {
 }
 
 // onDelete/deleteLabel (wg-v102): leiser Lösch-Knopf unten im Bearbeiten-Fenster — ersetzt das × an jeder Listenzeile
-function Wiz({ open, onClose, title, color, steps, onFinish, initial, quickOk, quickLabel, onDelete, deleteLabel }) {
+function Wiz({ open, onClose, title, color, steps, onFinish, initial, quickOk, quickLabel, onDelete, deleteLabel, startStep }) {   // startStep: Schritt, mit dem das Blatt öffnet (Bearbeiten: gleich beim Betrag)
   const [step,setStep] = useState(0);
   const [data,setData] = useState({});
   const [dir,setDir] = useState(0);   /* wg-v112 (P7): Richtung des letzten Schrittwechsels (+1 weiter, −1 zurück, 0 = frisch geöffnet → erster Schritt ohne Bewegung) */
   // Nur beim ÖFFNEN zurücksetzen (deps bewusst ohne initial): Edit-Sheets bekommen initial
   // als Inline-Objekt — jedes Remote-Update rendert den Parent neu und würde sonst mitten
   // in der Eingabe Schritt + Formulardaten auf Anfang zurückwerfen.
-  useEffect(()=>{ if(open){setStep(0);setDir(0);setData(initial||{});} },[open]);
+  useEffect(()=>{ if(open){setStep(Math.min(startStep||0, steps.length-1));setDir(0);setData(initial||{});} },[open]);
   /* „Weiter" lief bei fehlender Angabe in ein stummes `return` (wg-v96). Gemessen im Putz-Formular:
      Der Knopf meldete `disabled:false`, ohne `aria-disabled`, volle Deckkraft, `pointer-events:auto` —
      er sah klickbar aus, war es auch, und tat trotzdem nichts. Der Nutzer tippt und erfährt nicht, warum
@@ -7304,7 +7316,7 @@ function PushNudge({ goTab }) {
   }, []);
   useEffect(()=>{ if (status==='synced' && listPushDevices) listPushDevices().then(setDevs).catch(()=>{}); }, [status]);
   // Alte Anmeldungen (vor wg-v71) nachträglich der Person zuordnen
-  useEffect(()=>{ if (mine==='on' && me && pushPrefsUpdate) pushPrefsUpdate({ uid:me }).catch(()=>{}); }, [mine, me]);
+  useEffect(()=>{ if (mine==='on' && me && pushPrefsUpdate) pushPrefsUpdate({ uid:me, lang:LANG }).catch(()=>{}); }, [mine, me]);
   const hasPush = u => (devs||[]).some(d=>d.uid ? d.uid===u.id : d.name===u.name);
   /* wg-v113 (P13): am Einrichtungstag schweigt der Hinweis ganz. Der Assistent hat Push gerade abgefragt (Schritt „Nichts mehr verpassen",
      „Später" war eine bewusste Antwort) — direkt danach stand trotzdem „Benachrichtigungen sind blockiert" UND „Max bekommt keine
@@ -10438,7 +10450,9 @@ function Haushalt({goPutz}) {
   };
   const delRec = id => { const r=recs.find(x=>x.id===id); set('rec',recs.filter(x=>x.id!==id)); undo(TT("„{0}\" beendet", r?.name||'Posten'), ()=>setFn('rec', cur => cur.some(x=>x.id===id)?cur:[r,...cur])); };
 
-  const add    = d => { const amt=parseNum(d.price)||0; const nid=uid(); set('hs',[{id:nid,name:d.name||'Einkauf',price:amt,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),owedBy:d.owedBy||null,cat:d.cat||null,shop:(d.shop||'').trim()||null,settled:false},...items]); markiere([nid]) /* wg-v112 (P6): eigener Posten leuchtet kurz auf */; flyExpense(amt,'var(--mint)',heroRef.current) /* wg-v112 (P4): Token statt festem Pastell — hell der dunklere Akzent */; notifyOthers(TT("💸 {0} hat {1} € eingetragen", meName, fmt(amt)), d.name||'Einkauf', "wg-exp", "exp"); };
+  const add    = (d, mitUndo) => { const amt=parseNum(d.price)||0; const nid=uid(); set('hs',[{id:nid,name:d.name||'Einkauf',price:amt,paidBy:d.paidBy||users[0].id,date:d.date||todayISO(),owedBy:d.owedBy||null,cat:d.cat||null,shop:(d.shop||'').trim()||null,settled:false},...items]); markiere([nid]) /* wg-v112 (P6): eigener Posten leuchtet kurz auf */; flyExpense(amt,'var(--mint)',heroRef.current) /* wg-v112 (P4): Token statt festem Pastell — hell der dunklere Akzent */; notifyOthers(TT("💸 {0} hat {1} € eingetragen", meName, fmt(amt)), d.name||'Einkauf', "wg-exp", "exp");
+    /* Bedienung (Handy-Durchlauf 20.11.): wie die Schnell-Zeile — ein Vertippen im Assistenten bleibt sonst bis zum manuellen Löschen stehen. Nicht beim Kassenzettel (der leert zugleich die Liste). */
+    if (mitUndo) undo(TT("💸 „{0}\" €{1} eingetragen", d.name||'Einkauf', fmt(amt)), ()=>setFn('hs', cur=>(cur||[]).filter(x=>x && x.id!==nid))); };
   // Vergessenes schnell melden: landet in der Einkaufsliste + Sofort-Push „bitte bring X mit" an den anderen
   const sendBring = () => {
     const n=bringName.trim(); if(!n){ return; }
@@ -10680,7 +10694,7 @@ function Haushalt({goPutz}) {
       if (rest > 0.004) add({ ...d, owedBy:null, price:String(rest).replace('.',','), name:('Einkauf: '+(sharedNames.join(', ')||'gemeinsam')).slice(0,120) });
       const meins = hsItem({ name:(`Einkauf nur ${nameOfU(users, me)}: ${mineNames.join(', ')}`).slice(0,120), price:mine, paidBy:payer, owedBy:me, cat:d.cat||null, date:d.date||todayISO() });
       setFn('hs', cur=>[meins, ...(cur||[])]); markiere([meins.id]) /* wg-v112 (P6): auch der „nur ich"-Posten leuchtet */;
-    } else add(d);
+    } else add(d, !wizInit?.receipt);
     if (wizInit?.receipt) { const ids=boughtItems.map(i=>i.id); setFn('sl', cur=>cur.filter(i=>!ids.includes(i.id))); const nb={t:0,ids:[]}; ss('wg_bought',nb); setBought(nb); }
   };
   // Schritt 3 (Bezahler + Aufteilung kombiniert) mit Review-Karte oben — geteilt von steps/recSteps
@@ -11225,7 +11239,7 @@ function Haushalt({goPutz}) {
           dort führt „Weiter" zu Schritt 3 mit der echten Aufteilung. Kassenzettel, Bearbeiten, Übernehmen: fester Bereich (stepsHs/stepsGi),
           keine Wahl, kein Umzug zwischen hs und gi. */}
       <Wiz open={wiz} onClose={()=>{ setWiz(false); setWizInit(null); }} title={TT("Ausgabe")} color="var(--mint)" steps={wizInit?.receipt ? stepsHs : steps} onFinish={addFromWiz} initial={wizInit||addInit} quickOk={d=>d.bereich!=='gi'&&d.name?.trim()&&betragOk(d.price)&&d.paidBy}/>
-      <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title={TT("Bearbeiten")} color="var(--mint)" steps={editItem?.mod==='gi' ? stepsGi : stepsHs} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,owedBy:editItem.owedBy||null,cat:editItem.cat||null,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>
+      <Wiz open={!!editItem} onClose={()=>setEditItem(null)} title={TT("Bearbeiten")} color="var(--mint)" startStep={1} steps={editItem?.mod==='gi' ? stepsGi : stepsHs} onFinish={save} initial={editItem?{name:editItem.name,price:String(editItem.price).replace(".",","),paidBy:editItem.paidBy,owedBy:editItem.owedBy||null,cat:editItem.cat||null,date:/^\d{4}-\d{2}-\d{2}$/.test(editItem.date||'')?editItem.date:todayISO()}:null}/>
       <Wiz open={!!convItem} onClose={()=>setConvItem(null)} title={TT("Als Ausgabe übernehmen")} color="var(--mint)" steps={stepsHs} onFinish={convert} initial={convItem?{name:convItem.name,paidBy:me||undefined,date:todayISO()}:null}/>
       <Wiz open={recWiz} onClose={()=>setRecWiz(false)} title={TT("Wiederkehrend (monatlich)")} color="var(--mint)" steps={recSteps} onFinish={addRec} initial={addInit}/>
       {bringOpen && ReactDOM.createPortal(
@@ -11886,9 +11900,17 @@ function ChoreQuick({ goPutz, leer, onDran }) {   /* leer (wg-v112, P9): was an 
        ohne Wert (Element fehlt) bleibt der Rückfall 96 px aus dem CSS */
     const h = Math.round(el?.closest?.('.cell')?.getBoundingClientRect().height || 0);
     done(t, farbe => setSchatten(s => [...s, { key, t, idx, farbe, h, t0 }]));
+    /* wg-v133 (G7 Fund 2): weg erst, wenn das Zuklappen (CSS schattenAb) WIRKLICH fertig ist. Auf langsamen Geräten startet die CSS-Animation
+       ~50 ms später als der Zeitgeber; der feste 630-ms-Tausch nahm den Schatten dann mitten im Zuklappen weg — die letzten ~11 px sprangen
+       in einem Bild (gemessen CPU 4×, Test gutachten2_c3 F8l). Nachfrist höchstens 400 ms, damit ein hängendes Bild nie einen Schatten stehen lässt. */
+    const weg = () => { uhren.current.delete(uhr); gefeiert.current.delete(key); setSchatten(s => s.filter(x => x.key !== key)); };
     const uhr = setTimeout(() => {
-      uhren.current.delete(uhr); gefeiert.current.delete(key);
-      setSchatten(s => s.filter(x => x.key !== key));
+      const el = wurzel.current?.querySelector(`[data-schatten="${key}"]`);
+      const laufend = el?.getAnimations ? el.getAnimations().filter(a => a.playState === 'running') : [];
+      if (!laufend.length) { weg(); return; }
+      const frist = setTimeout(weg, 400);
+      uhren.current.add(frist);
+      Promise.all(laufend.map(a => a.finished)).then(() => { clearTimeout(frist); uhren.current.delete(frist); weg(); }, () => { clearTimeout(frist); uhren.current.delete(frist); weg(); });
     }, SCHATTEN_MS);
     uhren.current.add(uhr);
   };
@@ -12805,7 +12827,7 @@ function Einstellungen() {
   const fmtErrTime = t => { const d = new Date(t || 0), z = n => String(n).padStart(2, '0'); return `${z(d.getDate())}.${z(d.getMonth()+1)}. ${z(d.getHours())}:${z(d.getMinutes())}`; };
   const loadBackups = async () => {
     setBkDays(null); setBkMsg('');
-    try { const r = await fetch(`${PUSH_API}/api/backup?code=${encodeURIComponent(wgCode)}`); const j = await r.json(); if (!r.ok) throw new Error(j.error || r.status); setBkDays(j.days || []); ss('wg_bk_age', backupAgeDays(j.days || [])); }
+    try { const r = await bkPost({ code: wgCode, action:'list' }); const j = await r.json(); if (!r.ok) throw new Error(j.error || r.status); setBkDays(j.days || []); ss('wg_bk_age', backupAgeDays(j.days || [])); }
     catch (e) { setBkDays(TT("Backups gerade nicht erreichbar ({0}).", (e && e.message) || '?')); }   /* wg-v118 (EN-3): ganzer Satz mit {0} statt Bruchstücken */
   };
   const openBackups = () => { setBkOpen(true); loadBackups(); };
@@ -12826,7 +12848,7 @@ function Einstellungen() {
     setBkMsg('Lade …');
     try {
       await bkPost({ code: wgCode, action:'snapshot' }).catch(() => {});   // Sicherheitsnetz: jetzigen Stand vorher sichern
-      const r = await fetch(`${PUSH_API}/api/backup?code=${encodeURIComponent(wgCode)}&day=${encodeURIComponent(day)}`);
+      const r = await bkPost({ code: wgCode, action:'get', day });   /* Code im Body statt in der URL (Zugriffsprotokolle) */
       const j = await r.json(); if (!r.ok || !j.data) throw new Error(j.error || r.status);
       // Snapshot kommt im DB-Format (Listen als {id:item}) — für replaceData in Arrays umwandeln, sonst wären alle Listen leer
       replaceData(normalizeRemote(j.data)); setBkMsg('✓ Eingespielt'); setBkOpen(false);
@@ -13381,7 +13403,6 @@ function Einstellungen() {
         <MoveOutCard/>
         </Fold>
         <Fold id="people" title={TT("👥 Personen")} sub={TT("Wer bist du, Namen, Farben, PayPal, Geburtstage")} alert={!me}>
-        <GeburtstagCard/>
         {/* Persons */}
         <div className="rise" style={{animationDelay:'200ms'}}>
           <div className="section-hdr" role="heading" aria-level="2">{TT("Personen")}</div>
@@ -13424,6 +13445,7 @@ function Einstellungen() {
           </button>
           <div className="section-ftr">{TT("„Das bin ich\" gilt nur für dieses Gerät. PayPal.me-Name und IBAN erscheinen beim Schuldenausgleich zum Antippen bzw. Kopieren – nur für die WG, nie im Gast-Link.")}</div>
         </div>
+        <GeburtstagCard/>   {/* Bedienung 20.11.: nach den Personen — vorher stand das Geburtstags-Formular vor Name/PayPal/IBAN */}
 
         </Fold>
         <PushJump/>
@@ -14289,7 +14311,7 @@ function AppInner() {
     if (!PUSH_API || status !== 'synced' || !navigator.onLine || !wgCode) return;
     if (Date.now() - (ls('wg_bk_check', 0) || 0) < 6 * 3600e3) return;
     ss('wg_bk_check', Date.now());
-    fetch(`${PUSH_API}/api/backup?code=${encodeURIComponent(wgCode)}`).then(r => r.ok ? r.json() : null).then(j => {
+    fetch(`${PUSH_API}/api/backup`, { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ code: wgCode, action:'list' }) }).then(r => r.ok ? r.json() : null).then(j => {
       if (!j || !Array.isArray(j.days)) return;
       const age = backupAgeDays(j.days); ss('wg_bk_age', age); setBkAge(age);
     }).catch(() => {});

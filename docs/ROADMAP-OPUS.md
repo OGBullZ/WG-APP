@@ -489,19 +489,19 @@ Beim Abschluss eines Pakets hier abhaken (Datum, Version, Commit). Was sich als 
 | G4 Querformat | ✅ Blatt mit Tastatur 115 px Körper statt 0 (Gegenprobe: Feld unerreichbar) | wg-v124 | 19.11. |
 | G8 Folgefunde v124 | ✅ Umschalter einzeilig, Betrag+Klammer zusammen, Chip-Tippfläche 44 px (`g8_folge_v125` 80, Gegenprobe 4 rot; Warnkarten-Teil nur Vorbeugung) | wg-v125 `62c585b` | 19.11. |
 | G9 Folgefund v125 | ✅ Einsatz-Karte bricht um statt zu ragen, „Zuletzt erledigt"-Zeile: Name bricht, Datum bleibt drin (`putz_schmal_v126` 88, Gegenprobe 16 rot) | wg-v126 `7437a01` | 19.11. |
-| G5 Erster Bildaufbau | ◐ Teil 1: `rise` startet bei Deckkraft .75 statt 0 (Tab .6 × Karte .75 = .45 wirksam, nie leer), `bildaufbau_v127` (Gegenprobe rot), `bewegung_v112` P2c angepasst · Teil 2 (`useDeferredValue`) offen | wg-v128 `d8c4a6e` (Teil 1) | 20.11. |
+| G5 Erster Bildaufbau | ◐ Teil 1: `rise` startet bei Deckkraft .75 statt 0 (Tab .6 × Karte .75 = .45 wirksam, nie leer), `bildaufbau_v127` (Gegenprobe rot), `bewegung_v112` P2c angepasst · ✅ Teil 2: Tab-Inhalt per `useDeferredValue`, Klick→Bild bei 4× CPU Median 112 → 32 ms (`deferred_v137`) | wg-v128 `d8c4a6e` + wg-v129 `d262817` | 20.11. |
 | G6 Lange Listen | gemessen, NICHT gebaut: `content-visibility` ab der 16. Zeile ließ die Seite springen (80 Posten, Höhe 8216 → 8248 px, bis 83 px Sprung beim Scrollen) und brachte keinen Aufbau-Gewinn (126 vs 123 ms, 4× CPU 341–409 vs 352–395 ms) | Messung Cloud-Sitzung | 20.11. |
-| G7 Langsame Geräte (FILM-5, F8l) | offen — nachstellbar mit `WG_CPU=4` | | |
+| G7 Langsame Geräte (FILM-5, F8l) | ✅ Ursache war die Weichzeichnung hinter dem Blatt (`backdrop-filter`, ganzes Fenster je Bild neu), nicht der Hauptthread: weg, Abdunkelung etwas stärker; Desktop 54 → 17 ms je Bild (`fahrt_v136`, Gegenprobe 4 rot). Ruckel-Messung auf festes 60-Hz-Raster (`_ruckel.mjs`, Cloud-PR 22) · Hintergrund hinter Blättern jetzt scharf — Geschmacksfrage, zurückdrehbar (`.overlay::before`) · **Fund 2 (F8l) ✅ wg-v133:** der feste 630-ms-Zeitgeber nahm den Schatten vor dem Ende seines Zuklappens weg (Animation startet gebremst ~50 ms später) → jetzt erst nach Animationsende (max. 400 ms Nachfrist); CPU 4× vorher 10,8 px, nachher 35/35 | wg-v129 `d262817` + wg-v133 `d13d6fc` | 20.–22.11. |
 | S1 Aufräumen Sprache | ✅ tote Schlüssel weg (`i18n-dict.mjs --tote`), Sprachlecks behoben (`sprache_v127`; Cloud-PR 2) | wg-v128 `d8c4a6e` | 20.11. |
 | S2 Prüfnetz | ✅ `scripts/i18n-roh.mjs` (Babel-AST) + Ausnahmeliste, Gate-Test `i18n_roh_v127` | wg-v128 `d8c4a6e` | 20.11. |
-| S3 Server-Push Englisch | offen | | |
+| S3 Server-Push Englisch | ✅ Texte in `api/_texte.js`, `lang` je Abo (Regel de\|en), Versand je Sprache (`push_en_v127` 20; Cloud-PR 3) · echter Test-Push auf Englisch offen (torbe) | wg-v132 `3241d97` | 21.11. |
 | A1 Regelprüfung | ✅ axe-core 4.10.2 über alle Tabs/Dialoge/Onboarding/PIN, Selbsttest S0; 30 Abschnittsköpfe: `role="heading"` auf den Titel statt Container (Cloud-PR 6; PR 5 war doppelt) | wg-v128 `d8c4a6e` | 20.11. |
 | A2 Fokus Randseiten | ✅ `VollbildFalle` Onboarding + 4 Druckansichten, `fokusRueck()` nie BODY (Gegenprobe 20 rot) | wg-v124 | 19.11. |
 | A3 Vorlese-Protokoll | ✅ `scripts/vorlesen.mjs` + `test/vorlesen/*.txt`, Gate-Test `vorlesen_v134` (CRLF + Testport normiert) | wg-v128 `d8c4a6e` | 20.11. |
 | B1 Geheimnisse | offen (torbe) | | |
-| B2 Restore-Probe | ◐ Werkzeug `scripts/restore-probe.mjs` + Test `restore_probe_v135` · **live-Lauf offen: braucht den WG-Code (nur Vercel-Env/Geräte) → torbe** | wg-v128 `d8c4a6e` | 20.11. |
+| B2 Restore-Probe | ✅ Werkzeug `scripts/restore-probe.mjs` + Test `restore_probe_v135`; **Live-Lauf 20.11. durch torbe** (`scripts/restore-live.ps1`): Sicherung vom 20.11. unverändert eingelesen, Listen/Summen = Live. Quartalsweise wiederholen | wg-v128 `d8c4a6e` + `a75741f` | 20.11. |
 | B3 Regeln gegenlesen | ✅ Befund + statischer Regeltest `regeln_v133`, keine Regeländerung | wg-v128 `d8c4a6e` | 20.11. |
 | B4 Abhängigkeiten | ✅ `docs/ABHAENGIGKEITEN.md`, `engines.node` 22.x | wg-v128 `d8c4a6e` | 20.11. |
 | B5 Betriebsprüfung | offen | | |
-| T1 Vorlage Aufteilen | offen | | |
+| T1 Vorlage Aufteilen | ✅ Vorlage `docs/ENTSCHEIDUNG-AUFTEILEN.md`, torbe wählte **A** (eine Datei, gegliedert): `scripts/abschnitt.mjs` + Test `abschnitt`; B (Dateien + Build) bewusst nicht | ohne Release | 23.11. |
 | H1–H3 | nur auf Wunsch | | |

@@ -1183,5 +1183,60 @@ Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen 
 - Coordinator-Frage „beeinflusst G5 `gutachten2_b`?": auf v128-Stand zweimal allein 127/127 — kein Einfluss erkennbar.
 - **Nach dem Ship den Hilfszweig `v128-lokal` gelöscht → GitHub schloss sechs PRs (15–20), die ihn als Basis hatten.** Zweig wiederhergestellt, PRs neu geöffnet, Basis auf `main`. Lehre: vor dem Löschen eines Zweigs `gh pr list --base <zweig>` prüfen.
 
-**Offen:** Restore-Probe live braucht den WG-Code (liegt bewusst nur in der Vercel-Env und auf den Geräten) → torbe.
+**Offen:** Restore-Probe live braucht den WG-Code (liegt bewusst nur in der Vercel-Env und auf den Geräten) → torbe. *(Erledigt 20.11., s. v129.)*
 
+## wg-v129 — G7 + Offline + G5 Teil 2 + Bedienung + EN-Texte (20.11., live `d262817`, Gate 115/115, Vercel success, `npm run betrieb` grün)
+
+**Was (sieben Cloud-PRs):** G7 — die Ruckel-Ursache auf langsamen Geräten war die Weichzeichnung (`backdrop-filter: blur`) hinter jedem Blatt: der Compositor rechnete sie bei jeder Bewegung über das ganze Fenster neu (Desktop ohne GPU 54 → 17 ms je Bild); weg, Abdunkelung dunkel .70 → .76, hell .35 → .42 · Offline — Funkloch-Start fällt nach 4 s auf die gespeicherte App zurück (vorher > 40 s weiße Seite), ein abgebrochenes Update löscht den alten Cache nicht mehr · G5 Teil 2 — Tab-Inhalt per `useDeferredValue` (Klick→Bild 4× CPU 112 → 32 ms) · axe bei 320 px / Sehr groß / Englisch + 2 Funde · Bedienung (Einkaufsliste vor Vorrat unter 1024 px, Betrag mit Minus abgelehnt statt still positiv, Schnell-Zeile versteht „1.234,56") · EN-Wörterbuch · stabile Ruckel-Messung (festes 60-Hz-Raster, PR 22).
+
+**Entscheidung:** Hintergrund hinter Blättern jetzt scharf statt weich (Bild vorher/nachher hell + dunkel angesehen). Das Blatt hebt sich weiter klar ab; in Hell ist der Hintergrund lesbar. Für die Flüssigkeit auf Toms/Torbens Handy angenommen; zurückdrehbar in `.overlay::before`.
+
+**Wie:** Integrationszweig, Merge-Skript hält `firebase.json`/`ship.mjs`/Doku zentral; **`sw.js` diesmal mit PR-Inhalt** (Offline-Logik!), nur die `CACHE`-Zeile zentral — das alte Skript hätte die Offline-Änderung still verworfen. Ein Konflikt (`gutachten2_b` Importe aus W4 + PR 22). Wörterbuch nach drei EN-PRs ohne doppelte Schlüssel. Volle Regression 110/110 vor dem Ship.
+
+**Was schiefging:**
+- PR 23 (auf PR 19 gestapelt) und PR 25 (Gate 39 → 14 min) nicht mit hinein: PR 25 lagert die Gate-Liste nach `scripts/gate-liste.mjs` aus, `abnahme.mjs regression` liest sie aber aus `ship.mjs` → wäre mit „Keine Gate-Dateien" ausgestiegen. Kommt mit Anpassung in v130.
+- PR 22 bekam nach dem Merge noch einen Fix aus der Cloud (W5 rechnete einen Stau hoch) — Tests-only, in v130 nachziehen.
+- **Restore-Probe live (B2):** mein Lauf wurde vom Schutz auf dem Rechner blockiert (Geheimnis aus Vercel holen) — nicht umgangen. torbe lief es selbst; dabei vier Fehler im Ablauf: (1) `vercel.ps1` per Execution Policy gesperrt → `vercel.cmd`; (2) Vercel gibt „sensible" Variablen beim `env pull` **leer** aus → Skript fragt den Code verdeckt ab; (3) die Maskierung mit leerem Suchtext setzte `***` zwischen jedes Zeichen; (4) das Werkzeug fragte `/api` auf Firebase Hosting (404) statt Vercel (403 bei falschem Code). Dazu Node-„Assertion failed" bei Fehler-Exit (offene fetch-Verbindungen) → `exitCode` statt `exit()`. **Ergebnis 20.11.: Sicherung (10 h alt, 16 vorhanden) unverändert eingelesen, Listen und Summen = Live (Haushalt 39 Posten).** Startskript jetzt im Repo: `scripts/restore-live.ps1`.
+
+## wg-v130 — Bedienung 2 + schnelleres Gate (20.11., live `621da6d`, Gate grün, Vercel success, `npm run betrieb` grün)
+
+**Was:** PR 23 „Bedienung 2" (Bearbeiten startet beim Betrag, Rückgängig nach dem Ausgabe-Assistenten, Personen vor Geburtstagen; Test `bedienung_b`) · PR 25 (JSX-Cache vorwärmen, Gate-Liste als EINE Quelle `scripts/gate-liste.mjs` für ship, CI und abnahme, CI in 4 Jobs) · PR 22-Nachfix (Rückruf-Bündel nach Stau nicht zum Sprung hochrechnen, Tests).
+
+**Wirkung:** volle Regression lokal 44 → 23 min (3 Arbeiter). **Neue Testdateien jetzt nur noch in `scripts/gate-liste.mjs` eintragen**, nicht mehr in `ship.mjs`.
+
+**Was schiefging:**
+- PR 25 hätte `abnahme.mjs regression` still leer laufen lassen (Liste per Regex aus `ship.mjs`) — vorher gesehen, auf `import('./gate-liste.mjs')` umgestellt. Die Liste im PR stammte vom v127-Stand: sechs neuere Tests (v129/v130) von Hand ergänzt, Mengenvergleich alt ⊆ neu geprüft (110 → 113, nichts verloren).
+- `grow_haus_v116` H4 rot (8 Folgefehler): PR 23 lässt Bearbeiten beim Betrag starten, der Test klickte noch einmal „Weiter" vor dem Preisfeld. Bewusste Änderung → Test nachgezogen.
+
+## wg-v131 — Sicherheit (21.11., live `186142a`, API `ac28457`, Gate grün, Vercel success, `npm run betrieb` grün)
+
+**Was (Cloud-PR 15, Befund in `docs/BEFUND-SICHERHEIT.md`):** WG-Code für die Sicherungen im POST-Body statt in der URL (URLs landen in Zugriffsprotokollen); der alte GET-Weg bleibt für noch nicht neu geladene Geräte · ICS-Abo: Steuerzeichen/einzelne `\r` neutralisiert, UID gesäubert, kaputte Daten ausgelassen (keine eingeschleusten `URL:`/`VALARM`-Zeilen im Kalender aller Geräte) · Code-/Token-Vergleiche zeitkonstant (`sameStr`) · `/api/notify` legt für unbekannte Codes keinen Zähler mehr an (vorher anonymer Datenmüll unter `sv/…/rl`). Test `sicherheit_api` 22.
+
+**Reihenfolge:** erst `main` pushen → Vercel-Deploy abwarten → live geprüft (POST falscher Code 403, alter GET 403, Preflight 204, notify mit fremdem Code ohne Zähler) → dann `ship.mjs` fürs Hosting. Rückfallplan war ein Revert-Commit.
+
+**Was schiefging:** Mein erster Push wurde vom Schutz auf dem Rechner blockiert — die Freigabe kam nur über den Koordinator, nicht direkt von torbe; nicht umgangen, torbe gab am 21.11. direkt frei („ok weiter"). Live-Smoke des Ship meldete wieder „zeigt v130" (CDN ~1 min hinterher), Nachprüfung zeigte v131.
+
+## wg-v132 — Benachrichtigungen in der Gerätesprache (S3) (21.11., live `3241d97`, API `49add1c`, DB-Regeln mit `--rules`, Vercel success, `npm run betrieb` grün)
+
+**Was (Cloud-PR 3):** Push-Texte des Servers zentral in `api/_texte.js` (de/en), jedes Abo trägt `lang` (DB-Regel: nur `de`|`en`), `cron`/`evening` gruppieren die Geräte je Sprache; fehlt `lang` (alte Abos) → Deutsch. Test `push_en_v127` 20.
+
+**Reihenfolge:** Vercel zuerst (der Server versteht `lang`, alte Abos laufen auf Deutsch weiter), dann Hosting + Regeln in einem `ship.mjs --rules` — die neue App schreibt `lang` erst, wenn die Regel es erlaubt.
+
+**Was schiefging:** Regression einmal rot nur durch `gutachten2_c3` F8d unter Last (6,4 statt ≤ 6 px), allein 35/35. Live-Smoke wieder zu früh (CDN).
+
+**Offen:** echter Test-Push auf Englisch → torbe (Gerät auf Englisch stellen, Benachrichtigungen neu einschalten, damit das Abo `lang: en` bekommt).
+
+## CI unter Linux grün (21.11., `ba92b2c`, nur Tests)
+
+**Was:** Die CI war seit v131 nur noch an zwei Festwerten rot: `g8_folge_v125` Blatthöhe 405 statt 406, `g2_schmal_v124` Haushalt-Zeile 106 statt 85 (eine Zeile mehr) und Growbox 176 statt 177. Ursache: Die Vorher-Werte waren unter Windows gemessen; Linux rendert dieselbe Schriftdatei 1 px anders und bricht die erste Haushalt-Zeile früher um. **Lösung:** Sollwerte je Plattform (`process.platform`), die Prüfung bleibt „unverändert gegenüber vorher". Verworfen: pauschale ±-Toleranz (hätte den 21-px-Umbruch nicht gedeckt bzw. echte Änderungen verschluckt).
+
+**PR 26** (F8k/F8l pauschal 10 px) geschlossen: überholt durch PR 22 (60-Hz-Raster, F8k begründet 8 px, mit Gegenprobe). PR 27 (dasselbe Linux-Thema mit Toleranz) ebenfalls geschlossen. **Offen:** `gutachten2_c3` F8d wackelt lokal unter paralleler Last (6,1–6,4 px bei Grenze 6), allein grün — bei weiterem Auftreten gezielt mit Gegenprobe nachziehen.
+
+
+## wg-v133 — G7 Fund 2: Abhaken im Putzplan ohne Ruck auf langsamen Geräten (22.11., live `d13d6fc`, Gate grün, Vercel success)
+
+**Befund:** `gutachten2_c3` F8l (zwei eigene Aufgaben, zweiter Tipp nach 450 ms) war nach den v129-Fixes unter CPU 4× weiter rot: Tempowechsel 10,8 px je Bild. Spur Bild für Bild (neu: `WG_SPUR=1`): ungebremst endet das Zuklappen der ersten Aufgabe weich (−117,5 → −122), gebremst mit **einem 10,8-px-Satz direkt in den Stillstand** — die CSS-Animation `schattenAb` startete wegen eines langen Bildes ~50 ms später, der feste 630-ms-Zeitgeber nahm den Schatten trotzdem pünktlich weg.
+
+**Fix:** Nach 630 ms prüft der Zeitgeber, ob die Animation des Schattens noch läuft (`getAnimations()`), und entfernt ihn erst nach ihrem `finished` (höchstens 400 ms Nachfrist, damit ein hängendes Bild nie einen Schatten stehen lässt). Verworfen: Zeitgeber länger stellen (verschiebt nur die Grenze, verzögert den Tausch auch auf schnellen Geräten).
+
+**Belege:** CPU 4× vorher F8l rot (10,8 px) = Gegenprobe, nachher 35/35, Zuklappen −111 → −117,6 → −121,1 → −122. Volle Regression 115/115.

@@ -169,7 +169,7 @@ const hsNet = (hs, id, n) => hs.filter(i => !i.settled).reduce((s, i) => s + (i.
     await zeile(p, 'Dünger').locator('.cell-content').click({ timeout: 2000 });
     await blatt(p).waitFor({ timeout: 3000 });
     const wahl = await blatt(p).locator('[data-testid="aus-bereich-grow"], [data-testid="aus-bereich-haus"]').count();
-    await weiter(p);
+    /* wg-v130 (PR 23 „Bedienung 2"): Bearbeiten startet direkt beim Betrag — kein „Weiter" mehr vor dem Preisfeld */
     const preis = blatt(p).locator('.f-euro input');
     await preis.fill(''); await preis.pressSequentially('15');
     await weiter(p);

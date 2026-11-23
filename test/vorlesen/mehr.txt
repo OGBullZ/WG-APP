@@ -104,13 +104,6 @@
 - heading "Auszug" [level=2]
 - button "Übergabe-Seite öffnen Zählerstände, offene Mängel, Inventar und offene Beträge – zum Drucken oder als PDF"
 - button "Personen Wer bist du, Namen, Farben, PayPal, Geburtstage" [expanded]
-- heading "Geburtstage" [level=2]
-- text: Noch keine eingetragen — die Benachrichtigung am Morgen erinnert am Tag selbst und N Tage vorher.
-- textbox "Name"
-- textbox "Geburtstag"
-- checkbox "Jahrgang unbekannt (dann ohne Alter)"
-- text: Jahrgang unbekannt (dann ohne Alter)
-- button "+ Geburtstag merken"
 - heading "Personen" [level=2]
 - textbox "Name der Person": Torben
 - button "Das bin ich ✓"
@@ -138,6 +131,13 @@
 - button "🔄 Mitbewohner-Wechsel Jemand zieht aus, jemand Neues ein"
 - button "✨ Mein Profil einrichten Name, Farbe, Bereiche, PayPal/IBAN, Benachrichtigungen – Schritt für Schritt"
 - text: „Das bin ich“ gilt nur für dieses Gerät. PayPal.me-Name und IBAN erscheinen beim Schuldenausgleich zum Antippen bzw. Kopieren – nur für die WG, nie im Gast-Link.
+- heading "Geburtstage" [level=2]
+- text: Noch keine eingetragen — die Benachrichtigung am Morgen erinnert am Tag selbst und N Tage vorher.
+- textbox "Name"
+- textbox "Geburtstag"
+- checkbox "Jahrgang unbekannt (dann ohne Alter)"
+- text: Jahrgang unbekannt (dann ohne Alter)
+- button "+ Geburtstag merken"
 - button "Benachrichtigungen Pro Art, Ruhezeiten, Geräte, Homescreen" [expanded]
 - heading "Erinnerungen" [level=2]
 - text: "Lokale Erinnerungen Beim Öffnen: fällige Putzaufgaben & Abos"

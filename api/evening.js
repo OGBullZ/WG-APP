@@ -7,6 +7,7 @@
 const { loadSubs, sendToSubs, DB_BASE } = require('./_push');
 const { currentCode, berlinParts, cronErlaubt } = require('./_sv');
 const { eveningMessages, eveningPlan, subsJePerson, toArray } = require('./_wg');
+const { sprache } = require('./_texte');   // wg-v127 (S3)
 
 module.exports = async (req, res) => {
   // wie cron.js (wg-v104): ohne gesetztes CRON_SECRET 503 statt „Bearer undefined" durchzulassen
@@ -28,12 +29,19 @@ module.exports = async (req, res) => {
   let sent = 0;
   if (plan.putz || plan.digest) {
     const subs = await loadSubs(code);
+    // wg-v127 (S3): je Gerät in der Sprache aus dem Abo (`lang`; fehlt sie → Deutsch)
+    const nachSprache = (geraete) => { const g = new Map(); for (const s of geraete) { const l = sprache(s); if (!g.has(l)) g.set(l, []); g.get(l).push(s); } return [...g]; };
     // wg-v114: Tonnen je Person — wer morgen nicht rausbringt, bekommt keine Abend-Push (Tonne ohne Aufgabe: alle)
     if (plan.putz) for (const [fuer, geraete] of subsJePerson(subs, toArray(wg.users))) {
-      const putz = eveningPlan(eveningMessages(wg, today, fuer), today).putz;
-      if (putz) sent += (await sendToSubs(geraete, putz, { type: 'putz' })).sent;
+      for (const [L, geraeteL] of nachSprache(geraete)) {
+        const putz = eveningPlan(eveningMessages(wg, today, fuer, L), today, L).putz;
+        if (putz) sent += (await sendToSubs(geraeteL, putz, { type: 'putz' })).sent;
+      }
     }
-    if (plan.digest) sent += (await sendToSubs(subs, plan.digest, { type: 'digest' })).sent;
+    if (plan.digest) for (const [L, subsL] of nachSprache(subs)) {
+      const digestL = eveningPlan(eveningMessages(wg, today, undefined, L), today, L).digest;
+      if (digestL) sent += (await sendToSubs(subsL, digestL, { type: 'digest' })).sent;
+    }
   }
   res.status(200).json({ today, messages: messages.map((m) => m.tag), sent });
 };

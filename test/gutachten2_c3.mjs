@@ -529,6 +529,8 @@ for (const [zweit, id] of [[150, 'F8k'], [450, 'F8l']]) {
   const r = await versuch(() => lauf(Zw.page, { ref: '[data-testid="today-rows"]', ms: zweit + 1300, zweit }));
   if (!ok(r)) { check(`${id} FILM-8 zwei Aufgaben, zweiter Tipp nach ${zweit} ms: Lauf`, false, String(r)); continue; }
   const k = kenn(r), soll = -(r.m0 + r.h0 - (r.hL ?? NaN));
+  /* G7 Fund 2 (Diagnose, nur mit WG_SPUR=1): Spur (ms seit Start, y) je Bild ausgeben */
+  if (process.env.WG_SPUR) console.log(`SPUR ${id} ` + JSON.stringify(r.bilder.map(b => [Math.round(b.ts - r.bilder[0].ts), Math.round((b.y - r.y0) * 10) / 10])));
   check(`${id} FILM-8 zwei eigene Aufgaben, zweiter Tipp ${zweit} ms nach dem ersten: der Block darunter rückt stetig nach (Tempowechsel je Bild ≤ 6 px, Tempo ≤ 24 px, ≥ 6 Bilder Bewegung, Endposition = Rand + Block − Leer-Zeile)`, stetig(k, soll, id === 'F8k' ? 8 : 6) && r.ende.leer === 1 && !r.ende.cq,
     JSON.stringify({ ...k, soll: runde(soll), h0: runde(r.h0), m0: r.m0, hL: r.hL, leer: r.ende.leer, cq: r.ende.cq }));
 }

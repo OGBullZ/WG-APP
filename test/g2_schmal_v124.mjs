@@ -22,7 +22,12 @@ const map = arr => Object.fromEntries(arr.map((x, i) => [x.id, { seq: 100 - i, .
 
 /* Messwerte VOR der Änderung (Stand 4e1cf55, 390 px, normale Schrift, de): erste Haushalt-Zeile und erste Growbox-Zeile, in CSS-px gerundet */
 /* wg-v125 (E1): Grow-Anteile 11 -> 12.5 px, Zeile bewusst hoeher (gi 165 -> 177) */
-const VORHER = { haus: { w: 356, h: 85 }, gi: { w: 356, h: 177 } };
+/* wg-v133: Sollwerte je Plattform — gemessen unter Windows (lokales Gate) und Linux (CI, Lauf vom 21.11.). Gleiche Schriftdatei, anderes Rendering:
+   Linux bricht die erste Haushalt-Zeile eine Zeile früher um (85 → 106 = +1 Zeile) und die Growbox-Zeile ist 1 px niedriger. Geprüft wird weiter
+   „unverändert gegenüber dem Stand vorher" — nur der Vorher-Wert hängt am Betriebssystem. */
+const VORHER = process.platform === 'linux'
+  ? { haus: { w: 356, h: 106 }, gi: { w: 356, h: 176 } }
+  : { haus: { w: 356, h: 85 }, gi: { w: 356, h: 177 } };
 
 const U = [{ id: 'u1', name: 'Maximilian-Alexander', color: '#38bdf8' }, { id: 'u2', name: 'Zoë', color: '#fbbf24' }, { id: 'u3', name: 'Tom', color: '#f472b6' }];
 const NAMEN = ['Großeinkauf Drogerie', 'Kaution Nachzahlung', 'Küchenzeile', 'Strom Abschlag', 'Internet Router', 'Sofa Ecklösung', 'Waschmaschine', 'Pizza Abend'];
