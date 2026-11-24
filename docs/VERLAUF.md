@@ -1264,3 +1264,11 @@ Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen 
 **v136 (Darstellung, 320 px + Sehr groß, alles unter `data-eng-xs`):** Übersicht-Summe per Container-Query statt abgeschnitten, Ausgleichszeilen Name oben/Betrag darunter; Growbox-Anteile untereinander (Stepper erreichbar); Hinweiskarten mit Knopf: Text min. 9em, Knopf rutscht darunter; Personen-Name volle Breite; Komma-Leerzeichen im Putzplan; „1 Eintrag". Test `schmal_v136` 216 (Gegenprobe 30 rot). Nachgezogen: `gutachten2_a` G2b (Anteile jetzt untereinander), Vorlese-Protokoll Putzplan (Komma).
 
 **Was schiefging:** Mein erster Regressionslauf lief, während ich im selben Arbeitsbaum Fixes schrieb (Ergebnis wertlos, wiederholt). Ship v135 Lauf 1: GitHub „Internal Server Error" beim Push → Release-Commit lokal zurückgenommen (`reset --soft`, `sw.js` zurück), neu ausgeliefert. Ship v136 Lauf 1: G2b rot (s. oben). `mehr.mjs` liest keine `WG_URL` → dort keine saubere Gegenprobe (X1c/X1d am alten Stand ohnehin nicht lauffähig). Schönheitsfehler offen: Σ-Symbol der Ausgleichskarte sitzt bei 320 px mittig statt oben.
+
+## wg-v137 — Entscheidungen aus der Fehlersuche (24.11., live `33f6456`, Gate grün, Vercel success)
+
+torbe 24.11.: „1. ja mach das. 2. vorher abrechnen lassen bzw einfach erst ab da mit einbeziehen wo er beitritt".
+
+- **Neuzugang zählt erst ab Einzug:** Anteil an einem Haushalt-Posten nur unter den Personen, die am Postendatum schon da waren (`joined` ≤ Datum; ohne `joined` = schon immer da; niemand → alle wie bisher). Die Rechnung stand an **acht Stellen** in der App (`price/users.length`: Salden, Abrechnung, „je €x", Monatsbericht, Jahresblatt, Übersicht, Heute) — jetzt eine Regel `hsTeiler`/`hsAnteil`, der Server hat dieselbe (`hsAnteilServer`, zwei Stellen immer zusammen ändern). Gewählt statt „vorher abrechnen erzwingen", weil es nichts blockiert und alte Anteile unverändert lässt.
+- **Wochen-Push** rechnet Haushalt + Growbox in einem Betrag wie die App (`myBalance`), Etikett „Offen:" statt „Haushalt:".
+- Tests: `mehr` X1e, `cron_alltag` 16b/16c. Alt-Test `torben.mjs` (nicht im Gate) hängt im Einrichtungs-Assistenten — unabhängig, nur notiert.

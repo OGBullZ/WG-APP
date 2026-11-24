@@ -17,9 +17,9 @@ Auftrag torbe: „autonom weiter, große Fehlersuche". Drei Prüfer (nur lesen, 
 
 | # | Fund | Warum nicht einfach repariert | Empfehlung |
 |---|---|---|---|
-| G3 | **Wochen-Push „X schuldet Y"** rechnet nur den Haushalt, die App zeigt Haushalt + Growbox in einem Betrag | Server müsste `growCalc` nachbauen (zweite Stelle, „doppelte Herleitung") | Push-Betrag wie die App rechnen, Funktion einmal im Server ablegen — Folgepaket |
+| G3 ✅ v137 | **Wochen-Push „X schuldet Y"** rechnet nur den Haushalt, die App zeigt Haushalt + Growbox in einem Betrag | Server müsste `growCalc` nachbauen (zweite Stelle, „doppelte Herleitung") | Push-Betrag wie die App rechnen, Funktion einmal im Server ablegen — Folgepaket |
 | G4 | Ab 3 Personen: „Heute"/Auszug rechnen Haushalt + Grow zusammen, der Haushalt-Tab rechnet Grow getrennt → andere Beträge/Gegenüber | betrifft nur WGs mit 3+ Personen; Absicht unklar | eine gemeinsame Plan-Funktion — erst bei Bedarf |
-| G8 | Neue Person ändert rückwirkend alle offenen Posten (Anteil = Preis / aktuelle Personenzahl) | kann gewollt sein | Hinweis „erst abrechnen" beim Hinzufügen — Entscheidung |
+| G8 ✅ v137 (ab Einzug) | Neue Person ändert rückwirkend alle offenen Posten (Anteil = Preis / aktuelle Personenzahl) | kann gewollt sein | Hinweis „erst abrechnen" beim Hinzufügen — Entscheidung |
 | S7 | `users` und `gp` werden als ganzer Schlüssel geschrieben → gleichzeitige Änderungen an verschiedenen Personen: letzte gewinnt | Umbau auf Einzelpfade + DB-Regeln, mittleres Risiko | Folgepaket, wenn es je passiert ist |
 | S8 | Offline-Replay ist „ganzer Eintrag gewinnt" (Partner-Änderung am selben Posten geht verloren) | echte Konfliktauflösung nötig | so lassen (2 Personen, selten) |
 
