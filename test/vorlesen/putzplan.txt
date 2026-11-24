@@ -6,11 +6,11 @@
 - button "+ Aufgabe anlegen": + Neu
 - button "Bad putzen erledigt":
   - img
-- button "Bad putzen bearbeiten": 🚿 Bad putzen Du , danach Tom wöchentlich
+- button "Bad putzen bearbeiten": 🚿 Bad putzen Du, danach Tom wöchentlich
 - text: N Tage überfällig
 - button "Küche wischen erledigt":
   - img
-- button "Küche wischen bearbeiten": 🧽 Küche wischen Tom , danach du wöchentlich
+- button "Küche wischen bearbeiten": 🧽 Küche wischen Tom, danach du wöchentlich
 - text: HEUTE
 - heading "Hinzufügen" [level=2]
 - button "Müllabfuhr"
