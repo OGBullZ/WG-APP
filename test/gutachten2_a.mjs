@@ -141,7 +141,9 @@ const anteile = page => page.evaluate(() => [...document.querySelectorAll('.zz-l
   const a5 = await versuch(() => anteile(G5.page));
   const mitten = Array.isArray(a5) ? a5.flatMap(x => x.zeilen.slice(0, -1).filter(t => !/[-\s]$/.test(t)).map(t => `${x.name}: „${t}…"`)) : ['keine Messung'];
   check('G2a 320 px: kein Name bricht mitten im Wort (nur an „-" / Leerzeichen) — vorher „Konstantino/s"', Array.isArray(a5) && a5.length === 4 && mitten.length === 0, mitten.join(' | ') || JSON.stringify(a5));
-  check('G2b 320 px: jedes % liegt im Kopf, und bei „Konstantinos" (84 px breit) UNTER dem Namen', Array.isArray(a5) && a5.every(x => x.pctInKopf) && a5.find(x => x.name === 'Konstantinos')?.pctUnterName === true, JSON.stringify(Array.isArray(a5) ? a5.map(x => [x.name, x.pctInKopf, x.pctUnterName]) : a5));
+  /* wg-v136 (schmal): unter 350 px steht die Namensliste jetzt UNTER dem Donut in voller Breite — „Konstantinos" ist dort nicht mehr 84 px schmal,
+     das % passt daneben. Geprüft bleibt: jedes % im Kopf (nie herausgeschoben); „unter dem Namen" ist keine Pflicht mehr */
+  check('G2b 320 px: jedes % liegt im Kopf', Array.isArray(a5) && a5.every(x => x.pctInKopf), JSON.stringify(Array.isArray(a5) ? a5.map(x => [x.name, x.pctInKopf, x.pctUnterName]) : a5));
 }
 
 // ══════════ F1 · F3 · Einkaufsliste: Doppel-Haken ══════════
