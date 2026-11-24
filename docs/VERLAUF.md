@@ -1250,3 +1250,17 @@ Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen 
 - **#9 Growbox-Standard:** bewusst gelassen — die Einrichtung fragt schon; „aus" als Standard hätte Geräten ohne gespeicherte Wahl die Growbox genommen (Falle „Voreinstellung ist keine Wahl").
 
 **Was schiefging:** Mein erster Mess-Seed für die Einkaufsliste griff nicht (leere Liste) → Einträge über das echte Eingabefeld angelegt (sowieso der ehrlichere Weg). Ein Kommentar im neuen Werkzeug `abschnitt.mjs` enthielt selbst `*/` und brach die Datei. Ship lief nach Sitzungsende (Nutzungslimit) durch und wurde am 24.11. nachgeprüft.
+
+## wg-v135 + wg-v136 — große Fehlersuche (24.11., live `deb877d` bzw. `1b4ffe4`, Gate grün, Vercel success — torbe: „autonom weiter, große Fehlersuche")
+
+**Vorgehen:** drei Prüfer (Geld-Logik, Sync/Offline, Darstellung/Sprache), nur lesend, jeder Fund mit Beleg (Code-Stelle + Nachrechnung, Playwright-Probe oder Bild); jeder Fund vom Hauptloop selbst nachgeprüft. 31 Funde, Status + offene Entscheidungen in `docs/FEHLERSUCHE-24-11.md`.
+
+**v135 (Logik/Sync):**
+- **Sync S1:** Eingaben vor dem Erst-Read gingen mit leerer Diff-Basis raus = die GANZE lokale Liste → Partner-Änderungen überschrieben, Partner-Löschungen zurück. Jetzt sammeln bis zum Erst-Read (`erstRead`), Replay gegen `wg_confirmed`.
+- **Sync S2:** zwei Offline-Sitzungen hintereinander → die zweite überschrieb `wg_pending`, die Änderung der ersten ging verloren. `persistPending` behält `prevPending` bis zum Erst-Read.
+- Mitbewohner-Wechsel bei Saldo 0 mit offenen Posten jetzt gesperrt; `growCalc` zählt nur Pflanzen aktueller Personen; Budget 80/100 % in Cent (App + Cron).
+- Tests: `sync_v135` 9 (Gegenprobe 5 rot), `mehr` X1b–X1d. Nachgezogen: `sync` B1 (erwartete Senden vor dem Erst-Read), `rotate` A9 (Attrappe beantwortet den Erst-Read der neuen Verbindung nur per `fire()`).
+
+**v136 (Darstellung, 320 px + Sehr groß, alles unter `data-eng-xs`):** Übersicht-Summe per Container-Query statt abgeschnitten, Ausgleichszeilen Name oben/Betrag darunter; Growbox-Anteile untereinander (Stepper erreichbar); Hinweiskarten mit Knopf: Text min. 9em, Knopf rutscht darunter; Personen-Name volle Breite; Komma-Leerzeichen im Putzplan; „1 Eintrag". Test `schmal_v136` 216 (Gegenprobe 30 rot). Nachgezogen: `gutachten2_a` G2b (Anteile jetzt untereinander), Vorlese-Protokoll Putzplan (Komma).
+
+**Was schiefging:** Mein erster Regressionslauf lief, während ich im selben Arbeitsbaum Fixes schrieb (Ergebnis wertlos, wiederholt). Ship v135 Lauf 1: GitHub „Internal Server Error" beim Push → Release-Commit lokal zurückgenommen (`reset --soft`, `sw.js` zurück), neu ausgeliefert. Ship v136 Lauf 1: G2b rot (s. oben). `mehr.mjs` liest keine `WG_URL` → dort keine saubere Gegenprobe (X1c/X1d am alten Stand ohnehin nicht lauffähig). Schönheitsfehler offen: Σ-Symbol der Ausgleichskarte sitzt bei 320 px mittig statt oben.
