@@ -1240,3 +1240,13 @@ Vier Runden, je ein Sonnet-`umsetzer`, Abnahme und Gegenprobe gegen den vorigen 
 **Fix:** Nach 630 ms prüft der Zeitgeber, ob die Animation des Schattens noch läuft (`getAnimations()`), und entfernt ihn erst nach ihrem `finished` (höchstens 400 ms Nachfrist, damit ein hängendes Bild nie einen Schatten stehen lässt). Verworfen: Zeitgeber länger stellen (verschiebt nur die Grenze, verzögert den Tausch auch auf schnellen Geräten).
 
 **Belege:** CPU 4× vorher F8l rot (10,8 px) = Gegenprobe, nachher 35/35, Zuklappen −111 → −117,6 → −121,1 → −122. Volle Regression 115/115.
+
+## wg-v134 — Bedienung: Kachelwand, Tippflächen, Namensfeld (23./24.11., live `94bd34a`, Gate grün, Vercel success, CI grün — torbe: „autonom fertig werden")
+
+**Entschieden nach Messung (offene Punkte aus `docs/BEDIENUNG-DURCHLAUF-20-11.md`):**
+- **#7 Kachelwand auf Heute:** 4 Kacheln, sortiert nach Nutzung je Gerät (`wg_wz_nutzung`, lokal, Sortierung nur beim Laden — nichts wandert unter dem Finger), Rest hinter „Weitere Werkzeuge (N)"; alle Kacheln bleiben im DOM (Such-Sprung, Nebenwirkungen). Haushalt & Co. unverändert. Test `kachelwand_v134` 26, Gegenprobe rot. Umsetzer in Arbeitskopie; Alt-Tests `kacheln`, `start_v113`, `knoepfe_v125`, Vorlese-Protokoll „heute" bewusst nachgezogen (Hilfsfunktion `kachelwandAuf` in `test/_heute.mjs`).
+- **#10 Tippflächen Einkaufszeile:** gemessen per `elementFromPoint` vom Mittelpunkt: Kreis 38×40, × 40×50, Laden-Chip 64×38 → unsichtbare Trefferflächen (`::after`) auf ≥ 44; erst `-9px` am Kreis ergab nur 42 (Rand/Rundung), `-10px` = 44. Wirkt auf alle `.chk-btn`/`.del-btn`.
+- **B3 Namensfeld:** eigenes Profil mit gestrichelter Unterlinie, beim Fokus durchgezogen (Mint); fremde, schreibgeschützte ohne. Test `bedienung_c_v134` 12, Gegenprobe 7 rot.
+- **#9 Growbox-Standard:** bewusst gelassen — die Einrichtung fragt schon; „aus" als Standard hätte Geräten ohne gespeicherte Wahl die Growbox genommen (Falle „Voreinstellung ist keine Wahl").
+
+**Was schiefging:** Mein erster Mess-Seed für die Einkaufsliste griff nicht (leere Liste) → Einträge über das echte Eingabefeld angelegt (sowieso der ehrlichere Weg). Ein Kommentar im neuen Werkzeug `abschnitt.mjs` enthielt selbst `*/` und brach die Datei. Ship lief nach Sitzungsende (Nutzungslimit) durch und wurde am 24.11. nachgeprüft.
