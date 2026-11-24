@@ -7587,7 +7587,7 @@ function ReportCard() {
   const shiftYm = (y, n) => { const d=monthStart(y); d.setMonth(d.getMonth()+n); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; };
   const items = ym ? ohneUmbuchung(hsAll(D)).filter(i=>String(i.date||'').startsWith(ym)) : [];   // Bericht = Ausgaben, ohne Umbuchungen (wg-v107)
   const total = items.reduce((s,i)=>s+(+i.price||0),0);
-  const share = (i, id) => i.owedBy ? (i.owedBy===id ? i.price : 0) : i.price/Math.max(1,users.length);
+  const share = (i, id) => hsAnteil(i, id, users);   // wg-v137: Anteil ab Einzug (s. hsAnteil)
   const text = () => [`WG-Ausgaben ${ymLabel(ym)}: €${fmt(total)}`, ...CATS.map(([k,,l])=>{ const s=items.filter(i=>(i.cat||'other')===k).reduce((a,i)=>a+i.price,0); return s?`${l}: €${fmt(s)}`:null; }).filter(Boolean),
     ...users.map(u=>`${u.name}: bezahlt €${fmt(items.filter(i=>i.paidBy===u.id).reduce((a,i)=>a+i.price,0))}, Anteil €${fmt(items.reduce((a,i)=>a+share(i,u.id),0))}`)].join('\n');
   return (
@@ -9106,10 +9106,28 @@ function MeterCard({ oeffnen } = {}) {
   );
 }
 
-/* ── Mein Haushalt-Saldo (offene Posten; owedBy trägt allein, sonst 50/50) — für die Heute-Seite ── */
+/* ── Anteil je Haushalt-Posten (wg-v137, torbe 24.11.: „erst ab da mit einbeziehen, wo er beitritt") ──
+   EINE Stelle für alle Rechnungen (Salden, Abrechnung, „je €x", Bericht, Jahresblatt, Übersicht) — vorher stand `price/users.length`
+   an acht Stellen, und eine neu eingezogene Person trug rückwirkend jeden offenen Posten mit (B schuldete plötzlich weniger, ohne zu zahlen).
+   Teiler = Personen, die am Postendatum schon da waren (`joined` ≤ date; ohne `joined` = schon immer da). Ist das niemand (z. B. ein
+   zurückdatierter Posten vor dem Gründungstag, nach einem Mitbewohner-Wechsel bekommen alle dasselbe `joined`), teilen alle wie bisher.
+   api/_wg.js (Wochen-Push) rechnet gleich — `hsTeilerServer`. */
+function hsTeiler(i, users) {
+  const d = String((i && i.date) || '');
+  const da = (users || []).filter(u => u && (!u.joined || !d || u.joined <= d));
+  return da.length ? da : (users || []);
+}
+function hsAnteil(i, id, users) {
+  const p = Number(i && i.price) || 0;
+  if (i && i.owedBy) return i.owedBy === id ? p : 0;
+  const t = hsTeiler(i, users);
+  return t.some(u => u.id === id) ? p / Math.max(1, t.length) : 0;
+}
+
+/* ── Mein Haushalt-Saldo (offene Posten; owedBy trägt allein, sonst gleich unter den Anwesenden) — für die Heute-Seite ── */
 const hsNetOf = (D, id) => {
   const users = D.users || [];
-  return (D.hs||[]).filter(i=>i && !i.settled).reduce((s,i)=>s + (i.paidBy===id ? i.price : 0) - (i.owedBy ? (i.owedBy===id ? i.price : 0) : i.price/Math.max(1,users.length)), 0);
+  return (D.hs||[]).filter(i=>i && !i.settled).reduce((s,i)=>s + (i.paidBy===id ? i.price : 0) - hsAnteil(i, id, users), 0);   // wg-v137: Anteil ab Einzug
 };
 
 /* ── Heute-Seite (optionaler Tab, Mehr → Module): alles, was heute ansteht, an einem Ort ── */
@@ -9941,7 +9959,7 @@ function RepairCard() {
 function JahresBlatt({ jahr, items, users, onClose }) {
   const { D } = useD();
   const wg = (D.cf || []).find(x => x && x.id === 'wg' && x.name);
-  const anteil = (i, uid) => i.owedBy ? (i.owedBy === uid ? (i.price || 0) : 0) : (i.price || 0) / Math.max(users.length, 1);
+  const anteil = (i, uid) => hsAnteil(i, uid, users);   // wg-v137: Anteil ab Einzug (s. hsAnteil)
   const monate = Array.from({ length: 12 }, (_, m) => {
     const imMonat = items.filter(i => +String(i.date).slice(5, 7) === m + 1);
     return { m, hs: imMonat.filter(i => i.mod !== 'gi').reduce((s, i) => s + (i.price || 0), 0), gi: imMonat.filter(i => i.mod === 'gi').reduce((s, i) => s + (i.price || 0), 0) };
@@ -10528,7 +10546,7 @@ function Haushalt({goPutz}) {
   const ausg=ohneUmbuchung(open);
   const tot=ausg.reduce((s,i)=>s+i.price,0);
   /* Anteil einer Person an einem Posten: owedBy gesetzt → diese Person trägt alles, sonst gleichmäßig */
-  const shareOf=(i,id)=>i.owedBy?(i.owedBy===id?i.price:0):i.price/users.length;
+  const shareOf=(i,id)=>hsAnteil(i, id, users);   // wg-v137: Anteil ab Einzug (s. hsAnteil)
   const bals=users.map(u=>({ ...u, paid:ausg.filter(i=>i.paidBy===u.id).reduce((s,i)=>s+i.price,0), net:open.filter(i=>i.paidBy===u.id).reduce((s,i)=>s+i.price,0) - open.reduce((s,i)=>s+shareOf(i,u.id),0) }));
   /* wg-v116: Abrechnungs-Verlauf auch mit den Grow-Belegen — aber nicht den Zwilling einer verrechneten Haushalt-Abrechnung (viaHs,
      Betrag 0): der steht schon als Haushalt-Beleg da */
@@ -11063,7 +11081,7 @@ function Haushalt({goPutz}) {
                           <div className="betrag">€{fmt(item.price)}</div>
                           {/* Umbuchung (wg-v107): „Tom zahlt alles" stimmte hier nicht — es ist Geld, das nur weitergegeben wurde.
                               wg-v125 (E1, REST-4): Unterzeile als .betrag-sub (Sans 11/600) statt Mono 11/400 */}
-                          <div className="betrag-sub" data-testid={istUmbuchung(item)?'exp-umbuchung':undefined} style={{color:'var(--label3)'}}>{istUmbuchung(item)?TT("↔ Umbuchung"):item.owedBy?TT("{0} zahlt alles", users.find(u=>u.id===item.owedBy)?.name||'?'):TT("je €{0}", fmt(item.price/users.length))}</div>
+                          <div className="betrag-sub" data-testid={istUmbuchung(item)?'exp-umbuchung':undefined} style={{color:'var(--label3)'}}>{istUmbuchung(item)?TT("↔ Umbuchung"):item.owedBy?TT("{0} zahlt alles", users.find(u=>u.id===item.owedBy)?.name||'?'):TT("je €{0}", fmt(item.price/Math.max(1, hsTeiler(item, users).length)) /* wg-v137: geteilt nur unter den am Postendatum Anwesenden */)}</div>
                         </div>
                         <button className="del-btn" aria-label={TT("{0} löschen", item.name) /* wg-v122 (A11Y-9b): Name mit Postennamen, sonst 5× „Ausgabe löschen" in einer Liste */} title={TT("Ausgabe löschen")} onClick={e=>del(item.id, e.currentTarget.closest('.cell'))}><DelX/></button>
                       </div>
@@ -13765,7 +13783,7 @@ function Statistik({ goHaus }) {   /* goHaus (wg-v112, P9): „Ausgabe eintragen
   /* Tatsächlicher Anteil je Person (nach Split): Haushalt owedBy/50-50, Growbox nach Pflanzen-Anteil */
   const giTot = Object.values(gp).reduce((s,v)=>s+(parseInt(v)||0),0);
   const shareOf = (i,id) => i.mod==='hs'
-    ? (i.owedBy ? (i.owedBy===id?i.price:0) : i.price/users.length)
+    ? hsAnteil(i, id, users)   /* wg-v137: Anteil ab Einzug (s. hsAnteil) */
     : i.price * (giTot>0 ? (parseInt(gp[id]||0)/giTot) : 1/users.length);
   const bears = users.map(u=>({...u, share: month.reduce((s,i)=>s+shareOf(i,u.id),0)}));
   const bearsUngleich = bears.length > 1 && Math.max(...bears.map(b=>b.share)) - Math.min(...bears.map(b=>b.share)) > 0.01;   // wg-v112 (P10): sonst entfällt „Wer trägt was"
@@ -14044,7 +14062,7 @@ const TABS=[
 function myBalance(D, me, mods){
   const users = D.users||[];
   const open = (D.hs||[]).filter(i=>!i.settled);
-  const shareOf=(i,id)=>i.owedBy?(i.owedBy===id?i.price:0):i.price/(users.length||1);
+  const shareOf=(i,id)=>hsAnteil(i, id, users);   // wg-v137: Anteil ab Einzug (s. hsAnteil)
   const hs = me ? open.reduce((s,i)=>s+((i.paidBy===me?(i.price||0):0)-shareOf(i,me)),0) : 0;
   const growOn = mods.grow!==false;
   const g = (me&&growOn) ? growCalc(D).net(me) : 0;

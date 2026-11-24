@@ -109,7 +109,7 @@ const DE = {
     erledigt: 'alles erledigt ✨',
     dieseWoche: (liste) => `diese Woche: ${liste.join(', ')}`,
     abholung: (liste) => `Abholung: ${liste.join(', ')}`,
-    saldo: (schuldner, glaeubiger, betrag) => `Haushalt: ${schuldner} → ${glaeubiger} ${betrag}`,
+    saldo: (schuldner, glaeubiger, betrag) => `Offen: ${schuldner} → ${glaeubiger} ${betrag}`,   // wg-v137: Haushalt + Growbox zusammen → nicht mehr „Haushalt:"
     body: (teile) => `🗓️ ${teile.join(' · ')}`,
     sammelTitel: '🗓️ Wochenüberblick',
   },
@@ -214,7 +214,7 @@ const EN = {
     erledigt: 'all done ✨',
     dieseWoche: (liste) => `this week: ${liste.join(', ')}`,
     abholung: (liste) => `Collection: ${liste.join(', ')}`,
-    saldo: (schuldner, glaeubiger, betrag) => `Household: ${schuldner} → ${glaeubiger} ${betrag}`,
+    saldo: (schuldner, glaeubiger, betrag) => `Open: ${schuldner} → ${glaeubiger} ${betrag}`,   // wg-v137: household + grow box together
     body: (teile) => `🗓️ ${teile.join(' · ')}`,
     sammelTitel: '🗓️ Weekly overview',
   },

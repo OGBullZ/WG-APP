@@ -10,6 +10,19 @@ const parseIso = (s) => { const [y, m, d] = String(s).split('-').map(Number); re
 const shiftIso = (iso, n) => { const d = parseIso(iso); d.setDate(d.getDate() + n); return isoOf(d); };
 const daysBetween = (a, b) => Math.round((parseIso(b) - parseIso(a)) / 864e5);
 const toArray = (v) => (Array.isArray(v) ? v : v && typeof v === 'object' ? Object.values(v) : []).filter(Boolean);
+/* wg-v137: Anteil an einem Haushalt-Posten — gleiche Regel wie hsTeiler/hsAnteil in wgapp.html (zwei Stellen, immer zusammen ändern):
+   Teiler = Personen mit `joined` ≤ Postendatum (ohne `joined` = schon immer da), niemand → alle. owedBy trägt allein. */
+const hsTeilerServer = (i, users) => {
+  const d = String((i && i.date) || '');
+  const da = (users || []).filter((u) => u && (!u.joined || !d || u.joined <= d));
+  return da.length ? da : (users || []);
+};
+const hsAnteilServer = (i, id, users) => {
+  const p = Number(i && i.price) || 0;
+  if (i && i.owedBy) return i.owedBy === id ? p : 0;
+  const t = hsTeilerServer(i, users);
+  return t.some((u) => u.id === id) ? p / Math.max(1, t.length) : 0;
+};
 // wg-v127 (S3): Geld-Formatierung und alle Push-Texte stehen in _texte.js (je Sprache eine Tabelle); L = 'de' | 'en', Standard Deutsch.
 // wg-v124 (G3)/wg-v122 (TEXT-5): „€12,99", ab 10.000 mit Tausenderpunkt — der EINE Formatierer für alle Push-Texte (englisch „€12.99")
 const { T, geld } = require('./_texte');
@@ -225,12 +238,19 @@ function weekSummary(wg, todayIso, L = 'de') {
   const picks = toArray(wg.mk).map((p) => ({ p, d: pickupNext(p, shiftIso(todayIso, 1)) }))
     .filter((x) => x.d && daysBetween(todayIso, x.d) <= 7).sort((a, b) => a.d.localeCompare(b.d))
     .map((x) => `${(T(L).muell[x.p.kind] || ['🗑️'])[0]} ${wd[parseIso(x.d).getDay()]}`);
-  // Haushalt-Saldo wie in der App: offene Posten, owedBy = trägt alles, sonst 50/50
+  /* Saldo wie in der App (myBalance): Haushalt + Growbox in EINEM Betrag (wg-v137, torbe 24.11.: „ja mach das" — vorher nur Haushalt,
+     der Push nannte andere Beträge als die App). Haushalt: owedBy trägt alles, sonst gleich unter den am Postendatum Anwesenden
+     (hsAnteilServer = hsAnteil in wgapp.html); Growbox: nach Pflanzen-Anteil aktueller Personen (= growCalc in wgapp.html). */
   let saldo = '';
   if (users.length === 2) {
     const hs = toArray(wg.hs).filter((i) => !i.settled);
-    const net = users.map((u) => hs.reduce((s, i) => s + (i.paidBy === u.id ? Number(i.price) || 0 : 0)
-      - (i.owedBy ? (i.owedBy === u.id ? Number(i.price) || 0 : 0) : (Number(i.price) || 0) / 2), 0));
+    const gi = toArray(wg.gi).filter((i) => !i.settled);
+    const gp = wg.gp || {};
+    const pTot = users.reduce((s, u) => s + (parseInt(gp[u.id], 10) || 0), 0);
+    const gShare = (id) => (pTot > 0 ? (parseInt(gp[id], 10) || 0) / pTot : 1 / users.length);
+    const giKosten = gi.reduce((s, i) => s + (Number(i.price) || 0), 0);
+    const net = users.map((u) => hs.reduce((s, i) => s + (i.paidBy === u.id ? Number(i.price) || 0 : 0) - hsAnteilServer(i, u.id, users), 0)
+      + gi.filter((i) => i.paidBy === u.id).reduce((s, i) => s + (Number(i.price) || 0), 0) - giKosten * gShare(u.id));
     if (Math.abs(net[0]) > 0.01) {
       const [deb, cred] = net[0] < 0 ? [users[0], users[1]] : [users[1], users[0]];
       saldo = x.saldo(deb.name, cred.name, fmtGeld(Math.abs(net[0]), L));

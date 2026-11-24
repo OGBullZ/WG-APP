@@ -45,7 +45,17 @@ check('14 Mo-Abend: Restmüll morgen, ohne gekoppelte Aufgabe „Tonne raus!"', 
 const su = W.eveningMessages(wg, '2026-09-20');
 const sum = su.find(m => m.title === 'Wochenüberblick');
 check('15 Sonntag: Überblick dabei', !!sum, JSON.stringify(su));
-check('16 Überblick nennt Saldo (Tom → Torben 15,00 €)', sum && /Haushalt: Tom → Torben €15,00/.test(sum.body), sum && sum.body);
+check('16 Überblick nennt Saldo (Tom → Torben 15,00 €)', sum && /Offen: Tom → Torben €15,00/.test(sum.body), sum && sum.body);   // wg-v137: „Offen:" (Haushalt + Growbox)
+/* wg-v137: Wochen-Push rechnet Haushalt + Growbox wie die App (myBalance) und teilt Haushalt-Posten nur unter den am Postendatum Anwesenden */
+{
+  const { weekSummary } = await import('../api/_wg.js').then(m => m.default || m);
+  const U2 = [{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }], D0 = '2026-11-24';
+  const s1 = weekSummary({ users: U2, pt: {}, mk: {}, hs: { h: { id: 'h', price: 40, paidBy: 'a', date: D0 } }, gi: { g: { id: 'g', price: 16, paidBy: 'b', date: D0 } }, gp: { a: 1, b: 1 } }, D0, 'de');
+  check('16b Haushalt B→A 20 € und Growbox A→B 8 € ergeben EINEN Betrag: B → A €12,00', /Offen: B → A €12,00/.test(s1.body), s1.body);
+  const U3 = [{ id: 'a', name: 'A', joined: '2026-01-01' }, { id: 'b', name: 'B', joined: '2026-11-20' }];
+  const s2 = weekSummary({ users: U3, pt: {}, mk: {}, hs: { h: { id: 'h', price: 40, paidBy: 'a', date: '2026-11-10' } }, gi: {}, gp: {} }, D0, 'de');
+  check('16c Posten vor dem Einzug von B: B schuldet nichts (kein Saldo)', !/Offen:/.test(s2.body), s2.body);
+}
 check('17 Überblick nennt kommende Aufgaben und Abholungen', sum && /diese Woche: .*Bad Di/.test(sum.body) && /Abholung: ⚫ Di/.test(sum.body), sum && sum.body);
 check('18 Werktag ohne Abholung: keine Nachricht', W.eveningMessages({ ...wg, mk: {} }, '2026-09-16').length === 0);
 

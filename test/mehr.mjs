@@ -220,8 +220,15 @@ check('X1b ausgeglichen, aber offene Posten → gesperrt', /Offene Posten/.test(
 /* wg-v135: growCalc zählt nur Pflanzen aktueller Personen; budStufe rechnet in Cent (genau 80 % / 100 % treffen) */
 const rech = await X1b.page.evaluate(() => {
   const g = growCalc({ users: [{ id: 'u1' }, { id: 'u2' }], gp: { u1: 3, u2: 3, weg: 3 }, gi: [] });
-  return { share: g.share('u1'), total: g.total, b80: budStufe(0.1 + 0.7, 1), b100: budStufe(0.1 + 0.2, 0.3), b0: budStufe(0.79, 1), bNull: budStufe(5, 0) };
+  /* wg-v137 (torbe: „erst ab da mit einbeziehen, wo er beitritt"): A zahlt 30 € am 10.11., C zieht am 20.11. ein → B schuldet 15, C nichts;
+     ein Posten nach dem Einzug wird durch drei geteilt */
+  const U3 = [{ id: 'a', joined: '2026-01-01' }, { id: 'b' }, { id: 'c', joined: '2026-11-20' }];
+  const D3 = { users: U3, hs: [{ id: 'p1', price: 30, paidBy: 'a', date: '2026-11-10' }, { id: 'p2', price: 30, paidBy: 'a', date: '2026-11-21' }] };
+  const vorher = { b: hsAnteil(D3.hs[0], 'b', U3), c: hsAnteil(D3.hs[0], 'c', U3) }, nachher = { b: hsAnteil(D3.hs[1], 'b', U3), c: hsAnteil(D3.hs[1], 'c', U3) };
+  return { share: g.share('u1'), total: g.total, b80: budStufe(0.1 + 0.7, 1), b100: budStufe(0.1 + 0.2, 0.3), b0: budStufe(0.79, 1), bNull: budStufe(5, 0),
+    vorher, nachher, netB: Math.round(hsNetOf(D3, 'b') * 100) / 100, netC: Math.round(hsNetOf(D3, 'c') * 100) / 100 };
 });
+check('X1e Neuzugang zählt erst ab Einzug: alter Posten 15/0, neuer 10/10, Saldo B −25, C −10', rech.vorher.b === 15 && rech.vorher.c === 0 && rech.nachher.b === 10 && rech.nachher.c === 10 && rech.netB === -25 && rech.netC === -10, JSON.stringify({ v: rech.vorher, n: rech.nachher, b: rech.netB, c: rech.netC }));
 check('X1c Pflanzen einer ausgezogenen Person zählen nicht mit', rech.total === 6 && rech.share === 0.5, JSON.stringify(rech));
 check('X1d Budget-Stufe in Cent: 0,1+0,7 von 1 € = 80 %, 0,1+0,2 von 0,30 € = 100 %, 0,79 = 0, ohne Limit 0', rech.b80 === 80 && rech.b100 === 100 && rech.b0 === 0 && rech.bNull === 0, JSON.stringify(rech));
 await X1b.ctx.close();
