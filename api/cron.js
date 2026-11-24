@@ -278,7 +278,10 @@ module.exports = async (req, res) => {
         const spent = hs.filter((i) => String(i.date || '').startsWith(ymKey) && (b.id === 'total' || i.cat === b.id) && !istUmbuchung(i))   // total = alle Ausgaben (ohne Umbuchungen, wg-v107)
           .reduce((s, i) => s + (Number(i.price) || 0), 0);
         const limit = Number(b.limit);
-        const level = spent >= limit ? 100 : spent >= limit * 0.8 ? 80 : 0;
+        /* wg-v135 (Fehlersuche): Stufe in ganzen Cent — `spent >= limit*0.8` kippte durch Kommazahlen (0,1+0,7 = 0,7999…), genau 80/100 % wurde oft
+           nicht gemeldet. Gleiche Rechnung wie budStufe in wgapp.html. */
+        const sC = Math.round(spent * 100), lC = Math.round(limit * 100);
+        const level = !(lC > 0) ? 0 : sC >= lC ? 100 : sC * 5 >= lC * 4 ? 80 : 0;
         if (!level) continue;
         const markId = `${ymKey}-${b.id}-${level}`;
         if (sentMarks[markId]) continue;

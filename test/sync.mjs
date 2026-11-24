@@ -120,10 +120,13 @@ const remoteHs = page => page.evaluate(() => Object.values(window.__wg.remote.hs
 {
   const page = await open({ code: 'TEST-LOKAL-SYNC002' });
   await addExpense(page, 'Spaete-Eingabe', '7,00');
-  await page.waitForTimeout(1200);                  // Flush läuft durch
-  check('B1 Flush hat den Eintrag rausgeschickt', (await remoteHs(page)).includes('Spaete-Eingabe'));
+  await page.waitForTimeout(1200);
+  /* wg-v135 (Fehlersuche): vor dem Erst-Read geht NICHTS raus — vorher schrieb der Flush mit leerer Diff-Basis die ganze lokale Liste
+     (überschrieb Partner-Änderungen, holte Partner-Löschungen zurück). Der Eintrag wartet und geht mit dem Replay nach dem Erst-Read raus. */
+  check('B1 vor dem Erst-Read wird nichts gesendet', !(await remoteHs(page)).includes('Spaete-Eingabe'));
   await page.evaluate(() => window.__wg.fire());    // Antwort trägt den Stand von vorher
   await page.waitForTimeout(2000);
+  check('B1b nach dem Erst-Read ist der Eintrag auf dem Server', (await remoteHs(page)).includes('Spaete-Eingabe'));
 
   const hs = await hsOf(page);
   check('B2 Eingabe überlebt auch hier', hs.includes('Spaete-Eingabe'));

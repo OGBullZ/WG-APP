@@ -3036,6 +3036,7 @@ window.__WG_EN = {
 "Offene Ausgaben":"Open expenses",
 "Offene Beträge":"Open amounts",
 "Offene Mängel (":"Open defects (",
+"Offene Posten (Saldo ausgeglichen) – erst im Haushalt „Alles abrechnen\"":"Open items (balance is even) – settle everything under Household first",
 "Offline (lokal speichern, sync wenn online)":"Offline (saved locally, syncs when back online)",
 "Ohne Betrag öffnet sich das ganze Formular (Datum, Aufteilung)":"Without an amount the full form opens (date, split)",
 "Ohne Kategorie":"No category",
@@ -3478,6 +3479,7 @@ window.__WG_EN = {
 "Zyklus beendet":"Cycle finished"
 };
 </script>
+
 
 
 
@@ -4283,8 +4285,14 @@ function DataProvider({ children }) {
     });
     return n;
   };
-  const persistPending = () => { ss('wg_pending', [...new Set([...dirty.current, ...inflight.current])]); setPendingN(countPending()); };
+  /* wg-v135 (Fehlersuche): prevPending mit sichern, bis der Erst-Read es verbraucht hat — sonst überschrieb die erste Eingabe einer zweiten
+     Offline-Sitzung wg_pending, und die unbestätigte Änderung der ersten Sitzung galt beim nächsten Online-Start nicht mehr als offen (Server gewann, weg) */
+  const persistPending = () => { ss('wg_pending', [...new Set([...prevPending.current, ...dirty.current, ...inflight.current])]); setPendingN(countPending()); };
   const prevPending = useRef([]);      // wg_pending der Vor-Session (beim Init konsumiert)
+  /* wg-v135 (Fehlersuche): erst nach dem Erst-Read senden. Vorher war lastPushed leer → der Flush hielt JEDES lokale Item für neu und schrieb die
+     ganze lokale Liste: Partner-Änderungen wurden überschrieben, Partner-Löschungen kamen zurück. Bis dahin nur sammeln (dirty); der Erst-Read
+     legt diese Keys per Replay gegen wg_confirmed auf den Server-Stand (s. `pending` unten) und flusht danach mit richtiger Diff-Basis. */
+  const erstRead = useRef(false);
   const confirmKeys = (keys, sentSer) => {
     const conf = ls('wg_confirmed', {}) || {};
     keys.forEach(k => { inflight.current.delete(k); if (k in sentSer) conf[k] = sentSer[k]; });
@@ -4303,7 +4311,7 @@ function DataProvider({ children }) {
     if (s.size > 8) s.delete(s.values().next().value);
   };
   const flush = useCallback(() => {
-    if (!dbRef.current || dirty.current.size === 0) return;
+    if (!dbRef.current || !erstRead.current || dirty.current.size === 0) return;   // wg-v135: vor dem Erst-Read nie (s. erstRead)
     const updates = {};
     const flushedKeys = [...dirty.current];
     const prevPushed = {};   // Diff-Basis für Rollback, falls der Server den Write ablehnt
@@ -4352,6 +4360,7 @@ function DataProvider({ children }) {
     if (!dbRef.current) return;
     dirty.current.add(key);
     persistPending();
+    if (!erstRead.current) return;   // wg-v135: nur sammeln; der Erst-Read spielt dirty per Replay ein und flusht selbst
     clearTimeout(flushTimer.current);
     flushTimer.current = setTimeout(flush, 400);
   }, [flush]);
@@ -4410,6 +4419,7 @@ function DataProvider({ children }) {
     // Pending-Keys der VORHERIGEN Session sichern, BEVOR neue persistPending-Aufrufe
     // (Edits während 'connecting') wg_pending überschreiben — der Erst-Read braucht sie.
     prevPending.current = ls('wg_pending', []) || [];
+    erstRead.current = false;   // wg-v135: neue Verbindung → bis zum Erst-Read nicht senden
     dirty.current.clear();
     inflight.current.clear();
     pushed.current = {};
@@ -4510,6 +4520,8 @@ function DataProvider({ children }) {
           // Noch nichts in der Cloud: lokalen Stand hochladen
           pushAll(dataRef.current);
         }
+        erstRead.current = true;   // wg-v135: ab jetzt normale Flushes (Replay-Flush oben ist per Timeout geplant und läuft danach)
+        prevPending.current = [];  // wg-v135: verbraucht (auch im Merge-/Leer-Zweig) — nicht weiter in wg_pending mitschreiben
         setStatus('synced');
         healPush(remote);                                   // eigene Push-Registrierung unter diesem Code sicherstellen
 
@@ -7695,6 +7707,9 @@ function SwapCard() {
   const netOf = id => hsNetOf(D, id) + (gc.tCost ? gc.net(id) : 0);
   const blockers = id => [
     Math.abs(netOf(id)) > 0.01 && `Offene Beträge (€${fmt(Math.abs(netOf(id)))}) – erst im Haushalt „Alles abrechnen"`,
+    /* wg-v135 (Fehlersuche): Saldo 0 heißt nicht „nichts offen" — gleich große offene Posten beider Seiten heben sich auf, blieben beim Wechsel
+       aber an der alten id hängen: ihr Guthaben verschwand, die neue Person trug die Hälfte ihrer Posten. Deshalb auch offene Posten sperren. */
+    Math.abs(netOf(id)) <= 0.01 && [...(D.hs||[]), ...(D.gi||[])].some(i=>i && !i.settled && (i.paidBy===id || i.owedBy===id)) && TT("Offene Posten (Saldo ausgeglichen) – erst im Haushalt „Alles abrechnen\""),
     (D.sg||[]).some(g=>g && !g.bought && (g.holder===id || (Number(g['c_'+id])||0)>0)) && 'Offenes Sparziel – erst kaufen oder auflösen',
   ].filter(Boolean);
   const go = async () => {
@@ -8817,6 +8832,10 @@ function PriceHint({ name, price, onPick }) {
   );
 }
 
+/* wg-v135 (Fehlersuche): Budget-Stufe 0/80/100 in ganzen Cent — `spent >= limit*0.8` kippte durch Kommazahlen (0,1 + 0,7 = 0,7999…):
+   genau 80 % bzw. 100 % zählte in ~36 % der Fälle nicht. Gleiche Rechnung wie api/cron.js (budStufe). */
+const budStufe = (spent, lim) => { const s = Math.round((Number(spent)||0)*100), l = Math.round((Number(lim)||0)*100); return l <= 0 ? 0 : s >= l ? 100 : s*5 >= l*4 ? 80 : 0; };
+
 /* ── Gesamtbudget je Monat (Key `bud`, id 'total') — Cron warnt bei 80/100 % wie bei den Kategorien ── */
 function TotalBudget({ oeffnen } = {}) {
   const oeffnenKnopf = useOeffnen(oeffnen);   // Kachel „Hinzufügen" öffnet das Blatt direkt (wg-v105)
@@ -8829,7 +8848,8 @@ function TotalBudget({ oeffnen } = {}) {
   const save = () => { const l = parseNum(val)||0; setFn('bud', cur=>{ const x=(cur||[]).filter(y=>y && y.id!=='total'); return l>0 ? [...x,{ id:'total', limit:l }] : x; }); setOpen(false); };
   const pct = lim ? spent/lim : 0;
   const now = new Date(), daysLeft = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate() - now.getDate();
-  const col = pct>=1 ? 'var(--red)' : pct>=0.8 ? 'var(--amber)' : 'var(--mint)';
+  const stufe = budStufe(spent, lim);   // wg-v135: Stufe in Cent statt pct-Vergleich (s. budStufe)
+  const col = stufe===100 ? 'var(--red)' : stufe===80 ? 'var(--amber)' : 'var(--mint)';
   const dayNo = now.getDate(), daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
   const forecast = lim && dayNo >= 5 ? Math.round(spent / dayNo * daysInMonth * 100) / 100 : null;
   return (
@@ -8841,7 +8861,7 @@ function TotalBudget({ oeffnen } = {}) {
             <span>{TT("🎯 Monatsbudget Haushalt")}</span><span className="num" style={{color:col}}>€{fmt(spent)} / €{fmt(lim)}</span>
           </span>
           <span style={{height:6,borderRadius:3,background:'var(--bg3)',overflow:'hidden'}}><span style={{display:'block',height:'100%',width:`${Math.min(100,pct*100)}%`,background:col}}/></span>
-          <span style={{fontSize:12,color:'var(--label2)'}}>{pct>=1 ? TT("€{0} drüber", fmt(spent-lim)) : TT("noch €{0} für {1} Tag{2}", fmt(lim-spent), daysLeft, plu(daysLeft,'e'))}</span>
+          <span style={{fontSize:12,color:'var(--label2)'}}>{stufe===100 ? TT("€{0} drüber", fmt(spent-lim)) : TT("noch €{0} für {1} Tag{2}", fmt(lim-spent), daysLeft, plu(daysLeft,'e'))}</span>
           {/* Hochrechnung (wg-v75): bisheriges Tempo auf den ganzen Monat — ab dem 5. aussagekräftig */}
           {forecast!==null && <span data-testid="budget-forecast" style={{fontSize:12,color:forecast>lim?'var(--amber)':'var(--label2)'}}>
             {TT("📈 Bei dem Tempo landet ihr bei ~€")}{fmt(forecast)}{forecast>lim?TT(" – €{0} über dem Budget", fmt(forecast-lim)):TT(" – passt")}
@@ -11185,7 +11205,9 @@ function Haushalt({goPutz}) {
    vom Haushalt (Grow-Posten eintragen, listen, verrechnen/abrechnen), dazu Heute, Start-Pop-up, Übersicht */
 function growCalc(D){
   const users=D.users||[], plants=D.gp||{}, items=D.gi||[];
-  const total=Object.values(plants).reduce((s,v)=>s+(parseInt(v)||0),0);
+  /* wg-v135 (Fehlersuche): nur Pflanzen AKTUELLER Personen zählen — nach einem Mitbewohner-Wechsel blieb der Schlüssel der ausgezogenen
+     Person in gp stehen, zählte im Nenner mit und ihr Anteil an jedem neuen Grow-Posten hatte keinen Schuldner (Geld versickerte) */
+  const total=users.reduce((s,u)=>s+(parseInt(plants[u.id])||0),0);
   const share=id=>total>0?(parseInt(plants[id]||0)/total):(users.length?1/users.length:0);
   const open=items.filter(i=>!i.settled);
   const tCost=open.reduce((s,i)=>s+i.price,0);
@@ -13861,7 +13883,7 @@ function Statistik({ goHaus }) {   /* goHaus (wg-v112, P9): „Ausgabe eintragen
               {catBuckets.map(b=>{
                 const limit=b.k!=='none'?(budMap[b.k]||0):0;
                 const pct=limit>0?b.v/limit:0;
-                const warn=limit>0&&pct>=1?'var(--red)':limit>0&&pct>=0.8?'var(--amber)':null;
+                const st=budStufe(b.v, limit), warn=st===100?'var(--red)':st===80?'var(--amber)':null;   /* wg-v135: Stufe in Cent (s. budStufe) */
                 return (
                   <div key={b.k} className="bar-row" style={b.k!=='none'?{cursor:'pointer'}:undefined} {...(b.k!=='none'?klickbar(()=>setBudCat(b.k), TT("{0} – Budget bearbeiten", b.label)):{})} /* wg-v122 (A11Y-3): nur Kategorien mit Budget-Blatt sind klickbar */>
                     <span className="bar-name" style={{color:warn||b.color,width:118,fontSize:12.5}}>{b.em} {b.label}</span>

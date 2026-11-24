@@ -211,6 +211,20 @@ await X1.folds(); await X1.page.waitForTimeout(300);
 await X1.page.locator('[data-testid="swap-card"] button').first().click(); await X1.page.waitForTimeout(300);
 check('X1 offene Beträge → gesperrt', /Offene Beträge/.test(await X1.sheet.locator('[data-testid="swap-block"]').innerText().catch(() => '')) && await X1.sheet.getByRole('button', { name: 'Wechsel durchführen' }).isDisabled());
 await X1.ctx.close();
+// wg-v135 (Fehlersuche): Saldo 0, aber offene Posten auf beiden Seiten (je 10 €) → trotzdem gesperrt (vorher erlaubt: Toms Posten blieben an seiner alten id hängen)
+const X1b = await open({ ...SEED, gi: {}, hs: map([{ id: 'hb1', name: 'Pizza', price: 10, paidBy: 'u1', date: T, cat: 'food', settled: false }, { id: 'hb2', name: 'Kino', price: 10, paidBy: 'u2', date: T, cat: 'fun', settled: false }]) }, { tab: 'set' });
+await X1b.folds(); await X1b.page.waitForTimeout(300);
+await X1b.page.locator('[data-testid="swap-card"] button').first().click(); await X1b.page.waitForTimeout(300);
+check('X1b ausgeglichen, aber offene Posten → gesperrt', /Offene Posten/.test(await X1b.sheet.locator('[data-testid="swap-block"]').innerText().catch(() => '')) && await X1b.sheet.getByRole('button', { name: 'Wechsel durchführen' }).isDisabled(),
+  await X1b.sheet.locator('[data-testid="swap-block"]').innerText().catch(() => 'kein swap-block'));
+/* wg-v135: growCalc zählt nur Pflanzen aktueller Personen; budStufe rechnet in Cent (genau 80 % / 100 % treffen) */
+const rech = await X1b.page.evaluate(() => {
+  const g = growCalc({ users: [{ id: 'u1' }, { id: 'u2' }], gp: { u1: 3, u2: 3, weg: 3 }, gi: [] });
+  return { share: g.share('u1'), total: g.total, b80: budStufe(0.1 + 0.7, 1), b100: budStufe(0.1 + 0.2, 0.3), b0: budStufe(0.79, 1), bNull: budStufe(5, 0) };
+});
+check('X1c Pflanzen einer ausgezogenen Person zählen nicht mit', rech.total === 6 && rech.share === 0.5, JSON.stringify(rech));
+check('X1d Budget-Stufe in Cent: 0,1+0,7 von 1 € = 80 %, 0,1+0,2 von 0,30 € = 100 %, 0,79 = 0, ohne Limit 0', rech.b80 === 80 && rech.b100 === 100 && rech.b0 === 0 && rech.bNull === 0, JSON.stringify(rech));
+await X1b.ctx.close();
 // ausgeglichen → Wechsel
 const X2 = await open({ ...SEED, hs: {}, kt: map([{ id: 'k', total: 1000, c_u1: 500, c_u2: 500 }]),
   pl: map([{ id: 'g1', taskId: 't1', userId: 'u1', date: dayAgo(3), pts: 3 }, { id: 'g2', taskId: 't1', userId: 'u1', date: dayAgo(10), pts: 3 }]) }, { tab: 'set' });
