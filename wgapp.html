@@ -1123,6 +1123,33 @@ button.cell { color:var(--label); }
 :root[data-eng-xs] .cell:has(> .chk-btn):has(> .del-btn) > .cell-content { flex:1 1 calc(100% - 39px); }
 :root[data-eng-xs] .cell:has(> .chk-btn):has(> .del-btn) > :not(.chk-btn):not(.cell-content):not(.del-btn) { margin-left:39px; }
 :root[data-eng-xs] .cell:has(> .chk-btn):has(> .del-btn) > .del-btn { margin-left:auto; }
+/* wg-v136 (schmal): 320 px und „Sehr groß" — bei Platzmangel UMBRECHEN statt abschneiden/zerbrechen. Alles unter data-eng-xs (wirksame Breite < 350 px),
+   damit 390 px bei normaler Schrift unverändert bleibt. Gemessen vorher: Hinweiskarten mit Knopf ließen dem Text ~60 px (Wörter brachen in Buchstaben),
+   Donut + Namensliste nebeneinander schnitten Namen/Stepper ab, die Summe lief rechts aus der Karte, lange „Von → Nach"-Namen brachen buchstabenweise. */
+/* (a) Zeile mit Text + Knopf: Textspalte behält mind. 9em, erst der Knopf rutscht darunter (rechtsbündig) */
+:root[data-eng-xs] .cell:has(> .cell-content):has(> .btn-kompakt, > .mini-btn, > .betrag):not(:has(> .del-btn)) { flex-wrap:wrap; row-gap:8px; }
+:root[data-eng-xs] .cell:has(> .cell-content):has(> .btn-kompakt, > .mini-btn, > .betrag):not(:has(> .del-btn)) > .cell-content { flex:1 1 9em; }
+:root[data-eng-xs] .cell:has(> .cell-content):has(> .btn-kompakt, > .mini-btn, > .betrag):not(:has(> .del-btn)) > :is(.btn-kompakt, .mini-btn, .betrag) { margin-left:auto; }
+/* Balken-Zeilen (Wer hat bezahlt, Kategorien): Betragsspalte war fest 74 px — fünfstellige Beträge liefen rechts aus der Karte; jetzt mindestens 74 px, sonst so breit wie nötig */
+:root[data-eng-xs] .bar-val { width:auto; min-width:74px; white-space:nowrap; }
+:root[data-eng-xs] .jahr-zeile { flex-wrap:wrap; row-gap:2px; }   /* „Jahresrückblick 2026 + Betrag + ›": Betrag rutscht bei Platzmangel in die zweite Zeile */
+:root[data-eng-xs] .jahr-zeile > span:first-child { flex:1 1 9em; }
+:root[data-eng][data-eng-xs] .bar-name { width:84px !important; }   /* nur mit Schriftzoom (data-eng): bei 320 px normal bleiben die 118 px (test/gutachten2_c G7e) */   /* Kategorie-Zeilen setzten 118 px inline — Name (mit …) + Balken + Betrag passten nicht in die Karte */
+/* (b) Personen: Name über die volle Zeile (Punkt + Feld), „Das bin ich" darunter */
+:root[data-eng-xs] .person-row > input.field { flex:1 1 calc(100% - 25px) !important; min-width:0; }
+:root[data-eng-xs] .person-row > .btn-kompakt { margin-left:auto; }
+/* (c) Growbox: Donut ÜBER der Namensliste (mittig), Liste nimmt die volle Breite — Stepper bleiben in der Karte und „+" erreichbar */
+:root[data-eng-xs] .grow-split { flex-wrap:wrap; justify-content:center; row-gap:16px; }
+:root[data-eng-xs] .grow-split > .grow-namen { flex:1 1 100% !important; min-width:0; }
+/* (d) Übersicht: große Summe schrumpft mit der Kartenbreite (Container-Einheit; Rückfall = feste 28 px), Spalten Haushalt/Growbox/Abos wandern bei Bedarf in die nächste Zeile */
+:root[data-eng-xs] .hero { container-type:inline-size; }
+:root[data-eng-xs] .hero-big { font-size:28px; font-size:clamp(20px, 12.5cqw, 38px); white-space:nowrap; }
+:root[data-eng-xs] .hero-kpis { flex-wrap:wrap; gap:8px 14px; }
+:root[data-eng-xs] .hero-kpi { flex:1 1 auto !important; }
+/* (e) „Von → Nach"-Zeile (Σ in der Übersicht): Namensblock mind. 9em, der Betrag rutscht darunter statt den Namen buchstabenweise zu zerlegen */
+:root[data-eng-xs] .plan-row { flex-wrap:wrap; row-gap:2px; }
+:root[data-eng-xs] .plan-row > .plan-who { flex:1 1 9em; }
+:root[data-eng-xs] .plan-row > .betrag { margin-left:auto; }
 
 /* ── Sub cards ── */
 .sub-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -2171,6 +2198,7 @@ window.__WG_EN = {
 "€{0} kopieren":"copy €{0}",
 "1 abgerechneter Eintrag wandert ins Archiv. Er bleibt in der Übersicht sichtbar.":"1 settled entry moves to the archive. It stays visible in the Overview.",
 "1 Änderung wartet auf Netz":"1 change waiting for a connection",
+"1 Eintrag":"1 entry",
 "1 Eintrag archiviert":"1 entry archived",
 "1 erledigten Eintrag aus dem Wagen entfernen?":"Remove 1 ticked entry from the trolley?",
 "1 Posten älter als 3 Monate":"1 item older than 3 months",
@@ -3479,6 +3507,7 @@ window.__WG_EN = {
 "Zyklus beendet":"Cycle finished"
 };
 </script>
+
 
 
 
@@ -11373,14 +11402,14 @@ function Grow() {
               50-%-Angaben neben den Steppern bleiben: die Aufteilung gilt ja. */}
           {/* wg-v116: Satz sagt jetzt, WO die Anteile wirken (Grow-Ausgaben im Haushalt) */}
           {total===0 && <div data-testid="grow-leer" style={{fontSize:12.5,color:'var(--label2)',lineHeight:1.45,margin:'0 0 16px'}}>{TT("Mit + trägst du eure Pflanzen ein — danach teilen sich Grow-Ausgaben im Haushalt nach diesen Anteilen.")}</div>}
-          <div style={{display:'flex',alignItems:'center',gap:20}}>
+          <div className="grow-split" style={{display:'flex',alignItems:'center',gap:20}}>{/* wg-v136 (schmal): Klasse für die Umbruch-Regel (Donut über die Namensliste, s. CSS „grow-split") */}
             {/* wg-v111: schmal — auf 320 px wurde „50%" neben dem 148er-Ring am Kartenrand abgeschnitten.
                 wg-v112 (P9): `anlauf` bei 0 Pflanzen = Bögen mit Länge 0 bleiben im Baum → das erste „+" lässt den Ring wachsen (s. Donut) */}
             <Donut segs={users.map(u=>({frac:total===0?0:share(u.id),color:u.color,anlauf:total===0}))} schmal>
               <span className="num" style={{fontSize:'calc(30px * var(--ring-k, 1))',fontWeight:700,color:'var(--lime)'}}>{total}</span>
               <span style={{fontSize:10,color:'var(--label3)',letterSpacing:'.06em',textTransform:'uppercase',fontFamily:'var(--mono)'}}>{TT("Pflanzen")}</span>{/* wg-v112 (P10): .06em wie die Beschriftung im Haushalt-Ring */}
             </Donut>
-            <div style={{flex:1,display:'flex',flexDirection:'column',gap:14}}>
+            <div className="grow-namen" style={{flex:1,display:'flex',flexDirection:'column',gap:14}}>
               {users.map(u=>(
                 <div key={u.id} style={{display:'flex',flexDirection:'column',gap:5}}>
                   <div style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',alignItems:'baseline',gap:'0 8px'}}>{/* gap (wg-v111): langer Name stieß sonst an die % · wg-v118 (GRENZ-1): flexWrap — ist die Namensspalte (≈75 px neben dem Ring) zu schmal für Name + %, rutscht das % in eine zweite Zeile UNTER den Namen, statt dass der Name buchstabenweise bricht („Konstantino/s"); overflowWrap:anywhere am Namen bleibt nur als Netz für Namen, die auch allein nicht passen */}
@@ -12192,8 +12221,8 @@ function Putzplan() {
                       <Teile data-testid="chore-wer">
                         <>
                           {fest && <>{TT("Nur")} </>}
-                          <ZustName id={u?.id} color={u?.color}>{nm(u, !fest)}</ZustName>
-                          {dU && <>{TT(", danach")} {danachId===t.assignee && <>{TT("wieder")} </>}<span style={{color:dU.color,fontWeight:600}}>{nm(dU, false)}</span></>}
+                          <ZustName id={u?.id} color={u?.color}>{nm(u, !fest)}{dU && ',' /* wg-v136 (schmal): das Komma sitzt IM Inline-Block des Namens — davor brach die Zeile zwischen Name (atomar) und Komma: „Konstantinopolitanowa , then" */}</ZustName>
+                          {dU && <>{TT(", danach").slice(1) /* wg-v136 (schmal): Komma steht schon oben (beide Sprachen beginnen den Schlüssel mit „,") */} {danachId===t.assignee && <>{TT("wieder")} </>}<span style={{color:dU.color,fontWeight:600}}>{nm(dU, false)}</span></>}
                         </>
                         <span style={{whiteSpace:'nowrap'}}>{t.pk?pickText(t.pk):ivText(t.interval||7)}</span>
                       </Teile>
@@ -13246,7 +13275,7 @@ function Einstellungen() {
                 <div className="cell-icon" data-ton="grau" aria-hidden="true">📂</div>
                 <div className="cell-content">
                   <span className="cell-title">{TT("Archiv ansehen")}</span>
-                  <span className="cell-sub">{arc.length} {TT("Einträge")}</span>
+                  <span className="cell-sub">{arc.length===1 ? TT("1 Eintrag") : <>{arc.length} {TT("Einträge")}</> /* wg-v136 (schmal): Einzahl */}</span>
                 </div>
               </div>
             )}
@@ -13343,7 +13372,7 @@ function Einstellungen() {
             {users.map(u=>{ const ro = !!me && me!==u.id;   // fremdes Profil: nur lesen
               const lockSt = ro ? { opacity:.75, cursor:'not-allowed' } : null;
               return (
-              <div key={u.id} className="cell" style={{flexWrap:'wrap'}} data-testid="person-row">
+              <div key={u.id} className="cell person-row" style={{flexWrap:'wrap'}} data-testid="person-row">{/* wg-v136 (schmal): Klasse für die Umbruch-Regel (Name über die volle Breite, Knopf darunter) */}
                 <div style={{width:10,height:10,borderRadius:'50%',background:u.color,boxShadow:`0 0 8px ${u.color}`,flexShrink:0}}/>
                 {/* wg-v134 (Bedienung B3): eigenes Profil = .name-feld (gestrichelte Unterlinie, beim Fokus durchgezogen) — vorher sah das Feld aus wie Text
                     und niemand fand, dass man den Namen hier ändern kann; fremde Profile (ro) bleiben ohne Linie */}
@@ -13822,9 +13851,9 @@ function Statistik({ goHaus }) {   /* goHaus (wg-v112, P9): „Ausgabe eintragen
               {deltaRatio<=0.005 ? TT("≈ wie Vormonat") : deltaPct>200 ? TT("▲ €{0} mehr als im Vormonat", fmt(total-prev)) : TT("{0} {1} % vs. Vormonat", total>prev?'▲':'▼', deltaPct)}
             </div>
           )}
-          <div style={{display:'flex',gap:10}}>
+          <div className="hero-kpis" style={{display:'flex',gap:10}}>{/* wg-v136 (schmal): Klassen für die Umbruch-Regel (Spalten wandern untereinander statt rechts abgeschnitten zu werden) */}
             {[[TT("Haushalt"),hsSum,'var(--mint)'],[TT("Growbox"),giSum,'var(--lime)'],[TT("Abos/Mo."),moAbos,'var(--indigo)']].map(([l,v,c])=>(
-              <div key={l} style={{flex:1}}>
+              <div key={l} className="hero-kpi" style={{flex:1}}>
                 <div style={{fontSize:11,color:'var(--label3)'}}>{l}</div>
                 <div className="num" style={{fontWeight:700,color:c,fontSize:15}}>€{fmt(v)}</div>
               </div>
@@ -13843,8 +13872,8 @@ function Statistik({ goHaus }) {   /* goHaus (wg-v112, P9): „Ausgabe eintragen
                        Wie in der Ausgleich-Karte im Haushalt (BalPlan): „Von → Nach" links in den Personenfarben (bricht nur an Leerzeichen/Bindestrich, nie im Wort — .ganz sperrt die Silbentrennung),
                        Betrag rechts, nicht umbrechend. Die Typostufe bleibt die der Zeilentitel (16/600, HIER-7); stats-plan bleibt der Behälter, stats-plan-row die Zeile. */
                     <span data-testid="stats-plan" style={{display:'flex',flexDirection:'column',gap:6}}>{settlePlan(nets).map(t=>(
-                      <span key={t.from+t.to} data-testid="stats-plan-row" style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:10}}>
-                        <span style={{minWidth:0}}><b style={{color:users.find(u=>u.id===t.from)?.color,fontWeight:800}}>{t.fromName}</b> → <b style={{color:users.find(u=>u.id===t.to)?.color,fontWeight:800}}>{t.toName}</b></span>
+                      <span key={t.from+t.to} data-testid="stats-plan-row" className="plan-row" style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:10}}>
+                        <span className="plan-who" style={{minWidth:0}}><b style={{color:users.find(u=>u.id===t.from)?.color,fontWeight:800}}>{t.fromName}</b> → <b style={{color:users.find(u=>u.id===t.to)?.color,fontWeight:800}}>{t.toName}</b></span>
                         <span className="betrag" style={{flexShrink:0,whiteSpace:'nowrap'}} /* wg-v125 (E1): 800 -> 700 */>€{fmt(t.amount)}</span>
                       </span>))}</span>
                   : netDeb&&netCred
