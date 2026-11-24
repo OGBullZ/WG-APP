@@ -94,6 +94,9 @@ const openMehr = async page => { await page.locator('.tabbar .tabitem', { hasTex
   await page.locator('.sheet .f-euro .field').fill('4');
   await page.locator('.sheet-acts .btn', { hasText: 'Weiter' }).click(); await page.waitForTimeout(250);
   await page.locator('.sheet-acts .btn', { hasText: 'Fertig' }).click(); await page.waitForTimeout(1200);
+  /* wg-v135: die App sendet erst nach dem Erst-Read der NEUEN Verbindung (vorher ging die ganze lokale Liste ungeprüft raus);
+     die Attrappe beantwortet ihn nur auf fire() — das echte SDK sofort */
+  await page.evaluate(() => window.__wg.fire()); await page.waitForTimeout(1500);
   const t2 = await tree(page);
   check('A9 neue Ausgabe landet unter dem neuen Code, nicht unter dem alten', Object.values(t2.wg[NEW]?.hs || {}).some(i => i.name === 'NachWechsel') && !JSON.stringify(t2.wg[OLD]).includes('NachWechsel'));
   await ctx.close();
